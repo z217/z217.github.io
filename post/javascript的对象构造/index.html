@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <title>z217&#39;s blog</title>
+</head><body><aside id="sidenav">
+    <header>
+    
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+        
+    
+
+    <a id="branding" href=https://z217blog.cn>
+        
+            z217&#39;s blog
+        
+    </a>
+    </header>
+
+    <nav>
+        
+            		
+            <a href="/"
+                
+            >
+                <i class="fas fa-home fa-ms"></i>
+                <span>首页</span>
+            </a>
+        
+            		
+            <a href="/post/"
+                
+            >
+                <i class="fas fa-keyboard fa-ms"></i>
+                <span>文章</span>
+            </a>
+        
+            		
+            <a href="/tags"
+                
+            >
+                <i class="fas fa-tags fa-ms"></i>
+                <span>标签</span>
+            </a>
+        
+            		
+            <a href="/about"
+                
+            >
+                <i class="fas fa-smile fa-ms"></i>
+                <span>关于</span>
+            </a>
+        
+            		
+            <a href="https://github.com/z217"
+                
+                    target="_blank"
+                
+            >
+                <i class="fab fa-github fa-ms"></i>
+                <span>Github</span>
+            </a>
+        
+            		
+            <a href="/index.xml"
+                
+            >
+                <i class="fas fa-rss fa-ms"></i>
+                <span>RSS</span>
+            </a>
+        
+            		
+            <a href="http://123.57.12.189"
+                
+                    target="_blank"
+                
+            >
+                <i class="fas fa-link fa-ms"></i>
+                <span>二站</span>
+            </a>
+        
+    </nav>
+</aside>
+<main id="main">
+            <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+            <div class="content">
+    
+    <h1 id="title">JavaScript的对象构造</h1>
+    
+      
+    
+    <p><strong>参考书籍：《JavaScript高级程序设计》（第3版）</strong></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>JavaScript</code>是一门面向对象的语言，即拥有类的概念。但<code>ECMAScript</code>中没有类的概念，因此它的对象与其他基于类的语言不同，我们可以把<code>ECMAScript</code>中的对象想象成散列表，由一组组键值对构成，值可以是数据或者函数。</p>
+
+<ol>
+<li><a href="#2020-02-28-1"> <span  class="math">\(object\)</span> 构造函数模式</a></li>
+<li><a href="#2020-02-28-2">对象字面量</a></li>
+<li><a href="#2020-02-28-3">工厂模式</a></li>
+<li><a href="#2020-02-28-4">构造函数模式</a></li>
+<li><a href="#2020-02-28-5">原型模式</a>
+
+<ul>
+<li><a href="#2020-02-28-5-1">什么是原型对象</a></li>
+</ul></li>
+<li><a href="#2020-02-28-6">寄生构造函数模式</a></li>
+<li><a href="#2020-02-28-7">稳妥构造函数模式</a></li>
+<li><a href="#2020-02-28-8">属性类型</a></li>
+</ol>
+
+<hr>
+
+<h2 id="span-id--2020022811object构造函数模式span"><span id = "2020-02-28-1">1.<code>object</code>构造函数模式</span></h2>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">person</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">object</span><span class="p">();</span>
+<span class="nx">person</span><span class="p">.</span><span class="nx">name</span> <span class="o">=</span> <span class="s2">&#34;A&#34;</span><span class="p">;</span>
+<span class="nx">person</span><span class="p">.</span><span class="nx">sayName</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="nx">alert</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">name</span><span class="p">);</span>
+<span class="p">};</span>
+</code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上例创建了一个 <span  class="math">\(person\)</span> 对象，并为其添加了 <span  class="math">\(name\)</span> 属性和 <span  class="math">\(sayName(\ )\)</span> 方法，是最简单的构造对象的方法。</p>
+
+<hr>
+
+<h2 id="span-id--2020022822对象字面量span"><span id = "2020-02-28-2">2.对象字面量</span></h2>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">person</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">name</span><span class="o">:</span> <span class="s2">&#34;XiaoMing&#34;</span><span class="p">,</span>
+    <span class="nx">sayName</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="nx">alert</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">name</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上例创建了相同的 <span  class="math">\(person\)</span> 对象，不同之处在于它是使用对象字面量定义的。以花括号表示开始和结束，属性名+冒号+值的格式定义属性，用逗号隔开多个不同的属性。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在使用对象字面量时，属性名也可以使用字符串。需要注意的是，<code>JSON</code>只支持此种语法。</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">person</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&#34;name&#34;</span><span class="o">:</span> <span class="s2">&#34;XiaoMing&#34;</span><span class="p">,</span>
+    <span class="s2">&#34;sayName&#34;</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="nx">alert</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">name</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;一般情况下，由于对象字面量语法的代码量少，开发人员大多采用此种方式构造对象。</p>
+
+<hr>
+
+<h2 id="span-id--2020022833工厂模式span"><span id = "2020-02-28-3">3.工厂模式</span></h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;不论是使用 <span  class="math">\(object\)</span> 构造函数还是对象字面量，都有一个很明显的缺点，就是创建多个对象时会产生大量重复代码。因此人们采取了工厂模式的一个变种。</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">createPerson</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">o</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">object</span><span class="p">();</span>
+    <span class="nx">o</span><span class="p">.</span><span class="nx">name</span> <span class="o">=</span> <span class="nx">name</span><span class="p">;</span>
+    <span class="nx">o</span><span class="p">.</span><span class="nx">sayName</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="nx">alert</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">name</span><span class="p">);</span>
+    <span class="p">};</span>
+    <span class="k">return</span> <span class="nx">o</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="kd">var</span> <span class="nx">person1</span> <span class="o">=</span> <span class="nx">createPerson</span><span class="p">(</span><span class="s2">&#34;XiaoMing&#34;</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">person2</span> <span class="o">=</span> <span class="nx">createPerson</span><span class="p">(</span><span class="s2">&#34;XiaoHong&#34;</span><span class="p">);</span>
+</code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;函数 <span  class="math">\(createPerson(\ )\)</span> 接收参数并返回一个 <span  class="math">\(person\)</span> 对象，每次调用均可以得到一个新的 <span  class="math">\(person\)</span> 对象。以此，我们可以大量创建 <span  class="math">\(person\)</span> 对象。</p>
+
+<hr>
+
+<h2 id="span-id--2020022844构造函数模式span"><span id = "2020-02-28-4">4.构造函数模式</span></h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>ECMAScript</code>中的构造函数可以用于创建指定类型的对象，我们可以创建自定义构造函数，从而创建自定义对象。</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">Person</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">name</span> <span class="o">=</span> <span class="nx">name</span><span class="p">;</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">sayName</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="nx">alert</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">name</span><span class="p">);</span>
+    <span class="p">};</span>
+<span class="p">}</span>
+<span class="kd">var</span> <span class="nx">person1</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Person</span><span class="p">(</span><span class="s2">&#34;XiaoMing&#34;</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">person2</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Person</span><span class="p">(</span><span class="s2">&#34;XiaoHong&#34;</span><span class="p">);</span>
+</code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;此例使用 <span  class="math">\(Person(\ )\)</span> 函数替代了 <span  class="math">\(createPerson(\ )\)</span> 函数。可以发现， <span  class="math">\(Person(\ )\)</span> 中，我们并没有显示的创建对象，而是直接将属性和方法赋予 <span  class="math">\(this\)</span> 对象，并且在最后构造函数时使用了 <span  class="math">\(new\)</span> 操作符。实际上，该操作经历了  <span  class="math">\(4\)</span>  步：</p>
+
+<ol>
+<li>创建对象</li>
+<li>将构造函数作用域赋予新对象</li>
+<li>执行构造函数</li>
+<li>返回新对象</li>
+</ol>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在此例中，我们创建的对象可以通过 <span  class="math">\(instanceof\)</span> 操作符进行检验，这也正是使用构造函数模式的优点——对象实例被标识为特殊类型。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果我们不使用 <span  class="math">\(new\)</span> 操作符，而是直接调用构造函数，则属性会附加在 <span  class="math">\(window\)</span> 对象上。如下所示</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="nx">Person</span><span class="p">(</span><span class="s2">&#34;XiaoMing&#34;</span><span class="p">);</span>
+<span class="nx">windwo</span><span class="p">.</span><span class="nx">sayName</span><span class="p">();</span> <span class="c1">//&#34;XiaoMing&#34;
+</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;而要避免这种情况，可以使用严格模式。这样在非严格模式下默认转换为全局对象的 <span  class="math">\(null\)</span> 或者 <span  class="math">\(undefined\)</span> 不会转换，因此上述调用会抛出错误。严格模式可以以如下方式使用：</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">Person</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span> <span class="p">{</span>
+    <span class="s1">&#39;use strict&#39;</span><span class="p">;</span> <span class="c1">//开启严格模式
+</span><span class="c1"></span>    <span class="k">this</span><span class="p">.</span><span class="nx">name</span> <span class="o">=</span> <span class="nx">name</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<hr>
+
+<h2 id="span-id--2020022855原型模式span"><span id = "2020-02-28-5">5.原型模式</span></h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在原型模式之前，我们可以先讨论下构造函数模式的缺点。构造函数模式的缺点就是其中每个对象的每个方法都要重新创建一遍。例如之前的 <span  class="math">\(person1\)</span> 对象和 <span  class="math">\(person2\)</span> 对象，其 <span  class="math">\(sayName(\ )\)</span> 方法不是同一个 <span  class="math">\(Function\)</span> 实例，而是两个不同的实例。当然我们可以通过以下方法解决：</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">Person</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">name</span> <span class="o">=</span> <span class="nx">name</span><span class="p">;</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">sayName</span> <span class="o">=</span> <span class="nx">sayName</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kd">function</span> <span class="nx">sayName</span><span class="p">()</span> <span class="p">{</span>
+    <span class="nx">alert</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">name</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在全局作用域中定义 <span  class="math">\(sayName(\ )\)</span> 函数。这种方法确实可以做到共享同一个实例，但问题是 <span  class="math">\(sayName(\ )\)</span> 函数定义在全局作用域中，却只被 <span  class="math">\(Person\)</span> 对象调用，而且由于是全局作用域，该函数可以被随意调用，不利于封装。为解决这个问题，我们可以使用原型模式。</p>
+
+<h3 id="span-id--2020022851什么是原型对象span"><span id = "2020-02-28-5-1">什么是原型对象</span></h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;我们创建的每个对象中都有一个 <span  class="math">\(prototype\)</span> 属性，该属性是一个指针，指向一个包含可以被特定实例所共享的属性和方法。对于<code>ECMAScript</code>中的引用类型而言， <span  class="math">\(prototype\)</span> 是保存所有实例方法的地方。在构造函数模式中，我们提到了创建对象过程中的  <span  class="math">\(4\)</span>  步，而 <span  class="math">\(prototype\)</span> 可以理解为第  <span  class="math">\(1\)</span>  步当中创建的对象的原型指针。无论什么时候，只要创建了一个新函数，就会根据一组特定的规则为其创建一个 <span  class="math">\(prototype\)</span> 属性，指向函数的原型对象。创建了构造函数之后，原型对象默认取得 <span  class="math">\(constructor\)</span> 属性，这是一个指向 <span  class="math">\(prototype\)</span> 属性所在函数的指针。通过 <span  class="math">\(isPrototypeOf(\ )\)</span> 函数，我们可以判断是否是一个实例的原型对象。在<code>EMCAScript5</code>中，新增的 <span  class="math">\(Object.getPrototype(\ )\)</span> 方法可以获取对象的原型。</p>
+
+<hr>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;原型对象的优点就是可以让所有对象实例共享它的属性和方法。如下例所示：</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">Person</span><span class="p">()</span> <span class="p">{}</span>
+
+<span class="nx">Person</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">name</span> <span class="o">=</span> <span class="s2">&#34;XiaoMing&#34;</span><span class="p">;</span>
+<span class="nx">Perosn</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">sayName</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="nx">alert</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">name</span><span class="p">);</span>
+<span class="p">};</span>
+
+<span class="kd">var</span> <span class="nx">person1</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Person</span><span class="p">();</span>
+<span class="kd">var</span> <span class="nx">person2</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Person</span><span class="p">();</span>
+<span class="nx">alert</span><span class="p">(</span><span class="nx">person1</span><span class="p">.</span><span class="nx">sayName</span> <span class="o">==</span> <span class="nx">person2</span><span class="p">.</span><span class="nx">sayName</span><span class="p">);</span> <span class="c1">//true
+</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;可以发现，使用原型模式后，新对象的方法是同一个方法，即实现了方法共享。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;采用原型模式时，当我们为实例添加了一个属性时，该属性会屏蔽原型对象中的同名属性，但不会影响到原型中的属性。如果要再访问原型属性，可以调用 <span  class="math">\(delete\)</span> 操作。判断一个属性是原型属性还是对象属性，我们可以通过 <span  class="math">\(hasOwnProperty(\ )\)</span> 函数和 <span  class="math">\(in\)</span> 操作符。 <span  class="math">\(hasOwnProperty(\ )\)</span> 函数只有当属性是对象属性时才会返回 <span  class="math">\(true\)</span> ，而 <span  class="math">\(in\)</span> 操作符无论属性是对象属性还是原型属性，都会返回 <span  class="math">\(true\)</span> 。如下例所示：</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">Person</span><span class="p">()</span> <span class="p">{}</span>
+
+<span class="nx">Person</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">name</span><span class="o">:</span> <span class="s2">&#34;XiaoMing&#34;</span><span class="p">,</span>
+    <span class="nx">sayName</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="nx">alert</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">name</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="kd">var</span> <span class="nx">person</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Person</span><span class="p">();</span>
+<span class="nx">person</span><span class="p">.</span><span class="nx">name</span> <span class="o">=</span> <span class="s2">&#34;XiaoHong&#34;</span><span class="p">;</span>
+<span class="nx">alert</span><span class="p">(</span><span class="nx">person</span><span class="p">.</span><span class="nx">name</span><span class="p">);</span> <span class="c1">//“XiaoHong&#34;
+</span><span class="c1"></span><span class="nx">alert</span><span class="p">(</span><span class="nx">hasOwnProperty</span><span class="p">(</span><span class="nx">person</span><span class="p">.</span><span class="nx">name</span><span class="p">));</span> <span class="c1">// true
+</span><span class="c1"></span><span class="nx">alert</span><span class="p">(</span><span class="s2">&#34;name&#34;</span> <span class="k">in</span> <span class="nx">person</span><span class="p">);</span> <span class="c1">//true
+</span><span class="c1"></span><span class="k">delete</span> <span class="nx">person</span><span class="p">.</span><span class="nx">name</span><span class="p">;</span>
+<span class="nx">alert</span><span class="p">(</span><span class="nx">person</span><span class="p">.</span><span class="nx">name</span><span class="p">);</span> <span class="c1">//&#34;XiaoMing&#34;
+</span><span class="c1"></span><span class="nx">alert</span><span class="p">(</span><span class="nx">hasOwnProperty</span><span class="p">(</span><span class="nx">person</span><span class="p">.</span><span class="nx">name</span><span class="p">));</span> <span class="c1">//true
+</span><span class="c1"></span><span class="nx">alert</span><span class="p">(</span><span class="s2">&#34;name&#34;</span> <span class="k">in</span> <span class="nx">person</span><span class="p">);</span> <span class="c1">//true;
+</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;当 <span  class="math">\(hasOWnProperty(\ )\)</span> 返回 <span  class="math">\(false\)</span> 而 <span  class="math">\(in\)</span> 返回 <span  class="math">\(true\)</span> 时，我们可以确定该属性为原型属性；而两者都返回 <span  class="math">\(true\)</span> 时，可以确定其为对象属性。在此例中，我们采用字面量语法构造 <span  class="math">\(prototype\)</span> ，相比之下，这种语法更简洁。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;原型模式很好的实现了共享，但显然对象中所有的属性都是共享是十分不利的，因此我们要采取构造函数模式和原型模式结合的方式构造对象。如下例所示：</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">Person</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">name</span> <span class="o">=</span> <span class="nx">name</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="nx">Person</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">constructor</span><span class="o">:</span> <span class="nx">Person</span><span class="p">,</span>
+    <span class="nx">sayName</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="nx">alert</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">name</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在这里，我们重新定义了 <span  class="math">\(constructor\)</span> 的值，因为每当创建一个新函数时，就会一起创建其 <span  class="math">\(prototype\)</span> 对象和 <span  class="math">\(constructor\)</span> 属性，使用字面量语法相当于重写了 <span  class="math">\(prototype\)</span> 对象，因而使得 <span  class="math">\(constructor\)</span> 属性也改变了（指向 <span  class="math">\(Object\)</span> 构造函数），虽然用 <span  class="math">\(instanceof\)</span> 操作符测试 <span  class="math">\(Person\)</span> 依然为 <span  class="math">\(true\)</span> ，但如果测试 <span  class="math">\(constructor\)</span> 属性则就为 <span  class="math">\(false\)</span> 了。因此需要重新定义 <span  class="math">\(cosntructor\)</span> 属性，以确保通过该属性能够访问到正确的值。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;通过结合构造函数模式和原型模式，我们可以保证属性的独立和方法的共享。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;虽然通过构造函数模式和原型模式的结合，我们可以很好的构造对象，但是相比起其他面向对象语言，此种构造方式很奇怪。对此，我们可以采用动态原型模式。此种模式的本质是检查某个方法是否有效来决定是否初始化原型。如下例所示：</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">Person</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">name</span> <span class="o">=</span> <span class="nx">name</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="k">this</span><span class="p">.</span><span class="nx">sayName</span> <span class="o">!=</span> <span class="s2">&#34;function&#34;</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">person</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">sayName</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+            <span class="nx">alert</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">name</span><span class="p">);</span>
+        <span class="p">};</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在动态原型模式中，我们只有在 <span  class="math">\(sayName(\ )\)</span> 方法不存在的情况下才会将起添加到原型当中，之后则不需要再修改原型。</p>
+
+<hr>
+
+<h2 id="span-id--2020022866寄生构造函数模式span"><span id = "2020-02-28-6">6.寄生构造函数模式</span></h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;寄生构造函数模式，本质是创建一个函数，用于封装创建对象的代码，再返回所创建的对象。</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">Person</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">o</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">object</span><span class="p">();</span>
+    <span class="nx">o</span><span class="p">.</span><span class="nx">name</span> <span class="o">=</span> <span class="nx">name</span><span class="p">;</span>
+    <span class="nx">o</span><span class="p">.</span><span class="nx">sayName</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="nx">alert</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">name</span><span class="p">);</span>
+    <span class="p">};</span>
+    <span class="k">return</span> <span class="nx">o</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kd">var</span> <span class="nx">person</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Person</span><span class="p">(</span><span class="s2">&#34;XiaoMing&#34;</span><span class="p">);</span>
+</code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;这种模式和工厂模式几乎一样，区别只在于其使用 <span  class="math">\(new\)</span> 操作符创建对象，并且将包装函数作为构造函数。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;这种模式用于特殊情况下创建对象的构造函数。如下例所示：</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">SpecialArray</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">a</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Array</span><span class="p">();</span>
+    <span class="c1">//添加值
+</span><span class="c1"></span>    <span class="nx">a</span><span class="p">.</span><span class="nx">push</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="nx">valuse</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="c1">//添加方法
+</span><span class="c1"></span>    <span class="nx">a</span><span class="p">.</span><span class="nx">toPipedString</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">join</span><span class="p">(</span><span class="s2">&#34;|&#34;</span><span class="p">);</span>
+    <span class="p">};</span>
+    <span class="k">return</span> <span class="nx">a</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kd">var</span> <span class="nx">names</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">SpecialArray</span><span class="p">(</span><span class="s2">&#34;XiaoMing&#34;</span><span class="p">,</span> <span class="s2">&#34;XiaoHong&#34;</span><span class="p">);</span>
+</code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;可以发现，通过此种模式，我们可以构造一个具有额外方法的数组。但要注意，此种模式返回的对象与构造函数及其原型没有关系，即不能通过 <span  class="math">\(instanceof\)</span> 操作符确定类型，因此，一般不推荐使用此种模式。</p>
+
+<hr>
+
+<h2 id="span-id--2020022877稳妥构造函数模式span"><span id = "2020-02-28-7">7.稳妥构造函数模式</span></h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;稳妥对象(  <span  class="math">\(durable\;objects\)</span>  )，指的是没有公共属性，并且其方法也不引用 <span  class="math">\(this\)</span> 的对象，最适合在一些安全环境中使用。其遵循类似于寄生构造函数的模式，不同之处在于不引用 <span  class="math">\(this\)</span> ，不使用 <span  class="math">\(new\)</span> 操作符。</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">Person</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">o</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">object</span><span class="p">();</span>
+    <span class="nx">o</span><span class="p">.</span><span class="nx">sayName</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="nx">alert</span><span class="p">(</span><span class="nx">name</span><span class="p">);</span>
+    <span class="p">};</span>
+    <span class="k">return</span> <span class="nx">o</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kd">var</span> <span class="nx">person</span> <span class="o">=</span> <span class="nx">Person</span><span class="p">(</span><span class="s2">&#34;XiaoMing&#34;</span><span class="p">);</span>
+<span class="nx">person</span><span class="p">.</span><span class="nx">sayName</span><span class="p">();</span> <span class="c1">//&#34;XiaoMing&#34;;
+</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;以此种模式创建的对象，除了其本身的 <span  class="math">\(sayName(\ )\)</span> 方法外，没有其他方式访问 <span  class="math">\(name\)</span> 属性。</p>
+
+<hr>
+
+<h2 id="span-id--2020022888属性类型span"><span id = "2020-02-28-8">8.属性类型</span></h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>ECMAScript</code>中有两种属性——数据属性和访问器属性，用于描述属性特性。需要注意的是，并非所有浏览器都支持下述方法。</p>
+
+<h3 id="1-数据属性">(1) 数据属性</h3>
+
+<p>数据属性是一个数据值的位置，有  <span  class="math">\(4\)</span>  个行为特性：</p>
+
+<ul>
+<li><span  class="math">\([[Configurable]]\)</span> ：表示能否通过 <span  class="math">\(delete\)</span> 删除该属性，能否修改属性特性，能否修改为访问器属性，在上述例子中我们直接将属性定义在对象上，其 <span  class="math">\([[Configurable]]\)</span> 特性默认为 <span  class="math">\(true\)</span> 。</li>
+<li><span  class="math">\([[Enumerable]]\)</span> ：表示能否通过 <span  class="math">\(for-in\)</span> 循环返回属性。与 <span  class="math">\([[Configurable]]\)</span> 相同，默认为 <span  class="math">\(true\)</span> 。</li>
+<li><span  class="math">\([[Writable]]\)</span> ：表示能否修改属性的值。默认为 <span  class="math">\(true\)</span> 。</li>
+<li><span  class="math">\([[Value]]\)</span> ：保存属性的值。读写属性时从该位置读写。默认为 <span  class="math">\(undefined\)</span> 。</li>
+</ul>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;要修改属性的特性，需要调用<code>ECMAScript5</code>中的 <span  class="math">\(Object.defineProperty(\ )\)</span> 方法。该方法接收三个参数——属性所在对象、属性名和一个描述符对象( <span  class="math">\(configurable\)</span> ,  <span  class="math">\(enumerable\)</span> ,  <span  class="math">\(writable\)</span> 和 <span  class="math">\(value\)</span> )。在使用该方法时，如果未指定，则 <span  class="math">\(configurable\)</span> ,  <span  class="math">\(writable\)</span> 以及 <span  class="math">\(enumerable\)</span> 默认为 <span  class="math">\(false\)</span> ，除非是对已定义的属性特性的修改。</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">person</span> <span class="o">=</span> <span class="p">{};</span>
+<span class="nb">Object</span><span class="p">.</span><span class="nx">defineProperty</span><span class="p">(</span><span class="nx">person</span><span class="p">,</span> <span class="s2">&#34;name&#34;</span><span class="p">,</span> <span class="p">{</span>
+    <span class="nx">writable</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span>
+    <span class="nx">value</span><span class="o">:</span> <span class="s2">&#34;XiaoMing&#34;</span>
+<span class="p">});</span>
+</code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在设置数据属性的值后，作出不允许行为时，非严格模式下会被忽略，严格模式下则会抛出错误。</p>
+
+<h3 id="2访问器属性">(2)访问器属性</h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;访问器属性包含 <span  class="math">\(getter\)</span> 和 <span  class="math">\(setter\)</span> 函数，分别用于读取和写入。访问器属性包含如下  <span  class="math">\(4\)</span>  个特性：</p>
+
+<ul>
+<li><span  class="math">\([[Configurable]]\)</span> ：同数据属性。</li>
+<li><span  class="math">\([[Enumerable]]\)</span> ：同数据属性。</li>
+<li><span  class="math">\([[Get]]\)</span> ：读取属性时调用的函数，默认为 <span  class="math">\(undefined\)</span> 。</li>
+<li><span  class="math">\([[Set]]\)</span> ：写入属性时调用的函数，默认为 <span  class="math">\(undefined\)</span> 。</li>
+</ul>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;与数据属性相同，定义访问器属性时也要用到 <span  class="math">\(Object.defineProperty(\ )\)</span> 方法。</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">person</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">_age</span><span class="o">:</span> <span class="mi">8</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="nb">Object</span><span class="p">.</span><span class="nx">defineProperty</span><span class="p">(</span><span class="nx">person</span><span class="p">,</span> <span class="s2">&#34;age&#34;</span><span class="err">，</span> <span class="p">{</span>
+    <span class="nx">get</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">_age</span><span class="p">;</span>
+    <span class="p">},</span>
+    <span class="nx">set</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">newAge</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nx">newAge</span> <span class="o">&gt;</span> <span class="mi">18</span><span class="p">)</span> <span class="k">this</span><span class="p">.</span><span class="nx">_age</span> <span class="o">=</span> <span class="mi">18</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">});</span>
+
+<span class="nx">alert</span><span class="p">(</span><span class="nx">person</span><span class="p">.</span><span class="nx">age</span><span class="p">);</span> <span class="c1">//8
+</span><span class="c1"></span><span class="nx">person</span><span class="p">.</span><span class="nx">age</span> <span class="o">=</span> <span class="mi">19</span><span class="p">;</span>
+<span class="nx">alert</span><span class="p">(</span><span class="nx">person</span><span class="p">.</span><span class="nx">age</span><span class="p">);</span> <span class="c1">//18
+</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在非严格模式下可以不同时指定 <span  class="math">\(getter\)</span> 与 <span  class="math">\(setter\)</span> ：只指定 <span  class="math">\(getter\)</span> 则属性只读，相反只指定 <span  class="math">\(setter\)</span> 则属性只写。严格模式下必须同时指定。对于不支持该方法的浏览器，要定义 <span  class="math">\(getter\)</span> 和 <span  class="math">\(setter\)</span> 一般使用 <span  class="math">\(\_\_defineGetter\_\_(\ )\)</span> 方法和 <span  class="math">\(\_\_defineSetter(\ )\_\_\)</span> 方法。需要注意的是，在不支持 <span  class="math">\(Object.defineProperty(\ )\)</span> 的浏览器中无法修改 <span  class="math">\(configurable\)</span> 和 <span  class="math">\(enumerable\)</span> 。</p>
+
+<h3 id="3属性类型相关方法">(3)属性类型相关方法</h3>
+
+<h4 id="多属性定义">多属性定义</h4>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在<code>ECMAScript5</code>中定义了一个 <span  class="math">\(Object.defineProperties(\ )\)</span> 方法用于定义多个属性。</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">person</span> <span class="o">=</span> <span class="p">{};</span>
+
+<span class="nb">Object</span><span class="p">.</span><span class="nx">defineProperties</span><span class="p">(</span><span class="nx">person</span><span class="p">,</span> <span class="p">{</span>
+    <span class="nx">name</span><span class="o">:</span> <span class="p">{</span>
+        <span class="nx">writable</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span>
+        <span class="nx">value</span><span class="o">:</span> <span class="s2">&#34;XiaoMing&#34;</span>
+    <span class="p">},</span>
+    <span class="nx">_age</span><span class="o">:</span> <span class="p">{</span>
+        <span class="nx">writable</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+        <span class="nx">value</span><span class="o">:</span> <span class="mi">8</span>
+    <span class="p">},</span>
+    <span class="nx">age</span><span class="o">:</span> <span class="p">{</span>
+        <span class="nx">get</span><span class="o">:</span> <span class="kd">function</span> <span class="p">{</span>
+            <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">_age</span><span class="p">;</span>
+        <span class="p">},</span>
+        <span class="nx">set</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">newAge</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">if</span><span class="p">(</span><span class="nx">newAge</span> <span class="o">&gt;</span> <span class="mi">18</span><span class="p">)</span> <span class="nx">age</span> <span class="o">=</span> <span class="mi">18</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">});</span>
+</code></pre></div>
+<h4 id="读取属性特性">读取属性特性</h4>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>ECMAScript5</code>中定义的 <span  class="math">\(Object.getOwnPropertyDescriptor(\ )\)</span> 方法，接收两个参数——属性所在对象和要读取的属性名，返回一个记录属性特性值的对象。</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="c1">//接上段代码
+</span><span class="c1"></span><span class="kd">var</span> <span class="nx">descriptor</span> <span class="o">=</span> <span class="nb">Object</span><span class="p">.</span><span class="nx">getOwnPropertyDescriptor</span><span class="p">(</span><span class="nx">person</span><span class="p">,</span> <span class="s2">&#34;_age&#34;</span><span class="p">);</span>
+<span class="nx">alert</span><span class="p">(</span><span class="nx">descriptor</span><span class="p">.</span><span class="nx">value</span><span class="p">);</span> <span class="c1">//8
+</span><span class="c1"></span><span class="nx">alert</span><span class="p">(</span><span class="nx">descriptor</span><span class="p">.</span><span class="nx">configurable</span><span class="p">);</span> <span class="c1">//false
+</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在大多数情况下可能没有必要使用 <span  class="math">\(Object.defineProperty(\ )\)</span> 等方法，但这对于理解<code>JavaScript</code>中的对象有所帮助。</p>
+
+    
+    <div class="nav-next-prev">
+        <div class="nav-prev">
+            
+                <a href="https://z217blog.cn/post/javascript%E7%9A%84%E5%AF%B9%E8%B1%A1%E7%BB%A7%E6%89%BF/"><i class="fas fa-chevron-left"></i></a>
+            
+        </div>
+        <a class="nav-top" href="#">top</i></a>
+        <div class="nav-next">
+            
+                <a href="https://z217blog.cn/post/dijkstra%E7%AE%97%E6%B3%95%E5%8E%9F%E7%90%86%E5%8F%8A%E5%85%B6%E5%AE%9E%E7%8E%B0/"><i class="fas fa-chevron-right"></i></a>
+            
+        </div>
+    </div>
+    
+
+            </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved.</p>
+        
+    </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_SVG"></script></main>
+    </body>
+    <script src=https://z217blog.cn/js/navbutton.js></script>
+</html>
