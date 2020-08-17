@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <title>z217&#39;s blog</title>
+</head><body><aside id="sidenav">
+    <header>
+    
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+        
+    
+
+    <a id="branding" href=https://z217blog.cn>
+        
+            z217&#39;s blog
+        
+    </a>
+    </header>
+
+    <nav>
+        
+            		
+            <a href="/"
+                
+            >
+                <i class="fas fa-home fa-ms"></i>
+                <span>首页</span>
+            </a>
+        
+            		
+            <a href="/post/"
+                
+            >
+                <i class="fas fa-keyboard fa-ms"></i>
+                <span>文章</span>
+            </a>
+        
+            		
+            <a href="/tags"
+                
+            >
+                <i class="fas fa-tags fa-sm"></i>
+                <span>标签</span>
+            </a>
+        
+            		
+            <a href="/about"
+                
+            >
+                <i class="fas fa-user fa-ms"></i>
+                <span>关于</span>
+            </a>
+        
+            		
+            <a href="https://github.com/z217"
+                
+                    target="_blank"
+                
+            >
+                <i class="fab fa-github fa-ms"></i>
+                <span>Github</span>
+            </a>
+        
+            		
+            <a href="/index.xml"
+                
+            >
+                <i class="fas fa-rss fa-sm"></i>
+                <span>RSS</span>
+            </a>
+        
+            		
+            <a href="http://123.57.12.189"
+                
+                    target="_blank"
+                
+            >
+                <i class="fas fa-link fa-sm"></i>
+                <span>二站</span>
+            </a>
+        
+    </nav>
+</aside>
+<main id="main">
+            <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+            <div class="content">
+
+<h1 id="title">JavaWeb（1）：Servlet入门</h1>
+
+
+
+<p><strong>参考书籍：Pro Java for Web Apps</strong><br>
+注：以下内容需要<code>HTTP</code>基础，演示所用<code>Java</code>版本为<code>Java8</code>，所用容器为<code>Tomcat8.5.51</code></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>Servlet</code>是一个运行在<code>Web</code>服务器中的<code>Java</code>小程序，用于接收和响应来自<code>Web</code>客户端的请求，使用<code>HTTP</code>进行通信，是所有<code>Web</code>应用程序的核心类，也是唯一的既可以直接处理和响应用户请求，也可以将处理工作委托给应用中的其他部分的类。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>Servlet</code>只是一个简单的接口，包含了相关的方法。大多数情况下<code>Servlet</code>都继承自 <span  class="math">\(javax.servlet.GenericServlet\)</span> 类，该类只包含一个抽象的 <span  class="math">\(service\)</span> 方法以及一些辅助方法。<span  class="math">\(service\)</span> 方法会处理所有请求，然后返回对应的响应。我们可以使用<span  class="math">\(javax.servlet.http.HttpServlet\)</span> 类用于响应<code>HTTP</code>请求，它继承自 <span  class="math">\(GenericServlet\)</span> 并实现其 <span  class="math">\(service\)</span> 方法，而对于响应<code>HTTP</code>请求的方法只是空实现。在 <span  class="math">\(HttpServlet\)</span> 类中，<code>HTTP</code>请求包括 <span  class="math">\(GET,HEAD,POST,PUT,DELETE,OPTIONS,TRACE\)</span> 对应的响应方法名称为 <span  class="math">\(do +\)</span> 首字母大写的请求名称。如 <span  class="math">\(GET\)</span> 对应 <span  class="math">\(doGet()\)</span> ，<span  class="math">\(POST\)</span> 对应 <span  class="math">\(doPost()\)</span> 等。除了响应方法之外，<code>Servlet</code>类中还包含 <span  class="math">\(init\)</span> 方法和 <span  class="math">\(destroy\)</span> 方法，分别在启用和关闭<code>Servlet</code>时调用，不过通常这些方法什么也不做。</p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+大多数情况下我们的<code>Servlet</code>类都是继承 <span  class="math">\(HttpServlet\)</span> 类。对于上述提到的所有方法，它们都接收两个参数，一个是 <span  class="math">\(javax.servlet.http.HttpServletRequest\)</span> 类型的参数，另一个是 <span  class="math">\(javax.servlet.http.HttpServletResponse\)</span> 类型。顾名思义，<span  class="math">\(HttpServletRequest\)</span> 指向客户端请求，对其我们有如下常用方法：</p>
+
+<table>
+<thead>
+<tr>
+<th align="center">方法</th>
+<th align="center">作用</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="center"><span  class="math">\(getParameter\)</span></td>
+<td align="center">返回参数的单个值</td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(getParameterValues\)</span></td>
+<td align="center">返回参数的值的数组</td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(getParameterMap\)</span></td>
+<td align="center">返回一个包含所有参数名值对的<span  class="math">\(java.util.Map&lt;String, String[\ \ ]&gt;\)</span></td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(getParameterNames\)</span></td>
+<td align="center">返回所有可用参数的名字的枚举</td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(getContentLength\)</span></td>
+<td align="center">返回请求正文的长度（小于 <span  class="math">\(2\)</span> GB）</td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(getContentLengthLong\)</span></td>
+<td align="center">返回请求正文的长度（大于 <span  class="math">\(2\)</span> GB）</td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(getCharacterEncoding\)</span></td>
+<td align="center">返回请求内容的字符编码</td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(getReader\)</span></td>
+<td align="center">返回一个 <span  class="math">\(java.io.BufferedReader\)</span> 类，可以用于读取请求的内容</td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(getRequestURL\)</span></td>
+<td align="center">返回客户端用于创建请求的完整<code>URL</code></td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(getRequestURI\)</span></td>
+<td align="center">返回<code>URL</code>中的服务器路径部分</td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(getServletPath\)</span></td>
+<td align="center">返回匹配<code>Servlet</code>映射的<code>URL</code>部分</td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(getHeader\)</span></td>
+<td align="center">返回指定名称的第一个值</td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(getHeaders\)</span></td>
+<td align="center">返回指定名称的所有值的枚举</td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(getHeaderNames\)</span></td>
+<td align="center">返回请求中所有头数据的名称的枚举</td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(getIntHeader\)</span></td>
+<td align="center">返回所有值为整型的头数据的一个值</td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(getDateHeader\)</span></td>
+<td align="center">返回可以识别为有效时间戳的头数据的时间戳</td>
+</tr>
+</tbody>
+</table>
+
+<p>而<span  class="math">\(HttpServletResponse\)</span> 指向服务端响应，我们有如下常用方法：</p>
+
+<table>
+<thead>
+<tr>
+<th align="center">方法</th>
+<th align="center">作用</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="center"><span  class="math">\(getOutputStream\)</span></td>
+<td align="center">返回一个 <span  class="math">\(javax.servlet.ServletOutputStream\)</span> 类，向响应中输出二进制数据</td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(getWriter\)</span></td>
+<td align="center">返回一个 <span  class="math">\(java.io.PrintWriter\)</span> 类，向响应中输出字符</td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(setContentType\)</span></td>
+<td align="center">设置响应正文内容的类型</td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(setCharacterEncoding\)</span></td>
+<td align="center">设置响应内容的编码格式</td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(setHeader\)</span></td>
+<td align="center">设置指定名称头数据的值</td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(setIntHeader\)</span></td>
+<td align="center">设置指定值为整型的头数据的值</td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(setDateHeader\)</span></td>
+<td align="center">设置头数据时间戳</td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(setStatus\)</span></td>
+<td align="center">设置<code>HTTP</code>响应状态码</td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(getStatus\)</span></td>
+<td align="center">判断当前响应的状态</td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(sendError\)</span></td>
+<td align="center">设置状态码，一条可选的错误消息会输出到响应数据中，重定向到<code>Web</code>容器为客户端提供的错误页面并清空缓存</td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(sendRedirect\)</span></td>
+<td align="center">重定向客户端至另一个<code>URL</code></td>
+</tr>
+</tbody>
+</table>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;通过声明一个 <code>Servlet</code>类，我们的已经可以接受任何<code>HTTP</code>请求了，但由于我们并未重写空实现，因此我们无法响应请求，因此我们需要重写方法。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kn">package</span> <span class="nn">com.wrox</span><span class="o">;</span>
+
+<span class="kn">import</span> <span class="nn">javax.servlet.ServletException</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">javax.servlet.annotation.WebServlet</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">javax.servlet.http.HttpServlet</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">javax.servlet.http.HttpServletRequest</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">javax.servlet.http.HttpServletResponse</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">java.io.IOException</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">java.io.PrintWriter</span><span class="o">;</span>
+
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">HelloServlet</span> <span class="kd">extends</span> <span class="n">HttpServlet</span> <span class="o">{</span>
+    <span class="nd">@Override</span>
+    <span class="kd">protected</span> <span class="kt">void</span> <span class="nf">doGet</span><span class="o">(</span><span class="n">HttpServletRequest</span> <span class="n">req</span><span class="o">,</span> <span class="n">HttpServletResponse</span> <span class="n">resp</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">ServletException</span><span class="o">,</span> <span class="n">IOException</span> <span class="o">{</span>
+        <span class="n">resp</span><span class="o">.</span><span class="na">getWriter</span><span class="o">().</span><span class="na">println</span><span class="o">(</span><span class="s">&#34;Hello world!&#34;</span><span class="o">);</span>
+    <span class="o">}</span>
+<span class="o">}</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(HttpServletResponse\)</span> 中的 <span  class="math">\(getWriter(\ \ )\)</span> 方法返回一个 <span  class="math">\(java.io.PrintWriter\)</span> 类，可以将文本输入到输出流中。通过实现了 <span  class="math">\(doGet(\ \ )\)</span> 方法，我们实现了对 <span  class="math">\(GET\)</span> 请求的响应。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;虽然我们实现了响应请求，但是我们的程序并未部署。为了部署程序，我们要通过 <span  class="math">\(web.xml\)</span> ，这个文件定义了程序中的监听器、<code>Servlet</code>、过滤器以及应用程序的设置。在 <span  class="math">\(WEB-INF\)</span> 目录中创建 <span  class="math">\(web.xml\)</span> 文件（如果没有的话）。通常我们看到的初始的 <span  class="math">\(web.xml\)</span> 文件是这样的：
+<figure><img src="/image/2020-3-14-1.png" alt="web.xml"></figure>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;其中标签 <span  class="math">\(&lt;web-app&gt;\)</span> 部分中的 <span  class="math">\(version\)</span> 表明了程序所使用的 <span  class="math">\(Servlet API\)</span> 版本。之后添加的内容均需要在 <span  class="math">\(&lt;web-app&gt;\)</span> 中添加。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果我们要创建一个 <span  class="math">\(Servlet\)</span> 实例，那么我们可以在文件添加如下内容：</p>
+<div class="highlight"><pre class="chroma"><code class="language-xml" data-lang="xml"><span class="nt">&lt;servlet&gt;</span>
+    <span class="nt">&lt;servlet-name&gt;</span>helloServlet<span class="nt">&lt;/servlet-name&gt;</span>
+    <span class="nt">&lt;servlet-class&gt;</span>com.wrox.HelloServlet<span class="nt">&lt;/servlet-class&gt;</span>
+    <span class="nt">&lt;load-on-startup&gt;</span>1<span class="nt">&lt;/load-on-startup&gt;</span>
+<span class="nt">&lt;/servlet&gt;</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;可以发现 <span  class="math">\(&lt;servlet-name&gt;\)</span> 中指定了 <span  class="math">\(Servlet\)</span> 的名称，<span  class="math">\(&lt;servlet-class&gt;\)</span> 指定了对应的类，而对于 <span  class="math">\(&lt;load-on-startup&gt;\)</span> ，我们需要先知道，默认情况下 <span  class="math">\(init\)</span> 方法是只有当接收到请求时才会调用的，而如果我们设置了 <span  class="math">\(&lt;load-on-startup&gt;\)</span> 那么 <span  class="math">\(Servlet\)</span> 将会按顺序启动 <span  class="math">\(Servlet\)</span> ，而不是接收到请求后才启动。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在部署之后，我们还需要告诉服务器我们所部署的 <span  class="math">\(Servlet\)</span> 响应哪些请求：</p>
+<div class="highlight"><pre class="chroma"><code class="language-xml" data-lang="xml"><span class="nt">&lt;servlet-mapping&gt;</span>
+    <span class="nt">&lt;servlet-name&gt;</span>helloServlet<span class="nt">&lt;/servlet-name&gt;</span>
+    <span class="nt">&lt;url-pattern&gt;</span>/greeting<span class="nt">&lt;/url-pattern&gt;</span>
+<span class="nt">&lt;/servlet-mapping&gt;</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上面的配置告诉程序所有 <span  class="math">\(/greeting\)</span> 的请求都由 <span  class="math">\(helloServlet\)</span> 处理。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在处理完上述步骤之后，我们就可以运行了。我们在 <span  class="math">\(/greeting\)</span> 上看到 <span  class="math">\(Hello\ \ world!\)</span> 时，就代表我们的程序运行成功了。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;除了上面的方法，我们还可以通过使用 <span  class="math">\(@WebServlet\)</span> 注解，如下所示：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="nd">@WebServlet</span> <span class="o">(</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&#34;helloServlet&#34;</span><span class="o">,</span>
+    <span class="n">urlPatterns</span> <span class="o">=</span> <span class="o">{</span><span class="s">&#34;/greeting&#34;</span><span class="o">},</span>
+    <span class="n">loadOnStartup</span> <span class="o">=</span> <span class="n">1</span>
+<span class="o">)</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用注解的缺点就是每次修改参数之后都要重新编译程序。</p>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/dijkstra%E7%AE%97%E6%B3%95%E5%8E%9F%E7%90%86%E5%8F%8A%E5%85%B6%E5%AE%9E%E7%8E%B0/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a href="https://z217blog.cn/post/javaweb2session%E7%AE%80%E4%BB%8B/"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+
+
+            </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_SVG"></script></main>
+    </body>
+    <script src=https://z217blog.cn/js/navbutton.js></script>
+</html>

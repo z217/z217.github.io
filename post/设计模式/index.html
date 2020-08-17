@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <title>z217&#39;s blog</title>
+</head><body><aside id="sidenav">
+    <header>
+    
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+        
+    
+
+    <a id="branding" href=https://z217blog.cn>
+        
+            z217&#39;s blog
+        
+    </a>
+    </header>
+
+    <nav>
+        
+            		
+            <a href="/"
+                
+            >
+                <i class="fas fa-home fa-ms"></i>
+                <span>首页</span>
+            </a>
+        
+            		
+            <a href="/post/"
+                
+            >
+                <i class="fas fa-keyboard fa-ms"></i>
+                <span>文章</span>
+            </a>
+        
+            		
+            <a href="/tags"
+                
+            >
+                <i class="fas fa-tags fa-sm"></i>
+                <span>标签</span>
+            </a>
+        
+            		
+            <a href="/about"
+                
+            >
+                <i class="fas fa-user fa-ms"></i>
+                <span>关于</span>
+            </a>
+        
+            		
+            <a href="https://github.com/z217"
+                
+                    target="_blank"
+                
+            >
+                <i class="fab fa-github fa-ms"></i>
+                <span>Github</span>
+            </a>
+        
+            		
+            <a href="/index.xml"
+                
+            >
+                <i class="fas fa-rss fa-sm"></i>
+                <span>RSS</span>
+            </a>
+        
+            		
+            <a href="http://123.57.12.189"
+                
+                    target="_blank"
+                
+            >
+                <i class="fas fa-link fa-sm"></i>
+                <span>二站</span>
+            </a>
+        
+    </nav>
+</aside>
+<main id="main">
+            <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+            <div class="content">
+
+<h1 id="title">设计模式</h1>
+
+
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;设计模式常用的七大原则：</p>
+
+<ol>
+<li>单一职责原则——一个类应该只负责一项职责。</li>
+<li>接口隔离原则——一个类对应另一个类的依赖应该建立在最小的接口上。</li>
+<li>依赖倒转原则
+
+<ol>
+<li>高层模块不应依赖于低层模块</li>
+<li>抽象不应该依赖于细节</li>
+<li>面向接口编程（中心思想）</li>
+</ol></li>
+<li>里氏替换原则——所有引用基类的地方必须能透明的使用子类。</li>
+<li>开闭原则——软件实体对扩展开放，对修改关闭，用抽象构建框架，用实现扩展细节。</li>
+<li>迪米特法则——一个类应该将逻辑封装在内部，不对外泄露。</li>
+<li>合成复用原则——尽量使用合成/聚合方式</li>
+</ol>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;23种设计模式的三种类型：</p>
+
+<ol>
+<li>创建型模式：单例模式、抽象工厂模式、原型模式、建造者模式、工厂模式；</li>
+<li>结构型模式：适配器模式、桥接模式、装饰模式、组合模式、外观模式、享元模式、代理模式；</li>
+<li>行为型模式：模板方法模式、命令模式、访问者模式、迭代器模式、观察者模式、中介者模式、备忘录模式、解释器模式、状态模式、策略模式、职责链模式（责任链模式）。</li>
+</ol>
+
+<h2 id="1-单例模式">1 单例模式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;单例模式，即采取一定的方法保证在整个软件系统中，对某个类只能存在一个对象实例，并且该类只提供一个取得其对象实例的方法（通常为静态方法）。单例模式有八种方式：</p>
+
+<ol>
+<li>饿汉式（静态常量）</li>
+<li>饿汉式（静态代码块）</li>
+<li>懒汉式（线程不安全）</li>
+<li>懒汉式（线程安全，同步方法）</li>
+<li>懒汉式（线程安全，同步代码块）</li>
+<li>双重检查</li>
+<li>静态内部类</li>
+<li>枚举</li>
+</ol>
+
+<h3 id="11-饿汉式静态常量">1.1 饿汉式（静态常量）</h3>
+
+<ol>
+<li>构造器私有化（即不能通过 <span  class="math">\(new\)</span> 创建实例）</li>
+<li>类内部创建对象</li>
+<li>向外暴露一个静态公共方法</li>
+<li>代码实现</li>
+</ol>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">Singleton</span> <span class="o">{</span>
+  <span class="kd">private</span> <span class="kd">final</span> <span class="kd">static</span> <span class="n">Singleton</span> <span class="n">instance</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Singleton</span><span class="o">();</span>
+  
+  <span class="kd">private</span> <span class="nf">Singleton</span><span class="o">()</span> <span class="o">{</span>
+  <span class="o">}</span>
+  
+  <span class="kd">public</span> <span class="kd">static</span> <span class="n">Singleton</span> <span class="nf">getInstance</span><span class="o">()</span> <span class="o">{</span>
+    <span class="k">return</span> <span class="n">instance</span><span class="o">;</span>
+  <span class="o">}</span>
+<span class="o">}</span></code></pre></div>
+<p><strong>优点</strong>：写法简单，在类装载时实例化，避免了线程同步问题。<br>
+<strong>缺点</strong>：不是懒加载，可能存在内存资源的浪费。</p>
+
+<h3 id="12-饿汉式静态代码块">1.2 饿汉式（静态代码块）</h3>
+
+<ol>
+<li>构造器私有化</li>
+<li>类内部声明私有静态成员</li>
+<li>静态代码块内实例化</li>
+<li><span  class="math">\(getInstance\)</span> 公共静态方法实现</li>
+</ol>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">Singleton2</span> <span class="o">{</span>
+  <span class="kd">private</span> <span class="kd">static</span> <span class="n">Singleton2</span> <span class="n">instance</span><span class="o">;</span>
+
+  <span class="kd">static</span> <span class="o">{</span>
+    <span class="n">instance</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Singleton2</span><span class="o">();</span>
+  <span class="o">}</span>
+
+  <span class="kd">private</span> <span class="nf">Singleton2</span><span class="o">()</span> <span class="o">{}</span>
+
+  <span class="kd">public</span> <span class="kd">static</span> <span class="n">Singleton2</span> <span class="nf">getInstance</span><span class="o">()</span> <span class="o">{</span>
+    <span class="k">return</span> <span class="n">instance</span><span class="o">;</span>
+  <span class="o">}</span>
+<span class="o">}</span></code></pre></div>
+<p><strong>优缺点</strong>同上。</p>
+
+<h3 id="13-懒汉式线程不安全">1.3 懒汉式（线程不安全）</h3>
+
+<ol>
+<li>构造器私有化</li>
+<li>声明静态私有成员</li>
+<li>实现 <span  class="math">\(getInstance\)</span> 方法，只有使用时才创建对象</li>
+</ol>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">Singleton3</span> <span class="o">{</span>
+  <span class="kd">private</span> <span class="kd">static</span> <span class="n">Singleton3</span> <span class="n">instance</span><span class="o">;</span>
+
+  <span class="kd">private</span> <span class="nf">Singleton3</span><span class="o">()</span> <span class="o">{}</span>
+
+  <span class="kd">public</span> <span class="kd">static</span> <span class="n">Singleton3</span> <span class="nf">getInstance</span><span class="o">()</span> <span class="o">{</span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">instance</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="n">instance</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Singleton3</span><span class="o">();</span>
+    <span class="k">return</span> <span class="n">instance</span><span class="o">;</span>
+  <span class="o">}</span>
+<span class="o">}</span></code></pre></div>
+<p><strong>优点</strong>：懒加载。<br>
+<strong>缺点</strong>：线程不安全，因为使用 <span  class="math">\(if\)</span> 判断，如果多个线程同时进入，可能会创建多个实例。<br>
+<strong>结论</strong>：实际开发中不能使用。</p>
+
+<h3 id="14-懒汉式线程安全同步方法">1.4 懒汉式（线程安全，同步方法）</h3>
+
+<p>在线程不安全的基础上，在 <span  class="math">\(getInstance\)</span> 方法上添加 <span  class="math">\(synchronized\)</span> 关键字。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">Singleton4</span> <span class="o">{</span>
+  <span class="kd">private</span> <span class="kd">static</span> <span class="n">Singleton4</span> <span class="n">instance</span><span class="o">;</span>
+
+  <span class="kd">private</span> <span class="nf">Singleton4</span><span class="o">()</span> <span class="o">{}</span>
+
+  <span class="kd">public</span> <span class="kd">static</span> <span class="kd">synchronized</span> <span class="n">Singleton4</span> <span class="nf">getInstance</span><span class="o">()</span> <span class="o">{</span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">instance</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="n">instance</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Singleton4</span><span class="o">();</span>
+    <span class="k">return</span> <span class="n">instance</span><span class="o">;</span>
+  <span class="o">}</span>
+<span class="o">}</span></code></pre></div>
+<p><strong>优点</strong>：懒加载，线程安全<br>
+<strong>缺点</strong>：每个线程都要执行一次 <span  class="math">\(getInstance\)</span> 方法，但实际上只需执行一次即可。<br>
+<strong>结论</strong>：实际开发中不推荐使用</p>
+
+<h3 id="15-懒汉式线程安全同步代码块">1.5 懒汉式（线程安全，同步代码块）</h3>
+
+<p>将创建实例的过程移入同步代码块中</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">Singleton5</span> <span class="o">{</span>
+  <span class="kd">private</span> <span class="kd">static</span> <span class="n">Singleton5</span> <span class="n">instance</span><span class="o">;</span>
+
+  <span class="kd">private</span> <span class="nf">Singleton5</span><span class="o">()</span> <span class="o">{}</span>
+
+  <span class="kd">public</span> <span class="kd">static</span> <span class="n">Singleton5</span> <span class="nf">getInstance</span><span class="o">()</span> <span class="o">{</span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">instance</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+      <span class="kd">synchronized</span> <span class="o">(</span><span class="n">Singleton5</span><span class="o">.</span><span class="na">class</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">instance</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Singleton5</span><span class="o">();</span>
+      <span class="o">}</span>
+    <span class="o">}</span>
+    <span class="k">return</span> <span class="n">instance</span><span class="o">;</span>
+  <span class="o">}</span>
+<span class="o">}</span></code></pre></div>
+<p>虽然使用了同步代码块，但是仍然处于线程不安全的状态。因为可能存在多个线程进入 <span  class="math">\(if\)</span> 块中，这时还是会产生多个实例。<br>
+<strong>结论</strong>：实际开发中不能使用</p>
+
+<h3 id="16-双重检查">1.6 双重检查</h3>
+
+<p>使用 <span  class="math">\(volatile\)</span> 修饰私有静态成员，在同步代码块内再进行一次空判断。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">Singleton6</span> <span class="o">{</span>
+  <span class="kd">private</span> <span class="kd">static</span> <span class="kd">volatile</span> <span class="n">Singleton6</span> <span class="n">instance</span><span class="o">;</span>
+
+  <span class="kd">private</span> <span class="nf">Singleton6</span><span class="o">()</span> <span class="o">{}</span>
+
+  <span class="kd">public</span> <span class="kd">static</span> <span class="n">Singleton6</span> <span class="nf">getInstance</span><span class="o">()</span> <span class="o">{</span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">instance</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+      <span class="kd">synchronized</span> <span class="o">(</span><span class="n">Singleton6</span><span class="o">.</span><span class="na">class</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">instance</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="n">instance</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Singleton6</span><span class="o">();</span>
+      <span class="o">}</span>
+    <span class="o">}</span>
+    <span class="k">return</span> <span class="n">instance</span><span class="o">;</span>
+  <span class="o">}</span>
+<span class="o">}</span></code></pre></div>
+<p><strong>优点</strong>：同时解决了懒加载和线程安全问题<br>
+<strong>结论</strong>：在实际开发中推荐使用</p>
+
+<h3 id="17-静态内部类">1.7 静态内部类</h3>
+
+<p>在外部类进行类装载时，静态内部类不会被装载。同时类装载也是线程安全的。因此可以将创建实例的过程放在静态内部类中实现。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">Singleton7</span><span class="o">{</span>
+  <span class="kd">private</span> <span class="nf">Singleton7</span><span class="o">()</span> <span class="o">{}</span>
+
+  <span class="kd">public</span> <span class="kd">static</span> <span class="n">Singleton7</span> <span class="nf">getInstance</span><span class="o">()</span> <span class="o">{</span>
+    <span class="k">return</span> <span class="n">Singleton7Instance</span><span class="o">.</span><span class="na">INSTANCE</span><span class="o">;</span>
+  <span class="o">}</span>
+
+  <span class="kd">private</span> <span class="kd">static</span> <span class="kd">class</span> <span class="nc">Singleton7Instance</span> <span class="o">{</span>
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">Singleton7</span> <span class="n">INSTANCE</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Singleton7</span><span class="o">();</span>
+  <span class="o">}</span>
+<span class="o">}</span></code></pre></div>
+<p><strong>优点</strong>：利用<code>JVM</code>的特性保证了线程安全，同时实现了懒加载<br>
+<strong>结论</strong>：在实际开发中推荐使用</p>
+
+<h3 id="18-枚举">1.8 枚举</h3>
+
+<p>通过枚举实现单例模式。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">enum</span> <span class="n">Singleton8</span> <span class="o">{</span>
+  <span class="n">INSTANCE</span><span class="o">;</span>
+  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">method</span><span class="o">()</span> <span class="o">{}</span>
+<span class="o">}</span></code></pre></div>
+<p><strong>优点</strong>：避免了多次创建对象和线程问题<br>
+<strong>结论</strong>：推荐使用</p>
+
+<h3 id="19-jdk中的单例模式">1.9 JDK中的单例模式</h3>
+
+<p><span  class="math">\(java.lang.Runtime\)</span> 类，使用的是饿汉式</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Runtime</span> <span class="o">{</span>
+    <span class="kd">private</span> <span class="kd">static</span> <span class="n">Runtime</span> <span class="n">currentRuntime</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Runtime</span><span class="o">();</span>
+
+    <span class="kd">public</span> <span class="kd">static</span> <span class="n">Runtime</span> <span class="nf">getRuntime</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">currentRuntime</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="kd">private</span> <span class="nf">Runtime</span><span class="o">()</span> <span class="o">{}</span>
+
+    <span class="c1">// ...
+</span><span class="c1"></span><span class="o">}</span></code></pre></div>
+<h3 id="110-注意事项">1.10 注意事项</h3>
+
+<ol>
+<li>单例模式保证内存中只存在一个对应的对象。对于一些需要频繁创建和销毁的对象，使用单例模式可以提高性能。</li>
+<li>实例化单例类，不能使用 <span  class="math">\(new\)</span> ，只能使用相应的获取对象的方法。</li>
+<li>使用场景：
+
+<ol>
+<li>需要频繁创建和销毁的对象</li>
+<li>创建时会消耗过多时间或者资源的对象</li>
+<li>频繁访问或使用的工具类、数据库或文件对象</li>
+</ol></li>
+</ol>
+
+<h2 id="2-工厂模式">2. 工厂模式</h2>
+
+<h3 id="21-简单工厂模式">2.1 简单工厂模式</h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;简单工厂模式是工厂模式的一种。简单工厂模式是由一个工厂对象决定创建出哪种产品类的实例。即定义一个创建对象的类，由这个类来进行封装实例化对象的行为。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">SimplePizzaFactory</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">Pizza</span> <span class="nf">createPizza</span><span class="o">(</span><span class="n">String</span> <span class="n">orderType</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">Pizza</span> <span class="n">pizza</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&#34;SimplePizzaFactory&#34;</span><span class="o">);</span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">orderType</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="s">&#34;greek&#34;</span><span class="o">))</span> <span class="o">{</span>
+      <span class="n">pizza</span> <span class="o">=</span> <span class="k">new</span> <span class="n">GreekPizza</span><span class="o">();</span>
+      <span class="n">pizza</span><span class="o">.</span><span class="na">setName</span><span class="o">(</span><span class="s">&#34;GreekPizza&#34;</span><span class="o">);</span>
+    <span class="o">}</span> <span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">orderType</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="s">&#34;cheese&#34;</span><span class="o">))</span> <span class="o">{</span>
+      <span class="n">pizza</span> <span class="o">=</span> <span class="k">new</span> <span class="n">CheesePizza</span><span class="o">();</span>
+      <span class="n">pizza</span><span class="o">.</span><span class="na">setName</span><span class="o">(</span><span class="s">&#34;ChessePizza&#34;</span><span class="o">);</span>
+    <span class="o">}</span> <span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">orderType</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="s">&#34;pepper&#34;</span><span class="o">))</span> <span class="o">{</span>
+      <span class="n">pizza</span> <span class="o">=</span> <span class="k">new</span> <span class="n">PepperPizza</span><span class="o">();</span>
+      <span class="n">pizza</span><span class="o">.</span><span class="na">setName</span><span class="o">(</span><span class="s">&#34;PepperPizza&#34;</span><span class="o">);</span>
+    <span class="o">}</span>
+    <span class="k">return</span> <span class="n">pizza</span><span class="o">;</span>
+  <span class="o">}</span>
+<span class="o">}</span></code></pre></div>
+<p><figure><img src="/image/2020-07-10-01.png" alt="SimplePizzaFactory"></figure></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;简单工厂模式也叫静态工厂模式，其工厂类内部的 <span  class="math">\(create\)</span> 方法可以设置为静态方法。</p>
+
+<h3 id="22-工厂方法模式">2.2 工厂方法模式</h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;工厂方法模式定义了一个创建对象的抽象方法，由子类决定要实例化的类。工厂方法模式将对象的实例化推迟到子类进行。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">abstract</span> <span class="kd">class</span> <span class="nc">OrderPizza</span> <span class="o">{</span>
+  <span class="kd">abstract</span> <span class="n">Pizza</span> <span class="nf">createPizza</span><span class="o">(</span><span class="n">String</span> <span class="n">orderType</span><span class="o">);</span>
+<span class="o">}</span></code></pre></div>
+<p><figure><img src="/image/2020-07-10-02.png" alt="FactoryMethodPizza"></figure></p>
+
+<h3 id="23-抽象工厂模式">2.3 抽象工厂模式</h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;抽象工厂模式定义了一个接口用于创建相关或存在依赖的对象集合。从设计层面上看，可以理解为是对简单工厂模式的改进。抽象工厂模式将工厂抽象为两层，抽象工厂和具体实现的工厂子类，即将单个简单工厂扩展为一个工厂集合。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">AbsFactory</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">Pizza</span> <span class="nf">createPizza</span><span class="o">(</span><span class="n">String</span> <span class="n">orderType</span><span class="o">);</span>
+<span class="o">}</span></code></pre></div>
+<p><figure><img src="/image/2020-07-10-03.png" alt="AbstractFactoryPizza"></figure></p>
+
+<h3 id="24-jdk应用举例">2.4 JDK应用举例</h3>
+
+<p><span  class="math">\(java.util.Calendar\)</span> 类使用了简单工厂模式</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">abstract</span> <span class="kd">class</span> <span class="nc">Calendar</span> <span class="kd">implements</span> <span class="n">Serializable</span><span class="o">,</span> <span class="n">Cloneable</span><span class="o">,</span> <span class="n">Comparable</span><span class="o">&lt;</span><span class="n">Calendar</span><span class="o">&gt;</span> <span class="o">{</span>
+    <span class="c1">// ...
+</span><span class="c1"></span>    <span class="kd">public</span> <span class="kd">static</span> <span class="n">Calendar</span> <span class="nf">getInstance</span><span class="o">()</span>
+        <span class="o">{</span>
+            <span class="k">return</span> <span class="n">createCalendar</span><span class="o">(</span><span class="n">TimeZone</span><span class="o">.</span><span class="na">getDefault</span><span class="o">(),</span> <span class="n">Locale</span><span class="o">.</span><span class="na">getDefault</span><span class="o">(</span><span class="n">Locale</span><span class="o">.</span><span class="na">Category</span><span class="o">.</span><span class="na">FORMAT</span><span class="o">));</span>
+        <span class="o">}</span>
+    <span class="c1">// ...
+</span><span class="c1"></span><span class="o">}</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;工厂模式将实例化对象的代码提取出来，放到一个类中进行统一管理，达到依赖关系解耦的目的，从而提高了扩展性和可维护性。在使用工厂模时，创建对象实例不直接使用 <span  class="math">\(new\)</span> ，而是在工厂方法中使用 <span  class="math">\(new\)</span> 。相对应的工厂类不应实现具体类，而应实现抽象类或者接口，不要覆盖基类中已经实现的方法。</p>
+
+<h2 id="3-原型模式">3. 原型模式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>Java</code>的 <span  class="math">\(Object\)</span> 类提供了一个 <span  class="math">\(clone\)</span> 方法，可以复制一个对象。如果一个类需要实现 <span  class="math">\(clone\)</span> 方法，必须要实现 <span  class="math">\(Cloneable\)</span> 接口。原型模式是指用原型实例指定创建对象的种类，并且通过拷贝这些原型来创建新对象。新的对象通过调用原型对象的 <span  class="math">\(clone\)</span> 方法进行创建。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">Sheep</span> <span class="kd">implements</span> <span class="n">Cloneable</span> <span class="o">{</span>
+    <span class="nd">@Override</span>
+    <span class="kd">protected</span> <span class="n">Object</span> <span class="nf">clone</span><span class="o">()</span> <span class="kd">throws</span> <span class="n">CloneNotSupportedException</span> <span class="o">{</span>
+      <span class="k">return</span> <span class="kd">super</span><span class="o">.</span><span class="na">clone</span><span class="o">();</span>
+    <span class="o">}</span>
+<span class="o">}</span></code></pre></div>
+<h3 id="31-spring源码示例">3.1 Spring源码示例</h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在<code>Spring</code>框架中配置<code>bean</code>时可以指定 <span  class="math">\(scope\)</span> 的值为 <span  class="math">\(prototype\)</span> ，代表通过原型模式创建。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">mbd</span><span class="o">.</span><span class="na">isPrototype</span><span class="o">())</span> <span class="o">{</span>
+      <span class="n">var11</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+    
+      <span class="n">Object</span> <span class="n">prototypeInstance</span><span class="o">;</span>
+      <span class="k">try</span> <span class="o">{</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">beforePrototypeCreation</span><span class="o">(</span><span class="n">beanName</span><span class="o">);</span>
+        <span class="n">prototypeInstance</span> <span class="o">=</span> <span class="k">this</span><span class="o">.</span><span class="na">createBean</span><span class="o">(</span><span class="n">beanName</span><span class="o">,</span> <span class="n">mbd</span><span class="o">,</span> <span class="n">args</span><span class="o">);</span>
+      <span class="o">}</span> <span class="k">finally</span> <span class="o">{</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">afterPrototypeCreation</span><span class="o">(</span><span class="n">beanName</span><span class="o">);</span>
+      <span class="o">}</span>
+      <span class="c1">// ...
+</span><span class="c1"></span><span class="o">}</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(AbstractBeanFactory\)</span> 类中的 <span  class="math">\(doGetBean\)</span> 方法用于获取容器中的 <span  class="math">\(bean\)</span> 。如果先前设置 <span  class="math">\(scope = prototype\)</span> ，那么就会进入该 <span  class="math">\(if\)</span> 块中。块中的 <span  class="math">\(createBean\)</span> 方法通过原型模式创建对象实例。</p>
+
+<h3 id="32-深拷贝">3.2 深拷贝</h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(clone\)</span> 方法默认是浅拷贝，也就代表如果成员为对象，那么只会复制对象的引用值。在实际开发中，存在着两种实现深拷贝的方式：重写 <span  class="math">\(clone\)</span> 或者对象序列化。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">DeepPrototype</span> <span class="kd">implements</span> <span class="n">Serializable</span><span class="o">,</span> <span class="n">Cloneable</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">String</span> <span class="n">name</span><span class="o">;</span>
+  <span class="kd">public</span> <span class="n">DeepCloneableTarget</span> <span class="n">deepCloneableTarget</span><span class="o">;</span>
+
+  <span class="c1">//  1. 重写clone
+</span><span class="c1"></span>  <span class="nd">@Override</span>
+  <span class="kd">protected</span> <span class="n">Object</span> <span class="nf">clone</span><span class="o">()</span> <span class="kd">throws</span> <span class="n">CloneNotSupportedException</span> <span class="o">{</span>
+    <span class="n">Object</span> <span class="n">deep</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+    <span class="n">deep</span> <span class="o">=</span> <span class="kd">super</span><span class="o">.</span><span class="na">clone</span><span class="o">();</span>
+    <span class="n">DeepPrototype</span> <span class="n">deepPrototype</span> <span class="o">=</span> <span class="o">(</span><span class="n">DeepPrototype</span><span class="o">)</span> <span class="n">deep</span><span class="o">;</span>
+    <span class="n">deepPrototype</span><span class="o">.</span><span class="na">deepCloneableTarget</span> <span class="o">=</span> <span class="o">(</span><span class="n">DeepCloneableTarget</span><span class="o">)</span> <span class="n">deepCloneableTarget</span><span class="o">.</span><span class="na">clone</span><span class="o">();</span>
+    <span class="k">return</span> <span class="n">deepPrototype</span><span class="o">;</span>
+  <span class="o">}</span>
+
+  <span class="c1">//  2. 对象序列化（推荐）
+</span><span class="c1"></span>  <span class="kd">public</span> <span class="n">Object</span> <span class="nf">deepClone</span><span class="o">()</span> <span class="o">{</span>
+    <span class="n">DeepPrototype</span> <span class="n">ret</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+    <span class="k">try</span> <span class="o">(</span><span class="n">ByteArrayOutputStream</span> <span class="n">baos</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ByteArrayOutputStream</span><span class="o">();</span>
+        <span class="n">ObjectOutputStream</span> <span class="n">oos</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ObjectOutputStream</span><span class="o">(</span><span class="n">baos</span><span class="o">);</span> <span class="o">)</span> <span class="o">{</span>
+      <span class="n">oos</span><span class="o">.</span><span class="na">writeObject</span><span class="o">(</span><span class="k">this</span><span class="o">);</span>
+      <span class="k">try</span> <span class="o">(</span><span class="n">ByteArrayInputStream</span> <span class="n">bais</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ByteArrayInputStream</span><span class="o">(</span><span class="n">baos</span><span class="o">.</span><span class="na">toByteArray</span><span class="o">());</span>
+          <span class="n">ObjectInputStream</span> <span class="n">ois</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ObjectInputStream</span><span class="o">(</span><span class="n">bais</span><span class="o">))</span> <span class="o">{</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="o">(</span><span class="n">DeepPrototype</span><span class="o">)</span> <span class="n">ois</span><span class="o">.</span><span class="na">readObject</span><span class="o">();</span>
+      <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">ClassNotFoundException</span> <span class="n">e1</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">e1</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
+      <span class="o">}</span>
+    <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">IOException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+      <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
+    <span class="o">}</span>
+    <span class="k">return</span> <span class="n">ret</span><span class="o">;</span>
+  <span class="o">}</span>
+<span class="o">}</span></code></pre></div>
+<p><strong>优点</strong>：当创建的新对象比较复杂时，可以使用原型模式。不需要重新初始化对象，而且当对象发生变化时，不需要修改。<br>
+<strong>缺点</strong>：需要给每个类都实现一个克隆方法。当对类进行改造时，可能需要修改源码，违反了<code>ocp</code>原则。</p>
+
+<h2 id="4-建造者模式">4. 建造者模式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;建造者模式，又叫生成器模式。它将复杂对象的建造过程抽象，这个抽象过程的不同实现方法可以构造出不同表现的对象。通过建造者模式，用户不需要知道内部细节，只需要通过指定类型和内容即可构造出复杂对象。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;建造者模式包含四个角色：</p>
+
+<ol>
+<li><span  class="math">\(Product\)</span> ：即产品角色，指一个具体的产品对象</li>
+<li><span  class="math">\(Builder\)</span> ：即抽象建造者，创建产品对象各个部件的接口（抽象类）</li>
+<li><span  class="math">\(ConcreteBuilder\)</span> ：即具体建造者，是实现接口的对象</li>
+<li><span  class="math">\(Director\)</span> ：即指挥者，使用接口的对象</li>
+</ol>
+
+<p><figure><img src="/image/2020-07-10-03.png" alt="BuilderPattern"></figure></p>
+
+<h3 id="41-jdk源码示例">4.1 JDK源码示例</h3>
+
+<p><span  class="math">\(java.lang.StringBuilder\)</span> 中使用了建造者模式</p>
+
+<p><figure><img src="/image/2020-07-10-04.png" alt="StringBuilder"></figure></p>
+
+<ol>
+<li><span  class="math">\(Appendable\)</span> 接口定义了多个 <span  class="math">\(append\)</span> 方法，均为抽象方法。因此可以将 <span  class="math">\(Appendable\)</span> 视为 <span  class="math">\(Builder\)</span> 。</li>
+<li><span  class="math">\(AbstractStringBuilder\)</span> 实现了 <span  class="math">\(Appendable\)</span> 中的方法，可以视为 <span  class="math">\(ConcreteBuilder\)</span> ，即使不能实例化。</li>
+<li><span  class="math">\(StringBuilder\)</span> 既是 <span  class="math">\(Director\)</span> ，也是 <span  class="math">\(ConcreteBuilder\)</span> 。建造方法是在 <span  class="math">\(AbstractStringBuilder\)</span> 中实现的。</li>
+</ol>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用了建造者模式，用户不需要了解内部实现即可根据类型和需求创建出不同的对象。对象创建的过程分为多个方法，使创建过程更加清晰，也能更方便的控制。在建造者模式的基础上，添加新的具体建造者无需修改原有代码，符合开闭原则。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;对于一些差异很大的对象，不适宜使用建造者模式。如果一个对象十分复杂，需要多个建造者。那么如果继续使用建造者模式，会导致系统庞大。因此在这种情况下不应继续使用建造者模式。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;与抽象工厂模式对比，抽象工厂模式不需要关注建造的过程，关注的是由哪个工厂建造；而建造者模式主要关注点就在过程。</p>
+
+<h2 id="5-适配器模式">5. 适配器模式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;适配器，又叫包装器，用于将某个类的接口转换成客户端期望的另一个接口表示，主要的目的是兼容，让原本不匹配的两个类能够一起工作。适配器模式主要有三类：类适配器模式、对象适配器模式、接口适配器模式。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;用户不能直观地感受到适配器的存在。适配器转换目标对象，用户通过调用经适配器转换后的对象的接口方法，可以间接调用原目标对象的相应方法。被适配的对象称为 <span  class="math">\(src\)</span> 类，适配后的对象称为 <span  class="math">\(dst\)</span> 类。</p>
+
+<h3 id="51-类适配器模式">5.1 类适配器模式</h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;适配器为 <span  class="math">\(Adapter\)</span> 类，通过继承 <span  class="math">\(src\)</span> 类，实现 <span  class="math">\(dst\)</span> 类接口，从而完成适配。</p>
+
+<p><figure><img src="/image/2020-07-10-05.png" alt="ClassAdapter"></figure></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;由于<code>Java</code>实行的是单继承机制，因此要求 <span  class="math">\(dst\)</span> 必须为接口，存在一定的局限性。此外，<span  class="math">\(src\)</span> 类中的方法都会在 <span  class="math">\(Adapter\)</span> 类中暴露，增加了一定的成本。但反过来，由于方法暴露，因此也可以重写一部分方法，增加灵活性。</p>
+
+<h3 id="52-对象适配器模式">5.2 对象适配器模式</h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在类适配器模式的基础上加以修改。<span  class="math">\(Adapter\)</span> 类不再继承 <span  class="math">\(src\)</span> 类，而是持有 <span  class="math">\(src\)</span> 类实例。对象适配器模式是适配器模式中常用的一种。</p>
+
+<p><figure><img src="/image/2020-07-10-06.png" alt="ObjectAdapter"></figure></p>
+
+<h3 id="53-接口适配器模式">5.3 接口适配器模式</h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;接口适配器模式，也称为适配器模式或缺省适配器模式。当不需要全部实现接口提供的方法的时候，可以设计一个抽象类实现该接口，并为方法提供空实现。</p>
+
+<p><figure><img src="/image/2020-07-10-07.png" alt="InterfaceAdapter"></figure></p>
+
+<h3 id="54-spring-mvc源码示例">5.4 Spring MVC源码示例</h3>
+
+<p><span  class="math">\(HandlerAdapter\)</span> 使用了适配器模式</p>
+
+<p><code>Spring MVC</code> 流程：</p>
+
+<ol>
+<li>请求发送给 <span  class="math">\(DispatcherServlet\)</span>,</li>
+<li><span  class="math">\(HandlerMapping\)</span> 处理，找到对应的 <span  class="math">\(Handler\)</span>,</li>
+<li><span  class="math">\(HandlerMapping\)</span> 返回一个 <span  class="math">\(ModelAndView\)</span> 对象,</li>
+<li><span  class="math">\(InternalResourceViewResolve\)</span> 解析对象，找到指定的资源,</li>
+<li><code>Tomcat</code>包装结果，返回给浏览器.</li>
+</ol>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Dispatcher\)</span> 的 <span  class="math">\(doDispatch\)</span> 方法获取对应的 <span  class="math">\(Adapter\)</span> ，再通过 <span  class="math">\(Adapter\)</span> 处理相应的 <span  class="math">\(Controller\)</span> 。</p>
+
+<h2 id="6-桥接模式">6. 桥接模式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;桥接模式将实现与抽象分到两个层次中，可以独立改变。桥接模式基于类的最小设计原则，主要特点是把抽象和实现分离。</p>
+
+<p><figure><img src="/image/2020-07-10-08.png" alt="Bridge"></figure></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Phone\)</span> 为抽象类，<span  class="math">\(Brand\)</span> 为接口，是 <span  class="math">\(Phone\)</span> 的成员。<span  class="math">\(Phone\)</span> 和 <span  class="math">\(Brand\)</span> 分别有对应的实现类。</p>
+
+<h3 id="61-jdbc源码示例">6.1 JDBC源码示例</h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;从桥接模式的角度，<span  class="math">\(Driver\)</span> 就是一个接口，下面的实现类可以是<code>MySQL</code>的，也可以是<code>Oracle</code>的。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Driver\)</span> 使用 <span  class="math">\(DriverManager\)</span> 注册。<span  class="math">\(DriverManager\)</span> 通过 <span  class="math">\(getConnection\)</span> 方法获取 <span  class="math">\(Connection\)</span> 。<span  class="math">\(Connection\)</span> 有多个实现，由不同的数据库提供商决定。</p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用了桥接模式后，高层部分只需要知道抽象部分和实现部分的接口即可，其余部分由具体业务实现。但同时，桥接模式的引入提高了设计和理解的难度。由于聚合发生在抽象层，因此开发者需要针对抽象层进行设计和编程。桥接模式的使用要求识别出系统变化的两个维度，具有一定局限性。</p>
+
+<h2 id="7-装饰者模式">7. 装饰者模式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;装饰者模式可以将新功能动态地附加到对象上。装饰者模式的主体( <span  class="math">\(Component\)</span> ) ，也就是被装饰的对象。装饰者模式的包装( <span  class="math">\(Decorator\)</span> ) ，也就是装饰者。后者继承和聚合前者，中间也可以添加接口作为缓冲层。</p>
+
+<p><figure><img src="/image/2020-07-10-09.png" alt="Decorator"></figure></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用如上模式之后，购买一份咖啡只需要 <span  class="math">\(new\)</span> 一个咖啡对象。在咖啡对象的基础上，如果要添加调料，只需要 <span  class="math">\(new\)</span> 一个调料对象，并传入原有咖啡对象即可。在这个过程中，由于咖啡和调料都继承了 <span  class="math">\(Drink\)</span> ，因此不需要重新声明。在包装的过程中，可以通过重写方法来返回不同的描述和价格。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">CoffeeBar</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">Drink</span> <span class="n">order</span> <span class="o">=</span> <span class="k">new</span> <span class="n">LongBlack</span><span class="o">();</span>
+    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&#34;order description=&#34;</span> <span class="o">+</span> <span class="n">order</span><span class="o">.</span><span class="na">getDescription</span><span class="o">()</span> <span class="o">+</span> <span class="s">&#34;, cost=&#34;</span> <span class="o">+</span> <span class="n">order</span><span class="o">.</span><span class="na">cost</span><span class="o">());</span>
+    <span class="n">order</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Milk</span><span class="o">(</span><span class="n">order</span><span class="o">);</span>
+    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&#34;order description=&#34;</span> <span class="o">+</span> <span class="n">order</span><span class="o">.</span><span class="na">getDescription</span><span class="o">()</span> <span class="o">+</span> <span class="s">&#34;, cost=&#34;</span> <span class="o">+</span> <span class="n">order</span><span class="o">.</span><span class="na">cost</span><span class="o">());</span>
+  <span class="o">}</span>
+<span class="o">}</span></code></pre></div>
+<h3 id="71-jdk源码示例">7.1 JDK源码示例</h3>
+
+<p><span  class="math">\(FilterInputStream\)</span> 类就是一个装饰者</p>
+
+<ol>
+<li><span  class="math">\(InputStream\)</span> 是被装饰的对象</li>
+<li><span  class="math">\(FilterInputStream\)</span> 是装饰者，其内部包含一个 <span  class="math">\(InputStream\)</span> 类型的成员</li>
+</ol>
+
+<h2 id="8-组合模式">8. 组合模式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;组合模式又叫部分整体模式，它将对象组合成树状结构来表示整体和部分的层次关系。通过组合模式，用户能够以一致的方式处理单个对象以及组合对象。<span  class="math">\(Component\)</span> 是组合中对象声明接口，包含所有类共有的默认行为，用于访问和管理子部件。<span  class="math">\(Leaf\)</span> 是继承了 <span  class="math">\(Component\)</span> 的叶子节点。<span  class="math">\(Composite\)</span> 是继承了 <span  class="math">\(Component\)</span> 的非叶子节点，实现操作子部件的相关方法，用于存储子部件。</p>
+
+<p><figure><img src="/image/2020-07-10-10.png" alt="Composite"></figure></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Department\)</span> 是 <span  class="math">\(Leaf\)</span> ，<span  class="math">\(University\)</span> 和 <span  class="math">\(College\)</span> 是 <span  class="math">\(Composite\)</span> 。</p>
+
+<h3 id="81-jdk源码示例">8.1 JDK源码示例</h3>
+
+<p><span  class="math">\(HashMap\)</span> 使用了组合模式</p>
+
+<p><figure><img src="/image/2020-07-10-11.png" alt="HashMapComposite"></figure></p>
+
+<ol>
+<li><span  class="math">\(Map\)</span> 是一个接口，可以视为 <span  class="math">\(Composite\)</span>,</li>
+<li><span  class="math">\(HashMap\)</span> 实现了 <span  class="math">\(Map\)</span> ，可以视为 <span  class="math">\(Component\)</span>,</li>
+<li><span  class="math">\(Node\)</span> 是 <span  class="math">\(HashMap\)</span> 的内部类，可以视为 <span  class="math">\(Leaf\)</span>.</li>
+</ol>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;组合模式能简化操作，用户只需要面对一致的对象而不需要考虑内部结构。组合模式具有较强的扩展性，用户可以随意添加节点。树形结构使得组合模式的遍历十分方便，但反过来如果节点间差异较大，则不适用于组合模式。</p>
+
+<h2 id="9-外观模式">9. 外观模式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;外观模式定义了一个高层接口，为子系统中的一组接口提供了一个一致的界面。调用端只需跟该高层接口交互，不需要了解其子系统的内部细节。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Facade\)</span> 即外观类，提供统一调用接口，负责将请求代理给适当的子系统对象。<span  class="math">\(Client\)</span> 即调用者，调用外观接口。子系统集合处理 <span  class="math">\(Facade\)</span> 指定的请求。</p>
+
+<p><figure><img src="/image/2020-07-10-12.png" alt="Facade"></figure></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;影院中的每个设备都有对应的操作方法，在影片放映的不同过程中需要分别调用对应的方法，可以使用 <span  class="math">\(Facade\)</span> 来进行统一调度。</p>
+
+<h3 id="91-mybatis源码示例">9.1 MyBatis源码示例</h3>
+
+<p>在<code>MyBatis</code>中的 <span  class="math">\(Configuration\)</span> 创建 <span  class="math">\(MetaObject\)</span> 的过程中使用了外观模式</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="n">MetaObject</span> <span class="nf">newMetaObject</span><span class="o">(</span><span class="n">Object</span> <span class="n">object</span><span class="o">)</span> <span class="o">{</span>
+    <span class="k">return</span> <span class="n">MetaObject</span><span class="o">.</span><span class="na">forObject</span><span class="o">(</span><span class="n">object</span><span class="o">,</span> <span class="k">this</span><span class="o">.</span><span class="na">objectFactory</span><span class="o">,</span> <span class="k">this</span><span class="o">.</span><span class="na">objectWrapperFactory</span><span class="o">,</span> <span class="k">this</span><span class="o">.</span><span class="na">reflectorFactory</span><span class="o">);</span>
+<span class="o">}</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;外观模式降低了用户对子系统复杂性的感受，使子系统更容易维护。当需要分层设计时，可以使用外观模式来更好的划分层次。但是也不能滥用外观模式，要以利于维护为目的。</p>
+
+<h2 id="10-享元模式">10. 享元模式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;享元模式也叫蝇量模式，是运用共享技术有效地支持大量细粒度对象的模式。享元模式常用于底层开发，如数据库连接池等，能够解决重复对象造成的内存浪费问题。享元模式将对象的信息分为内部状态和外部状态两部分。 内部状态是存储在享元对象内且不会因环境而改变的信息，是对象共享的信息。外部状态是对象依赖的信息，会随环境变化而改变。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(FlyWeight\)</span> 是抽象的享元类，定义对象的内部状态和外部状态。<span  class="math">\(ConcreteFlyWeight\)</span> 是具体的享元类，实现具体业务。<span  class="math">\(UnSharedConcreteFlyWeight\)</span> 是不可共享的角色，虽然继承 <span  class="math">\(FlyWeight\)</span> ，但不会出现在享元工厂。<span  class="math">\(FlyWeightFactory\)</span> 是享元工厂类，作为池容器，负责创建和返回享元类。</p>
+
+<p><figure><img src="/image/2020-07-10-13.png" alt="FlyWeight"></figure></p>
+
+<h3 id="101-jdk源码示例">10.1 JDK源码示例</h3>
+
+<p><span  class="math">\(java.lang.Integer\)</span> 类中使用了享元模式</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">static</span> <span class="n">Integer</span> <span class="nf">valueOf</span><span class="o">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">)</span> <span class="o">{</span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">i</span> <span class="o">&gt;=</span> <span class="n">IntegerCache</span><span class="o">.</span><span class="na">low</span> <span class="o">&amp;&amp;</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">IntegerCache</span><span class="o">.</span><span class="na">high</span><span class="o">)</span>
+        <span class="k">return</span> <span class="n">IntegerCache</span><span class="o">.</span><span class="na">cache</span><span class="o">[</span><span class="n">i</span> <span class="o">+</span> <span class="o">(-</span><span class="n">IntegerCache</span><span class="o">.</span><span class="na">low</span><span class="o">)];</span>
+    <span class="k">return</span> <span class="k">new</span> <span class="n">Integer</span><span class="o">(</span><span class="n">i</span><span class="o">);</span>
+<span class="o">}</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Integer.valueOf\)</span> 方法，在 <span  class="math">\(-128 \sim 127\)</span> 之间使用享元模式创建。也即代表使用 <span  class="math">\(valueOf\)</span> 创建的所有处于 <span  class="math">\(-128 \sim 127\)</span> 的同一大小的对象都是同一引用。</p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在系统中的大部分对象状态可以外部化时，可以使用享元模式。如果对象在内存中存在着唯一标识码，可以使用 <span  class="math">\(HashMap\)</span> 或 <span  class="math">\(HashTable\)</span> 存储。要注意的是，使用享元模式要分离内部状态和外部状态，还需要一个工厂类加以控制。</p>
+
+<h2 id="11-代理模式">11. 代理模式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;代理模式为对象提供一个代理对象，控制对该对象的访问。其他对象可以通过访问代理对象的方式访问目标对象。被代理的对象可以是远程对象、创建开销大的对象或者需要安全控制的对象。代理模式主要有三种形式：静态代理、动态代理和<code>Cglib</code>代理。</p>
+
+<h3 id="111-静态代理">11.1 静态代理</h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;定义一个接口或者父类，然后令被代理对象与代理对象一起实现相同接口或者继承相同父类。</p>
+
+<p><figure><img src="/image/2020-07-10-14.png" alt="StaticProxy"></figure></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;通过静态代理，我们能够在不修改源对象的情况下对其进行扩展，但是由于要求实现同一接口，因此一旦接口改变，就需要同时修改两个对象，增加了维护难度。</p>
+
+<h3 id="112-动态代理">11.2 动态代理</h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;动态代理对象不需要实现接口，但是目标对象需要实现接口。动态代理通过<code>JDK</code>提供的<code>API</code>实现，动态地在内存中构建代理对象。动态代理也叫<code>JDK</code>代理、接口代理。</p>
+
+<p><figure><img src="/image/2020-07-10-15.png" alt="DynamicProxy"></figure></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(ProxyFactory.getProxyInstance\)</span> 接受一个对象，利用反射机制返回一个代理对象，再通过该代理对象调用目标对象方法。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">ProxyFactory</span> <span class="o">{</span>
+  <span class="kd">private</span> <span class="n">Object</span> <span class="n">target</span><span class="o">;</span>
+
+  <span class="kd">public</span> <span class="nf">ProxyFactory</span><span class="o">(</span><span class="n">Object</span> <span class="n">target</span><span class="o">)</span> <span class="o">{</span>
+    <span class="k">this</span><span class="o">.</span><span class="na">target</span> <span class="o">=</span> <span class="n">target</span><span class="o">;</span>
+  <span class="o">}</span>
+
+  <span class="kd">public</span> <span class="n">Object</span> <span class="nf">getProxyInstance</span><span class="o">()</span> <span class="o">{</span>
+    <span class="k">return</span> <span class="n">Proxy</span><span class="o">.</span><span class="na">newProxyInstance</span><span class="o">(</span>
+        <span class="n">target</span><span class="o">.</span><span class="na">getClass</span><span class="o">().</span><span class="na">getClassLoader</span><span class="o">(),</span>
+        <span class="n">target</span><span class="o">.</span><span class="na">getClass</span><span class="o">().</span><span class="na">getInterfaces</span><span class="o">(),</span>
+        <span class="k">new</span> <span class="n">InvocationHandler</span><span class="o">()</span> <span class="o">{</span>
+          <span class="nd">@Override</span>
+          <span class="kd">public</span> <span class="n">Object</span> <span class="nf">invoke</span><span class="o">(</span><span class="n">Object</span> <span class="n">proxy</span><span class="o">,</span> <span class="n">Method</span> <span class="n">method</span><span class="o">,</span> <span class="n">Object</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Throwable</span> <span class="o">{</span>
+            <span class="k">return</span> <span class="n">method</span><span class="o">.</span><span class="na">invoke</span><span class="o">(</span><span class="n">target</span><span class="o">,</span> <span class="n">args</span><span class="o">);</span>
+          <span class="o">}</span>
+        <span class="o">});</span>
+  <span class="o">}</span>
+<span class="o">}</span></code></pre></div>
+<p><span  class="math">\(public static Object newProxyInstance(ClassLoader loader, Class<?>[\ ] interfaces, InvocationHandler h)\)</span> :</p>
+
+<ol>
+<li><span  class="math">\(loader\)</span> 为目标对象使用的类加载器，有固定获取方法</li>
+<li><span  class="math">\(interfaces\)</span> 为目标对象实现的接口类型，使用泛型方式确定</li>
+<li><span  class="math">\(h\)</span> 为事件处理类，当执行目标对象方法时，会触发事件处理器方法，即将当前事件方法作为参数传入</li>
+</ol>
+
+<h3 id="113-cglib代理">11.3 Cglib代理</h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;静态代理和动态代理都要求目标对象实现一个接口，而当目标对象没有实现接口时，<code>Cglib</code>代理允许你通过其子类实现代理，因此也被叫做子类代理。<code>Cglib</code>代理可以在运行期扩展以及实现<code>Java</code>接口，被许多<code>AOP</code>框架所使用，其底层通过字节码处理框架<code>ASM</code>来转换字节码并生成新的类。使用<code>Cglib</code>代理时，要注意目标类不能为 <span  class="math">\(final\)</span> 。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">ProxyFactory</span> <span class="kd">implements</span> <span class="n">MethodInterceptor</span> <span class="o">{</span>
+  <span class="kd">private</span> <span class="n">Object</span> <span class="n">target</span><span class="o">;</span>
+
+  <span class="kd">public</span> <span class="nf">ProxyFactory</span><span class="o">(</span><span class="n">Object</span> <span class="n">target</span><span class="o">)</span> <span class="o">{</span>
+    <span class="k">this</span><span class="o">.</span><span class="na">target</span> <span class="o">=</span> <span class="n">target</span><span class="o">;</span>
+  <span class="o">}</span>
+
+  <span class="kd">public</span> <span class="n">Object</span> <span class="nf">getProxyInstance</span><span class="o">()</span> <span class="o">{</span>
+    <span class="n">Enhancer</span> <span class="n">enhancer</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Enhancer</span><span class="o">();</span>
+    <span class="n">enhancer</span><span class="o">.</span><span class="na">setSuperclass</span><span class="o">(</span><span class="n">target</span><span class="o">.</span><span class="na">getClass</span><span class="o">());</span>
+    <span class="n">enhancer</span><span class="o">.</span><span class="na">setCallback</span><span class="o">(</span><span class="k">this</span><span class="o">);</span>
+    <span class="k">return</span> <span class="n">enhancer</span><span class="o">.</span><span class="na">create</span><span class="o">();</span>
+  <span class="o">}</span>
+
+  <span class="nd">@Override</span>
+  <span class="kd">public</span> <span class="n">Object</span> <span class="nf">intercept</span><span class="o">(</span><span class="n">Object</span> <span class="n">o</span><span class="o">,</span> <span class="n">Method</span> <span class="n">method</span><span class="o">,</span> <span class="n">Object</span><span class="o">[]</span> <span class="n">objects</span><span class="o">,</span> <span class="n">MethodProxy</span> <span class="n">methodProxy</span><span class="o">)</span>
+      <span class="kd">throws</span> <span class="n">Throwable</span> <span class="o">{</span>
+    <span class="k">return</span> <span class="n">method</span><span class="o">.</span><span class="na">invoke</span><span class="o">(</span><span class="n">target</span><span class="o">,</span> <span class="n">objects</span><span class="o">);</span>
+  <span class="o">}</span>
+<span class="o">}</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(getProxyInstance\)</span> 方法为 <span  class="math">\(target\)</span> 创建一个代理。<span  class="math">\(Enhancer\)</span> 为一个工具类，设置目标对象为其父类，动态构建子类对象。重写 <span  class="math">\(intecept\)</span> 方法实现被代理对象的方法调用。</p>
+
+<h3 id="114-代理模式的变体">11.4 代理模式的变体</h3>
+
+<ol>
+<li>防火墙代理——内网通过代理穿透防火墙访问公网</li>
+<li>缓存代理——请求资源时先检查代理，如果代理没有再从数据库获取</li>
+<li>远程代理——可以将远程对象当作本地对象使用</li>
+<li>同步代理——在多线程中负责同步工作</li>
+</ol>
+
+<h2 id="12-模板方法模式">12. 模板方法模式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;模板方法模式又叫模板模式，在一个抽象类中公开定义了模板方法，其子类可以重写一些方法，但调用应按照抽象类中定义的方法进行。</p>
+
+<p><figure><img src="/image/2020-07-10-16.png" alt="TemplateMethod"></figure></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在模板方法模式的父类中，我们可以定义一个方法，称为钩子，默认为空，子类可以视情况覆盖。</p>
+
+<h3 id="121-spring源码示例">12.1 Spring源码示例</h3>
+
+<p><code>Spring IOC</code>容器初始化时用到模板方法模式</p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(AbstractApplicationContext.refresh\)</span> 方法是一个模板方法，其内部间接调用抽象方法 <span  class="math">\(refreshBeanFactory\)</span> 和 <span  class="math">\(getBeanFactory\)</span> ，其子类继承并实现抽象方法。<span  class="math">\(PostProcessBeanFactory\)</span> 和 <span  class="math">\(onRefresh\)</span> 是钩子方法，在父类中为空实现。</p>
+
+<h2 id="13-命令模式">13. 命令模式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在软件设计中，我们经常需要发送请求，但是并不知道请求的接收者和被请求的操作，这时只需要在程序运行时指定即可。命令模式允许我们消除请求发送者和接收者间的耦合，实现更灵活的调用。在命令模式中，请求被封装为一个对象，表示不同的请求。命令模式支持撤销操作。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Invoker\)</span> 是调用者，<span  class="math">\(Receiver\)</span> 是被调用者，<span  class="math">\(ConcreteCommand\)</span> 实现了 <span  class="math">\(Command\)</span> 接口，持有接受对象。</p>
+
+<p><figure><img src="/image/2020-07-10-17.png" alt="Command"></figure></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(LightReceiver\)</span> 负责控制灯的开关，<span  class="math">\(Command\)</span> 持有 <span  class="math">\(LightReceiver\)</span> ，调用其方法，<span  class="math">\(RemoteController\)</span> 通过 <span  class="math">\(Command\)</span> 实现对灯的控制。</p>
+
+<h3 id="131-spring源码示例">13.1 Spring源码示例</h3>
+
+<p><span  class="math">\(JdbcTemplate\)</span> 中使用了命令模式</p>
+
+<ol>
+<li><span  class="math">\(JdbcTemplate\)</span> 类中存在 <span  class="math">\(query\)</span> 方法,</li>
+<li><span  class="math">\(query\)</span> 方法中定义了一内部类 <span  class="math">\(QueryStatementCallback\)</span>,</li>
+<li><span  class="math">\(QueryStatementCallback\)</span> 实现了 <span  class="math">\(StatementCallback\)</span> 接口,</li>
+<li>在 <span  class="math">\(query\)</span> 方法结束时调用了 <span  class="math">\(execute\)</span> 方法并传入了 <span  class="math">\((StatementCallback)new QueryStatementCallback\)</span>.</li>
+</ol>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(JdbcTemplate\)</span> 通过 <span  class="math">\(query\)</span> 方法，使其成为了 <span  class="math">\(Invoker\)</span> 。<span  class="math">\(StatementCallback\)</span> 和 <span  class="math">\(QueryStatementCallback\)</span> 是 <span  class="math">\(Command\)</span> 和 <span  class="math">\(ConcreteCommand\)</span> 的关系，同时也充当着 <span  class="math">\(Receiver\)</span>。</p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;命令模式将请求对象与被请求对象解耦，请求者和被请求者不需要知道对方是谁即可调用。通过命令队列，可以轻松的实现多线程调用。但是对于有很多的命令的操作，容易产生过多的命令类，增加复杂度。命令模式的使用还可以方便实现命令的撤销。通过引入空命令，可以省去判空语句。</p>
+
+<h2 id="14-访问者模式">14. 访问者模式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;访问者模式封装一些作用于某种结构的元素的操作，可以在不改变数据结构的前提下定义新操作。访问者模式将数据结构与数据操作进行分离，解决其耦合性问题。访问者模式通过向被访问类里添加一个供外部访问的接口。当需要对一个结构进行很多种不同的操作，又要避免对结构造成很大影响时，可以使用访问者模式。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Visitor\)</span> 是一个抽象类，<span  class="math">\(ConcreteVisitor\)</span> 是其实现。<span  class="math">\(ObjectStructure\)</span> 是一数据结构，可以枚举其元素，提供一高层接口，使访问者可以访问其元素。<span  class="math">\(Element\)</span> 为接口，定义了一 <span  class="math">\(accept\)</span> 方法，接受一访问者对象，<span  class="math">\(ConcreteElement\)</span> 是其实现。</p>
+
+<p><figure><img src="/image/2020-07-10-18.png" alt="Visitor"></figure></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;双分派的使用使得无论两种类怎么变化都不会影响另一种类，例如我们要添加新的动作时只需要创建新的 <span  class="math">\(Action\)</span> 的实现即可，要细化 <span  class="math">\(Person\)</span> 时也只需要修改其实现类即可。</p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;访问者模式的使用使得程序的灵活性更高，适用于结构稳定，功能统一的系统。但是由于具体元素向访问公开细节，是迪米特法则所不推荐的。同时访问类也违反了依赖倒转原则，抽象类依赖于具体元素。</p>
+
+<h2 id="15-迭代器模式">15. 迭代器模式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;迭代器模式提供一种遍历结合模式的接口，允许通过一个一致的方法，在不需要暴露内部结构的情况下对集合进行遍历。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Iterator\)</span> 是一个接口，提供了 <span  class="math">\(hasNext\)</span>, <span  class="math">\(next\)</span>, <span  class="math">\(remove\)</span> 方法，<span  class="math">\(ConcreteIterator\)</span> 实现了 <span  class="math">\(Iterator\)</span> 。<span  class="math">\(Aggregate\)</span> 是一个聚合接口，将其实现和客户端解耦，<span  class="math">\(ConcreteAggregate\)</span> 是其具体实现，持有对象的集合。</p>
+
+<p><figure><img src="/image/2020-07-10-19.png" alt="Iterator"></figure></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(College\)</span> 接口中声明了 <span  class="math">\(iterator\)</span> 方法，通过调用该方法即可获得对应的迭代器。<span  class="math">\(Iterator\)</span> 的实现中持有对应的集合，通过对不同的类创建不同的实现，可以做到在不暴露内部实现的情况下实现对集合的遍历。</p>
+
+<h3 id="151-jdk源码示例">15.1 JDK源码示例</h3>
+
+<ol>
+<li><span  class="math">\(List\)</span> 接口声明了 <span  class="math">\(iterator\)</span> 方法</li>
+<li><span  class="math">\(ArrayList\)</span> 实现了 <span  class="math">\(List\)</span> 接口，<span  class="math">\(iterator\)</span> 方法返回一个 <span  class="math">\(Itr\)</span> 对象</li>
+<li><span  class="math">\(Itr\)</span> 实现了 <span  class="math">\(Iterator\)</span> 接口</li>
+</ol>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;迭代器模式的使用使得客户端不需要知道内部细节即可实现对集合的遍历。迭代器的使用将管理对象集合和遍历对象集合的功能分开，满足了单一职责原则。但是如果存在很多聚合类时，每个类都需要声明一个对应的迭代器实现类，增加了复杂度。</p>
+
+<h2 id="16-观察者模式">16. 观察者模式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;观察者模式定义了一个 <span  class="math">\(Subject\)</span> 接口，接口中的 <span  class="math">\(registerObserver\)</span> 方法可以注册新的观察者，<span  class="math">\(removeObserver\)</span> 方法移除观察者，<span  class="math">\(notifyObservers\)</span> 方法通知所有观察者，且可以根据需要改变推送策略。<span  class="math">\(Observer\)</span> 接口内有一个 <span  class="math">\(update\)</span> 方法，用于更新数据。观察者模式是对象间多对一依赖的一种设计模式，被依赖的对象是 <span  class="math">\(Subject\)</span> ，依赖对象是 <span  class="math">\(Observer\)</span> ，<span  class="math">\(Observer\)</span> 通过 <span  class="math">\(Subject\)</span> 通知的数据进行更新。</p>
+
+<p><figure><img src="/image/2020-07-10-20.png" alt="Observer"></figure></p>
+
+<h3 id="161-jdk源码示例">16.1 JDK源码示例</h3>
+
+<p><span  class="math">\(Observable\)</span> 类使用了观察者模式</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Observable</span> <span class="o">{</span>
+    <span class="kd">private</span> <span class="n">Vector</span><span class="o">&lt;</span><span class="n">Observer</span><span class="o">&gt;</span> <span class="n">obs</span><span class="o">;</span>
+
+    <span class="kd">public</span> <span class="nf">Observable</span><span class="o">()</span> <span class="o">{</span>
+        <span class="n">obs</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Vector</span><span class="o">&lt;&gt;();</span>
+    <span class="o">}</span>
+
+    <span class="kd">public</span> <span class="kd">synchronized</span> <span class="kt">void</span> <span class="nf">addObserver</span><span class="o">(</span><span class="n">Observer</span> <span class="n">o</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">o</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span>
+            <span class="k">throw</span> <span class="k">new</span> <span class="n">NullPointerException</span><span class="o">();</span>
+        <span class="k">if</span> <span class="o">(!</span><span class="n">obs</span><span class="o">.</span><span class="na">contains</span><span class="o">(</span><span class="n">o</span><span class="o">))</span> <span class="o">{</span>
+            <span class="n">obs</span><span class="o">.</span><span class="na">addElement</span><span class="o">(</span><span class="n">o</span><span class="o">);</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+
+    <span class="kd">public</span> <span class="kd">synchronized</span> <span class="kt">void</span> <span class="nf">deleteObserver</span><span class="o">(</span><span class="n">Observer</span> <span class="n">o</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">obs</span><span class="o">.</span><span class="na">removeElement</span><span class="o">(</span><span class="n">o</span><span class="o">);</span>
+    <span class="o">}</span>
+
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">notifyObservers</span><span class="o">(</span><span class="n">Object</span> <span class="n">arg</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">Object</span><span class="o">[]</span> <span class="n">arrLocal</span><span class="o">;</span>
+        <span class="kd">synchronized</span> <span class="o">(</span><span class="k">this</span><span class="o">)</span> <span class="o">{</span>
+            <span class="k">if</span> <span class="o">(!</span><span class="n">changed</span><span class="o">)</span>
+                <span class="k">return</span><span class="o">;</span>
+            <span class="n">arrLocal</span> <span class="o">=</span> <span class="n">obs</span><span class="o">.</span><span class="na">toArray</span><span class="o">();</span>
+            <span class="n">clearChanged</span><span class="o">();</span>
+        <span class="o">}</span>
+        <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">arrLocal</span><span class="o">.</span><span class="na">length</span><span class="o">-</span><span class="n">1</span><span class="o">;</span> <span class="n">i</span><span class="o">&gt;=</span><span class="n">0</span><span class="o">;</span> <span class="n">i</span><span class="o">--)</span>
+            <span class="o">((</span><span class="n">Observer</span><span class="o">)</span><span class="n">arrLocal</span><span class="o">[</span><span class="n">i</span><span class="o">]).</span><span class="na">update</span><span class="o">(</span><span class="k">this</span><span class="o">,</span> <span class="n">arg</span><span class="o">);</span>
+    <span class="o">}</span>
+
+    <span class="c1">// ...
+</span><span class="c1"></span><span class="o">}</span></code></pre></div><div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">Observer</span> <span class="o">{</span>
+    <span class="kt">void</span> <span class="nf">update</span><span class="o">(</span><span class="n">Observable</span> <span class="n">o</span><span class="o">,</span> <span class="n">Object</span> <span class="n">arg</span><span class="o">);</span>
+<span class="o">}</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Observable\)</span> 并没有使用接口，而是直接声明一个具体类，在类中存在着注册、移除和通知观察者的方法，是 <span  class="math">\(Subject\)</span> 的角色。<span  class="math">\(Observer\)</span> 接口及其实现充当观察者的角色，提供了 <span  class="math">\(update\)</span> 方法。</p>
+
+<h2 id="17-中介者模式">17. 中介者模式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;中介者模式是用一个中介对象封装一系列对象间的交互。在中介者模式下，交互的对象间不需要显式地相互作用，起到了松耦合作用，从而使代码更容易维护。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Colleague\)</span> 是抽象同事类，<span  class="math">\(ConcreteColleague\)</span> 是其实现。同事类之间互不了解，只需要依赖中介者对象即可。<span  class="math">\(Mediator\)</span> 是抽象中介者，<span  class="math">\(ConcreteMediator\)</span> 是其实现。中介者对象通过一个集合来接受同事的消息，并完成指定操作。</p>
+
+<p><figure><img src="/image/2020-07-10-21.png" alt="Mediator"></figure></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Colleague\)</span> 中持有 <span  class="math">\(Mediator\)</span> 对象，可以通过 <span  class="math">\(Mediator.register\)</span> 方法将本身注册到中介者内。$Mediator<span  class="math">\( 内使用 \)</span>HashMap<span  class="math">\( 实现对 \)</span>Colleague<span  class="math">\( 的管理。当接受到消息时，\)</span>Mediator$$ 类中对应的方法会根据消息的类型进行不同的操作。</p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用中介者模式，可以将原先多个类相互耦合形成的网状结构分解成星型结构，减少了类间的依赖和耦合，符合迪米特原则。但要注意的是，在中介者模式中，中介者承担了很多责任，一旦中介者出现了问题，整个系统都会受到影响，如果设计不当，中介者很复杂，那么整个系统都会受到影响。</p>
+
+<h2 id="18-备忘录模式">18. 备忘录模式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;备忘录模式可以在不破坏封装性的情况下捕获并记录一个对象的内部状态。通过备忘录模式，一个对象可以恢复到一个以前的状态。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Originator</span> <span class="o">{</span>
+  <span class="kd">private</span> <span class="n">String</span> <span class="n">state</span><span class="o">;</span>
+
+  <span class="kd">public</span> <span class="n">Memento</span> <span class="nf">saveState</span><span class="o">()</span> <span class="o">{</span>
+    <span class="k">return</span> <span class="k">new</span> <span class="n">Memento</span><span class="o">(</span><span class="n">state</span><span class="o">);</span>
+  <span class="o">}</span>
+
+  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">readState</span><span class="o">(</span><span class="n">Memento</span> <span class="n">memento</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="n">memento</span><span class="o">.</span><span class="na">getState</span><span class="o">();</span>
+  <span class="o">}</span>
+
+  <span class="kd">public</span> <span class="n">String</span> <span class="nf">getState</span><span class="o">()</span> <span class="o">{</span>
+    <span class="k">return</span> <span class="n">state</span><span class="o">;</span>
+  <span class="o">}</span>
+
+  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setState</span><span class="o">(</span><span class="n">String</span> <span class="n">state</span><span class="o">)</span> <span class="o">{</span>
+    <span class="k">this</span><span class="o">.</span><span class="na">state</span> <span class="o">=</span> <span class="n">state</span><span class="o">;</span>
+  <span class="o">}</span>
+<span class="o">}</span></code></pre></div><div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Memento</span> <span class="o">{</span>
+  <span class="kd">private</span> <span class="n">String</span> <span class="n">state</span><span class="o">;</span>
+
+  <span class="kd">public</span> <span class="nf">Memento</span><span class="o">(</span><span class="n">String</span> <span class="n">state</span><span class="o">)</span> <span class="o">{</span>
+    <span class="k">this</span><span class="o">.</span><span class="na">state</span> <span class="o">=</span> <span class="n">state</span><span class="o">;</span>
+  <span class="o">}</span>
+
+  <span class="kd">public</span> <span class="n">String</span> <span class="nf">getState</span><span class="o">()</span> <span class="o">{</span>
+    <span class="k">return</span> <span class="n">state</span><span class="o">;</span>
+  <span class="o">}</span>
+<span class="o">}</span></code></pre></div><div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Caretaker</span> <span class="o">{</span>
+  <span class="kd">private</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">Memento</span><span class="o">&gt;</span> <span class="n">mementos</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;&gt;();</span>
+
+  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">add</span><span class="o">(</span><span class="n">Memento</span> <span class="n">memento</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">mementos</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">memento</span><span class="o">);</span>
+  <span class="o">}</span>
+
+  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">remove</span><span class="o">(</span><span class="n">Memento</span> <span class="n">memento</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">mementos</span><span class="o">.</span><span class="na">remove</span><span class="o">(</span><span class="n">memento</span><span class="o">);</span>
+  <span class="o">}</span>
+
+  <span class="kd">public</span> <span class="n">Memento</span> <span class="nf">get</span><span class="o">(</span><span class="kt">int</span> <span class="n">index</span><span class="o">)</span> <span class="o">{</span>
+    <span class="k">return</span> <span class="n">mementos</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">index</span><span class="o">);</span>
+  <span class="o">}</span>
+<span class="o">}</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Originator\)</span> 是待保存的对象，<span  class="math">\(Mementor\)</span> 是备忘录对象，<span  class="math">\(Caretaker\)</span> 管理备忘录对象。</p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;备忘录提供了一种可以恢复之前状态的机制，实现了信息的封装，用户在恢复时不需要关注状态的细节。但是如果类内成员过多，那么每次备份都会消耗大量时间，还存在着资源浪费。为了节约内存，备忘录模式也可以与原型模式一起使用。</p>
+
+<h2 id="19-解释器模式">19. 解释器模式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;解释器模式对于给定的表达式，定义了其文法的一种表示，利用一个解释器来对表达式进行解释。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Context\)</span> 是环境角色，包含解释器之外的全局信息。<span  class="math">\(AbstractExpression\)</span> 是抽象表达式，声明一个抽象的解释操作，为抽象语法树中所有节点所共享。<span  class="math">\(TerminalExpression\)</span> 实现 <span  class="math">\(AbstractExpression\)</span> 为终结符表达式，实现与终结符相关的解释操作。<span  class="math">\(NonTerminalExpression\)</span> 实现 <span  class="math">\(AbstractExpression\)</span> 为非终结符表达式，实现与非终结符相关的解释操作。</p>
+
+<p><figure><img src="/image/2020-07-10-22.png" alt="Interpreter"></figure></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Expression\)</span> 是一个抽象解释器，内包含一个 <span  class="math">\(interpreter\)</span> 方法，其实现类分别用于解释不同的字符：数字和加减号。</p>
+
+<h3 id="191-spring源码示例">19.1 Spring源码示例</h3>
+
+<p><span  class="math">\(SpelExpressionParser\)</span> 类中使用了解释器模式</p>
+
+<ol>
+<li><span  class="math">\(Expression\)</span> 接口内包含 <span  class="math">\(getValue\)</span> 方法,</li>
+<li><span  class="math">\(SpelExpressionParser\)</span> 间接实现了 <span  class="math">\(ExpressionParser\)</span>,</li>
+<li><span  class="math">\(ExpressionParser.parseExpression\)</span> 方法会根据不同的情况返回相应的 <span  class="math">\(Expression\)</span>.</li>
+</ol>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;当需要解释执行一个语言时，如果可以用语法树表示句子，那么就可以使用解释器模式。解释器模式相比一般模式具有良好的扩展性，但由于其采用递归调用方法，可能会导致调试复杂，效率降低。</p>
+
+<h2 id="20-状态模式">20. 状态模式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;状态模式用于多种状态转换时对外输出不同的问题。状态间可以相互转换，行为与状态一一对应。当对象的状态改变时，其行为也跟着改变，从外部来看类似于变为另一个类。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Context\)</span> 为环境角色，维护状态实例。<span  class="math">\(State\)</span> 为接口，封装与 <span  class="math">\(Context\)</span> 的一个特定接口相关的操作，<span  class="math">\(ConcreteState\)</span> 为其实现。</p>
+
+<p><figure><img src="/image/2020-07-10-23.png" alt="State"></figure></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Activity\)</span> 和 <span  class="math">\(State\)</span> 之间互相持有，<span  class="math">\(Activity\)</span> 内的方法调用 <span  class="math">\(State\)</span> 的方法进行状态对应的行为，<span  class="math">\(State\)</span> 内的方法调用 <span  class="math">\(Activity\)</span> 的方法进行状态切换。</p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;状态模式具有很强的可读性，将状态和行为封装在一起，方便扩展，而且避免了 <span  class="math">\(if-else\)</span> 带来的问题，符合开闭原则。但相对应的，由于每个状态都对应者一个类，可能会产生很多个状态类，从而增加了维护难度。</p>
+
+<h2 id="21-策略模式">21. 策略模式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;策略模式定义了一些算法，分别封装起来，算法间可以互相替换。</p>
+
+<p><figure><img src="/image/2020-07-10-24.png" alt="Strategy"></figure></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Duck\)</span> 持有 <span  class="math">\(FlyBehavior\)</span> ，其子类继承 <span  class="math">\(Duck\)</span> 时通过设置 <span  class="math">\(FlyBehavior\)</span> ，可以做出不同的行为。</p>
+
+<h3 id="211-jdk源码示例">21.1 JDK源码示例</h3>
+
+<p><span  class="math">\(Arrays\)</span> 类中使用了策略模式</p>
+
+<p><span  class="math">\(Arrays.sort\)</span> 方法可以选择传入 <span  class="math">\(Comparator\)</span> 类来指定排序策略</p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;策略模式多用组合，少用继承，使用行为类进行组合而不是行为继承，符合开闭原则。</p>
+
+<h2 id="22-职责链模式">22. 职责链模式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;职责链模式，又叫责任链模式，为请求创建了一个接收者对象的链，对请求的发送者和接收者进行解耦。在职责链模式中，通常每个接收者都包含对另一个接收者的引用，在当前接收者不能处理时，会将请求传递给下一个接收者。</p>
+
+<p><figure><img src="/image/2020-07-10-25.png" alt="ResponsibilityChain"></figure></p>
+
+<h3 id="221-springmvc源码示例">22.1 SpringMVC源码示例</h3>
+
+<p><span  class="math">\(HandlerInterceptor\)</span> 类中使用了职责链模式</p>
+
+<ol>
+<li><span  class="math">\(DispatcherServlet.doDispatch\)</span> 方法中获取 <span  class="math">\(HandlerExecutionChain\)</span> 对象,</li>
+<li><span  class="math">\(HandlerExecutionChain.applyPreHandle\)</span> 方法获取 <span  class="math">\(HandlerInterceptor\)</span>,</li>
+<li><span  class="math">\(HandlerInterceptor.preHandler\)</span> 方法被调用,</li>
+<li><span  class="math">\(applyPreHandler\)</span> 方法中调用了 <span  class="math">\(triggerAfterCompletion\)</span> 方法,</li>
+<li><span  class="math">\(triggerAfterCompletion\)</span> 方法调用了 <span  class="math">\(HandlerInterceptor.afterCompletion\)</span> 方法,</li>
+<li><span  class="math">\(HandlerExecutionChain.applyPostHandle\)</span> 方法再次获取 <span  class="math">\(HandlerInterceptor\)</span>,</li>
+<li><span  class="math">\(HandlerInterceptor.postHandler\)</span> 方法被调用.</li>
+</ol>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;职责链模式将请求和处理分开，实现了解耦，提高了系统的灵活性。但是性能会受到影响，特别是如果链很长，因此最好设置一个最大节点数加以限制。由于采用了类似于递归的方式，因此也不利于调试。</p>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F9%E4%BA%8B%E5%8A%A1%E7%AE%A1%E7%90%86/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a href="https://z217blog.cn/post/jwt%E7%AE%80%E4%BB%8B/"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+
+
+            </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_SVG"></script></main>
+    </body>
+    <script src=https://z217blog.cn/js/navbutton.js></script>
+</html>

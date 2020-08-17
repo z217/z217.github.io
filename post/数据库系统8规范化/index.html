@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <title>z217&#39;s blog</title>
+</head><body><aside id="sidenav">
+    <header>
+    
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+        
+    
+
+    <a id="branding" href=https://z217blog.cn>
+        
+            z217&#39;s blog
+        
+    </a>
+    </header>
+
+    <nav>
+        
+            		
+            <a href="/"
+                
+            >
+                <i class="fas fa-home fa-ms"></i>
+                <span>首页</span>
+            </a>
+        
+            		
+            <a href="/post/"
+                
+            >
+                <i class="fas fa-keyboard fa-ms"></i>
+                <span>文章</span>
+            </a>
+        
+            		
+            <a href="/tags"
+                
+            >
+                <i class="fas fa-tags fa-sm"></i>
+                <span>标签</span>
+            </a>
+        
+            		
+            <a href="/about"
+                
+            >
+                <i class="fas fa-user fa-ms"></i>
+                <span>关于</span>
+            </a>
+        
+            		
+            <a href="https://github.com/z217"
+                
+                    target="_blank"
+                
+            >
+                <i class="fab fa-github fa-ms"></i>
+                <span>Github</span>
+            </a>
+        
+            		
+            <a href="/index.xml"
+                
+            >
+                <i class="fas fa-rss fa-sm"></i>
+                <span>RSS</span>
+            </a>
+        
+            		
+            <a href="http://123.57.12.189"
+                
+                    target="_blank"
+                
+            >
+                <i class="fas fa-link fa-sm"></i>
+                <span>二站</span>
+            </a>
+        
+    </nav>
+</aside>
+<main id="main">
+            <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+            <div class="content">
+
+<h1 id="title">数据库系统（8）：规范化</h1>
+
+
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>规范化</strong> ( <span  class="math">\(Normalization\)</span> ) 是一种数据库设计技术，从分析属性之间的联系入手。规范化使用一系列测试，描述为<strong>范式</strong> ( <span  class="math">\(normal\;forms\)</span> ) 帮助我们确定这些属性的最佳组合，最终生成一组适当关系。</p>
+
+<h2 id="1-目的">1. 目的</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;规范化的目的是确定一组合适的关系以支持企业的数据需求。该关系具有以下性质：</p>
+
+<ul>
+<li>属性的个数最少，且是必需的</li>
+<li>具有紧密逻辑联系，描述为<strong>函数依赖</strong> ( <span  class="math">\(functional\;dependency\)</span> ) 的所有属性均在一个关系中</li>
+<li>最少的冗余，即每个属性仅出现一次，除了作为外键的属性，因为连接相关关系必须用到外键</li>
+</ul>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;具有一组合适的关系，数据库会易于用户访问，数据易于维护，在计算机上也会占有较小的存储空间。</p>
+
+<h2 id="2-支持">2. 支持</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;规范化有两种使用方法。方法 $1$ 将规范化视为一种<strong>自下而上</strong> ( <span  class="math">\(bottom-up\)</span> ) 的独立的数据库设计技术。方法 <span  class="math">\(2\)</span> 将规范化作为一种确认技术使用，即用规范化检验关系的结构，而这些关系的建立可能采用自上而下的方法，如<code>ER</code>建模等。</p>
+
+<h2 id="3-数据冗余与更新异常">3. 数据冗余与更新异常</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;关系数据库设计的一个目的就是将属性组合成关系时保证最少的数据冗余。当然，关系数据库的运行也依赖于一定的数据冗余的存在，一般是以主键或者候选键的多个副本的形式出现，作为外键表示数据间联系。存在冗余数据的关系可能存在一些问题，如<strong>更新异常</strong> ( <span  class="math">\(update\;anomalies\)</span> )。更新异常又可分为插入异常、删除异常和修改异常。</p>
+
+<p><figure><img src="/image/2020-05-22-1.png" alt="存在数据冗余的表"></figure></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Staff\)</span> 和 <span  class="math">\(Branch\)</span> 是不存在数据冗余的两个表。<span  class="math">\(StaffBranch\)</span> 是将上两个表合起来的存在数据冗余的表，同一个分公司的信息会重复出现。</p>
+
+<h3 id="31-插入异常">3.1 插入异常</h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;插入异常主要有两类：</p>
+
+<ul>
+<li>在向 <span  class="math">\(StaffBranch\)</span> 中插入新员工时，若同一家分公司信息不同，则会产生一致性问题；</li>
+<li>在向 <span  class="math">\(StaffBranch\)</span> 中插入新的分公司时，由于没有员工，因此员工信息都应设为 <span  class="math">\(null\)</span> 。但是主键 <span  class="math">\(staffNo\)</span> 不能为空，否则会违反实体完整性约束。</li>
+</ul>
+
+<h3 id="32-删除异常">3.2 删除异常</h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;从 <span  class="math">\(StaffBranch\)</span> 中删除元组时，若该元组中的员工信息是某个分公司的最后的员工，则该分公司的信息也会被删除。</p>
+
+<h3 id="33-修改异常">3.3 修改异常</h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;当要修改 <span  class="math">\(StaffBranch\)</span> 中某个分公司的属性值时，必须依次修改所有包含该分公司信息的元组。</p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上述的所有问题都可以通过将 <span  class="math">\(StaffBranch\)</span> 分为 <span  class="math">\(Staff\)</span> 和 <span  class="math">\(Branch\)</span> 来解决，即把较大的关系分为较小的关系。这时有两个重要特性：</p>
+
+<ul>
+<li><strong>无损连接</strong> ( <span  class="math">\(lossless-join\)</span> ) ：该特性确保了原关系的任意实例信息能够通过较小关系的对应实例确定；</li>
+<li><strong>依赖保持</strong> ( <span  class="math">\(dependency\;preservation\)</span> ) ：该特性确保了只需简单地在较小的关系上支持约束，就可以继续支持原关系的约束。即不需要连接操作就可以判断是否符合原关系的约束。</li>
+</ul>
+
+<h2 id="4-函数依赖">4. 函数依赖</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;函数依赖描述了属性之间的联系。</p>
+
+<h3 id="41-特征">4.1 特征</h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;假设有一关系模式，具有属性 (<span  class="math">\(A\)</span>, <span  class="math">\(B\)</span>, <span  class="math">\(C\)</span>,..., <span  class="math">\(Z\)</span>) ，我们使用<strong>全域关系</strong> ( <span  class="math">\(universal\;relation\)</span> ) <span  class="math">\(R\)</span> = ( <span  class="math">\(A\)</span>, <span  class="math">\(B\)</span>, <span  class="math">\(C\)</span>,..., <span  class="math">\(Z\)</span> ) 来描述数据库。函数依赖描述一个关系中属性之间的联系，若 <span  class="math">\(A\)</span> 的每个值都和 <span  class="math">\(B\)</span> 中的一个唯一的值相对应，则称 <span  class="math">\(B\)</span> 函数依赖于 <span  class="math">\(A\)</span> ，记为 <span  class="math">\(A \rightarrow B\)</span> ( <span  class="math">\(A\)</span>, <span  class="math">\(B\)</span> 可能由一个或者多个属性组成 )。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;函数依赖是属性在关系中的一种语义特性，表明属性和属性之间是如何关联起来的。当存在某一函数依赖时，这个依赖就被视为属性之间的一种约束。当 <span  class="math">\(B\)</span> 函数依赖于 <span  class="math">\(A\)</span> 时，对于 <span  class="math">\(A\)</span> 的每一个值，都有唯一的 <span  class="math">\(B\)</span> 的值与之对应。因此当两个元组 <span  class="math">\(A\)</span> 的值相等时，它们 <span  class="math">\(B\)</span> 的值也一定相等。但是反过来，当它们 <span  class="math">\(B\)</span> 的值相等时，<span  class="math">\(A\)</span> 的值却不一定相等，因为不同的 <span  class="math">\(A\)</span> 的值可以对应同一个 <span  class="math">\(B\)</span> 的值。因此也可以把 <span  class="math">\(B\)</span> 函数依赖于 <span  class="math">\(A\)</span> 称为 <span  class="math">\(A\)</span> 函数决定 <span  class="math">\(B\)</span> ，<span  class="math">\(A\)</span> 称为<strong>决定方</strong> ( <span  class="math">\(determinant\)</span> )。</p>
+
+<p><figure><img src="/image/2020-05-22-2.png" alt="函数依赖和函数决定"></figure></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在确定一个关系中属性之间的函数依赖时，必须明确它是仅当属性取某一特定值时成立还是属性取集合中任意值时成立，即函数依赖是关系模式的性质还是某个实例的性质，如果是前者，称为<strong>恒成立</strong> ( <span  class="math">\(holds\;for\;all\;time\)</span> ) 函数依赖 。当决定方具有的属性是保证右边属性的函数依赖于它所必不可少的属性时，我们称之为<strong>完全函数依赖</strong> ( <span  class="math">\(full\;functional\;dependency\)</span> )。否则，称为部分函数依赖。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;规范化时要用到的函数依赖具有下列性质：</p>
+
+<ul>
+<li>函数依赖左边的属性与右边属性是一对一的联系（反过来可以是一对一，也可以是一对多）；</li>
+<li>恒成立</li>
+<li>完全函数依赖</li>
+</ul>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;此外，还有一种函数依赖称为<strong>传递依赖</strong> ( <span  class="math">\(transitive\;dependency\)</span> )。若 <span  class="math">\(A \rightarrow B\)</span>，<span  class="math">\(B \rightarrow C\)</span> ，则 <span  class="math">\(C\)</span> 通过 <span  class="math">\(B\)</span> 传递依赖于 <span  class="math">\(A\)</span> （假设 <span  class="math">\(A\)</span> 并不函数依赖于 <span  class="math">\(B\)</span> 或 <span  class="math">\(C\)</span> ）。若关系中存在传递依赖，可能引起更新异常。</p>
+
+<h3 id="42-识别">4.2 识别</h3>
+
+<table>
+<thead>
+<tr>
+<th align="center"><span  class="math">\(A\)</span></th>
+<th align="center"><span  class="math">\(B\)</span></th>
+<th align="center"><span  class="math">\(C\)</span></th>
+<th align="center"><span  class="math">\(D\)</span></th>
+<th align="center"><span  class="math">\(E\)</span></th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="center"><span  class="math">\(a\)</span></td>
+<td align="center"><span  class="math">\(b\)</span></td>
+<td align="center"><span  class="math">\(z\)</span></td>
+<td align="center"><span  class="math">\(w\)</span></td>
+<td align="center"><span  class="math">\(q\)</span></td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(e\)</span></td>
+<td align="center"><span  class="math">\(b\)</span></td>
+<td align="center"><span  class="math">\(r\)</span></td>
+<td align="center"><span  class="math">\(w\)</span></td>
+<td align="center"><span  class="math">\(p\)</span></td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(a\)</span></td>
+<td align="center"><span  class="math">\(d\)</span></td>
+<td align="center"><span  class="math">\(z\)</span></td>
+<td align="center"><span  class="math">\(w\)</span></td>
+<td align="center"><span  class="math">\(t\)</span></td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(e\)</span></td>
+<td align="center"><span  class="math">\(d\)</span></td>
+<td align="center"><span  class="math">\(r\)</span></td>
+<td align="center"><span  class="math">\(w\)</span></td>
+<td align="center"><span  class="math">\(q\)</span></td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(a\)</span></td>
+<td align="center"><span  class="math">\(f\)</span></td>
+<td align="center"><span  class="math">\(z\)</span></td>
+<td align="center"><span  class="math">\(s\)</span></td>
+<td align="center"><span  class="math">\(t\)</span></td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(e\)</span></td>
+<td align="center"><span  class="math">\(f\)</span></td>
+<td align="center"><span  class="math">\(r\)</span></td>
+<td align="center"><span  class="math">\(s\)</span></td>
+<td align="center"><span  class="math">\(t\)</span></td>
+</tr>
+</tbody>
+</table>
+
+<ol>
+<li>当 <span  class="math">\(A\)</span> 为 <span  class="math">\(a\)</span> 时，<span  class="math">\(C\)</span> 就为 <span  class="math">\(z\)</span> ；当 <span  class="math">\(A\)</span> 为 <span  class="math">\(e\)</span> 时，<span  class="math">\(C\)</span> 就为 <span  class="math">\(r\)</span> 。因此 <span  class="math">\(A \rightarrow C\)</span> ，也可以说 <span  class="math">\(C \rightarrow A\)</span> ；</li>
+<li>同理，<span  class="math">\(B \rightarrow D\)</span> ， 但是不能说 <span  class="math">\(D \rightarrow B\)</span> ，因为当 <span  class="math">\(D\)</span> 为 <span  class="math">\(w\)</span> 时对应多个 <span  class="math">\(B\)</span> 的值，即 <span  class="math">\(D\)</span> 与 <span  class="math">\(B\)</span> 之间是一对多的联系；</li>
+<li><span  class="math">\(E\)</span> 与其他属性的变化都不一致，因此不能函数决定其他属性。但是当 <span  class="math">\(A\)</span> 和 <span  class="math">\(B\)</span> 的取值固定时，<span  class="math">\(E\)</span> 的取值也固定，因此可以说 <span  class="math">\(A, B \rightarrow E\)</span> 。同理 <span  class="math">\(B, C \rightarrow E\)</span> 。</li>
+</ol>
+
+<h3 id="43-利用函数依赖确定主键">4.3 利用函数依赖确定主键</h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;确定函数依赖的主要目的时确定该关系必须满足的完整性约束集。首先要考虑的就是候选键。上述的关系的决定方有 <span  class="math">\(A\)</span>, <span  class="math">\(B\)</span>, <span  class="math">\(C\)</span>, <span  class="math">\((A, B)\)</span>, <span  class="math">\((B, C)\)</span> 。综合来看，只有 <span  class="math">\((A, B)\)</span> 和 <span  class="math">\((B, C)\)</span> 能够决定其他所有属性，因此它们都是候选键。由于长度一样，因此都可以作为主键。</p>
+
+<h2 id="5-过程">5. 过程</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;规范化的过程包括一系列步骤，每一步都对应着某种具有已知性质的特定范式。最早提出的三个范式为<strong>第一范式</strong> ( <span  class="math">\(1NF\)</span> ) 、<strong>第二范式</strong> ( <span  class="math">\(2NF\)</span> ) 和<strong>第三范式</strong> ( <span  class="math">\(3NF\)</span> ) ，后来又提出了一种增强的第三范式，称为 <span  class="math">\(Boyce-Codd\)</span> <strong>范式</strong> ( <span  class="math">\(BCNF\)</span> ) 。也存在更高层的<strong>第四范式</strong> ( <span  class="math">\(4NF\)</span> ) 和<strong>第五范式</strong> ( <span  class="math">\(5NF\)</span> ) ，但是需要用到的情况相当少。除了第一范式外，这些范式都是基于关系的属性间函数依赖的。对于关系数据模型，在建立关系时只有满足 <span  class="math">\(1NF\)</span> 的需求是必须的，后面其他范式都是可选的。但是为了避免更新异常，通常建议将规范化至少进行到 <span  class="math">\(3NF\)</span> 。</p>
+
+<p><figure><img src="/image/2020-05-22-3.png" alt="范式之间的联系"></figure></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>非范式</strong> ( <span  class="math">\(Unnormalized\;Form\)</span>, <span  class="math">\(UNF\)</span> ) 是包含一个或者多个重复组的表。非范式的表格称为<strong>非规范化的表</strong> ( <span  class="math">\(unnormalized\;table\)</span> ) 。在使用范式之前，我们需要将需求先转化为非范式表的形式，然后将其逐渐分解直至满足每一种范式的要求。规范化过程通过使用一系列的关系代数投影对原始关系进行分解，这是一种<strong>无损连接</strong> ( <span  class="math">\(lossless-join\)</span> ) 分解，也称为<em>无损耗</em> ( <span  class="math">\(nonloss-\)</span> ) /<em>无附加</em> ( <span  class="math">\(nonadditive-\)</span> ) 连接分解，即反向使用自然连接操作就可以得到原关系。</p>
+
+<h2 id="6-第一范式">6. 第一范式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;属于第一范式的关系的每一行和每一列相交的位置有且仅有一个值。为了将非规范化的表转化为第一范式，我们需要确定并删除表中的重复组。重复组可以是一个属性或者一组属性，包含表中对应关键属性的一个实例时可能出现多个值的属性。通常有两种方法：</p>
+
+<ol>
+<li>在含有重复数据的那些行的空白列上输入合适的数据。这种方法通常被看作是对表的<em>平板化</em> ( <span  class="math">\(flattening\)</span> ) 处理；</li>
+<li>将重复数据单独移到一个新的关系中，同时也将原来关系中的关键属性复制到这个关系中。</li>
+</ol>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;这两种方法都是可行的。但是第一种方法引入了较多的冗余，可能会导致更新异常；第二种方法则创建了更多的关系，降低了冗余，但是需要更多工作。</p>
+
+<h2 id="7-第二范式">7. 第二范式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;第二范式是满足第一范式的要求并且每个非主键属性都完全函数依赖于主键的关系。第二范式基于完全函数依赖的概念，使用于具有合成键的关系，即主键由两个或两个以上的属性组成。主键仅包含一个属性的关系已经至少是 <span  class="math">\(2NF\)</span> 的。如果存在部分依赖，就要将部分依赖的属性从原关系移到一个新的关系中去，包括这些属性的决定方。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;将 <span  class="math">\(1NF\)</span> 转化为 <span  class="math">\(2NF\)</span> ，需要先找出所有的函数依赖，利用这些函数依赖来确定主键。再通过确定主键上是否存在部分依赖来验证该关系是否是 <span  class="math">\(2NF\)</span> 。如果非 <span  class="math">\(2NF\)</span> ，则要创建新关系，将存在部份依赖的非主键属性移至其中。</p>
+
+<h2 id="8-第三范式">8. 第三范式</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;尽管 <span  class="math">\(2NF\)</span> 的关系比 <span  class="math">\(1NF\)</span> 关系的数据冗余度低，但是仍然存在更新异常的问题，此时的更新异常是由传递依赖引起的。第三范式满足第一范式和第二范式的要求并且所有非主键属性都不传递依赖于主键的关系，即消除 <span  class="math">\(2NF\)</span> 中的传递依赖。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果关系中的所有非主键属性都完全函数依赖于它们的主键，则它们已经是 <span  class="math">\(3NF\)</span> 。而如果除了主键之外还传递依赖于其他属性，那么就要通过分解关系来消除该依赖。</p>
+
+<h2 id="9-一般化定义">9. 一般化定义</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在对 <span  class="math">\(2NF\)</span> 和 <span  class="math">\(3NF\)</span> 更一般化的定义中，我们规定：属于任何一个候选键的属性都叫做<em>主属性</em> ( <span  class="math">\(candidate-key\;attribute\)</span> )；提到部份依赖、完全依赖和传递依赖时不仅仅是基于主键，而是基于所有候选键。</p>
+
+<ul>
+<li>第二范式是满足第一范式的要求并且每个非主属性都完全函数依赖于任何一个候选键的关系。</li>
+<li>第三范式是满足第一范式和第二范式的要求并且没有一个非主属性传递依赖于任何一个候选键的关系。</li>
+</ul>
+
+<h2 id="10-bcnf">10. <code>BCNF</code></h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Boyce-Codd\)</span> 范式是每个函数依赖的决定方都是候选键的关系。<span  class="math">\(BCNF\)</span> 与 <span  class="math">\(3NF\)</span> 的区别表现在对于一个函数依赖 <span  class="math">\(A \rightarrow B\)</span> ，<span  class="math">\(3NF\)</span> 允许 <span  class="math">\(B\)</span> 是主键属性而 <span  class="math">\(A\)</span> 非候选键。一般情况下 <span  class="math">\(3NF\)</span> 都是 <span  class="math">\(BCNF\)</span> ，但是在一些特殊性情况下会违反，这些情况有：</p>
+
+<ul>
+<li>关系中包含两个（或更多个）合成候选键</li>
+<li>候选键互相重叠，通常至少都包含一个相同属性</li>
+</ul>
+
+<table>
+<thead>
+<tr>
+<th align="left"><span  class="math">\(clientNo\)</span></th>
+<th align="left"><span  class="math">\(interviewDate\)</span></th>
+<th align="left"><span  class="math">\(interviewTime\)</span></th>
+<th align="left"><span  class="math">\(staffNo\)</span></th>
+<th align="left"><span  class="math">\(roomNo\)</span></th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="left"><span  class="math">\(CR76\)</span></td>
+<td align="left"><span  class="math">\(13-May-14\)</span></td>
+<td align="left"><span  class="math">\(10.30\)</span></td>
+<td align="left"><span  class="math">\(SG5\)</span></td>
+<td align="left"><span  class="math">\(G101\)</span></td>
+</tr>
+
+<tr>
+<td align="left"><span  class="math">\(CR56\)</span></td>
+<td align="left"><span  class="math">\(13-May-14\)</span></td>
+<td align="left"><span  class="math">\(12.00\)</span></td>
+<td align="left"><span  class="math">\(SG5\)</span></td>
+<td align="left"><span  class="math">\(G101\)</span></td>
+</tr>
+
+<tr>
+<td align="left"><span  class="math">\(CR74\)</span></td>
+<td align="left"><span  class="math">\(13-May-14\)</span></td>
+<td align="left"><span  class="math">\(12.00\)</span></td>
+<td align="left"><span  class="math">\(SG37\)</span></td>
+<td align="left"><span  class="math">\(G102\)</span></td>
+</tr>
+
+<tr>
+<td align="left"><span  class="math">\(CR56\)</span></td>
+<td align="left"><span  class="math">\(1-Jul-14\)</span></td>
+<td align="left"><span  class="math">\(10.30\)</span></td>
+<td align="left"><span  class="math">\(SG5\)</span></td>
+<td align="left"><span  class="math">\(G102\)</span></td>
+</tr>
+</tbody>
+</table>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;关系 <span  class="math">\(ClientInterview\)</span> 中有三个候选键 ( <span  class="math">\(clientNo\)</span>, <span  class="math">\(interviewDate\)</span> ), ( <span  class="math">\(staffNo\)</span>, <span  class="math">\(interviewDate\)</span>, <span  class="math">\(interviewTime\)</span> ), ( <span  class="math">\(roomNo\)</span>, <span  class="math">\(interviewDate\)</span>, <span  class="math">\(interviewTime\)</span> ) ，选择 ( <span  class="math">\(clientNo\)</span>, <span  class="math">\(interviewDate\)</span> ) 作为主键，则函数依赖如下所示：</p>
+
+<p><span  class="math">\[
+\begin{aligned}
+&fd1\quad clientNo, interviewDate \rightarrow interviewTime, staffNo, roomNo\quad\text{(主键)}\\
+&fd2\quad staffNo, interviewDate, interviewTime \rightarrow clientNo\quad\text{(候选键)}\\
+&fd3\quad roomNo, interviewDate, interviewTime \rightarrow staffNo, clientNo\quad\text{(候选键)}\\
+&fd4\quad staffNo, interviewDate \rightarrow roomNo\quad
+\end{aligned}
+\]</span></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(fd1\)</span>, <span  class="math">\(fd2\)</span>, <span  class="math">\(fd3\)</span> 都是候选键，而 <span  class="math">\(fd4\)</span> 不是。因此这个关系是 <span  class="math">\(3NF\)</span> ，而非 <span  class="math">\(BCNF\)</span> 。在非 <span  class="math">\(BCNF\)</span> 的关系中可能会出现更新异常。例如当我们要更新 <span  class="math">\(interviewDate\)</span> 为 <span  class="math">\(13-May-14\)</span> ，<span  class="math">\(staffNo\)</span> 为 <span  class="math">\(SG5\)</span> 的行的 <span  class="math">\(roomNo\)</span> 属性时，要同时更新两行，否则就会导致不一致问题。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;将 <span  class="math">\(3NF\)</span> 转化为 <span  class="math">\(BCNF\)</span> ，必须消除不满足 <span  class="math">\(BCNF\)</span> 的函数依赖。为此，我们可以分解关系，如下：</p>
+
+<table>
+<thead>
+<tr>
+<th align="left"><span  class="math">\(clientNo\)</span></th>
+<th align="left"><span  class="math">\(interviewDate\)</span></th>
+<th align="left"><span  class="math">\(interviewTime\)</span></th>
+<th align="left"><span  class="math">\(staffNo\)</span></th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="left"><span  class="math">\(CR76\)</span></td>
+<td align="left"><span  class="math">\(13-May-14\)</span></td>
+<td align="left"><span  class="math">\(10.30\)</span></td>
+<td align="left"><span  class="math">\(SG5\)</span></td>
+</tr>
+
+<tr>
+<td align="left"><span  class="math">\(CR56\)</span></td>
+<td align="left"><span  class="math">\(13-May-14\)</span></td>
+<td align="left"><span  class="math">\(12.00\)</span></td>
+<td align="left"><span  class="math">\(SG5\)</span></td>
+</tr>
+
+<tr>
+<td align="left"><span  class="math">\(CR74\)</span></td>
+<td align="left"><span  class="math">\(13-May-14\)</span></td>
+<td align="left"><span  class="math">\(12.00\)</span></td>
+<td align="left"><span  class="math">\(SG37\)</span></td>
+</tr>
+
+<tr>
+<td align="left"><span  class="math">\(CR56\)</span></td>
+<td align="left"><span  class="math">\(1-Jul-14\)</span></td>
+<td align="left"><span  class="math">\(10.30\)</span></td>
+<td align="left"><span  class="math">\(SG5\)</span></td>
+</tr>
+</tbody>
+</table>
+
+<p><br/></p>
+
+<table>
+<thead>
+<tr>
+<th align="left"><span  class="math">\(staffNo\)</span></th>
+<th align="left"><span  class="math">\(interviewDate\)</span></th>
+<th align="left"><span  class="math">\(roomNo\)</span></th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="left"><span  class="math">\(SG5\)</span></td>
+<td align="left"><span  class="math">\(13-May-14\)</span></td>
+<td align="left"><span  class="math">\(G101\)</span></td>
+</tr>
+
+<tr>
+<td align="left"><span  class="math">\(SG37\)</span></td>
+<td align="left"><span  class="math">\(13-May-14\)</span></td>
+<td align="left"><span  class="math">\(G102\)</span></td>
+</tr>
+
+<tr>
+<td align="left"><span  class="math">\(SG5\)</span></td>
+<td align="left"><span  class="math">\(1-Jul-14\)</span></td>
+<td align="left"><span  class="math">\(G102\)</span></td>
+</tr>
+</tbody>
+</table>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;将 <span  class="math">\(3NF\)</span> 通过关系分解的形式转化为 <span  class="math">\(BCNF\)</span> 的过程中会丢失某个函数依赖，在上例中是 <span  class="math">\(fd3\)</span> 。如果这并非我们想要的，那么只需要将规范化进行到 <span  class="math">\(3NF\)</span> 即可。是否将关系规范化到 <span  class="math">\(BCNF\)</span> ，取决于是 <span  class="math">\(fd4\)</span> 的数据冗余带来的影响更大还是 <span  class="math">\(fd3\)</span> 丢失带来的影响更大。</p>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F7er%E6%A8%A1%E5%9E%8B/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a href="https://z217blog.cn/post/%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F9%E4%BA%8B%E5%8A%A1%E7%AE%A1%E7%90%86/"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+
+
+            </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_SVG"></script></main>
+    </body>
+    <script src=https://z217blog.cn/js/navbutton.js></script>
+</html>

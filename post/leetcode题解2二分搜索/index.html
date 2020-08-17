@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <title>z217&#39;s blog</title>
+</head><body><aside id="sidenav">
+    <header>
+    
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+        
+    
+
+    <a id="branding" href=https://z217blog.cn>
+        
+            z217&#39;s blog
+        
+    </a>
+    </header>
+
+    <nav>
+        
+            		
+            <a href="/"
+                
+            >
+                <i class="fas fa-home fa-ms"></i>
+                <span>首页</span>
+            </a>
+        
+            		
+            <a href="/post/"
+                
+            >
+                <i class="fas fa-keyboard fa-ms"></i>
+                <span>文章</span>
+            </a>
+        
+            		
+            <a href="/tags"
+                
+            >
+                <i class="fas fa-tags fa-sm"></i>
+                <span>标签</span>
+            </a>
+        
+            		
+            <a href="/about"
+                
+            >
+                <i class="fas fa-user fa-ms"></i>
+                <span>关于</span>
+            </a>
+        
+            		
+            <a href="https://github.com/z217"
+                
+                    target="_blank"
+                
+            >
+                <i class="fab fa-github fa-ms"></i>
+                <span>Github</span>
+            </a>
+        
+            		
+            <a href="/index.xml"
+                
+            >
+                <i class="fas fa-rss fa-sm"></i>
+                <span>RSS</span>
+            </a>
+        
+            		
+            <a href="http://123.57.12.189"
+                
+                    target="_blank"
+                
+            >
+                <i class="fas fa-link fa-sm"></i>
+                <span>二站</span>
+            </a>
+        
+    </nav>
+</aside>
+<main id="main">
+            <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+            <div class="content">
+
+<h1 id="title">Leetcode题解（2）：二分搜索</h1>
+
+
+
+<p><strong><a href="https://leetcode-cn.com/problems/median-of-two-sorted-arrays/">原题地址: Problem 4</a></strong><br>
+<strong><a href="https://leetcode-cn.com/problems/median-of-two-sorted-arrays/solution/xun-zhao-liang-ge-you-xu-shu-zu-de-zhong-wei-shu-b/">参考题解</a></strong></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;题目不用多解释，如果没有要求时间复杂度的话可以直接用双指针法遍历即可，但既然题目要求对数级的复杂度，再加上是排序数组，那么很容易就可以想到是二分法，接下来的问题就是怎么二分了。回忆下中位数的概念，中位数是一组顺序排序的数据中居于中间位置的数。也就是说，如果我们知道一组数据的中位数，我们就可以顺势以中位数为基准，将这组数据分成相同大小的两部分，其中一部分中的数总是小于（或等于）另一部分。再回到题目来，如果我们知道这两个数组的中位数，那么我们就可以将这两个数组以中位数为基准将每个数组分为两部分，如下所示：</p>
+
+<p><figure><img src="/image/2020-02-29-1.png" alt="将每个数组分为两部分, `len1`为`nums1[]`的长度，`len2`为`nums2[]`的长度"></figure></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;其中左边两部分中所有的值永远小于或等于右边两部分。这时很明显中位数为</p>
+
+<p><span  class="math">\[
+median = \frac{max(nums1[i - 1], nums2[j - 1])\ +\ min(nums1[i] + nums2[j])}{2}
+\]</span></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;这样我们的目标就从找中位数变成了寻找一个 <span  class="math">\(i\)</span> 和 <span  class="math">\(j\)</span> ，满足如下条件（假设 <span  class="math">\(i\)</span> 和 <span  class="math">\(j\)</span> 总是存在）：</p>
+
+<ol>
+<li><span id="2020-02-29-1">&nbsp;<span  class="math">\(i + j = \Large\frac{nums1.length\ +\ nums2.length}{2}\normalsize;\)</span></span></li>
+<li><span id="2020-02-29-2">&nbsp;<span  class="math">\(nums1[i - 1] <= nums2[j];\)</span></span></li>
+<li><span id="2020-02-29-3">&nbsp;<span  class="math">\(nums2[j - 1] <= nums1[i].\)</span></span></li>
+</ol>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;根据上述条件，如果我们要进行二分搜索，第一步必须先将两个数组分别二分，保证<a href="#2020-02-29-1">条件1</a>为真。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="k">if</span> <span class="o">(</span><span class="n">nums1</span><span class="o">.</span><span class="na">length</span> <span class="o">&gt;</span> <span class="n">nums2</span><span class="o">.</span><span class="na">length</span><span class="o">)</span> <span class="k">return</span> <span class="n">findMedianSortedArrays</span><span class="o">(</span><span class="n">nums2</span><span class="o">,</span> <span class="n">nums1</span><span class="o">);</span>
+
+<span class="kt">int</span> <span class="n">len1</span> <span class="o">=</span> <span class="n">nums1</span><span class="o">.</span><span class="na">length</span><span class="o">,</span>
+    <span class="n">len2</span> <span class="o">=</span> <span class="n">nums2</span><span class="o">.</span><span class="na">length</span><span class="o">,</span>
+    <span class="n">halfLen</span> <span class="o">=</span> <span class="o">(</span><span class="n">len1</span> <span class="o">+</span> <span class="n">len2</span> <span class="o">+</span> <span class="n">1</span><span class="o">)</span> <span class="o">/</span> <span class="n">2</span><span class="o">,</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="n">len1</span> <span class="o">/</span> <span class="n">2</span><span class="o">,</span>
+    <span class="n">j</span> <span class="o">=</span> <span class="n">halfLen</span> <span class="o">-</span> <span class="n">i</span><span class="o">;</span>
+<span class="o">}</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;可以发现我们在开始判断了下<span  class="math">\(nums1[\ \ ]\)</span>和<span  class="math">\(nums2[\ \ ]\)</span>的长度，确保 <span  class="math">\(nums1.length <= nums2.length\)</span> 。这是因为我们在下面确定 <span  class="math">\(j\)</span> 的值时，用到的赋值式是 <span  class="math">\(j = halfLen - i\)</span> ，如果这时不满足 <span  class="math">\(nums1.length <= nums2.length\)</span> 则会出现 <span  class="math">\(j\)</span> 为非正的情况，因此要进行此判断。在计算 <span  class="math">\(halfLen\)</span> 的时候，我们将 <span  class="math">\(Len1\)</span> 和 <span  class="math">\(Len2\)</span> 的和加一后再求平均值，目的也是保证 <span  class="math">\(halfLen - i > 0\)</span> ，即 <span  class="math">\(j\)</span> 为正数。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;经过上面的二分之后，我们得到了下图：</p>
+
+<p><figure><img src="/image/2020-02-29-1.png" alt="与上面的图片不同之处在于这幅图中左部分不一定小于等于右部分"></figure></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在得到了这幅图之后，有如下几种情况：</p>
+
+<ol>
+<li>&nbsp;<span  class="math">\(nums1[i - 1] > nums2[j]\)</span>，即不满足<a href="#2020-02-29-2">条件2</a>;
+
+<ul>
+<li>说明 <span  class="math">\(i\)</span> 过大，需要减小 <span  class="math">\(i\)</span> 的值（增大 <span  class="math">\(j\)</span> 的值）。</li>
+</ul></li>
+<li>&nbsp;<span  class="math">\(nums2[j - 1] > nums1[i]\)</span>, 即不满足<a href="#2020-02-29-3">条件3</a>;
+
+<ul>
+<li>说明 <span  class="math">\(i\)</span> 过小，需要增加 <span  class="math">\(i\)</span> 的值（减小 <span  class="math">\(j\)</span> 的值）。</li>
+</ul></li>
+<li>&nbsp;<span  class="math">\(nums1[i - 1] <= nums2[j]\)</span> 且 <span  class="math">\(nums2[j - 1] <= nums1[i]\)</span>，即满足<a href="#2020-02-29-2">条件2</a>和<a href="#2020-02-29-3">条件3</a>.
+
+<ul>
+<li>说明找到了正确的 <span  class="math">\(i\)</span> （和 <span  class="math">\(j\)</span>）。</li>
+</ul></li>
+</ol>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;经过上面的整理之后，我们很容易就可以写出二分搜索过程中判断条件。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="k">if</span> <span class="o">(</span><span class="n">nums1</span><span class="o">.</span><span class="na">length</span> <span class="o">&gt;</span> <span class="n">nums2</span><span class="o">.</span><span class="na">length</span><span class="o">)</span> <span class="k">return</span> <span class="n">findMedianSortedArrays</span><span class="o">(</span><span class="n">nums2</span><span class="o">,</span> <span class="n">nums1</span><span class="o">);</span>
+
+<span class="kt">int</span> <span class="n">len1</span> <span class="o">=</span> <span class="n">nums1</span><span class="o">.</span><span class="na">length</span><span class="o">,</span>
+    <span class="n">len2</span> <span class="o">=</span> <span class="n">nums2</span><span class="o">.</span><span class="na">length</span><span class="o">,</span>
+    <span class="n">halfLen</span> <span class="o">=</span> <span class="o">(</span><span class="n">len1</span> <span class="o">+</span> <span class="n">len2</span> <span class="o">+</span> <span class="n">1</span><span class="o">)</span> <span class="o">/</span> <span class="n">2</span><span class="o">,</span>
+    <span class="n">iMin</span> <span class="o">=</span> <span class="n">0</span><span class="o">,</span>
+    <span class="n">iMax</span> <span class="o">=</span> <span class="n">len1</span><span class="o">,</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="n">0</span><span class="o">,</span>
+    <span class="n">j</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span>
+
+<span class="k">while</span><span class="o">(</span><span class="n">iMin</span> <span class="o">&lt;=</span> <span class="n">iMax</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="o">(</span><span class="n">iMin</span> <span class="o">+</span> <span class="n">iMax</span><span class="o">)</span> <span class="o">/</span> <span class="n">2</span><span class="o">;</span>
+    <span class="n">j</span> <span class="o">=</span> <span class="n">halfLen</span> <span class="o">-</span> <span class="n">i</span><span class="o">;</span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">i</span> <span class="o">&gt;</span> <span class="n">0</span> <span class="o">&amp;&amp;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">len2</span> <span class="o">&amp;&amp;</span> <span class="n">nums1</span><span class="o">[</span><span class="n">i</span> <span class="o">-</span> <span class="n">1</span><span class="o">]</span> <span class="o">&gt;</span> <span class="n">nums2</span><span class="o">[</span><span class="n">j</span><span class="o">])</span> <span class="n">iMax</span> <span class="o">=</span> <span class="n">i</span> <span class="o">-</span> <span class="n">1</span><span class="o">;</span>
+    <span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">j</span> <span class="o">&gt;</span> <span class="n">0</span> <span class="o">&amp;&amp;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">len1</span> <span class="o">&amp;&amp;</span> <span class="n">nums2</span><span class="o">[</span><span class="n">j</span> <span class="o">-</span> <span class="n">1</span><span class="o">]</span> <span class="o">&gt;</span> <span class="n">nums1</span><span class="o">[</span><span class="n">i</span><span class="o">])</span> <span class="n">iMin</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="n">1</span><span class="o">;</span>
+    <span class="k">else</span> <span class="k">break</span><span class="o">;</span>
+<span class="o">}</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;经过上面的搜索过程后，我们找到了正确的 <span  class="math">\(i\)</span> 和 <span  class="math">\(j\)</span>，接下来要做的就只是特殊情况判断和返回值了。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;对于中位数的计算，我们可以通过两个变量分别记录左部分最大值和右部分最小值（如果需要的话），再取平均值。在此用 <span  class="math">\(left\)</span> 记录左部分最大值，<span  class="math">\(right\)</span> 记录右部分最小值。在非特殊情况下求 <span  class="math">\(left\)</span> 的值只需要令 <span  class="math">\(left = Max(nums1[i - 1],\ nums2[j - 1])\)</span> 即可。而这时显然对于左部分，会有两种特殊情况：</p>
+
+<ol>
+<li>&nbsp;<span  class="math">\(i = 0\)</span> ，说明 <span  class="math">\(nums1[\ \ ]\)</span> 被全部划入右部分，这时显然 <span  class="math">\(left = nums2[j - 1]\)</span> 。</li>
+<li>&nbsp;<span  class="math">\(j = 0\)</span> ，这时由于 <span  class="math">\(len1 <= len2\)</span> ，所以当且仅当 <span  class="math">\(iMax = iMin = halfLen\)</span> 即 <span  class="math">\(len1 = len2\)</span> 时才会出现这种特殊情况，因此只需返回 <span  class="math">\(\Large\frac{nums1[i\ -\ 1]\ +\ nums2[j]}{2}\)</span> 即可。</li>
+</ol>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在取得 <span  class="math">\(left\)</span> 的值之后，如果 <span  class="math">\(len1 + len2\)</span> 为奇数，则只需返回 <span  class="math">\(left\)</span> 即可；若为偶数，则需要再处理 <span  class="math">\(right\)</span>。对于 <span  class="math">\(right\)</span> ，同理有 <span  class="math">\(right = Min(nums1[i],\ nums2[j])\)</span> ，也有两种特殊情况：</p>
+
+<ol>
+<li>&nbsp;<span  class="math">\(i = len1\)</span> ，说明 <span  class="math">\(nums1[\ ]\)</span> 被全部划入左部分，这时显然 <span  class="math">\(right = nums2[j]\)</span> 。</li>
+<li>&nbsp;<span  class="math">\(j = len2\)</span> ，当且仅当 <span  class="math">\(len1 = len2\)</span> 时才会出现该情况，返回 <span  class="math">\(\Large\frac{nums1[i]\ +\ nums2[j\ -\ 1]}{2}\)</span> 即可。</li>
+</ol>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;将判断条件转化为代码即为：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kt">int</span> <span class="n">left</span> <span class="o">=</span> <span class="n">0</span><span class="o">,</span> <span class="n">right</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span>
+<span class="k">if</span> <span class="o">(</span><span class="n">i</span> <span class="o">==</span> <span class="n">0</span><span class="o">)</span>
+    <span class="n">left</span> <span class="o">=</span> <span class="n">nums2</span><span class="o">[</span><span class="n">j</span> <span class="o">-</span> <span class="n">1</span><span class="o">];</span>
+<span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">j</span> <span class="o">==</span> <span class="n">0</span><span class="o">)</span>
+    <span class="k">return</span> <span class="o">(</span><span class="kt">double</span><span class="o">)</span> <span class="o">(</span><span class="n">nums1</span><span class="o">[</span><span class="n">i</span> <span class="o">-</span> <span class="n">1</span><span class="o">]</span> <span class="o">+</span> <span class="n">nums2</span><span class="o">[</span><span class="n">j</span><span class="o">])</span> <span class="o">/</span> <span class="n">2</span><span class="o">.</span><span class="na">0</span><span class="o">;</span>
+<span class="k">else</span>
+    <span class="n">left</span> <span class="o">=</span> <span class="n">Math</span><span class="o">.</span><span class="na">max</span><span class="o">(</span><span class="n">nums1</span><span class="o">[</span><span class="n">i</span> <span class="o">-</span> <span class="n">1</span><span class="o">],</span> <span class="n">nums2</span><span class="o">[</span><span class="n">j</span> <span class="o">-</span> <span class="n">1</span><span class="o">]);</span>
+<span class="k">if</span> <span class="o">((</span><span class="n">len1</span> <span class="o">+</span> <span class="n">len2</span><span class="o">)</span> <span class="o">%</span> <span class="n">2</span> <span class="o">==</span> <span class="n">1</span><span class="o">)</span>
+    <span class="k">return</span> <span class="n">left</span><span class="o">;</span>
+<span class="k">if</span> <span class="o">(</span><span class="n">i</span> <span class="o">==</span> <span class="n">len1</span><span class="o">)</span>
+    <span class="n">right</span> <span class="o">=</span> <span class="n">nums2</span><span class="o">[</span><span class="n">j</span><span class="o">];</span>
+<span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">j</span> <span class="o">==</span> <span class="n">len2</span><span class="o">)</span>
+    <span class="n">right</span> <span class="o">=</span> <span class="n">nums1</span><span class="o">[</span><span class="n">i</span><span class="o">];</span>
+<span class="k">else</span>
+    <span class="n">right</span> <span class="o">=</span> <span class="n">Math</span><span class="o">.</span><span class="na">min</span><span class="o">(</span><span class="n">nums1</span><span class="o">[</span><span class="n">i</span><span class="o">],</span> <span class="n">nums2</span><span class="o">[</span><span class="n">j</span><span class="o">]);</span>
+<span class="k">return</span> <span class="o">(</span><span class="kt">double</span><span class="o">)</span> <span class="o">(</span><span class="n">left</span> <span class="o">+</span> <span class="n">right</span><span class="o">)</span> <span class="o">/</span> <span class="n">2</span><span class="o">.</span><span class="na">0</span><span class="o">;</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;将上述代码整合后可以得到解答：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">Solution</span> <span class="o">{</span>
+    <span class="kd">public</span> <span class="kt">double</span> <span class="nf">findMedianSortedArrays</span><span class="o">(</span><span class="kt">int</span><span class="o">[]</span> <span class="n">nums1</span><span class="o">,</span> <span class="kt">int</span><span class="o">[]</span> <span class="n">nums2</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">nums1</span><span class="o">.</span><span class="na">length</span> <span class="o">&gt;</span> <span class="n">nums2</span><span class="o">.</span><span class="na">length</span><span class="o">)</span> <span class="k">return</span> <span class="n">findMedianSortedArrays</span><span class="o">(</span><span class="n">nums2</span><span class="o">,</span> <span class="n">nums1</span><span class="o">);</span>
+        <span class="kt">int</span> <span class="n">len1</span> <span class="o">=</span> <span class="n">nums1</span><span class="o">.</span><span class="na">length</span><span class="o">,</span>
+            <span class="n">len2</span> <span class="o">=</span> <span class="n">nums2</span><span class="o">.</span><span class="na">length</span><span class="o">,</span>
+            <span class="n">halfLen</span> <span class="o">=</span> <span class="o">(</span><span class="n">len1</span> <span class="o">+</span> <span class="n">len2</span> <span class="o">+</span> <span class="n">1</span><span class="o">)</span> <span class="o">/</span> <span class="n">2</span><span class="o">,</span>
+            <span class="n">iMin</span> <span class="o">=</span> <span class="n">0</span><span class="o">,</span>
+            <span class="n">iMax</span> <span class="o">=</span> <span class="n">len1</span><span class="o">,</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">0</span><span class="o">,</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span>
+
+        <span class="k">while</span><span class="o">(</span><span class="n">iMin</span> <span class="o">&lt;=</span> <span class="n">iMax</span><span class="o">)</span> <span class="o">{</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="o">(</span><span class="n">iMin</span> <span class="o">+</span> <span class="n">iMax</span><span class="o">)</span> <span class="o">/</span> <span class="n">2</span><span class="o">;</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="n">halfLen</span> <span class="o">-</span> <span class="n">i</span><span class="o">;</span>
+            <span class="k">if</span> <span class="o">(</span><span class="n">i</span> <span class="o">&gt;</span> <span class="n">0</span> <span class="o">&amp;&amp;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">len2</span> <span class="o">&amp;&amp;</span> <span class="n">nums1</span><span class="o">[</span><span class="n">i</span> <span class="o">-</span> <span class="n">1</span><span class="o">]</span> <span class="o">&gt;</span> <span class="n">nums2</span><span class="o">[</span><span class="n">j</span><span class="o">])</span>
+                <span class="n">iMax</span> <span class="o">=</span> <span class="n">i</span> <span class="o">-</span> <span class="n">1</span><span class="o">;</span>
+            <span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">j</span> <span class="o">&gt;</span> <span class="n">0</span> <span class="o">&amp;&amp;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">len1</span> <span class="o">&amp;&amp;</span> <span class="n">nums2</span><span class="o">[</span><span class="n">j</span> <span class="o">-</span> <span class="n">1</span><span class="o">]</span> <span class="o">&gt;</span> <span class="n">nums1</span><span class="o">[</span><span class="n">i</span><span class="o">])</span>
+                <span class="n">iMin</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="n">1</span><span class="o">;</span>
+            <span class="k">else</span>
+                <span class="k">break</span><span class="o">;</span>
+        <span class="o">}</span>
+
+        <span class="kt">int</span> <span class="n">left</span> <span class="o">=</span> <span class="n">0</span><span class="o">,</span> <span class="n">right</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">i</span> <span class="o">==</span> <span class="n">0</span><span class="o">)</span>
+            <span class="n">left</span> <span class="o">=</span> <span class="n">nums2</span><span class="o">[</span><span class="n">j</span> <span class="o">-</span> <span class="n">1</span><span class="o">];</span>
+        <span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">j</span> <span class="o">==</span> <span class="n">0</span><span class="o">)</span>
+            <span class="k">return</span> <span class="o">(</span><span class="kt">double</span><span class="o">)</span> <span class="o">(</span><span class="n">nums1</span><span class="o">[</span><span class="n">i</span> <span class="o">-</span> <span class="n">1</span><span class="o">]</span> <span class="o">+</span> <span class="n">nums2</span><span class="o">[</span><span class="n">j</span><span class="o">])</span> <span class="o">/</span> <span class="n">2</span><span class="o">.</span><span class="na">0</span><span class="o">;</span>
+        <span class="k">else</span>
+            <span class="n">left</span> <span class="o">=</span> <span class="n">Math</span><span class="o">.</span><span class="na">max</span><span class="o">(</span><span class="n">nums1</span><span class="o">[</span><span class="n">i</span> <span class="o">-</span> <span class="n">1</span><span class="o">],</span> <span class="n">nums2</span><span class="o">[</span><span class="n">j</span> <span class="o">-</span> <span class="n">1</span><span class="o">]);</span>
+        <span class="k">if</span> <span class="o">((</span><span class="n">len1</span> <span class="o">+</span> <span class="n">len2</span><span class="o">)</span> <span class="o">%</span> <span class="n">2</span> <span class="o">==</span> <span class="n">1</span><span class="o">)</span>
+            <span class="k">return</span> <span class="n">left</span><span class="o">;</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">i</span> <span class="o">==</span> <span class="n">len1</span><span class="o">)</span>
+            <span class="n">right</span> <span class="o">=</span> <span class="n">nums2</span><span class="o">[</span><span class="n">j</span><span class="o">];</span>
+        <span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">j</span> <span class="o">==</span> <span class="n">len2</span><span class="o">)</span>
+            <span class="n">right</span> <span class="o">=</span> <span class="n">nums1</span><span class="o">[</span><span class="n">i</span><span class="o">];</span>
+        <span class="k">else</span>
+            <span class="n">right</span> <span class="o">=</span> <span class="n">Math</span><span class="o">.</span><span class="na">min</span><span class="o">(</span><span class="n">nums1</span><span class="o">[</span><span class="n">i</span><span class="o">],</span> <span class="n">nums2</span><span class="o">[</span><span class="n">j</span><span class="o">]);</span>
+        <span class="k">return</span> <span class="o">(</span><span class="kt">double</span><span class="o">)</span> <span class="o">(</span><span class="n">left</span> <span class="o">+</span> <span class="n">right</span><span class="o">)</span> <span class="o">/</span> <span class="n">2</span><span class="o">.</span><span class="na">0</span><span class="o">;</span>
+    <span class="o">}</span>
+<span class="o">}</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;时间复杂度为 <span  class="math">\(O(log(Min(nums1.length,\ nums2.length)))\)</span> ，因为二分搜索为对数级复杂度，而在这道题中当我们在 <span  class="math">\(nums1[\ ]\)</span> 中搜索到正确的 <span  class="math">\(i\)</span> 时，也就意味着得到了 <span  class="math">\(j\)</span> ，因此只需取两个数组之中最短的长度即可。空间复杂度为 <span  class="math">\(O(1)\)</span> 。</p>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/javascript%E7%9A%84%E5%AF%B9%E8%B1%A1%E6%9E%84%E9%80%A0/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a href="https://z217blog.cn/post/javascript%E4%B8%AD%E7%9A%84%E6%95%B0%E7%BB%84/"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+
+
+            </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_SVG"></script></main>
+    </body>
+    <script src=https://z217blog.cn/js/navbutton.js></script>
+</html>

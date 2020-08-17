@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <title>z217&#39;s blog</title>
+</head><body><aside id="sidenav">
+    <header>
+    
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+        
+    
+
+    <a id="branding" href=https://z217blog.cn>
+        
+            z217&#39;s blog
+        
+    </a>
+    </header>
+
+    <nav>
+        
+            		
+            <a href="/"
+                
+            >
+                <i class="fas fa-home fa-ms"></i>
+                <span>首页</span>
+            </a>
+        
+            		
+            <a href="/post/"
+                
+            >
+                <i class="fas fa-keyboard fa-ms"></i>
+                <span>文章</span>
+            </a>
+        
+            		
+            <a href="/tags"
+                
+            >
+                <i class="fas fa-tags fa-sm"></i>
+                <span>标签</span>
+            </a>
+        
+            		
+            <a href="/about"
+                
+            >
+                <i class="fas fa-user fa-ms"></i>
+                <span>关于</span>
+            </a>
+        
+            		
+            <a href="https://github.com/z217"
+                
+                    target="_blank"
+                
+            >
+                <i class="fab fa-github fa-ms"></i>
+                <span>Github</span>
+            </a>
+        
+            		
+            <a href="/index.xml"
+                
+            >
+                <i class="fas fa-rss fa-sm"></i>
+                <span>RSS</span>
+            </a>
+        
+            		
+            <a href="http://123.57.12.189"
+                
+                    target="_blank"
+                
+            >
+                <i class="fas fa-link fa-sm"></i>
+                <span>二站</span>
+            </a>
+        
+    </nav>
+</aside>
+<main id="main">
+            <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+            <div class="content">
+
+<h1 id="title">数据库系统（5）：SQL数据操作</h1>
+
+
+
+<h2 id="1-sql简介">1. <code>SQL</code>简介</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>SQL</code>是关系模型发展过程中出现的一种特殊语言，已经成为了标准的关系数据库语言。<code>SQL</code>是<strong>面向转换语言</strong> ( <span  class="math">\(transform-oriented\;language\)</span> ) 的例子，将输入关系转换为所需的输出关系，包括两个主要部分：<code>DML</code>和<code>DDL</code>。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>SQL</code>具有许多实现版本，每个实现称为<strong>方言</strong> ( <span  class="math">\(dialect\)</span> ) ，供应商在标准之外提供的特性称为<strong>扩展</strong> ( <span  class="math">\(extensions\)</span> )。</p>
+
+<h3 id="11-优点">1.1 优点</h3>
+
+<ol>
+<li>满足数据库语言的思想</li>
+<li>易于学习</li>
+<li>结构简洁、轻便</li>
+<li>存在<code>SQL</code>标准</li>
+<li>可以通过终端或者嵌入式访问</li>
+<li>所有人都可以使用</li>
+</ol>
+
+<h3 id="12-缺点">1.2 缺点</h3>
+
+<ol>
+<li>混合了编程规范和嵌入式访问</li>
+<li>缺乏正交性，有多种表达方式</li>
+<li>语言越来越复杂和庞大</li>
+<li>聚合函数中对空的处理问题</li>
+<li>结果表中可以有重复元组，对表中的行和列都强加了一个顺序</li>
+</ol>
+
+<h2 id="2-sql命令">2. <code>SQL</code>命令</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>SQL</code>语言包括<strong>保留字</strong> ( <span  class="math">\(reserved\;words\)</span> ) 和<strong>用户自定义字</strong> ( <span  class="math">\(user-defined\;words\)</span> ) 。保留字是<code>SQL</code>语言的固定部分，有固定含义。用户自定义字由用户定义，用于表示表、列、视图和索引等数据库对象的名称。虽然标准并没有要求，但是<code>SQL</code>的许多实现版本要求用句子终结符来表示<code>SQL</code>语句的结束。<code>SQL</code>语句的多数组成部分是不区分大小写的，除了字符数据常量外。</p>
+
+<h3 id="21-数据操作">2.1 数据操作</h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>DML</code>语句有以下几种：</p>
+
+<ul>
+<li><span  class="math">\(SELECT\)</span>,</li>
+<li><span  class="math">\(INSERT\)</span>,</li>
+<li><span  class="math">\(UPDATE\)</span>,</li>
+<li><span  class="math">\(DELETE\)</span>.</li>
+</ul>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>常量</strong> ( <span  class="math">\(Literals\)</span> ) 是指<code>SQL</code>语句中的<strong>不变量</strong> ( <span  class="math">\(constants\)</span> )。不同的数据具有不同的常量形式，所有的非数值型数据必须使用引号，而所有的非数值型数据不能使用引号。</p>
+
+<h3 id="22-查询">2.2 查询</h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;查询形式：</p>
+<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="p">[</span><span class="k">DISTINCT</span><span class="o">|</span><span class="k">ALL</span><span class="p">]</span> <span class="err">{</span><span class="o">*|</span><span class="p">[</span><span class="n">columnExpression</span> <span class="p">[</span><span class="k">AS</span> <span class="n">newName</span><span class="p">]][...]</span><span class="err">}</span>
+<span class="k">FROM</span> <span class="n">TableName</span> <span class="p">[</span><span class="k">alias</span><span class="p">][...]</span>
+<span class="p">[</span><span class="k">WHERE</span> <span class="n">condition</span><span class="p">]</span>
+<span class="p">[</span><span class="k">GROUP</span> <span class="k">BY</span> <span class="n">coulumnList</span><span class="p">]</span>
+<span class="p">[</span><span class="k">HAVING</span> <span class="n">condition</span><span class="p">]</span>
+<span class="p">[</span><span class="k">ORDER</span> <span class="k">BY</span> <span class="n">columnList</span><span class="p">]</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;处理顺序：</p>
+
+<ol>
+<li><span  class="math">\(FROM\)</span> :<br>
+指定所用的表，<span  class="math">\(alias\)</span> 是可选的表的别名</li>
+<li><span  class="math">\(WHERE\)</span> :<br>
+过滤满足条件的行</li>
+<li><span  class="math">\(GROUP\;BY\)</span> :<br>
+分组</li>
+<li><span  class="math">\(HAVING\)</span> :<br>
+过滤满足条件的组</li>
+<li><span  class="math">\(ORDER\;BY\)</span> :<br>
+指定查询结果的顺序</li>
+</ol>
+
+<h4 id="221-行选择">2.2.1 行选择</h4>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;逻辑运算符：<span  class="math">\(AND/OR/NOT\)</span>,</p>
+
+<table>
+<thead>
+<tr>
+<th align="center">比较运算符</th>
+<th align="center">作用</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="center">=</td>
+<td align="center">等于</td>
+</tr>
+
+<tr>
+<td align="center">&lt;&gt;</td>
+<td align="center">不等于</td>
+</tr>
+
+<tr>
+<td align="center">&lt;</td>
+<td align="center">小于</td>
+</tr>
+
+<tr>
+<td align="center">&gt;</td>
+<td align="center">大于</td>
+</tr>
+
+<tr>
+<td align="center">&lt;=</td>
+<td align="center">小于等于</td>
+</tr>
+
+<tr>
+<td align="center">&gt;=</td>
+<td align="center">大于等于</td>
+</tr>
+</tbody>
+</table>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在某些方言中，不等于也可以表示为 <span  class="math">\(!=\)</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;范围条件查找：<span  class="math">\([NOT]\;BETWEEN\)</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;集合成员查找：<span  class="math">\([NOT]\;IN\)</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;模式匹配查找：<span  class="math">\([NOT]\;LIKE\)</span> 。<code>SQL</code>有两种模式匹配符号：</p>
+
+<ul>
+<li><span  class="math">\(\%\)</span> 代表零个或多个字符</li>
+<li><span  class="math">\(\_\)</span> 代表任意单个字符</li>
+<li><span  class="math">\(\#\)</span> 为转义字符</li>
+</ul>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;空条件查找：<span  class="math">\(IS\;[NOT]\;NULL\)</span>.</p>
+
+<h4 id="222-排序">2.2.2 排序</h4>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(ORDER\;BY\)</span> 子句包括所需排序的<strong>列标识符</strong> ( <span  class="math">\(column\;identifiers\)</span> ) 列表，用逗号分开。在之后使用 <span  class="math">\(ASC/DESC\)</span> 指定升序和降序排列，默认为升序排列。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在 <span  class="math">\(ORDER\;BY\)</span> 子句的多个关键字中，第一个关键字称为<strong>主排序关键字</strong> ( <span  class="math">\(major\;sort\;key\)</span> ) 。在主排序关键字非唯一时，之后的<strong>次排序关键字</strong> ( <span  class="math">\(minor\;sort\;key\)</span> ) 则会决定相同关键字的行的顺序。</p>
+
+<h4 id="223-聚合函数">2.2.3 聚合函数</h4>
+
+<ul>
+<li><span  class="math">\(COUNT\)</span>,</li>
+<li><span  class="math">\(SUM\)</span>,</li>
+<li><span  class="math">\(AVG\)</span>,</li>
+<li><span  class="math">\(MIN\)</span>,</li>
+<li><span  class="math">\(MAX\)</span>.</li>
+</ul>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;除了 <span  class="math">\(COUNT(*)\)</span> 以外，每一个函数都要去掉空，再计算非空值。<span  class="math">\(COUNT(DISTINCT)\)</span> 语句可以计算所有非重复项。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;聚合函数只能用于 <span  class="math">\(SELECT\)</span> 列表和 <span  class="math">\(HAVING\)</span> 子句中。如果 <span  class="math">\(SELECT\)</span> 列表包括聚合函数，却没有使用 <span  class="math">\(GROUP\;BY\)</span> 分组，那么 <span  class="math">\(SELECT\)</span> 列表的任何项都不能引用列。</p>
+
+<h4 id="224-分组">2.2.4 分组</h4>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(GROUP\;BY\)</span> 子句的列名又称为<strong>组列名</strong> ( <span  class="math">\(grouping\;columns\)</span> )。当使用 <span  class="math">\(GROUP\;BY\)</span> 时，<span  class="math">\(SELECT\)</span> 列表中的项必须每组都有一个单一的值。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(HAVING\)</span> 子句设计用于与 <span  class="math">\(GROUP\;BY\)</span> 子句一起使用，用于过滤分组。实际上，<span  class="math">\(HAVING\)</span> 子句的条件运算至少要包含一个聚合函数，否则就可以将其条件判断转移到 <span  class="math">\(WHERE\)</span> 中。</p>
+
+<h3 id="23-子查询">2.3 子查询</h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;当一个 <span  class="math">\(SELECT\)</span> 语句内部嵌套另一个 <span  class="math">\(SELECT\)</span> 语句时，内部的 <span  class="math">\(SELECT\)</span> 语句称为<strong>子查询</strong> ( <span  class="math">\(subquery\)</span> ) /<strong>嵌套查询</strong> ( <span  class="math">\(nested\;query\)</span> ) 。子查询可以用于外部 <span  class="math">\(SELECT\)</span> 语句的 <span  class="math">\(WHERE/HAVING\)</span> 子句中。子查询也可以用于 <span  class="math">\(INSERT\)</span>, <span  class="math">\(UPDATE\)</span>, <span  class="math">\(DELETE\)</span> 语句中，有三种类型：</p>
+
+<ul>
+<li><em>标量子查询</em> ( <span  class="math">\(Scalar\;subquery\)</span> ) 返回单个值，即单行单列的表</li>
+<li><em>行子查询</em> ( <span  class="math">\(Row\;subquery\)</span> ) 返回一个单行的表</li>
+<li><em>表子查询</em> ( <span  class="math">\(Table\;subquery\)</span> ) 返回多行多列的表</li>
+</ul>
+
+<h4 id="231-anyall">2.3.1 <code>ANY</code>/<code>ALL</code></h4>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(ANY\)</span> 和 <span  class="math">\(ALL\)</span> 用于产生单个列的子查询中。若子查询前缀关键字 <span  class="math">\(ALL\)</span> ，那么仅当子查询的所有值都满足条件时才为真。若前缀关键词为 <span  class="math">\(ANY\)</span>/ <span  class="math">\(SOME\)</span> 时，那么只要有一个值满足条件就为真。对于空，<span  class="math">\(ALL\)</span> 返回真，<span  class="math">\(ANY\)</span>/ <span  class="math">\(SOME\)</span> 返回假。</p>
+
+<h4 id="232-exists">2.3.2 <code>EXISTS</code></h4>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(EXISTS\)</span> 用于子查询中，返回真或假。当子查询的结果表至少存在一行时，返回真。$$NOT\;EXISTS$ 则相反。</p>
+
+<h3 id="24-连接">2.4 连接</h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>连接</strong> ( <span  class="math">\(Join\)</span> ) 用于组合多个表的结果。<code>SQL</code>连接通过配对相关行来合并表，而配对行指的是对应表的匹配列上具有相同的值。</p>
+
+<h4 id="241-简单连接内连接">2.4.1 简单连接/内连接</h4>
+<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="n">a</span><span class="p">.</span><span class="n">col1</span><span class="p">,</span> <span class="n">a</span><span class="p">.</span><span class="n">col2</span><span class="p">,</span> <span class="n">a</span><span class="p">.</span><span class="n">col3</span><span class="p">,</span> <span class="n">b</span><span class="p">.</span><span class="n">col1</span><span class="p">,</span> <span class="n">b</span><span class="p">.</span><span class="n">col2</span>
+<span class="k">FROM</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span>
+<span class="k">WHERE</span> <span class="n">a</span><span class="p">.</span><span class="n">col3</span> <span class="o">=</span> <span class="n">b</span><span class="p">.</span><span class="n">col3</span><span class="p">;</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在查询条件中指定相等的两个列称为<strong>匹配列</strong> ( <span  class="math">\(matching\;columns\)</span> )。也可以改写为：</p>
+<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="k">FROM</span> <span class="n">a</span> <span class="k">JOIN</span> <span class="n">b</span>
+    <span class="k">ON</span> <span class="n">a</span><span class="p">.</span><span class="n">col</span> <span class="o">=</span> <span class="n">b</span><span class="p">.</span><span class="n">col</span><span class="p">;</span>
+
+<span class="k">FROM</span> <span class="n">a</span> <span class="k">JOIN</span> <span class="n">b</span>
+    <span class="k">USING</span> <span class="n">col</span><span class="p">;</span>
+
+<span class="k">FROM</span> <span class="n">a</span> <span class="k">NATURAL</span> <span class="k">JOIN</span> <span class="n">b</span><span class="p">;</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;第一种方式产生表有两个相同的 <span  class="math">\(col\)</span> 列，而后两者没有。</p>
+
+<h4 id="242-交叉连接">2.4.2 交叉连接</h4>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;连接操作是更一般的两表合并，是笛卡尔乘积的子集。<code>SQL</code>中有特殊的笛卡尔乘积的表示形式：</p>
+<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="k">FROM</span> <span class="n">a</span> <span class="k">CROSS</span> <span class="k">JOIN</span> <span class="n">b</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;从概念上看，使用连接的 <span  class="math">\(SELECT\)</span> 语句的查询过程为：</p>
+
+<ol>
+<li>形成 <span  class="math">\(FROM\)</span> 中指定的笛卡尔乘积</li>
+<li>执行 <span  class="math">\(WHERE\)</span> 子句，即对笛卡尔乘积进行<strong>限制</strong> ( <span  class="math">\(restriction\)</span> )</li>
+<li>确定 <span  class="math">\(SELECT\)</span> 列表中每一项的值，形成查询结果表的每一行</li>
+<li>如果指定了 <span  class="math">\(DISTINCT\)</span> ，消除重复行</li>
+<li>执行 <span  class="math">\(ORDER\;BY\)</span> 语句</li>
+</ol>
+
+<h4 id="243-外连接">2.4.3 外连接</h4>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在内连接中，如果表中的某一行在另一个表中没有匹配的行，那么将会被删除。而<strong>外连接</strong> ( <span  class="math">\(outer\;join\)</span> ) 会保留。外连接有三种类型：左外连接、右外连接和全外连接。</p>
+<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="k">FROM</span> <span class="n">a</span> <span class="k">LEFT</span> <span class="k">JOIN</span> <span class="n">b</span>
+    <span class="k">ON</span> <span class="n">a</span><span class="p">.</span><span class="n">col</span> <span class="o">=</span> <span class="n">b</span><span class="p">.</span><span class="n">col</span>
+
+<span class="k">FROM</span> <span class="n">a</span> <span class="k">RIGHT</span> <span class="k">JOIN</span> <span class="n">b</span>
+    <span class="k">ON</span> <span class="n">a</span><span class="p">.</span><span class="n">col</span> <span class="o">=</span> <span class="n">b</span><span class="p">.</span><span class="n">col</span>
+
+<span class="k">FROM</span> <span class="n">a</span> <span class="k">FULL</span> <span class="k">JOIN</span> <span class="n">b</span>
+    <span class="k">ON</span> <span class="n">a</span><span class="p">.</span><span class="n">col</span> <span class="o">=</span> <span class="n">b</span><span class="p">.</span><span class="n">col</span></code></pre></div>
+<h3 id="25-合并">2.5 合并</h3>
+
+<ul>
+<li><span  class="math">\(UNION\)</span>,</li>
+<li><span  class="math">\(INTERSECT\)</span>,</li>
+<li><span  class="math">\(EXCEPT\)</span>.</li>
+</ul>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;进行操作要求两个表具有并相容性。</p>
+<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="err">{</span><span class="k">UNION</span><span class="o">|</span><span class="k">INTERSECT</span><span class="o">|</span><span class="k">EXCEPT</span><span class="err">}</span> <span class="p">[</span><span class="k">ALL</span><span class="p">]</span> <span class="p">[</span><span class="n">CORRESPONDING</span> <span class="p">[</span><span class="k">BY</span> <span class="err">{</span><span class="n">column1</span><span class="p">[,...]</span><span class="err">}</span><span class="p">]]</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果指定了 <span  class="math">\(CORRESPONDING\;BY\)</span> ，那么集合操作就会在指定的列上进行。在一些<code>SQL</code>版本中并不支持 <span  class="math">\(INTERSECT/EXCEPT\)</span> ，也有一些使用 <span  class="math">\(MINUS\)</span> 代替 <span  class="math">\(EXCEPT\)</span> 。</p>
+
+<h3 id="26-更新">2.6 更新</h3>
+
+<h4 id="261-插入">2.6.1 插入</h4>
+<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">TableName</span> <span class="p">[(</span><span class="n">columnList</span><span class="p">)]</span>
+<span class="k">VALUES</span> <span class="p">(</span><span class="n">dataValueList</span><span class="p">)</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(columnList\)</span> 是列名列表，如果省略，则会按照创建时的列序进行插入。</p>
+<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="k">INSERT</span> <span class="k">INTO</span> <span class="n">TableName</span> <span class="p">[(</span><span class="n">columnList</span><span class="p">)]</span>
+<span class="k">SELECT</span> <span class="p">...</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;结合 <span  class="math">\(SELECT\)</span> 语句，<span  class="math">\(INSERT\;INTO\)</span> 可以把表中行插入另一个表中。</p>
+
+<h4 id="262-更新">2.6.2 更新</h4>
+<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="k">UPDATE</span> <span class="n">TableName</span>
+<span class="k">SET</span> <span class="n">columnName1</span> <span class="o">=</span> <span class="n">dataValue1</span> <span class="p">[,</span> <span class="n">columnuName2</span> <span class="o">=</span> <span class="n">dataValue2</span><span class="p">...]</span>
+<span class="p">[</span><span class="k">WHERE</span> <span class="n">searchCodition</span><span class="p">]</span></code></pre></div>
+<h4 id="263-删除">2.6.3 删除</h4>
+<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="k">DELETE</span> <span class="k">FROM</span> <span class="n">TableName</span>
+<span class="p">[</span><span class="k">WHERE</span> <span class="n">searchCondition</span><span class="p">]</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果不指定 <span  class="math">\(WHERE\)</span> ，则会删除表中的所有信息。</p>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F4%E5%85%B3%E7%B3%BB%E4%BB%A3%E6%95%B0/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a href="https://z217blog.cn/post/%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F6sql%E6%95%B0%E6%8D%AE%E5%AE%9A%E4%B9%89/"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+
+
+            </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_SVG"></script></main>
+    </body>
+    <script src=https://z217blog.cn/js/navbutton.js></script>
+</html>

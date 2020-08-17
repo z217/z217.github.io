@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <title>z217&#39;s blog</title>
+</head><body><aside id="sidenav">
+    <header>
+    
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+        
+    
+
+    <a id="branding" href=https://z217blog.cn>
+        
+            z217&#39;s blog
+        
+    </a>
+    </header>
+
+    <nav>
+        
+            		
+            <a href="/"
+                
+            >
+                <i class="fas fa-home fa-ms"></i>
+                <span>首页</span>
+            </a>
+        
+            		
+            <a href="/post/"
+                
+            >
+                <i class="fas fa-keyboard fa-ms"></i>
+                <span>文章</span>
+            </a>
+        
+            		
+            <a href="/tags"
+                
+            >
+                <i class="fas fa-tags fa-sm"></i>
+                <span>标签</span>
+            </a>
+        
+            		
+            <a href="/about"
+                
+            >
+                <i class="fas fa-user fa-ms"></i>
+                <span>关于</span>
+            </a>
+        
+            		
+            <a href="https://github.com/z217"
+                
+                    target="_blank"
+                
+            >
+                <i class="fab fa-github fa-ms"></i>
+                <span>Github</span>
+            </a>
+        
+            		
+            <a href="/index.xml"
+                
+            >
+                <i class="fas fa-rss fa-sm"></i>
+                <span>RSS</span>
+            </a>
+        
+            		
+            <a href="http://123.57.12.189"
+                
+                    target="_blank"
+                
+            >
+                <i class="fas fa-link fa-sm"></i>
+                <span>二站</span>
+            </a>
+        
+    </nav>
+</aside>
+<main id="main">
+            <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+            <div class="content">
+
+<h1 id="title">JavaWeb（3）：WebSocket简介</h1>
+
+
+
+<p><strong>参考书籍：《Pro Java for Web Apps》</strong></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>WebSocket</code>用于解决浏览器和服务器的通信问题。在现有体系中，如果只是简单的使用<code>Ajax</code>进行通信的话，容易出现的问题是只有浏览器发送请求时才能得到响应。也即当有新数据时，浏览器不能得知新数据的存在，也就不能及时发送请求获取新数据。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>WebSocket</code>使用了<code>HTTP/1.1 升级</code>特性。该特性的使用很简单，只需要在请求中包含头名称和值 <span  class="math">\(Connection: Upgrade\)</span> ，并在额外的 <span  class="math">\(Upgrade\)</span> 头中指定一个或多个协议的列表。如果服务器接收升级请求，那么将返回 <span  class="math">\(101\;Switching\;Protocols\)</span> 。<code>HTTP升级</code>提供的最重要的特性是我们可以使用任意协议，并且在升级完成后就不再使用<code>HTTP</code>连接，我们可以用一个<code>Socket</code>来代替，由此产生了<code>WebSocket</code>协议。<code>WebSocket</code>协议将使用心跳消息（分别称为 <span  class="math">\(ping\)</span> 和 <span  class="math">\(pong\)</span> ）保持连接活跃，即周期性地发送小数据包。在连接升级为<code>WebScoket</code>协议之后，文本和二进制消息可以持续在两个方向上发送且不需要关闭和重连了；而且<code>HTTP</code>规范要求对应同一个主机名，只允许有两个并发连接，但由于我们升级为<code>WebScoket</code>连接了，因此该规范也不存在了。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用<code>WebSocket</code>协议之前需先以<code>HTTP</code>协议向服务器发送特殊请求，访问一个特殊的<code>URL</code>，该<code>URL</code>以<code>ws</code>或者<code>wss</code>开头，分别对应<code>http</code>和<code>https</code>，并且除了 <span  class="math">\(Connection: Upgrade\)</span> 头之外，还包含一个 <span  class="math">\(Connection: websocket\)</span> 头，用于指定服务器将连接升级为 <code>WebSocket</code>协议。</p>
+
+<hr>
+
+<h2 id="html5javascript客户端api">HTML5(JavaScript)客户端API</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>WebSocket</code>并不是只能用于浏览器和服务器的通信中，理论上可以将其应用于任何支持其的应用程序中。但如果要编写使用<code>WebSocket</code>进行连接的浏览器客户端终端，我们就要用到<code>JavaScript</code>，尽管我们使用<code>JavaScript</code>编写，但实际上<code>WebSocket</code>是<code>HTML5</code>的一部分。使用<code>JavaScript</code>创建<code>WebSocket</code>对象十分简单：</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">connection</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">WebSocket</span><span class="p">(</span><span class="s1">&#39;ws://www.example.com/chat&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;chat.v1&#39;</span><span class="p">,</span> <span class="s1">&#39;chat.v2&#39;</span><span class="p">});</span>
+</code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>WebSocket</code>构造函数第一个参数为连接所使用的<code>URL</code>，第二个参数可选，为连接所使用的一个或多个协议，这些协议都是自己创建的，不受<code>WebSocket</code>管理。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>WebSocket</code>接口中包含 <span  class="math">\(readyState\)</span> 属性表示当前状态，值为 <span  class="math">\(CONNECTING\)</span>, <span  class="math">\(OPEN\)</span>, <span  class="math">\(CLOSING\)</span>, <span  class="math">\(CLOSED\)</span> 中的一个，包含四个事件：<span  class="math">\(onopen\)</span>, <span  class="math">\(onclose\)</span>, <span  class="math">\(onerror\)</span>, <span  class="math">\(onmessage\)</span> ，前两者分别在 <span  class="math">\(readyState\)</span> 由 <span  class="math">\(CLOSING\)</span> 变为 <span  class="math">\(CLOSED\)</span> 时和 <span  class="math">\(readyState\)</span> 由 <span  class="math">\(CONNECTING\)</span> 变为 <span  class="math">\(OPEN\)</span> 时触发。传入 <span  class="math">\(onclose\)</span> 方法的事件包含三个属性：<span  class="math">\(wasClean\)</span>, <span  class="math">\(code\)</span>, <span  class="math">\(reason\)</span> ，传入 <span  class="math">\(onopen\)</span> 的是普通的事件，传入 <span  class="math">\(onerror\)</span> 和 <span  class="math">\(onmessage\)</span> 的事件包含一个 <span  class="math">\(data\)</span> 属性，在前者中是错误对象，而在后者则根据消息类型转变：消息为字符串，则 <span  class="math">\(data\)</span> 也为字符串；消息为二进制数据，并且 <span  class="math">\(WebSocket.binaryType\)</span> 将被默认设置为 <span  class="math">\(blob\)</span> 时，<span  class="math">\(data\)</span> 为 <span  class="math">\(Blob\)</span> ，而 <span  class="math">\(WebSocket.binaryType\)</span> 为 <span  class="math">\(arraybuffer\)</span> 时，<span  class="math">\(data\)</span> 为 <span  class="math">\(ArrayBuffer\)</span> 。通常我们应该在实例化之后立即设置 <span  class="math">\(bianryType\)</span> 的值。<code>WebSocket</code>对象的 <span  class="math">\(send\)</span> 方法接收 <span  class="math">\(string\)</span>, <span  class="math">\(Blob\)</span>, <span  class="math">\(ArrayBuffer\)</span>, <span  class="math">\(ArrayBufferView\)</span> 中一个类型的参数，表示要传输的数据；并且在该方法的作用域内我们还可以使用 <span  class="math">\(WebSocket.bufferedAmount\)</span> 属性，该属性的值为之前的 <span  class="math">\(send\)</span> 调用还有多少需要传输到服务器的数据。<code>WebSocket</code>的 <span  class="math">\(close\)</span> 用于关闭连接，接收两个可选参数，第一个为关闭代码（默认为 <span  class="math">\(1000\)</span> ），第二个为字符串，表示原因。</p>
+
+<hr>
+
+<h2 id="java-websocket-api">Java WebSocket API</h2>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>Java WebSocket API</code>包含在<code>Java EE 7</code>中，包含了客户端和服务端的<code>API</code>，存储在包 <span  class="math">\(javax.websocket\)</span> 中，可以在 <a href="#https://docs.oracle.com/javaee/7/api/"><code>Java EE</code>文档</a> 中查询。</p>
+
+<h3 id="客户端api">客户端API</h3>
+
+<table>
+<thead>
+<tr>
+<th align="center">方法</th>
+<th align="center">作用</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="center"><span  class="math">\(WebSocketContainer.connectToServer\)</span></td>
+<td align="center">连接远程终端和初始化握手，返回一个 <span  class="math">\(Session\)</span></td>
+</tr>
+
+<tr>
+<td align="center"><span  class="math">\(ContainerProvider.getWebSocketContainer(\ )\)</span></td>
+<td align="center">获取底层<code>WebSocket</code>客户端的实现</td>
+</tr>
+</tbody>
+</table>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;通过 <span  class="math">\(@ClientEndpoint\)</span> 注解，我们可以标注出客户端终端，在客户端终端中也有四个事件，分别使用 <span  class="math">\(@OnOpen\)</span>, <span  class="math">\(@OnClose\)</span>, <span  class="math">\(@OnError\)</span>, <span  class="math">\(@OnMessage\)</span> 标注，可以在相关文档中查阅其参数。</p>
+
+<h3 id="服务端api">服务端API</h3>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;服务端终端可以使用 <span  class="math">\(@ServerEndpoint\)</span> 注解标注，该注解需提供 <span  class="math">\(value\)</span> 特性的值，用于表示该终端所在的相对<code>URL</code>，以 <span  class="math">\(/\)</span> 开头，允许模板参数，<code>Web容器</code>将在每次收到<code>WebSocket</code>连接时创建该类的实例，连接关闭后销毁。在服务端终端中同样包含四个使用 <span  class="math">\(@OnOpen\)</span>, <span  class="math">\(@OnClose\)</span>, <span  class="math">\(@OnError\)</span>, <span  class="math">\(@OnMessage\)</span> 标注出的事件，并且在这些事件中我们还可以使用 <span  class="math">\(@PathParam\)</span> 注解使用我们的模板参数。</p>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/javaweb2session%E7%AE%80%E4%BB%8B/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a href="https://z217blog.cn/post/json%E5%BA%8F%E5%88%97%E5%8C%96%E4%BC%A0%E8%BE%93%E8%BF%87%E7%A8%8B%E4%B8%AD%E4%B8%AD%E6%96%87%E4%B9%B1%E7%A0%81%E9%97%AE%E9%A2%98%E7%9A%84%E8%A7%A3%E5%86%B3%E6%96%B9%E6%B3%95/"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+
+
+            </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_SVG"></script></main>
+    </body>
+    <script src=https://z217blog.cn/js/navbutton.js></script>
+</html>

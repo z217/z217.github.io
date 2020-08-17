@@ -37,5 +37,61 @@
  之前未曾访问过点 \(u\) （即 \(visit[u] = false\) ）。 与 \(s\) 距离最短（即 \(distance[u]\) 的值最小）。  以 \(u\) 为中心点，对于每个与 \(u\) 相邻的顶点 \(k\) ，令 \(distance[k] = Min(distance[k], distance[u] + matrix[u][k])\) ，这一步也称为松弛( \(relaxation\) )。 重复2、3直到所有顶点加入集合。  &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;\(Dijkstra\) 算法类似于 \(Prim\) 算法，实质上都是构造了一颗树。经过以上步骤之后，我们得到了一个 \(distance[\ \ ]\) 数组，其中的值为从原点 \(s\) 到图中其他所有点的最短距离。在使用代码实现的过程中，有些情况下我们可以使用优先队列来简化寻找最小权值的这一过程。如果我们确认了一幅图是无环图，那么我们也可以不使用 \(visit[\ \ ]\) ，而是通过拓扑排序的顺序依次遍历顶点。</description>
     </item>
     
+    <item>
+      <title>Leetcode题解（2）：二分搜索</title>
+      <link>https://z217blog.cn/post/leetcode%E9%A2%98%E8%A7%A32%E4%BA%8C%E5%88%86%E6%90%9C%E7%B4%A2/</link>
+      <pubDate>Sat, 29 Feb 2020 17:23:36 +0000</pubDate>
+      
+      <guid>https://z217blog.cn/post/leetcode%E9%A2%98%E8%A7%A32%E4%BA%8C%E5%88%86%E6%90%9C%E7%B4%A2/</guid>
+      <description>原题地址: Problem 4
+参考题解
+&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;题目不用多解释，如果没有要求时间复杂度的话可以直接用双指针法遍历即可，但既然题目要求对数级的复杂度，再加上是排序数组，那么很容易就可以想到是二分法，接下来的问题就是怎么二分了。回忆下中位数的概念，中位数是一组顺序排序的数据中居于中间位置的数。也就是说，如果我们知道一组数据的中位数，我们就可以顺势以中位数为基准，将这组数据分成相同大小的两部分，其中一部分中的数总是小于（或等于）另一部分。再回到题目来，如果我们知道这两个数组的中位数，那么我们就可以将这两个数组以中位数为基准将每个数组分为两部分，如下所示：
+
+&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;其中左边两部分中所有的值永远小于或等于右边两部分。这时很明显中位数为
+\[ median = \frac{max(nums1[i - 1], nums2[j - 1])\ +\ min(nums1[i] + nums2[j])}{2} \]
+&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;这样我们的目标就从找中位数变成了寻找一个 \(i\) 和 \(j\) ，满足如下条件（假设 \(i\) 和 \(j\) 总是存在）：
+ &amp;nbsp;\(i + j = \Large\frac{nums1.length\ +\ nums2.length}{2}\normalsize;\) &amp;nbsp;\(nums1[i - 1]  &amp;nbsp;\(nums2[j - 1]   &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;根据上述条件，如果我们要进行二分搜索，第一步必须先将两个数组分别二分，保证条件1为真。
+if (nums1.length &amp;gt; nums2.length) return findMedianSortedArrays(nums2, nums1); int len1 = nums1.length, len2 = nums2.length, halfLen = (len1 + len2 + 1) / 2, i = len1 / 2, j = halfLen - i; } &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;可以发现我们在开始判断了下\(nums1[\ \ ]\)和\(nums2[\ \ ]\)的长度，确保 \(nums1.</description>
+    </item>
+    
+    <item>
+      <title>Leetcode周赛：177</title>
+      <link>https://z217blog.cn/post/leetcode%E5%91%A8%E8%B5%9B177/</link>
+      <pubDate>Thu, 27 Feb 2020 11:18:21 +0000</pubDate>
+      
+      <guid>https://z217blog.cn/post/leetcode%E5%91%A8%E8%B5%9B177/</guid>
+      <description>第 177 场周赛
+ Problem 1360: 日期之间间隔几天 Problem 1361: 验证二叉树 Problem 1362: 最接近因数 Problem 1363: 形成三的最大倍数   Problem 1360: 日期之间间隔几天
+&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;直接调用库函数即可。
+import java.time.LocalDate; import java.time.temporal.ChronoUnit; class Solution { public int daysBetweenDates(String date1, String date2) { return (int) Math.abs(LocalDate.parse(date1).until(LocalDate.parse(date2), ChronoUnit.DAYS)); } } &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;使用 \(LocalDate\) 类及其 \(until(\ )\) 方法，使用 \(ChronoUnit.DAYS\) 常量表明以天为单位计算。在此要注意的是Leetcode并没有默认导入 \(java.time\) 类，因此要自己导入。
+ Problem 1361: 验证二叉树
+&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;利用二叉树的性质可以知道，二叉树根节点外每个节点有且只有一个父节点，并且有且只有一个根节点。通过这个性质，我们可以遍历数组，找到所有的节点的父节点，再验证是否符合上述性质。
+class Solution { public boolean validateBinaryTreeNodes(int n, int[] leftChild, int[] rightChild) { int[] parent = new int[n]; //储存每个节点的父节点  Arrays.</description>
+    </item>
+    
+    <item>
+      <title>Leetcode题解：一道”难“题</title>
+      <link>https://z217blog.cn/post/leetcode%E9%A2%98%E8%A7%A3%E4%B8%80%E9%81%93%E9%9A%BE%E9%A2%98/</link>
+      <pubDate>Mon, 17 Feb 2020 17:44:43 +0000</pubDate>
+      
+      <guid>https://z217blog.cn/post/leetcode%E9%A2%98%E8%A7%A3%E4%B8%80%E9%81%93%E9%9A%BE%E9%A2%98/</guid>
+      <description>原题地址：Problem 1332 &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;题目很直(mo)白(hu)，就是从一个字符串中删除回文子列直到字符串为空。但是我——没看示例，盯着题目描述和左上角的“简单”，陷入了长时间的思考，最终怀疑人生。毕竟如果你要找回文串的话就得遍历一遍得到子串，然后删除，再遍历，再循环……如此反复，时间复杂度很高，完全不是简单难度，毫无办法的我最终只能看向题解，然后在惊叹中一分钟提交了答案。
+class Solution { public int removePalindromeSub(String s) { if (s.length() == 0) return 0; else if (s.equals(new StringBuilder(s).reverse().toString())) return 1; else return 2; } } &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;总之这道题很沙雕，沙雕之处就在于它的子序列可以不连续。所以，如果不是空串或者回文串的话，先删掉所有的 \(a\) 再删掉所有的 \(b\) 就行了。由于让我卡了很久，专门写了一篇博客，特此留念。</description>
+    </item>
+    
+    <item>
+      <title>Leetcode题解（1）：动态规划</title>
+      <link>https://z217blog.cn/post/leetcode%E9%A2%98%E8%A7%A31%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/</link>
+      <pubDate>Wed, 12 Feb 2020 20:42:30 +0000</pubDate>
+      
+      <guid>https://z217blog.cn/post/leetcode%E9%A2%98%E8%A7%A31%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/</guid>
+      <description>原题地址：Problem 62 参考题解 &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;第一眼看到这道题就联想到了离散数学里的排列的相关知识，从而可以很容易的得出排列数为 \(C(m+n-2,m-1)\) 或者 \(C(m+n-2,n-1)\)，可以直接利用该公式进行计算。但问题是阶乘的增长量级过大，很快就产生了溢出的问题，这时可以通过使用 \(BigInteger\) 类型对象解决。
+&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;虽然问题解决了，但显然这种偏暴力方式的解法不是我们的目的，因此我们还要寻找另一种解法。通过观察题目，我们可以很明显的发现：由于只能右移或者下移，因此到达每一块方格的路径数（不包括第一行和第一列） = 到达其左边方格的路径数 + 到达其上边方格的路径数。以此规律，我们可以运用动态规划来解决该问题。
+&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;首先先设
+int[][] dp = new int[m][n]; &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;dp数组为二维数组，储存到达每个方格的路径数。由于达到第一列和第一行中所有方格的路径数有且仅有一条，因此可以
+for (int i = 0; i &amp;lt; m; i++) dp[i][0] = 1; for (int i = 1; i &amp;lt; n; i++) dp[0][i] = 1;  &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;之后仅需双循环进行赋值即可：
+for (int i = 1; i &amp;lt; m; i++) for (int j = 1; j &amp;lt; n; j++) dp[i][j] = dp[i - 1][j] + dp[i][j - 1]; &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;在此，无论是按行还是按列，结果都是一样的。最后 \(dp[m - 1][n - 1]\) 即为答案。将上述代码合并起来即为：</description>
+    </item>
+    
   </channel>
 </rss>
