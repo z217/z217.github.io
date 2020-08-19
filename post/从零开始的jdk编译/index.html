@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <title>z217&#39;s blog</title>
+</head><body><aside id="sidenav">
+    <header>
+    
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+        
+    
+
+    <a id="branding" href=https://z217blog.cn>
+        
+            z217&#39;s blog
+        
+    </a>
+    </header>
+
+    <nav>
+        
+            		
+            <a href="/"
+                
+            >
+                <i class="fas fa-home fa-ms"></i>
+                <span>首页</span>
+            </a>
+        
+            		
+            <a href="/post/"
+                
+            >
+                <i class="fas fa-keyboard fa-ms"></i>
+                <span>文章</span>
+            </a>
+        
+            		
+            <a href="/tags"
+                
+            >
+                <i class="fas fa-tags fa-sm"></i>
+                <span>标签</span>
+            </a>
+        
+            		
+            <a href="/about"
+                
+            >
+                <i class="fas fa-user fa-ms"></i>
+                <span>关于</span>
+            </a>
+        
+            		
+            <a href="https://github.com/z217"
+                
+                    target="_blank"
+                
+            >
+                <i class="fab fa-github fa-ms"></i>
+                <span>Github</span>
+            </a>
+        
+            		
+            <a href="/index.xml"
+                
+            >
+                <i class="fas fa-rss fa-sm"></i>
+                <span>RSS</span>
+            </a>
+        
+            		
+            <a href="http://123.57.12.189"
+                
+                    target="_blank"
+                
+            >
+                <i class="fas fa-link fa-sm"></i>
+                <span>二站</span>
+            </a>
+        
+    </nav>
+</aside>
+<main id="main">
+            <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+            <div class="content">
+
+<h1 id="title">从零开始的JDK编译</h1>
+
+
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;首先从获取<code>JDK</code>源码开始。以<code>OpenJDK</code>为例，点击 <a href="https://hg.openjdk.java.net/jdk/">OpenJDK</a> 进入，选择对应的<code>JDK</code>版本，在此以<code>JDK12</code>为例，选择 <span  class="math">\(jdk12\)</span> 。进入后在左侧选择 <span  class="math">\(browse\)</span> ，然后再选择 <span  class="math">\(zip\)</span> 即可下载。源码下载完毕之后解压，可以在解压后的文件目录下的 <span  class="math">\(/doc/building.html\)</span> 中阅读编译文档。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;源码下载完毕之后开始准备<code>Linux</code>环境，要注意在<code>Linux</code>环境中，文件夹请尽量使用英文名，名称中不要出现空格。我使用的是<code>WSL Ubuntu</code>，在刚开始使用时要记得切换镜像源。</p>
+<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">vi /etc/apt/sources.list</code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用 <span  class="math">\(vi\)</span> 打开配置文件，然后替换为镜像源，在此我使用的是阿里云的镜像源，<span  class="math">\(sources.list\)</span> 文件内容如下：</p>
+<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">deb http://mirrors.aliyun.com/ubuntu/ bionic main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu/ bionic-security main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu/ bionic-updates main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu/ bionic-proposed main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu/ bionic-backports main restricted universe multiverse
+deb-src http://mirrors.aliyun.com/ubuntu/ bionic main restricted universe multiverse
+deb-src http://mirrors.aliyun.com/ubuntu/ bionic-security main restricted universe multiverse
+deb-src http://mirrors.aliyun.com/ubuntu/ bionic-updates main restricted universe multiverse
+deb-src http://mirrors.aliyun.com/ubuntu/ bionic-proposed main restricted universe multiverse
+deb-src http://mirrors.aliyun.com/ubuntu/ bionic-backports main restricted universe multiverse</code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;替换完毕后执行更新命令：</p>
+<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">sudo apt-get update
+sudo apt-get upgrade</code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;然后就可以开始构建编译环境了：</p>
+<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">sudo apt-get install build-essential <span class="c1">#GCC</span>
+sudo apt-get install zip unzip <span class="c1">#ZIP UNZIP</span>
+sudo apt-get install libfreetype6-dev <span class="c1">#FreeType</span>
+sudo apt-get install libcups2-dev <span class="c1">#CUPS</span>
+sudo apt-get install libx11-dev libxext-dev libxrender-dev libxrandr-dev libxtst-dev libxt-dev <span class="c1">#X11</span>
+sudo apt-get install libasound2-dev <span class="c1">#ALSA</span>
+sudo apt-get install libffi-dev <span class="c1">#libffi</span>
+sudo apt-get install autoconf <span class="c1">#Autoconf</span></code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;虽然我们要编译<code>JDK</code>，但是仍然需要下载一份已经编译好的<code>JDK</code>。如果要编译版本为 <span  class="math">\(N\)</span> 的<code>JDK</code>，那么至少需要一个版本为 <span  class="math">\(N-1\)</span> 的已编译好的<code>JDK</code>。在这里我们要编译<code>JDK12</code>，因此可以下载<code>JDK11</code>进行编译。点击 <a href="https://jdk.java.net/java-se-ri/11">jdk.java.net</a> 进行下载，注意在此要下载<code>Linux</code>版。下载完成后前往下载目录，输入：</p>
+<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">tar -zxvf openjdk-11+28_linux-x64_bin.tar.gz</code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;开始解压，解压完成会得到一个名为 <span  class="math">\(jdk-11\)</span> 的文件夹，再输入</p>
+<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">vi /etc/profile</code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在打开的文件中加入以下配置：</p>
+<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash"><span class="nv">JAVA_HOME</span><span class="o">=</span><span class="nv">$YOUR_POSITION</span>/jdk-11 <span class="c1">#将$YOUR_POSITION替换为当前文件路径，可以使用pwd进行查看</span>
+<span class="nv">PATH</span><span class="o">=</span><span class="nv">$PATH</span>:<span class="nv">$JAVA_HOME</span>/bin
+<span class="nb">export</span> JAVA_HOME PATH</code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;添加完成后输入</p>
+<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash"><span class="nb">source</span> /etc/profile</code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;启用配置。启用后可以输入</p>
+<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">java -version</code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;进行确认。<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在配置完编译环境后，开始编译。首先进入一开始下载好的<code>JDK</code>源码文件夹。<code>OpenJDK</code>提供了很多编译参数，可以通过输入参数来改变编译配置，输入：</p>
+<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">bash configure --help</code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;命令可以查询到编译参数。以编译 <span  class="math">\(FastDebug\)</span> 版、仅含 <span  class="math">\(Server\)</span> 模式的<code>HotSpot</code>虚拟机为例，输入：</p>
+<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">bash configure --enable-debug --with-jvm-variants<span class="o">=</span>server</code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(configure\)</span> 命令会检查依赖项，当出现依赖项缺失时，会抛出异常，并且会给出安装命令。当抛出异常时，只需要根据其给出的安装命令安装即可。在检查完毕后，会输出配置信息，可以在 <span  class="math">\(/build\)</span> 文件夹中新生成的文件夹内查看。之后就可以开始编译了，输入：</p>
+<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">make images</code></pre></div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;即可开始。编译的过程很漫长，最终编译结束后会在之前 <span  class="math">\(/build\)</span> 文件夹下配置文件夹中的 <span  class="math">\(/jdk\)</span> 文件夹中生成<code>JDK</code>。</p>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/geohash%E7%AE%97%E6%B3%95%E7%AE%80%E4%BB%8B/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a href="https://z217blog.cn/post/jvm1%E6%8A%80%E6%9C%AF%E4%BD%93%E7%B3%BB%E4%B8%8E%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F/"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+
+
+            </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_SVG"></script></main>
+    </body>
+    <script src=https://z217blog.cn/js/navbutton.js></script>
+</html>
