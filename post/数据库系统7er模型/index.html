@@ -9,6 +9,8 @@
   <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
   <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
   <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/katex.min.css"
+    integrity="sha384-9eLZqc9ds8eNjO3TmqPeYcDj8n+Qfa4nuSiGYa6DjLNcv9BtN69ZIulL9+8CqC9Y" crossorigin="anonymous">
   <title>z217&#39;s blog</title>
 </head><body><aside id="sidenav">
     <header>
@@ -96,101 +98,99 @@
 
 
 
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>ER</code>模型是一种<strong>自上而下</strong> ( <span  class="math">\(top-down\)</span> ) 的数据库设计方法，该方法首先确定那些被称为实体的重要数据和这些数据之间的联系，实体和联系时<code>ER</code>模式中必备的元素。然后添加更多的细节信息，如属性、约束等。<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>统一建模语言</strong> ( <span  class="math">\(Unified\;Modeling\;Language\)</span>, <span  class="math">\(UML\)</span> ) 是软件工程项目的工业标准建模语言，我们使用<code>UML</code>的符号集来绘制<code>ER</code>模型。</p>
+<div style="position:fixed; right:8px; max-width:300px; overflow:auto; top:130px; width:12vw; bottom:130px">
+    <header>
+        <h4>数据库系统（7）：ER模型</h4>
+    </header>
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#1-实体类型">1 实体类型</a></li>
+    <li><a href="#2-联系类型">2. 联系类型</a>
+      <ul>
+        <li><a href="#21-联系类型的度">2.1 联系类型的度</a></li>
+        <li><a href="#22-递归联系">2.2 递归联系</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-属性">3. 属性</a>
+      <ul>
+        <li><a href="#31-简单属性和组合属性">3.1 简单属性和组合属性</a></li>
+        <li><a href="#32-单值属性和多值属性">3.2 单值属性和多值属性</a></li>
+        <li><a href="#33-导出属性">3.3 导出属性</a></li>
+        <li><a href="#34-键">3.4 键</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-强实体类型和弱实体类型">4. 强实体类型和弱实体类型</a></li>
+    <li><a href="#5-联系的属性">5. 联系的属性</a></li>
+    <li><a href="#6-结构化约束">6. 结构化约束</a>
+      <ul>
+        <li><a href="#61-一对一联系">6.1 一对一联系</a></li>
+        <li><a href="#62-一对多联系">6.2 一对多联系</a></li>
+        <li><a href="#63-多对多联系">6.3 多对多联系</a></li>
+        <li><a href="#64-复杂联系的多重性">6.4 复杂联系的多重性</a></li>
+        <li><a href="#65-基数约束和参与性约束">6.5 基数约束和参与性约束</a></li>
+      </ul>
+    </li>
+    <li><a href="#7-er模型的问题">7. <code>ER</code>模型的问题</a>
+      <ul>
+        <li><a href="#71-扇形陷阱">7.1 扇形陷阱</a></li>
+        <li><a href="#72-断层陷阱">7.2 断层陷阱</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+</div>
 
+
+<p>        <code>ER</code>模型是一种<strong>自上而下</strong> ( $top-down$ ) 的数据库设计方法，该方法首先确定那些被称为实体的重要数据和这些数据之间的联系，实体和联系时<code>ER</code>模式中必备的元素。然后添加更多的细节信息，如属性、约束等。<br>
+        <strong>统一建模语言</strong> ( $Unified\ \ Modeling\ \ Language$, $UML$ ) 是软件工程项目的工业标准建模语言，我们使用<code>UML</code>的符号集来绘制<code>ER</code>模型。</p>
 <h2 id="1-实体类型">1 实体类型</h2>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>实体类型</strong> ( <span  class="math">\(Entity\;types\)</span> ) 是被企事业单位认可的、能够独立存在的一组具有相同属性的对象，是<code>ER</code>模型的基本概念。实体类型既可以是物理 ( 真实 ) 存在的，也可以是概念 ( 抽象 ) 存在的对象。<strong>实体出现</strong> ( <span  class="math">\(entity\;occurrence\)</span> ) 是实体类型中可唯一标识的一个对象。在没有歧义的时候，实体类型和实体出现都可以直接简称为实体。<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在<code>UML</code>中，实体类型通过一个标有名字的矩形标识，每个实体名字的首字母是大写的。</p>
-
-<p><figure><img src="/image/2020-05-21-1.png" alt="实体"></figure></p>
-
+<p>        <strong>实体类型</strong> ( $Entity\ \ types$ ) 是被企事业单位认可的、能够独立存在的一组具有相同属性的对象，是<code>ER</code>模型的基本概念。实体类型既可以是物理 ( 真实 ) 存在的，也可以是概念 ( 抽象 ) 存在的对象。<strong>实体出现</strong> ( $entity\ \ occurrence$ ) 是实体类型中可唯一标识的一个对象。在没有歧义的时候，实体类型和实体出现都可以直接简称为实体。<br>
+        在<code>UML</code>中，实体类型通过一个标有名字的矩形标识，每个实体名字的首字母是大写的。</p>
+<p><img src="/image/2020-05-21-1.png" alt="实体"></p>
 <h2 id="2-联系类型">2. 联系类型</h2>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>联系类型</strong> ( <span  class="math">\(Relationship\;types\)</span> ) 是实体类型间一组有意义的关联。每个联系类型都被赋予一个能够描述其功能的名字。<strong>联系出现</strong> ( <span  class="math">\(Relationship\;occurrence\)</span> ) 是由参与该联系的各个实体类型的一个出现组成的可被唯一标识的关联。<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在<code>UML</code>中，每个联系类型都表现为用线将相关的实体类型联系起来，并在线上标上联系的名字，通常使用一个动词或者动词短语命名。同样的，首字母也应该大写。一个联系还要标识方向，意味着这个联系仅在一个方向上有意义。可以在名字旁边添加一个箭头符号，如 <span  class="math">\(\blacktriangleleft\)</span> 来标识方向。当我们要表示 <span  class="math">\(A\;Has\;B\)</span> ( <span  class="math">\(A\)</span>，<span  class="math">\(B\)</span> 为实体，<span  class="math">\(Has\)</span> 为联系类型 ) 时可以用如下方法：</p>
-
-<p><figure><img src="/image/2020-05-21-2.png" alt="联系"></figure></p>
-
+<p>        <strong>联系类型</strong> ( $Relationship\ \ types$ ) 是实体类型间一组有意义的关联。每个联系类型都被赋予一个能够描述其功能的名字。<strong>联系出现</strong> ( $Relationship\ \ occurrence$ ) 是由参与该联系的各个实体类型的一个出现组成的可被唯一标识的关联。<br>
+        在<code>UML</code>中，每个联系类型都表现为用线将相关的实体类型联系起来，并在线上标上联系的名字，通常使用一个动词或者动词短语命名。同样的，首字母也应该大写。一个联系还要标识方向，意味着这个联系仅在一个方向上有意义。可以在名字旁边添加一个箭头符号，如 $\blacktriangleleft$ 来标识方向。当我们要表示 $A\ \ Has\ \ B$ ( $A$，$B$ 为实体，$Has$ 为联系类型 ) 时可以用如下方法：</p>
+<p><img src="/image/2020-05-21-2.png" alt="联系"></p>
 <h3 id="21-联系类型的度">2.1 联系类型的度</h3>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;联系类型的<strong>度</strong> ( <span  class="math">\(degree\)</span> ) 是指参与联系的实体类型的个数。包含在某个联系类型中的实体被看作<strong>参与者</strong> ( <span  class="math">\(participants\)</span> )，参与者的数目就是度。度为 <span  class="math">\(2\)</span> 的联系称为二元联系。上例中的 <span  class="math">\(Has\)</span> 就是一个典型的<strong>二元</strong> ( <span  class="math">\(binary\)</span> ) 联系，该联系的参与者是 <span  class="math">\(A\)</span> 和 <span  class="math">\(B\)</span> 。同理，度为 <span  class="math">\(3\)</span> 的联系称为<strong>三元</strong> ( <span  class="math">\(ternary\)</span> ) 联系。度大于 <span  class="math">\(2\)</span> 的联系称为复杂联系。<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在复杂联系中，联系使用一个菱形符号表示，箭头可以省略。</p>
-
-<p><figure><img src="/image/2020-05-21-3.png" alt="复杂联系"></figure></p>
-
+<p>        联系类型的<strong>度</strong> ( $degree$ ) 是指参与联系的实体类型的个数。包含在某个联系类型中的实体被看作<strong>参与者</strong> ( $participants$ )，参与者的数目就是度。度为 $2$ 的联系称为二元联系。上例中的 $Has$ 就是一个典型的<strong>二元</strong> ( $binary$ ) 联系，该联系的参与者是 $A$ 和 $B$ 。同理，度为 $3$ 的联系称为<strong>三元</strong> ( $ternary$ ) 联系。度大于 $2$ 的联系称为复杂联系。<br>
+        在复杂联系中，联系使用一个菱形符号表示，箭头可以省略。</p>
+<p><img src="/image/2020-05-21-3.png" alt="复杂联系"></p>
 <h3 id="22-递归联系">2.2 递归联系</h3>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>递归联系</strong> ( <span  class="math">\(Recursive\;relationship\)</span> ) 是指同一个实体类型以不同的角色多次参与了同一个联系类型。递归联系有时也叫做<em>一元</em> ( <span  class="math">\(unary\)</span> ) 联系。<strong>角色名称</strong> ( <span  class="math">\(Role\;names\)</span> ) 可以添加在联系上，用于表示每个实体类型在联系中的意义。<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;实体 <span  class="math">\(Staff\)</span> 表示公司员工，一个主管负责监视员工的同时，他也是公司员工，因此该主管需要自己“监视”自己。第一次参与时的角色名称是 <span  class="math">\(Supervisor\)</span> ，第二次参与时的角色名称是 <span  class="math">\(Supervisee\)</span> 。如下所示：</p>
-
-<p><figure><img src="/image/2020-05-21-4.png" alt="递归联系"></figure></p>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;角色名称并不限于递归联系。如果两个实体间存在多余一种联系时也可以使用角色名称。</p>
-
-<p><figure><img src="/image/2020-05-21-5.png" alt="二元联系中使用角色名称"></figure></p>
-
+<p>        <strong>递归联系</strong> ( $Recursive\ \ relationship$ ) 是指同一个实体类型以不同的角色多次参与了同一个联系类型。递归联系有时也叫做<em>一元</em> ( $unary$ ) 联系。<strong>角色名称</strong> ( $Role\ \ names$ ) 可以添加在联系上，用于表示每个实体类型在联系中的意义。<br>
+        实体 $Staff$ 表示公司员工，一个主管负责监视员工的同时，他也是公司员工，因此该主管需要自己“监视”自己。第一次参与时的角色名称是 $Supervisor$ ，第二次参与时的角色名称是 $Supervisee$ 。如下所示：</p>
+<p><img src="/image/2020-05-21-4.png" alt="递归联系"></p>
+<p>        角色名称并不限于递归联系。如果两个实体间存在多余一种联系时也可以使用角色名称。</p>
+<p><img src="/image/2020-05-21-5.png" alt="二元联系中使用角色名称"></p>
 <h2 id="3-属性">3. 属性</h2>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;属性是实体或联系类型所具有的某一特性。<strong>属性域</strong> ( <span  class="math">\(Attribute\;domain\)</span> ) 是单个属性或者多个属性所允许的取值集合。多个属性可以共享一个域。属性可以分为：<em>简单</em> ( <span  class="math">\(simple\)</span> ) 属性和<em>组合</em> ( <span  class="math">\(composite\)</span> ) 属性；<em>单值</em> ( <span  class="math">\(single-valued\)</span> ) 属性和<em>多值</em> ( <span  class="math">\(multi-valued\)</span> ) 属性；<em>导出</em> ( <span  class="math">\(derived\)</span> ) 属性。</p>
-
+<p>        属性是实体或联系类型所具有的某一特性。<strong>属性域</strong> ( $Attribute\ \ domain$ ) 是单个属性或者多个属性所允许的取值集合。多个属性可以共享一个域。属性可以分为：<em>简单</em> ( $simple$ ) 属性和<em>组合</em> ( $composite$ ) 属性；<em>单值</em> ( $single-valued$ ) 属性和<em>多值</em> ( $multi-valued$ ) 属性；<em>导出</em> ( $derived$ ) 属性。</p>
 <h3 id="31-简单属性和组合属性">3.1 简单属性和组合属性</h3>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;简单属性是指由独立存在的单个部分组成的属性，不能再被划分为更小的部分。简单属性有时也可以称为<em>原子</em> ( <span  class="math">\(atomic\)</span> ) 属性。组合属性是指由多个部分组成的属性，每个部分都可以单独存在。</p>
-
+<p>        简单属性是指由独立存在的单个部分组成的属性，不能再被划分为更小的部分。简单属性有时也可以称为<em>原子</em> ( $atomic$ ) 属性。组合属性是指由多个部分组成的属性，每个部分都可以单独存在。</p>
 <h3 id="32-单值属性和多值属性">3.2 单值属性和多值属性</h3>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;单值属性是在实体类型的每个实例出现中都只取一个单值的属性。多值属性是在实体类型的某些实例出现中可能取多个值的属性。</p>
-
+<p>        单值属性是在实体类型的每个实例出现中都只取一个单值的属性。多值属性是在实体类型的某些实例出现中可能取多个值的属性。</p>
 <h3 id="33-导出属性">3.3 导出属性</h3>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;导出属性的属性值是从相关的一个或者一组属性（不一定来自同一个实体类型）的值导出来的属性。</p>
-
+<p>        导出属性的属性值是从相关的一个或者一组属性（不一定来自同一个实体类型）的值导出来的属性。</p>
 <h3 id="34-键">3.4 键</h3>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;候选键是能够唯一标识每个实体的实例出现的最小属性组。主键是被指定的用于唯一标识每个实体类型的每个实例出现的候选键。合成键是指包含两个或两个以上属性的候选键。</p>
-
-<p><figure><img src="/image/2020-05-21-6.png" alt="属性的图形化表示"></figure></p>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>UML</code>中属性使用驼峰命名法。在属性组里，列出的第一个属性应该是主键，使用 <span  class="math">\(\{PK\}\)</span> 标识。对于合成主键，使用 <span  class="math">\(\{PPK\}\)</span> 标识。可替换键则使用 <span  class="math">\(\{AK\}\)</span> 标识。对于一些复杂数据库系统，把每个实体类型的所有属性都列出来是不可能的。因此只需要列出每个实体的主键，这时可以省略 <span  class="math">\(\{PK\}\)</span> 标识。组合属性需要在下方向右缩进列出子属性名。多值属性要明确属性取值个数的范围，可以使用 <span  class="math">\(*\)</span> 表示 <span  class="math">\(1\)</span> 个或者多个取值。导出属性需要在属性名前加上 <span  class="math">\(/\)</span> 。</p>
-
+<p>        候选键是能够唯一标识每个实体的实例出现的最小属性组。主键是被指定的用于唯一标识每个实体类型的每个实例出现的候选键。合成键是指包含两个或两个以上属性的候选键。</p>
+<p><img src="/image/2020-05-21-6.png" alt="属性的图形化表示"></p>
+<p>        <code>UML</code>中属性使用驼峰命名法。在属性组里，列出的第一个属性应该是主键，使用 ${PK}$ 标识。对于合成主键，使用 ${PPK}$ 标识。可替换键则使用 ${AK}$ 标识。对于一些复杂数据库系统，把每个实体类型的所有属性都列出来是不可能的。因此只需要列出每个实体的主键，这时可以省略 ${PK}$ 标识。组合属性需要在下方向右缩进列出子属性名。多值属性要明确属性取值个数的范围，可以使用 $*$ 表示 $1$ 个或者多个取值。导出属性需要在属性名前加上 $/$ 。</p>
 <h2 id="4-强实体类型和弱实体类型">4. 强实体类型和弱实体类型</h2>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>强实体类型</strong> ( <span  class="math">\(Strong\;entity\;type\)</span> ) 指存在不依赖于其他类型的实体类型。有时也被称为<em>父</em> ( <span  class="math">\(father\)</span> ) 实体、<em>所有者</em> ( <span  class="math">\(owner\)</span> ) 实体或<em>支配</em> ( <span  class="math">\(dominant\)</span> ) 实体。 相反，<strong>弱实体类型</strong> ( <span  class="math">\(weak\;entity\;type\)</span> ) 指存在依赖于其他类型存在的类型。有时也被称为<em>子</em> ( <span  class="math">\(child\)</span> ) 实体、<em>依赖</em> ( <span  class="math">\(dependent\)</span> ) 实体或者<em>从属</em> ( <span  class="math">\(subordinate\)</span> ) 实体。强实体类型的一个特征是可以使用该实体类型的主键唯一标识每个实体的实例出现，而弱实体类型不能。</p>
-
-<p><figure><img src="/image/2020-05-21-7.png" alt="强实体类型和弱实体类型"></figure></p>
-
+<p>        <strong>强实体类型</strong> ( $Strong\ \ entity\ \ type$ ) 指存在不依赖于其他类型的实体类型。有时也被称为<em>父</em> ( $father$ ) 实体、<em>所有者</em> ( $owner$ ) 实体或<em>支配</em> ( $dominant$ ) 实体。 相反，<strong>弱实体类型</strong> ( $weak\ \ entity\ \ type$ ) 指存在依赖于其他类型存在的类型。有时也被称为<em>子</em> ( $child$ ) 实体、<em>依赖</em> ( $dependent$ ) 实体或者<em>从属</em> ( $subordinate$ ) 实体。强实体类型的一个特征是可以使用该实体类型的主键唯一标识每个实体的实例出现，而弱实体类型不能。</p>
+<p><img src="/image/2020-05-21-7.png" alt="强实体类型和弱实体类型"></p>
 <h2 id="5-联系的属性">5. 联系的属性</h2>
-
-<p><figure><img src="/image/2020-05-21-8.png" alt="联系的属性"></figure></p>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在表示带有属性的联系时，使用虚线连接矩形和联系。一个联系如果拥有一个或者多个属性，那么该联系可能隐蔽着一个未标识的实体类型。</p>
-
+<p><img src="/image/2020-05-21-8.png" alt="联系的属性"></p>
+<p>        在表示带有属性的联系时，使用虚线连接矩形和联系。一个联系如果拥有一个或者多个属性，那么该联系可能隐蔽着一个未标识的实体类型。</p>
 <h2 id="6-结构化约束">6. 结构化约束</h2>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>多重性</strong> ( <span  class="math">\(multiplicity\)</span> ) 指一个参与实体类型通过某一联系与另一个参与实体类型的某个出现发生关联的出现数目，是联系上的主要约束。多重性约束了实体间关联的方式，是用户或企业建立的策略的一种表现方式。最常见的联系的度是二元的，二元又可以分为一对一、一对多和多对多。</p>
-
+<p>        <strong>多重性</strong> ( $multiplicity$ ) 指一个参与实体类型通过某一联系与另一个参与实体类型的某个出现发生关联的出现数目，是联系上的主要约束。多重性约束了实体间关联的方式，是用户或企业建立的策略的一种表现方式。最常见的联系的度是二元的，二元又可以分为一对一、一对多和多对多。</p>
 <h3 id="61-一对一联系">6.1 一对一联系</h3>
-
-<p><figure><img src="/image/2020-05-21-9.png" alt="一对一联系"></figure></p>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(1..1\)</span> 和 <span  class="math">\(0..1\)</span> 是多重性的体现，分别表示一个 <span  class="math">\(Entity2\)</span> 与一个 <span  class="math">\(Entity1\)</span> 有联系，一个 <span  class="math">\(Entity1\)</span> 可以与零至一个 <span  class="math">\(Entity2\)</span> 有联系。</p>
-
+<p><img src="/image/2020-05-21-9.png" alt="一对一联系"></p>
+<p>        $1..1$ 和 $0..1$ 是多重性的体现，分别表示一个 $Entity2$ 与一个 $Entity1$ 有联系，一个 $Entity1$ 可以与零至一个 $Entity2$ 有联系。</p>
 <h3 id="62-一对多联系">6.2 一对多联系</h3>
-
-<p><figure><img src="/image/2020-05-21-10.png" alt="一对多联系"></figure></p>
-
+<p><img src="/image/2020-05-21-10.png" alt="一对多联系"></p>
 <h3 id="63-多对多联系">6.3 多对多联系</h3>
-
-<p><figure><img src="/image/2020-05-21-11.png" alt="多对多联系"></figure></p>
-
+<p><img src="/image/2020-05-21-11.png" alt="多对多联系"></p>
 <h3 id="64-复杂联系的多重性">6.4 复杂联系的多重性</h3>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;复杂联系的多重性是指在一个 <span  class="math">\(n\)</span> 元联系中，其他 <span  class="math">\(n - 1\)</span> 个实体类型的值固定之后，另外一个实体类型可能参与联系的实例出现的个数。如一个三元联系的多重性表示当联系中的某两个参与实体类型的值确定后，剩下的那个参与实体的实例出现可能的个数。</p>
-
-<p><figure><img src="/image/2020-05-21-12.png" alt="复杂联系的多重性"></figure></p>
-
+<p>        复杂联系的多重性是指在一个 $n$ 元联系中，其他 $n - 1$ 个实体类型的值固定之后，另外一个实体类型可能参与联系的实例出现的个数。如一个三元联系的多重性表示当联系中的某两个参与实体类型的值确定后，剩下的那个参与实体的实例出现可能的个数。</p>
+<p><img src="/image/2020-05-21-12.png" alt="复杂联系的多重性"></p>
 <table>
 <thead>
 <tr>
@@ -198,54 +198,37 @@
 <th align="left">含义</th>
 </tr>
 </thead>
-
 <tbody>
 <tr>
-<td align="center"><span  class="math">\(0..3\)</span></td>
-<td align="left"><span  class="math">\(0\)</span> 个到 <span  class="math">\(3\)</span> 个实体出现</td>
+<td align="center">$0..3$</td>
+<td align="left">$0$ 个到 $3$ 个实体出现</td>
 </tr>
-
 <tr>
-<td align="center"><span  class="math">\(0..*\)</span></td>
-<td align="left"><span  class="math">\(0\)</span> 个或者多个实体出现</td>
+<td align="center">$0..*$</td>
+<td align="left">$0$ 个或者多个实体出现</td>
 </tr>
-
 <tr>
-<td align="center"><span  class="math">\(0\)</span>, <span  class="math">\(3\)</span>, <span  class="math">\(6-8\)</span></td>
-<td align="left"><span  class="math">\(0\)</span> 个、<span  class="math">\(3\)</span> 个或者 <span  class="math">\(6\)</span> 到 <span  class="math">\(8\)</span> 个实体出现</td>
+<td align="center">$0$, $3$, $6-8$</td>
+<td align="left">$0$ 个、$3$ 个或者 $6$ 到 $8$ 个实体出现</td>
 </tr>
 </tbody>
 </table>
-
 <h3 id="65-基数约束和参与性约束">6.5 基数约束和参与性约束</h3>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;多重性由两个独立约束组成，<em>基数</em> ( <span  class="math">\(cardinality\)</span> ) 约束和<em>参与性</em> ( <span  class="math">\(participation\)</span> ) 约束。基数是在指定的联系类型中一个实体可能参与的联系出现的最大数目。一个二元联系的基数就是一对一、一对多和多对多。参与性说明所有实体出现是否都参与了联系。对于所有实体出现都参与的，称为<strong>强制</strong> ( <span  class="math">\(mandatory\)</span> ) 参与。否则，称为<strong>可选</strong> ( <span  class="math">\(optional\)</span> ) 参与。实体的参与性实际上就是联系的每一个参与实体的多重性范围的最小值，为 <span  class="math">\(0\)</span> 时就是可选参与，为 <span  class="math">\(1\)</span> 时就是强制参与。</p>
-
+<p>        多重性由两个独立约束组成，<em>基数</em> ( $cardinality$ ) 约束和<em>参与性</em> ( $participation$ ) 约束。基数是在指定的联系类型中一个实体可能参与的联系出现的最大数目。一个二元联系的基数就是一对一、一对多和多对多。参与性说明所有实体出现是否都参与了联系。对于所有实体出现都参与的，称为<strong>强制</strong> ( $mandatory$ ) 参与。否则，称为<strong>可选</strong> ( $optional$ ) 参与。实体的参与性实际上就是联系的每一个参与实体的多重性范围的最小值，为 $0$ 时就是可选参与，为 $1$ 时就是强制参与。</p>
 <h2 id="7-er模型的问题">7. <code>ER</code>模型的问题</h2>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;创建<code>ER</code>模型时可能产生的问题称为<strong>连接陷阱</strong> ( <span  class="math">\(connection\;trap\)</span> )，通常是由于错误地理解了联系的意义引起的。</p>
-
+<p>        创建<code>ER</code>模型时可能产生的问题称为<strong>连接陷阱</strong> ( $connection\ \ trap$ )，通常是由于错误地理解了联系的意义引起的。</p>
 <h3 id="71-扇形陷阱">7.1 扇形陷阱</h3>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>扇形陷阱</strong> ( <span  class="math">\(fan\;trap\)</span> ) 是指模型给出了两实体类型之间的一种联系，但是在某些实体出现之间存在着多条<em>通路</em> ( <span  class="math">\(pathway\)</span> )。当一个实体有两个或者更多的 <span  class="math">\(1:*\)</span> 的联系时，就存在着扇形陷阱。</p>
-
-<p><figure><img src="/image/2020-05-21-13.png" alt="扇形陷阱示例"></figure>
-<figure><img src="/image/2020-05-21-14.png" alt="扇形陷阱示例语义网表示"></figure></p>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上图为一个扇形陷阱的例子。在该图中，我们能很简单的找到每个 <span  class="math">\(Staff\)</span> 的实体出现对应的 <span  class="math">\(Division\)</span> ，但是无法找到其对应的 <span  class="math">\(Branch\)</span> 。而为了消除该扇形陷阱，我们需要对该<code>ER</code>模型进行重构。</p>
-
-<p><figure><img src="/image/2020-05-21-15.png" alt="重构消除扇形陷阱"></figure></p>
-
+<p>        <strong>扇形陷阱</strong> ( $fan\ \ trap$ ) 是指模型给出了两实体类型之间的一种联系，但是在某些实体出现之间存在着多条<em>通路</em> ( $pathway$ )。当一个实体有两个或者更多的 $1:*$ 的联系时，就存在着扇形陷阱。</p>
+<p><img src="/image/2020-05-21-13.png" alt="扇形陷阱示例">
+<img src="/image/2020-05-21-14.png" alt="扇形陷阱示例语义网表示"></p>
+<p>        上图为一个扇形陷阱的例子。在该图中，我们能很简单的找到每个 $Staff$ 的实体出现对应的 $Division$ ，但是无法找到其对应的 $Branch$ 。而为了消除该扇形陷阱，我们需要对该<code>ER</code>模型进行重构。</p>
+<p><img src="/image/2020-05-21-15.png" alt="重构消除扇形陷阱"></p>
 <h3 id="72-断层陷阱">7.2 断层陷阱</h3>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>断层陷阱</strong> ( <span  class="math">\(chasm\;trap\)</span> ) 指模型表明某些实体类型之间存在联系，但在某些实体出现之间不存在通路的情况。当相关实体的路径上存在着一个或者多个多重性最小值为零的联系时，就会出现断层陷阱。</p>
-
-<p><figure><img src="/image/2020-05-21-16.png" alt="断层陷阱示例"></figure>
-<figure><img src="/image/2020-05-21-17.png" alt="示例语义网"></figure></p>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;显然对于 <span  class="math">\(PropertyForRent\)</span> 中的实体出现 <span  class="math">\(PA14\)</span> ，无法找到对应的 <span  class="math">\(Branch\)</span> 的实体出现。解决方法是添加新联系。</p>
-
-<p><figure><img src="/image/2020-05-21-18.png" alt="重构消除断层陷阱"></figure></p>
+<p>        <strong>断层陷阱</strong> ( $chasm\ \ trap$ ) 指模型表明某些实体类型之间存在联系，但在某些实体出现之间不存在通路的情况。当相关实体的路径上存在着一个或者多个多重性最小值为零的联系时，就会出现断层陷阱。</p>
+<p><img src="/image/2020-05-21-16.png" alt="断层陷阱示例">
+<img src="/image/2020-05-21-17.png" alt="示例语义网"></p>
+<p>        显然对于 $PropertyForRent$ 中的实体出现 $PA14$ ，无法找到对应的 $Branch$ 的实体出现。解决方法是添加新联系。</p>
+<p><img src="/image/2020-05-21-18.png" alt="重构消除断层陷阱"></p>
 
 
 <div class="nav-next-prev">
@@ -286,7 +269,52 @@
     </div>
 </footer>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_SVG"></script></main>
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        
+        
+        
+        var all = MathJax.Hub.getAllJax(),
+            i;
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
     </body>
     <script src=https://z217blog.cn/js/navbutton.js></script>
 </html>

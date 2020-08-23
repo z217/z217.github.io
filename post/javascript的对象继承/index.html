@@ -9,6 +9,8 @@
   <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
   <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
   <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/katex.min.css"
+    integrity="sha384-9eLZqc9ds8eNjO3TmqPeYcDj8n+Qfa4nuSiGYa6DjLNcv9BtN69ZIulL9+8CqC9Y" crossorigin="anonymous">
   <title>z217&#39;s blog</title>
 </head><body><aside id="sidenav">
     <header>
@@ -96,10 +98,26 @@
 
 
 
+<div style="position:fixed; right:8px; max-width:300px; overflow:auto; top:130px; width:12vw; bottom:130px">
+    <header>
+        <h4>JavaScript的对象继承</h4>
+    </header>
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#span-id2019-12-06-11-原型链span"><span id="2019-12-06-1">1. 原型链</span></a></li>
+    <li><a href="#span-id2019-12-06-22-借用构造函数span"><span id="2019-12-06-2">2. 借用构造函数</span></a></li>
+    <li><a href="#span-id2019-12-06-33-组合继承span"><span id="2019-12-06-3">3. 组合继承</span></a></li>
+    <li><a href="#span-id2019-12-06-44-原型式继承span"><span id="2019-12-06-4">4. 原型式继承</span></a></li>
+    <li><a href="#span-id2019-12-06-55-寄生式继承span"><span id="2019-12-06-5">5. 寄生式继承</span></a></li>
+    <li><a href="#span-id2019-12-06-66-寄生组合式继承span"><span id="2019-12-06-6">6. 寄生组合式继承</span></a></li>
+    <li><a href="#7-小结">7. 小结</a></li>
+  </ul>
+</nav>
+</div>
+
+
 <p><strong>参考书籍：《JavaScript高级程序设计》（第3版）</strong></p>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>继承</strong>是OO语言（面对对象语言）中的概念。许多OO语言都支持两种继承方式：接口继承（继承方法签名）和实现继承（继承实际方法）。但由于<code>JavaScript</code>中没有签名，因此在<code>ECMAScript</code>中只能实现方法继承。</p>
-
+<p>       <strong>继承</strong>是OO语言（面对对象语言）中的概念。许多OO语言都支持两种继承方式：接口继承（继承方法签名）和实现继承（继承实际方法）。但由于<code>JavaScript</code>中没有签名，因此在<code>ECMAScript</code>中只能实现方法继承。</p>
 <ol>
 <li><a href="#2019-12-06-1">原型链</a></li>
 <li><a href="#2019-12-06-2">借用构造函数</a></li>
@@ -108,12 +126,9 @@
 <li><a href="#2019-12-06-5">寄生式继承</a></li>
 <li><a href="#2019-12-06-6">寄生组合式继承</a></li>
 </ol>
-
 <hr>
-
-<h2 id="span-id2019120611-原型链span"><span id="2019-12-06-1">1. 原型链</span></h2>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>原型链</strong>（ <span  class="math">\(prototype\;chaining\)</span> ）是实现继承的主要方法。基本思想是利用原型让一个引用类型继承另一个引用类型的属性和方法。</p>
+<h2 id="span-id2019-12-06-11-原型链span"><span id="2019-12-06-1">1. 原型链</span></h2>
+<p>       <strong>原型链</strong>（ $prototype\ \ chaining$ ）是实现继承的主要方法。基本思想是利用原型让一个引用类型继承另一个引用类型的属性和方法。</p>
 <div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">SuperType</span><span class="p">()</span> <span class="p">{</span>
     <span class="k">this</span><span class="p">.</span><span class="nx">property</span> <span class="o">=</span> <span class="kc">true</span><span class="p">;</span>
 <span class="p">}</span>
@@ -128,9 +143,8 @@
 <span class="nx">SubType</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">getSubValue</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
     <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">subproperty</span><span class="p">;</span>
 <span class="p">}</span>
-</code></pre></div>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上述代码中定义了两种类型—— <span  class="math">\(SuperType\)</span> 和 <span  class="math">\(SubType\)</span> ，其中 <span  class="math">\(SubType\)</span> 继承了 <span  class="math">\(SuperType\)</span> 。实现的本质是重写 <span  class="math">\(SubType\)</span> 的原型对象，即将一个 <span  class="math">\(SuperType\)</span> 对象赋给 <span  class="math">\(SubType.property\)</span> ，从而使得 <span  class="math">\(SuperType\)</span> 中所有的属性和方法均存在于 <span  class="math">\(SubType\)</span> 中。在实例中，我们也给 <span  class="math">\(SubType\)</span> 添加了一个新方法。此外，还要注意，以此种方式实现的继承中， <span  class="math">\(SubType.constructor\)</span> 指向的是 <span  class="math">\(SuperType\)</span> 。<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;原型链能够实现继承，但也存在问题。由于是直接赋值给原型，因此其中的属性会被所有实例共享。如以下代码：</p>
+</code></pre></div><p>       上述代码中定义了两种类型—— $SuperType$ 和 $SubType$ ，其中 $SubType$ 继承了 $SuperType$ 。实现的本质是重写 $SubType$ 的原型对象，即将一个 $SuperType$ 对象赋给 $SubType.property$ ，从而使得 $SuperType$ 中所有的属性和方法均存在于 $SubType$ 中。在实例中，我们也给 $SubType$ 添加了一个新方法。此外，还要注意，以此种方式实现的继承中， $SubType.constructor$ 指向的是 $SuperType$ 。<br>
+       原型链能够实现继承，但也存在问题。由于是直接赋值给原型，因此其中的属性会被所有实例共享。如以下代码：</p>
 <div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">SuperType</span><span class="p">()</span> <span class="p">{</span>
     <span class="k">this</span><span class="p">.</span><span class="nx">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&#34;red&#34;</span><span class="p">];</span>
 <span class="p">}</span>
@@ -143,15 +157,11 @@
 </span><span class="c1"></span>
 <span class="kd">var</span> <span class="nx">instance2</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">SubType</span><span class="p">();</span>
 <span class="nx">alert</span><span class="p">(</span><span class="nx">instance2</span><span class="p">.</span><span class="nx">colors</span><span class="p">);</span> <span class="c1">//&#34;red,blue&#34;
-</span></code></pre></div>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;还有，不能通过子类调用超类的有参构造函数等。<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;由于种种原因，实践中很少单独使用原型链。</p>
-
+</span></code></pre></div><p>       还有，不能通过子类调用超类的有参构造函数等。<br>
+       由于种种原因，实践中很少单独使用原型链。</p>
 <hr>
-
-<h2 id="span-id2019120622-借用构造函数span"><span id="2019-12-06-2">2. 借用构造函数</span></h2>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>借用构造函数</strong>（ <span  class="math">\(constructor\;stealing\)</span> ）用于解决原型中包含引用类型值带来的问题。本质是在子类构造函数中调用超类构造函数。可以通过 <span  class="math">\(call(\ )\)</span> 或者 <span  class="math">\(apply(\ )\)</span> 方法实现。</p>
+<h2 id="span-id2019-12-06-22-借用构造函数span"><span id="2019-12-06-2">2. 借用构造函数</span></h2>
+<p>       <strong>借用构造函数</strong>（ $constructor\ \ stealing$ ）用于解决原型中包含引用类型值带来的问题。本质是在子类构造函数中调用超类构造函数。可以通过 $call(\ )$ 或者 $apply(\ )$ 方法实现。</p>
 <div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">SuperType</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span> <span class="p">{</span>
     <span class="k">this</span><span class="p">.</span><span class="nx">name</span> <span class="o">=</span> <span class="nx">name</span><span class="p">;</span>
     <span class="kd">function</span> <span class="nx">sayHello</span><span class="p">()</span> <span class="p">{</span>
@@ -161,15 +171,11 @@
 <span class="kd">function</span> <span class="nx">SubType</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span> <span class="p">{</span>
     <span class="nx">SuperType</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">name</span><span class="p">);</span>
 <span class="p">}</span>
-</code></pre></div>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;显然，通过“借调”超类构造函数，子类的每个实例就都具有超类中属性和方法的副本了。<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;虽然该种方法避免了引用原型的问题，但对于超类中包含的方法（如上例中所示的 <span  class="math">\(sayHello(\ )\)</span> 方法）也被复制了一份，没有实现函数复用。因此，借用构造函数的方法也很少单独使用。</p>
-
+</code></pre></div><p>       显然，通过“借调”超类构造函数，子类的每个实例就都具有超类中属性和方法的副本了。<br>
+       虽然该种方法避免了引用原型的问题，但对于超类中包含的方法（如上例中所示的 $sayHello(\ )$ 方法）也被复制了一份，没有实现函数复用。因此，借用构造函数的方法也很少单独使用。</p>
 <hr>
-
-<h2 id="span-id2019120633-组合继承span"><span id="2019-12-06-3">3. 组合继承</span></h2>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>组合继承</strong>（ <span  class="math">\(combination\;inheritance\)</span> ），也叫伪经典继承。顾名思义，即组合原型链和借用构造函数的技术。本质是利用原型链实现对原型属性和方法的继承，通过借用构造函数实现对实例属性的继承。</p>
+<h2 id="span-id2019-12-06-33-组合继承span"><span id="2019-12-06-3">3. 组合继承</span></h2>
+<p>       <strong>组合继承</strong>（ $combination\ \ inheritance$ ），也叫伪经典继承。顾名思义，即组合原型链和借用构造函数的技术。本质是利用原型链实现对原型属性和方法的继承，通过借用构造函数实现对实例属性的继承。</p>
 <div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">SuperType</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span> <span class="p">{</span>
     <span class="k">this</span><span class="p">.</span><span class="nx">name</span> <span class="o">=</span> <span class="nx">name</span><span class="p">;</span>
 <span class="p">}</span>
@@ -183,16 +189,12 @@
 <span class="c1">//继承方法
 </span><span class="c1"></span><span class="nx">SubType</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">SuperType</span><span class="p">();</span>
 <span class="nx">SubType</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">constructor</span> <span class="o">=</span> <span class="nx">SubType</span><span class="p">;</span>
-</code></pre></div>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;可以看到，组合继承不仅让子类中的每个实例都拥有自己的属性，还能调用相同的方法。<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;组合继承避免了原型链和借用构造函数的缺点，融合了他们的优点，因此成为了<code>JavaScript</code>中最常用的继承方式。而且，通过组合继承， <span  class="math">\(instanceof\)</span> 和 <span  class="math">\(isPrototypeOf(\ )\)</span> 也能用于识别其创建的对象。<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span id="2019-12-06-3-1">组合继承也有其不足，即在任何时候都会调用两次超类构造函数。</span></p>
-
+</code></pre></div><p>       可以看到，组合继承不仅让子类中的每个实例都拥有自己的属性，还能调用相同的方法。<br>
+       组合继承避免了原型链和借用构造函数的缺点，融合了他们的优点，因此成为了<code>JavaScript</code>中最常用的继承方式。而且，通过组合继承， $instanceof$ 和 $isPrototypeOf(\ )$ 也能用于识别其创建的对象。<br>
+       <span id="2019-12-06-3-1">组合继承也有其不足，即在任何时候都会调用两次超类构造函数。</span></p>
 <hr>
-
-<h2 id="span-id2019120644-原型式继承span"><span id="2019-12-06-4">4. 原型式继承</span></h2>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>原型式继承</strong>（ <span  class="math">\(prototypal\;inheritance\)</span> ）是一种特殊的继承方式，该方法并没有严格意义上的构造函数，本质是借助原型可以基于已有对象创建新对象，还不必创建自定义类型的特性。</p>
+<h2 id="span-id2019-12-06-44-原型式继承span"><span id="2019-12-06-4">4. 原型式继承</span></h2>
+<p>       <strong>原型式继承</strong>（ $prototypal\ \ inheritance$ ）是一种特殊的继承方式，该方法并没有严格意义上的构造函数，本质是借助原型可以基于已有对象创建新对象，还不必创建自定义类型的特性。</p>
 <div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">object</span><span class="p">(</span><span class="nx">o</span><span class="p">)</span> <span class="p">{</span>
     <span class="kd">function</span> <span class="nx">F</span><span class="p">()</span> <span class="p">{}</span>
     <span class="nx">F</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">=</span> <span class="nx">o</span><span class="p">;</span>
@@ -207,8 +209,7 @@
 <span class="nx">yetAnotherPerson</span><span class="p">.</span><span class="nx">friends</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="s2">&#34;Van&#34;</span><span class="p">);</span>
 
 <span class="nx">alert</span><span class="p">(</span><span class="nx">person</span><span class="p">.</span><span class="nx">friends</span><span class="p">);</span> <span class="c1">//&#34;Tom,Rob,Van&#34;
-</span></code></pre></div>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在 <span  class="math">\(object(\ )\)</span> 函数中，创建了函数 <span  class="math">\(F(\ )\)</span> 作为一个临时构造函数，将传入的对象作为其原型并返回一个新实例。在<code>ECMAScript5</code>中新增了 <span  class="math">\(Object.create(\ )\)</span> 方法规范化了原型式继承。该方法接收两个参数——一个用作新对象的原型，另一个为新对象定义额外属性（可选）。在传入一个参数时，行为与 <span  class="math">\(object(\ )\)</span> 方法相同。</p>
+</span></code></pre></div><p>       在 $object(\ )$ 函数中，创建了函数 $F(\ )$ 作为一个临时构造函数，将传入的对象作为其原型并返回一个新实例。在<code>ECMAScript5</code>中新增了 $Object.create(\ )$ 方法规范化了原型式继承。该方法接收两个参数——一个用作新对象的原型，另一个为新对象定义额外属性（可选）。在传入一个参数时，行为与 $object(\ )$ 方法相同。</p>
 <div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">person</span> <span class="o">=</span> <span class="p">{</span>
     <span class="nx">friends</span><span class="o">:</span> <span class="p">[</span><span class="s2">&#34;Tom&#34;</span><span class="p">];</span>
 <span class="p">}</span>
@@ -222,12 +223,9 @@
     <span class="p">}</span>
 <span class="p">});</span>
 <span class="nx">alert</span><span class="p">(</span><span class="nx">yetAnotherPerson</span><span class="p">.</span><span class="nx">name</span><span class="p">);</span> <span class="c1">//&#34;Van&#34;
-</span></code></pre></div>
-<hr>
-
-<h2 id="span-id2019120655-寄生式继承span"><span id="2019-12-06-5">5. 寄生式继承</span></h2>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>寄生式继承</strong>（ <span  class="math">\(parasitic\;inheritance\)</span> ）与原型式继承紧密相关。其思路与寄生构造函数和工厂模式类似，创建一个用于封装继承过程的函数，在函数内部以某种方式增强对象。</p>
+</span></code></pre></div><hr>
+<h2 id="span-id2019-12-06-55-寄生式继承span"><span id="2019-12-06-5">5. 寄生式继承</span></h2>
+<p>       <strong>寄生式继承</strong>（ $parasitic\ \ inheritance$ ）与原型式继承紧密相关。其思路与寄生构造函数和工厂模式类似，创建一个用于封装继承过程的函数，在函数内部以某种方式增强对象。</p>
 <div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">createAnother</span><span class="p">(</span><span class="nx">original</span><span class="p">)</span> <span class="p">{</span>
     <span class="kd">var</span> <span class="nx">clone</span> <span class="o">=</span> <span class="nx">object</span><span class="p">(</span><span class="nx">original</span><span class="p">);</span>
     <span class="nx">clone</span><span class="p">.</span><span class="nx">sayHello</span><span class="p">()</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
@@ -235,15 +233,11 @@
     <span class="p">};</span>
     <span class="k">return</span> <span class="nx">clone</span><span class="p">;</span>
 <span class="p">}</span>
-</code></pre></div>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span  class="math">\(createAnother(\ )\)</span> 方法接受一个对象作为新对象的基础对象，再将其赋给 <span  class="math">\(clone\)</span> ，通过 <span  class="math">\(clone\)</span> 对象添加 <span  class="math">\(sayHello(\ )\)</span> 方法，最后返回 <span  class="math">\(clone\)</span> 对象。<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;与构造函数模式类似，寄生式继承会由于无法做到函数复用而降低效率。</p>
-
+</code></pre></div><p>        $createAnother(\ )$ 方法接受一个对象作为新对象的基础对象，再将其赋给 $clone$ ，通过 $clone$ 对象添加 $sayHello(\ )$ 方法，最后返回 $clone$ 对象。<br>
+       与构造函数模式类似，寄生式继承会由于无法做到函数复用而降低效率。</p>
 <hr>
-
-<h2 id="span-id2019120666-寄生组合式继承span"><span id="2019-12-06-6">6. 寄生组合式继承</span></h2>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>寄生组合式继承</strong>（ <span  class="math">\(parasitic\;combination\;inheritance\)</span> ）即通过借用构造函数来继承属性，通过原型链的混成形式来继承方法。在之前我们谈到了<a href="#2019-12-06-3-1">组合继承的不足</a>,而解决办法就是寄生组合式继承。</p>
+<h2 id="span-id2019-12-06-66-寄生组合式继承span"><span id="2019-12-06-6">6. 寄生组合式继承</span></h2>
+<p>       <strong>寄生组合式继承</strong>（ $parasitic\ \ combination\ \ inheritance$ ）即通过借用构造函数来继承属性，通过原型链的混成形式来继承方法。在之前我们谈到了<a href="#2019-12-06-3-1">组合继承的不足</a>,而解决办法就是寄生组合式继承。</p>
 <div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">object</span><span class="p">(</span><span class="nx">o</span><span class="p">)</span> <span class="p">{</span>
     <span class="kd">function</span> <span class="nx">F</span><span class="p">()</span> <span class="p">{}</span>
     <span class="nx">F</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">=</span> <span class="nx">o</span><span class="p">;</span>
@@ -254,14 +248,10 @@
     <span class="nx">prototype</span><span class="p">.</span><span class="nx">constructor</span> <span class="o">=</span> <span class="nx">subType</span><span class="p">;</span>
     <span class="nx">subType</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">=</span> <span class="nx">prototype</span><span class="p">;</span>
 <span class="p">}</span>
-</code></pre></div>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span  class="math">\(inheritPrototype(\ )\)</span> 方法接收两个参数：子类构造函数和超类构造函数。其高效性在于只调用了一次 <span  class="math">\(SuperType\)</span> 构造函数，且避免了在 <span  class="math">\(SubType.prototype\)</span> 上创建不必要的属性，保持原型链不变，还能使用 <span  class="math">\(instanceof\)</span> 和 <span  class="math">\(isPrototypeOf(\ )\)</span> ，开发人员普遍认为寄生组合式继承是引用类型的最理想的继承方式。</p>
-
+</code></pre></div><p>        $inheritPrototype(\ )$ 方法接收两个参数：子类构造函数和超类构造函数。其高效性在于只调用了一次 $SuperType$ 构造函数，且避免了在 $SubType.prototype$ 上创建不必要的属性，保持原型链不变，还能使用 $instanceof$ 和 $isPrototypeOf(\ )$ ，开发人员普遍认为寄生组合式继承是引用类型的最理想的继承方式。</p>
 <hr>
-
 <h2 id="7-小结">7. 小结</h2>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>JavaScript</code>主要通过原型链实现继承。但原型链不适宜单独使用，解决其问题的技术是借用构造函数。使用最多的继承模式是组合继承。此外还可以选择原型式继承、寄生式继承和寄生组合式继承。</p>
+<p>       <code>JavaScript</code>主要通过原型链实现继承。但原型链不适宜单独使用，解决其问题的技术是借用构造函数。使用最多的继承模式是组合继承。此外还可以选择原型式继承、寄生式继承和寄生组合式继承。</p>
 
 
 <div class="nav-next-prev">
@@ -302,7 +292,52 @@
     </div>
 </footer>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_SVG"></script></main>
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        
+        
+        
+        var all = MathJax.Hub.getAllJax(),
+            i;
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
     </body>
     <script src=https://z217blog.cn/js/navbutton.js></script>
 </html>

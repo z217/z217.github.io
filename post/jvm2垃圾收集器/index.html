@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/katex.min.css"
+    integrity="sha384-9eLZqc9ds8eNjO3TmqPeYcDj8n+Qfa4nuSiGYa6DjLNcv9BtN69ZIulL9+8CqC9Y" crossorigin="anonymous">
+  <title>z217&#39;s blog</title>
+</head><body><aside id="sidenav">
+    <header>
+    
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+        
+    
+
+    <a id="branding" href=https://z217blog.cn>
+        
+            z217&#39;s blog
+        
+    </a>
+    </header>
+
+    <nav>
+        
+            		
+            <a href="/"
+                
+            >
+                <i class="fas fa-home fa-ms"></i>
+                <span>首页</span>
+            </a>
+        
+            		
+            <a href="/post/"
+                
+            >
+                <i class="fas fa-keyboard fa-ms"></i>
+                <span>文章</span>
+            </a>
+        
+            		
+            <a href="/tags"
+                
+            >
+                <i class="fas fa-tags fa-sm"></i>
+                <span>标签</span>
+            </a>
+        
+            		
+            <a href="/about"
+                
+            >
+                <i class="fas fa-user fa-ms"></i>
+                <span>关于</span>
+            </a>
+        
+            		
+            <a href="https://github.com/z217"
+                
+                    target="_blank"
+                
+            >
+                <i class="fab fa-github fa-ms"></i>
+                <span>Github</span>
+            </a>
+        
+            		
+            <a href="/index.xml"
+                
+            >
+                <i class="fas fa-rss fa-sm"></i>
+                <span>RSS</span>
+            </a>
+        
+            		
+            <a href="http://123.57.12.189"
+                
+                    target="_blank"
+                
+            >
+                <i class="fas fa-link fa-sm"></i>
+                <span>二站</span>
+            </a>
+        
+    </nav>
+</aside>
+<main id="main">
+            <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+            <div class="content">
+
+<h1 id="title">JVM（2）：垃圾收集器</h1>
+
+
+
+<div style="position:fixed; right:8px; max-width:300px; overflow:auto; top:130px; width:12vw; bottom:130px">
+    <header>
+        <h4>JVM（2）：垃圾收集器</h4>
+    </header>
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#1-对象状态">1. 对象状态</a>
+      <ul>
+        <li><a href="#11-引用计数算法">1.1 引用计数算法</a></li>
+        <li><a href="#12-可达性分析算法">1.2 可达性分析算法</a></li>
+        <li><a href="#13-对象引用">1.3 对象引用</a></li>
+        <li><a href="#14-对象死亡">1.4 对象死亡</a></li>
+        <li><a href="#15-方法区回收">1.5 方法区回收</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-垃圾收集算法">2. 垃圾收集算法</a>
+      <ul>
+        <li><a href="#21-分代收集理论">2.1 分代收集理论</a></li>
+        <li><a href="#22-标记-清除算法">2.2 标记-清除算法</a></li>
+        <li><a href="#23-标记-复制算法">2.3 标记-复制算法</a></li>
+        <li><a href="#24-标记-整理算法">2.4 标记-整理算法</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-hotspot虚拟机算法">3. <code>HotSpot</code>虚拟机算法</a></li>
+    <li><a href="#4-经典垃圾收集器">4. 经典垃圾收集器</a>
+      <ul>
+        <li><a href="#41-serial收集器">4.1 <code>Serial</code>收集器</a></li>
+        <li><a href="#42-parnew收集器">4.2 <code>ParNew</code>收集器</a></li>
+        <li><a href="#43-parallel-scavenge收集器">4.3 <code>Parallel Scavenge</code>收集器</a></li>
+        <li><a href="#44-serial-old收集器">4.4 <code>Serial Old</code>收集器</a></li>
+        <li><a href="#45-parallel-old收集器">4.5 <code>Parallel Old</code>收集器</a></li>
+        <li><a href="#46-cms收集器">4.6 <code>CMS</code>收集器</a></li>
+        <li><a href="#47-garbage-first收集器">4.7 <code>Garbage First</code>收集器</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-低延迟垃圾收集器">5. 低延迟垃圾收集器</a>
+      <ul>
+        <li><a href="#51-shenandoah收集器">5.1 <code>Shenandoah</code>收集器</a></li>
+        <li><a href="#52-zgc收集器">5.2 <code>ZGC</code>收集器</a></li>
+      </ul>
+    </li>
+    <li><a href="#6-垃圾收集器的选择">6. 垃圾收集器的选择</a>
+      <ul>
+        <li><a href="#61-epsilon收集器">6.1 <code>Epsilon</code>收集器</a></li>
+        <li><a href="#62-虚拟机以及垃圾收集器日志">6.2 虚拟机以及垃圾收集器日志</a></li>
+      </ul>
+    </li>
+    <li><a href="#7-内存分配与回收策略">7. 内存分配与回收策略</a></li>
+  </ul>
+</nav>
+</div>
+
+
+<p>        相比于程序计数器、虚拟机栈和本地方法栈这种应分配的内存大小在类确定时就已固定下来的内存区域，<code>Java</code>堆和方法区这两个区域有着不确定性：一个接口可能有多个实现类，一个方法可能有多个分支。垃圾收集器所关注的也就是这部分不确定的内存。</p>
+<h2 id="1-对象状态">1. 对象状态</h2>
+<p>        在进行垃圾收集之前，垃圾收集器需要对对象的状态进行判断，即判断其是否仍在被使用。</p>
+<h3 id="11-引用计数算法">1.1 引用计数算法</h3>
+<p>        <strong>引用计数</strong> ( $Reference\ \ Counting$ ) 算法，可以简单的解释为在对象中添加一个引用计数器，当对象被引用时计数器便加一，反之减一。如此往复，当对象的引用计数器为零时，可以认为其不再被使用。虽然这种算法简单而且效率很高，但是因为存在着很多例外情况，因此不被主流的<code>JVM</code>所采纳。比较简单的例子就比如存在对象 $A$ 和 $B$ ，它们都存在着一个字段互相引用对方，这样它们的引用计数器就都为 $1$ 。但实际上，除了互相引用之外，它们没有被其他对象引用，可以认为是无用的对象，应该被垃圾收集。另一方面，它们的引用计数又不为 $0$ ，无法触发垃圾收集。因此，引用计数算法需要配合大量额外处理才能保证正常工作。</p>
+<h3 id="12-可达性分析算法">1.2 可达性分析算法</h3>
+<p>        <strong>可达性分析</strong> ( $Reachability\ \ Analysis$ ) 算法，基本思路就是通过一系列的称为<code>GC Roots</code>的跟对象出发，不断搜索引用关系，搜索路径称为<em><strong>引用链</strong></em> ( $Reference\ \ Chain$ )。当一个对象没有被搜索到，或者称不可达时，就认为这个对象不再被使用。在<code>Java</code>技术体系里固定可作为<code>GC Roots</code>的对象包括：</p>
+<ul>
+<li>虚拟机栈中的引用对象</li>
+<li>方法区中类静态属性的引用对象</li>
+<li>方法区中常量引用对象</li>
+<li>本地方法栈中<code>JNI</code> ( 即 $Native$ 方法 ) 的引用对象</li>
+<li><code>JVM</code>内部引用，如基本数据类型对应的 $Class$ 对象，一些常驻的异常对象等，还有系统类加载器</li>
+<li>同步锁 ( $synchronized$ 关键字 ) 持有的对象</li>
+<li>反应<code>JVM</code>内部情况的<code>JMXBean</code>、<code>JVMTI</code>中注册的回调、本地代码缓存等</li>
+</ul>
+<p>        除此之外，根据用户选择的垃圾收集器以及当前收集的内存区域，还会有临时对象的加入。譬如要针对某个特定区域进行垃圾收集时，不仅要加入该区域的，还要加入关联区域的其他对象。虽然现在查找引用链的过程已经可以做到并发，但迄今为止，所有收集器在根节点枚举这一步骤都要暂停用户线程。</p>
+<h3 id="13-对象引用">1.3 对象引用</h3>
+<p>        在<code>JDK 1.2</code>之前，<code>Java</code>对应用的定义为：如果 $reference$ 类型的数据中存储的数值代表的是另一块内存的起始地址，就称其代表某块内存或某块对象的引用。而在<code>JDK 1.2</code>之后，<code>Java</code>扩充了引用的概念，分为 $4$ 种引用强度：</p>
+<ul>
+<li><strong>强引用</strong> ( $Strong\ \ Reference$ )：强引用是最传统的引用方式，即指引用赋值。</li>
+<li><strong>软引用</strong> ( $Soft\ \ Reference$ )：软引用指一些有用但非必须的对象。当系统将发生内存溢出时，软引用对象会被回收。<code>JDK 1.2</code>之后提供了 $SoftReference$ 类实现软引用。</li>
+<li><strong>弱引用</strong> ( $Weak\ \ Reference$ )：弱引用指非必须对象，但强度比软引用更弱。无论内存是否足够，都会被回收。<code>JDK 1.2</code>之后提供了 $WeakReference$ 类实现弱引用。</li>
+<li><strong>虚引用</strong> ( $Phantom\ \ Reference$ )：虚引用是最弱的引用关系，不会对对象生命周期造成影响，也不能通过虚引用取得对象实例。关联虚引用只是为了在对象被回收之前获得系统通知。<code>JDK 1.2</code>之后提供了 $PhantomReference$ 类实现虚引用。</li>
+</ul>
+<h3 id="14-对象死亡">1.4 对象死亡</h3>
+<p>        一个对象的死亡至少需要经历两次标记过程：第一次为可达性分析，第二次为筛选，筛选覆盖了 $finalize(\ )$ 方法或者执行过 $finalize(\ )$ 方法的对象。如果 $finalize(\ )$ 方法未被覆盖或者未被执行，那么对象会进入 $F-Queue$ 队列，并在之后由一条自动建立的低优先级的 $Finalizer$ 线程执行其 $finalize(\ )$ 方法。稍后收集器会检查队列中的对象，如果对象在 $finalize(\ )$ 方法中建立了与其他对象的关联，那么它就会被移出队列。需要注意的是，为了避免长时间等待或者进入死循环，收集器并不会等待对象的 $finalize(\ )$ 方法执行完毕，而且一个对象的 $finalize(\ )$ 方法只能调用一次，因此有可能在下次对象回收时该对象不能再次自救。</p>
+<h3 id="15-方法区回收">1.5 方法区回收</h3>
+<p>        正如之前所说的，方法区可以不实现垃圾收集，而且方法区进行垃圾收集的性价比也不高。方法区的垃圾收集包括废弃常量和不再使用的类型。相比于前者，后者的判定难度就大得多了。判断一个类型不再使用需要满足以下条件：</p>
+<ul>
+<li>该类所有实例均已回收。</li>
+<li>该类的类加载器已回收。</li>
+<li>该类的 $Class$ 对象没有被引用，无法通过反射方式访问该类方法。</li>
+</ul>
+<p>        是否对类型进行回收，<code>HotSpot</code>虚拟机中可以通过 $+Xnoclassgc$ 参数控制，还可以使用 $-verbose:class$、$-XX:+TraceClassLoading$、$-XX:+TraceClassUnLoading$ 查看类加载和卸载信息，前两者可以在<code>Product</code>版中使用，后者需要在<code>FastDebug</code>版中使用。</p>
+<h2 id="2-垃圾收集算法">2. 垃圾收集算法</h2>
+<p>        垃圾收集算法可以分为引用计数式垃圾收集和追踪式垃圾收集两大类，它们也被称作直接垃圾收集和间接垃圾收集。</p>
+<h3 id="21-分代收集理论">2.1 分代收集理论</h3>
+<p>        分代收集理论建立在两个假说上：</p>
+<ul>
+<li><strong>弱分代假说</strong> ( $Weak\ \ Generational\ \ Hypothesis$ )：绝大多数对象都是朝生夕灭的。</li>
+<li><strong>强分代假说</strong> ( $Strong\ \ Generational\ \ Hypothesis$ )：经过越多次垃圾收集的对象越难以消亡。</li>
+</ul>
+<p>        根据这两个假说，多款垃圾收集器中都给<code>Java</code>堆中划分出不同的区域，每次回收根据对象的年龄，将对象分配到不同区域中。在划分出不同的区域后，垃圾收集器可以每次只回收某个或某些特定区域。在<code>Hotspot</code>虚拟机中，<code>Java</code>堆被分为<strong>新生代</strong> ( $Young\ \ Generation$ ) 和<strong>老年代</strong> ( $Old\ \ Generation$ ) 两个区域。但是分代收集并没有想象的那么简单，因为对象不是孤立的，跨代引用是存在的。在此基础上有了第三条经验法则:</p>
+<ul>
+<li><strong>跨代引用假说</strong> ( $Intergenerational\ \ Reference\ \ Hypothesis$ )：跨代引用相对于同代引用来说仅占少数。</li>
+</ul>
+<p>        隐含推论是：互相引用的两个对象，倾向于同时生存或者同时消亡。因此没必要再为跨代引用去扫描老年代，只需要在新生代上建立一个全局数据结构，称为<em><strong>记忆集</strong></em> ( $Remembered\ \ Set$ )，将老年代划分为若干小块，标识其中存在跨代引用的小块。在之后进行局限于新生代的垃圾收集 ( $Minor\ \ GC$ ) 时，只需要将这些小块中的对象加入<code>GC Roots</code>即可。</p>
+<h3 id="22-标记-清除算法">2.2 标记-清除算法</h3>
+<p>        <strong>标记-清除</strong> ( $Mark-Sweep$ ) 算法，首先标记处需要回收的对象，在标记完成后统一收集标记的对象，也可以反过来标记不应清除的对象。标记-清除算法的缺点主要有两个：效率不稳定以及会导致内存碎片化。</p>
+<h3 id="23-标记-复制算法">2.3 标记-复制算法</h3>
+<p>        标记-复制算法是为了解决标记-清除算法在面对大量可回收对象时的效率低下问题而提出的。首先是<em><strong>半区复制</strong></em> ( $Semispace\ \ Copying$ ) 算法，它将可用内存分为大小相等的两块，每次只使用一块。当其中一块使用完之后，将其中存活的对象移到另一块，再将这块内存清理掉。虽然实现简单，运行高效，但是可用内存缩小为一半，浪费了大量空间。之后又提出了 $Appel$ 式回收，它将新生代分为一块较大的<code>Eden</code>空间和两块较小的<code>Survivor</code>空间，每次分配内存只使用<code>Eden</code>和一块<code>Survivor</code>。在垃圾收集时将它们中的存活对象复制到另一块<code>Survivor</code>中，然后清理自身空间。<code>HotSpot</code>虚拟机中<code>Eden</code>和<code>Survivor</code>的比例为 $8:1$ 。如果<code>Survivor</code>空间无法容纳存活对象，那么就需要其他内存区域进行<strong>分配担保</strong> ( $Handle\ \ Promotion$ )。</p>
+<h3 id="24-标记-整理算法">2.4 标记-整理算法</h3>
+<p>        标记-复制算法在面对大量存货对象时效率较低，所以不适用于老年代。<strong>标记-整理</strong> ( $Mark-Compact$ ) 算法，其标记过程和标记-复制算法一样，但不进行复制，而是将存活对象向内存一端移动，再清理掉边界外内存。但是对于老年代这种存在大量存活对象的内存区，移动需要耗费大量时间，而且必须暂停用户程序。</p>
+<h2 id="3-hotspot虚拟机算法">3. <code>HotSpot</code>虚拟机算法</h2>
+<p>        在可达性分析算法的根节点收集这一步中，用户线程必须暂停。为了减小这段暂停的时间，<code>HotSpot</code>虚拟机中有一组称为 $OopMap$ 的数据结构。当类加载完成时，<code>HotSpot</code>会把对象内偏移量对应的数据类型计算出来，并在即时编译过程中记录栈和寄存器中的引用位置。这样扫描器在扫描时就不需要慢慢查找了，可以直接获取这些信息。但是如果给每一条指令都建立一个 $OopMap$ ，那么会占用大量存储空间。因此引入了<strong>安全点</strong> ( $Safepoint$ ) 的概念。只有程序执行到安全点后，虚拟机才会生成 $OopMap$ 。同样，也只有执行到安全点后，程序才能开始垃圾收集。安全点的选取要以能否让程序长时间执行为标准，譬如方法调用、循环跳转、异常跳转这些需要指令序列的复用的地方就可以作为安全点。<br>
+        在多线程环境下，每个线程的执行速度不同，可能会出现当一个线程到达安全点之后其他线程还未到达的情况，因此需要采取不同策略。这里有两种方案可以选择：<strong>抢占式中断</strong> ( $Preemptive\ \ Suspension$ ) 和<strong>主动式中断</strong> ( $Voluntary\ \ Suspension$ )，几乎所有虚拟机都采用了主动式中断的方案。抢占式中断会在垃圾收集发生时直接中断所有线程，如果这时某条线程不在安全点上，就恢复其执行，直到其在安全点上。主动式中断设置了一个标志位，线程们会不断轮询这个标志位，当其为真时，线程会执行到最近的一个安全点上然后中断。轮询点包括安全点、创建对象的地方和其他需要在<code>Java</code>堆上分配内存的地方，以避免因为内存不够而导致的无法分配问题。在<code>HotSpot</code>虚拟机中采用了内存保护陷阱的方式，使得轮询操作只需要一条汇编指令即可执行，从而保证了高效性。<br>
+        虽然安全点的引入解决了停顿线程的问题，但是无法在程序不执行的状态下运行。这时候就引入了<strong>安全区域</strong> ( $Safe\ \ Region$ ) 的概念。安全区域指代一块代码段，在这段代码中，引用关系不会发生改变，因此可以在这段代码的任意地点开始垃圾收集。当线程进入安全区域，会标识其已进入安全区域，这样在垃圾收集时虚拟机就不会管这些线程。当线程离开时，如果仍在进行根节点枚举这种需要暂停用户线程的步骤，那么就要等待直到完成。<br>
+        在进行<em><strong>部分区域收集</strong></em> ( $Partial\ \ GC$ ) 时，可能会存在跨代引用问题，因此引入了记忆集的概念。记忆集专门用于记录非收集区域指向收集区域的指针集合。设计者在设计记忆集时，可以选择不同的记忆精度，比较常见的有：</p>
+<ul>
+<li><strong>字长精度</strong>：每个记录精确到一个机器字长，即处理器的寻址长度。</li>
+<li><strong>对象精度</strong>：每个记录精确到一个对象。</li>
+<li><strong>卡精度</strong>：每个记录精确到一块内存区域。</li>
+</ul>
+<p>        卡精度通过一种称为<em><strong>卡表</strong></em> ( $Card\ \ Table$ ) 的方式实现，也是目前最常用的实现方式。最简单的卡表形式可以是一个字节数组，这也是<code>HotSpot</code>虚拟机中的实现方式。字节数组中的每一个元素都标识一块内存区域，称为<em><strong>卡页</strong></em> ( $Card\ \ Page$ )。当卡页中存在跨代指针时，就要将卡页标识为 $1$ ，称为元素变<em><strong>脏</strong></em> ( $Dirty$ )。在垃圾收集时，只需要筛选变脏的卡页，然后加入<code>GC Roots</code>即可。卡表变脏显然是需要虚拟机负责维护的，但是经过即时编译后的代码已经是一条条机器指令了，这时就需要一种手段可以将维护卡表的操作放到引用赋值之中。<code>HotSpot</code>虚拟机通过<em><strong>写屏障</strong></em> ( $Write\ \ Barrier$ ) 维护卡表状态。写屏障可以看作在虚拟机层面堆“引用类型字段赋值&quot;这个动作的<code>AOP</code>切面，在引用赋值时产生一个<em><strong>环形</strong></em> ( $Around$ ) 通知，供程序执行额外动作。赋值前的部分叫<em><strong>写前屏障</strong></em> ( $Pre-Write\ \ Barrier$ )，赋值后的部分叫做<em><strong>写后屏障</strong></em> ( $Post-Write\ \ Barrier$ )。写前屏障可以应用于<code>SATB</code>算法中，而写后屏障可以用于更新卡表中。<br>
+        在对象标记的过程中，我们引入<em><strong>三色标记</strong></em> ( $Tri-color\ \ Marking$ ) 来辅导。白色指未被访问的对象，黑色指所有引用都被扫描过的对象，灰色指部分引用还未被扫描的对象。而在对象标记的过程中，如果用户线程仍在执行，那么可能会触发对象消失问题，即原本存活的对象被标记为死亡。当且仅当以下条件同时满足时，就会产生对象消失问题：</p>
+<ul>
+<li>赋值器插入了一条或多条从黑色到白色的新引用。</li>
+<li>赋值器删除了全部从灰色到白色的直接或间接引用。</li>
+</ul>
+<p>        而要避免这种情况，实现并发标记，那么就要破坏这两个条件的任意一个。对此有两种方案：<em><strong>增量更新</strong></em> ( $Increment\ \ Update$ ) 和<em><strong>原始快照</strong></em> ( $Snapshot\ \ At\ \ The\ \ Beginning$, $SATB$ )。增量更新破坏第一个条件，即记录黑色到白色的新引用，在扫描结束后再以它们为根重新进行一次扫描。原始快照破坏第二个条件，即记录灰色对象删除指向白色对象的引用，在扫描结束后以其中灰色对象为根再进行一次扫描。在<code>HotSpot</code>虚拟机中，这两种方案都有应用。</p>
+<h2 id="4-经典垃圾收集器">4. 经典垃圾收集器</h2>
+<h3 id="41-serial收集器">4.1 <code>Serial</code>收集器</h3>
+<p>        <code>Serial</code>是最基础、历史最悠久的收集器。它是一个单线程收集器，也就是说在其进行垃圾收集时，其他所有工作都要暂停。对新生代的收集会采用复制算法，对老年代的收集会采用标记-整理算法。<code>Serial</code>收集器虽然是单线程，但是它相比于其他收集器有着简单高效的特点。对于内存资源受限的环境，它的内存消耗是最小的，而且内存资源小往往也意味着需要收集的对象少，因此停顿时间也不会很多。</p>
+<h3 id="42-parnew收集器">4.2 <code>ParNew</code>收集器</h3>
+<p>        <code>ParNew</code>收集器本质上是<code>Serial</code>收集器的多线程版本，也就是除了使用多条线程并行扫描新生代外，其余的包括算法、控制参数和回收策略等都和<code>Serial</code>收集器一致。<code>ParNew</code>收集器和<code>Serial</code>收集器是仅有的能够与<code>CMS</code>收集器一起配合工作的收集器，其中<code>ParNew</code>是激活<code>CMS</code>后的默认收集器。</p>
+<h3 id="43-parallel-scavenge收集器">4.3 <code>Parallel Scavenge</code>收集器</h3>
+<p>        <code>Parallel Scavenge</code>收集器是一款新生代收集器，同样基于标记-复制算法实现，支持并行收集。它的目标是使处理器达到一个可控的<em><strong>吞吐量</strong></em> ( $Throughput$ )，即用户代码运行时间与处理器运行时间的比值。由于与吞吐量密切相关，因此也被称作吞吐量优先收集器。<code>Parallel Scavenge</code>收集器提供了一种自适应的调节策略，允许虚拟机根据当前系统的运行情况实现动态调整<code>Java</code>堆中各个区域的大小。</p>
+<h3 id="44-serial-old收集器">4.4 <code>Serial Old</code>收集器</h3>
+<p>        <code>Serial Old</code>是<code>Serial</code>收集器的老年代版本，同样也是一个单线程收集器，使用标记-整理算法。在服务器模式下可能有两种用途：在<code>JDK 5</code>之前版本中与<code>Parallel Scavenge</code>收集器搭配使用，或者作为<code>CMS</code>收集器发生失败时后备预案。</p>
+<h3 id="45-parallel-old收集器">4.5 <code>Parallel Old</code>收集器</h3>
+<p>        <code>Parallel Old</code>是<code>Parallel Scavenge</code>的老年代版本，同样支持多线程，基于标记-整理算法。在注重吞吐量或者处理器资源较为稀缺的场合，都可以优先考虑<code>Parallel Scavenge</code>和<code>Parallel Old</code>这个组合。</p>
+<h3 id="46-cms收集器">4.6 <code>CMS</code>收集器</h3>
+<p>        <code>CMS</code> ( $Concurrent\ \ Mark\ \ Sweep$ ) 收集器是一种以获取最短回收停顿时间为目标的收集器，基于标记-清除算法。在<code>JDK 8</code>之后，<code>CMS</code>收集器逐渐被<code>G1</code>收集器所取代。它的运行过程分为四步：</p>
+<ul>
+<li><strong>初始标记</strong> ( $initial\ \ mark$ )：记录<code>GC Roots</code>的直接关联对象，需要停顿用户线程</li>
+<li><strong>并发标记</strong> ( $concurrent\ \ mark$ )：从<code>GC Roots</code>的直接关联对象开始遍历对象图</li>
+<li><strong>重新标记</strong> ( $remark$ )：修正并发标记期间因用户线程持续运作导致的标记变动，需要停顿用户线程</li>
+<li><strong>并发清除</strong> ( $concurrent\ \ sweep$ )：删除已死亡的对象</li>
+</ul>
+<p>        <code>CMS</code>具有并发收集、低停顿的优点。但是具有三个明显的缺点：</p>
+<ul>
+<li>占用处理器资源。并发阶段虽然不会使用户线程停顿，但会因为占用线程而导致程序变慢，降低吞吐量。</li>
+<li>无法处理<em><strong>浮动垃圾</strong></em> ( $Floating\ \ Garbage$ )，可能出现<em><strong>并发失败</strong></em> ( $Concurrent\ \ Mode\ \ Failure$ )。并发阶段，用户可能还在产生垃圾对象。但这部分对象出现在标记结束后，<code>CMS</code>无法收集，只能等待下次垃圾收集。同样也是由于并发执行，<code>CMS</code>不能像其他收集器那样直到老年代快被填满时才开始垃圾收集，只能设置一个阈值。而如果这部分预留的空间无法满足，就会出现并发失败。这时虚拟机只能冻结用户线程，临时启用<code>Serial Old</code>收集器。阈值可以通过 $-XX:CMSInitiatingOccu-pancyFraction$ 来设置。</li>
+<li>产生空间碎片。基于标记-清除算法，因此收集结束会产生碎片，不利于之后大对象的分配。为此，<code>CMS</code>默认开启了碎片整理功能，会在进入<code>Full GC</code>时开始碎片整理。</li>
+</ul>
+<h3 id="47-garbage-first收集器">4.7 <code>Garbage First</code>收集器</h3>
+<p>        <code>Garbage First</code>，简称<code>G1</code>收集器开创了收集器面向局部收集的设计思路和基于<code>Region</code>的内存布局形式，是一款主要面向服务端应用的垃圾收集器。在<code>G1</code>之前，收集器范围要么是新生代 ( <code>Minor GC</code> )，要么是老年代 ( <code>Major GC</code> )，要么是整个<code>Java</code>堆 ( <code>Full GC</code> )。而<code>G1</code>可以面向堆内存的任何部分组成<em><strong>回收集</strong></em> ( $Collection\ \ Set$, $CSet$ ) 进行回收，称为<code>Mixed GC</code>。实现这个的关键是基于<code>Region</code>的堆内存布局。<code>G1</code>不是按照固定大小和固定数量的分代区域划分，而是将<code>Java</code>堆分为多个等大连续的区域，可以通过参数 $-XX:G1HeapRegionSize$ 设置，大小应为 $2$ 的 $N$ 次幂，每一个区域都可以作为<code>Eden</code>、<code>Survivor</code>或者老年代。<code>Region</code>中有一特殊的<code>Humongous</code>区域，专门用于存储大对象，而对应超过<code>Region</code>的大对象，会用几个连续的<code>Humongous</code>存放。<code>G1</code>的大多数行为都会把<code>Humongous</code>作为老年代看待。<code>Region</code>是每次收集的最小单元，这样可以避免<code>Full GC</code>。收集器会跟踪每个<code>Region</code>里的垃圾价值，并在后台维护一个优先级列表，每次根据用户设定收集允许停顿时间，通过 $-XX:MaxGCPauseMillis$ 设置，优先处理价值大的<code>Region</code>。<br>
+        <code>G1</code>收集器的每个<code>Region</code>都会维护一个记忆集，以哈希表的形式，$Key$ 为其他指向自己的<code>Region</code>的起始地址，$Value$ 为一个存储着卡表索引号的集合，代表着 $Key$ 指向<code>Region</code>的范围。也因为这种复杂的卡表，<code>G1</code>比其他垃圾收集器有着更高的内存占用。<br>
+        为了保证标记的正确进行，<code>CMS</code>收集器使用了增量更新算法，而<code>G1</code>使用了原始快照算法。此外，<code>G1</code>收集器为每个<code>Region</code>涉及了两个<code>TAMS</code> ( $Top\ \ at\ \ Mark\ \ Start$ ) 指针，并发回收时的新分配对象必须要在这两个指针的位置上，<code>G1</code>会默认它们是存活的。<code>G1</code>收集器仍然存在于<code>CMS</code>相同的并发失败问题，一旦发生并发失败，那么同样也需要停顿用户线程。<br>
+        <code>G1</code>提供的 $-XX:MaxGCPauseMillis$ 参数可以设定允许停顿的时间，为此需要可靠的停顿预测模型，即预测停顿时间。<code>G1</code>通过<em><strong>衰减均值</strong></em> ( $Decaying\ \ Average$ ) 理论，记录每个<code>Region</code>的回收耗时、脏卡数量等，由此得出统计信息，从而得到平均状态。<br>
+        可以将<code>G1</code>收集器的运作过程分为四步：</p>
+<ul>
+<li><strong>初始标记</strong> ( $Initial\ \ Marking$ )：标记<code>GC Roots</code>能直接关联到的对象，并修改<code>TAMS</code>指针的值，需要停顿用户线程，但耗时很短。</li>
+<li><strong>并发标记</strong> ( $Concurrent\ \ Marking$ )：进行可达性分析，扫描完成后再处理<code>SATB</code>记录下的变动对象。</li>
+<li><strong>最终标记</strong> ( $Final\ \ Marking$ )：处理并发阶段后仍然遗留的小部分<code>SATB</code>记录，需要短暂停顿用户线程。</li>
+<li><strong>筛选回收</strong> ( $Live\ \ Data\ \ Counting\ \ and\ \ Evacuation$ )：更新<code>Region</code>的统计数据，对<code>Region</code>的回收价值和成本进行排序。根据用户的期望停顿时间，制定回收计划，会将决定回收部分的<code>Region</code>的存活对象复制到空<code>Region</code>中，清空原<code>Region</code>。存活对象移动的过程需要暂停用户线程。</li>
+</ul>
+<p>        从整体上看，<code>G1</code>基于标记-整理算法，但从局部上看，又是基于标记-复制算法，但无论如何，都意味着不会产生内存碎片。再者，由于<code>G1</code>的卡表复杂，因此不能像<code>CMS</code>那样通过写后屏障更新卡表，而是使用类似于消息队列的方式，再在之后异步处理。自<code>G1</code>开始，垃圾收集器的设计导向开始变为追求内存<em><strong>分配速率</strong></em> ( $Allocation\ \ Rate$ )，而非清理干净，所以可以说<code>G1</code>是收集器技术发展的一个里程碑。</p>
+<h2 id="5-低延迟垃圾收集器">5. 低延迟垃圾收集器</h2>
+<p>        衡量垃圾收集器最重要的三个指标：<em><strong>内存占用</strong></em> ( $Footprint$ )、<em><strong>吞吐量</strong></em> ( $Throughput$ ) 和<em><strong>延迟</strong></em> ( $Latency$ )。随着硬件的发展，延迟越来越重要。对于一些只进行短暂停顿的垃圾收集器，我们称为<strong>低延迟垃圾收集器</strong> ( $Low-Latency\ \ Garbage\ \ Collector$ / $Low-Pause-Time\ \ Garbage\ \ Collector$ )。</p>
+<h3 id="51-shenandoah收集器">5.1 <code>Shenandoah</code>收集器</h3>
+<p>        <code>Shenandoah</code>收集器是第一款不由<code>Oracle</code>公司的虚拟机团队领导开发的<code>HotSpot</code>垃圾收集器，被<code>OracleJDK</code>所排斥在外，只有<code>OpenJDK</code>才会包含，成为<code>OpenJDK 12</code>的正式特性之一。<code>Shenandoah</code>与<code>G1</code>有着很多相似性，包括堆内存布局，初始标记、并发标记等阶段的处理思路等。但是它支持并发整理算法，即可以多线程回收；没有分代，即不存在新生代和老年代；摒弃了记忆集，改为<em><strong>连接矩阵</strong></em> ( $Connection\ \ Matrix$ )。<code>Shenandoah</code>收集器工作过程可以划分为九个阶段：</p>
+<ul>
+<li><strong>初始标记</strong> ( $Initial\ \ Marking$ )：标记与<code>GC Roots</code>直接关联的对象，需要停顿用户线程。</li>
+<li><strong>并发标记</strong> ( $Concurrent\ \ Marking$ )：遍历对象图，标记可达对象。</li>
+<li><strong>最终标记</strong> ( $Final\ \ Marking$ )：处理剩余的<code>SATB</code>扫描，统计<code>Region</code>价值，需要停顿用户线程。</li>
+<li><strong>并发清理</strong> ( $Concurrent\ \ Cleanup$ )：清理没有存活对象的<code>Region</code>。</li>
+<li><strong>并发回收</strong> ( $Concurrent\ \ Evacuation$ )：将回收集的存活对象复制到未使用的<code>Region</code>中，但是要并发执行。</li>
+<li><strong>初始引用更新</strong> ( $Initial\ \ Update\ \ Reference$ )：创建一个线程集合点，确保回收阶段中的线程都已完成任务，产生一个短暂的停顿。</li>
+<li><strong>并发引用更新</strong> ( $Concurrent\ \ Update\ \ Reference$ )：将旧对象引用修正为新地址。</li>
+<li><strong>最终引用更新</strong> ( $Final\ \ Update\ \ Reference$ )：修正<code>GC Roots</code>中的引用，需要停顿用户线程。</li>
+<li><strong>并发清理</strong> ( $Concurrent\ \ Cleanup$ )：回收集中的<code>Region</code>已无存活对象，称为 $Immediate\ \ Garbage\ \ Regions$ ，清理这些区域。</li>
+</ul>
+<p>        <code>Shenandoah</code>收集器做到短停顿的关键在于实现并发对象移动。在之前，要实现并发移动，通常是在被移动对象内存上设置<em><strong>保护陷阱</strong></em> ( $Memory\ \ Protection\ \ Trap$ )，用户访问旧对象时会产生自陷中段，进入异常处理器中，再由异常处理器转发到新对象上。但是这种方案需要操作系统层面的支持，用户态要频繁地切换到核心态。<code>Shenandoah</code>使用了<code>Brooks Pointer</code>的概念，在对象结构前添加一个引用字段，在没有进行并发移动时指向自己，在并发移动时将其指向新对象。缺点也很明显，访问对象需要进行两次转发。此外，还要对转发指针进行同步，因为对旧对象进行写操作是无意义的，写操作只能对新对象进行，<code>Shenandoah</code>使用<em><strong>比较并交换</strong></em> ( $Compare\ \ And\ \ Swap$, $CAS$ ) 操作来保证并发时对象的访问正确性。</p>
+<h3 id="52-zgc收集器">5.2 <code>ZGC</code>收集器</h3>
+<p>        <code>ZGC</code> ( $Z\ \ Garbage\ \ Collector$ ) 是<code>JDK 11</code>中加入的低延迟垃圾收集器，但是与<code>Shenandoah</code>的实现思路具有显著差异。它基于<code>Region</code>内存布局，（暂时）不设分代，使用读屏障、<em><strong>染色指针</strong></em> ( $Colored\ \ Pointer$ ) 和内存多重映射等技术实现并发的标记-整理算法。<code>ZGC</code>中的<code>Region</code>/<code>Page</code>可以动态创建和摧毁，具有动态大小，其中小型和中型<code>Region</code>容量固定，用于存放小对象，而大型<code>Region</code>容量不定，存放大对象。染色指针是一种直接将少量信息存放在指针的技术。$64$ 位<code>Linux</code>系统中高 $18$ 位不能寻址，染色指针技术从剩余的 $46$ 位中提取 $4$ 位作为标志位，也因此该技术限制了内存大小，也不支持 $32$ 位平台。染色指针很好的解决了写屏障的问题，因为不需要再去专门记录对象指针的变动。但是也带来了新问题：操作系统无法识别标志位。<code>Linux/x86-64</code>平台上的<code>ZGC</code>使用了<em><strong>多重映射</strong></em> ( $Multi-Mapping$ )，将多个不同的虚拟内存地址映射到同一物理内存地址上，即多对一映射。以此，染色指针中的标志位可以视为分段符，只需要将这些地址段都映射到同一物理内存空间，就可以正常寻址了。<br>
+        <code>ZGC</code>的工作流程可以分为四个阶段，全部都可以并发执行：</p>
+<ul>
+<li><strong>并发标记</strong> ( $Concurrent\ \ Mark$ )：遍历对象图做可达性分析，前后也需要进行初始标记和最终标记，并有短暂停顿。不同之处在于，标记阶段更新的是指针中的标志位。</li>
+<li><strong>并发预备重分配</strong> ( $Concurrent\ \ Prepare\ \ for\ \ Relocate$ )：根据统计得出要清理的<code>Region</code>，组成<em><strong>重分配集</strong></em> ( $Relocation\ \ Set$ )。不同于记忆集，<code>ZGC</code>每次都会扫描全堆。</li>
+<li><strong>并发重分配</strong> ( $Concurrent\ \ Relocate$ )：将重分配集中的存活对象复制到其他<code>Region</code>，并为集合中的每个<code>Region</code>维护一个<em><strong>转发表</strong></em> ( $Forward\ \ List$ )，用于记录旧对象到新对象的转向关系。当对象被访问时，如果其指针标志位标识其处于重分配集中，那么就会通过这个转发表转发到新对象地址，同时修正引用值，这种行为称为<em><strong>自愈</strong></em> ( $Self-Healing$ )。因为要保证自愈能力，所以重分配集中的<code>Region</code>在被清理时会保留转发表，直到其相关的指针引用修正完毕。</li>
+<li><strong>并发重映射</strong> ( $Concurrent\ \ Remap$ )：修正堆中指向重分配集中旧对象的所有引用。由于指针具有自愈能力，所以这个阶段并不是非常必要的。因此<code>ZGC</code>中这一阶段并到了下一次垃圾收集的并发标记阶段，在每次遍历对象时修正对象引用。在所有指针修正完成后，释放原来的转发表。</li>
+</ul>
+<p>        虽然<code>ZGC</code>给用户线程带来的负担很小，但它不能承受太高的对象分配速率，因为它会将垃圾收集期间的新对象都视为存活对象，从而在过高的分配速率下产生大量的浮动垃圾。</p>
+<h2 id="6-垃圾收集器的选择">6. 垃圾收集器的选择</h2>
+<p>        衡量垃圾收集器的三个最重要的指标：内存占用、吞吐量和延迟。不同的垃圾收集器对这三个方面有不同的侧重点，同样的，不同的程序也对这三方面有着不同的要求。因此，可以根据这三方面进行选择。除此之外，收集器的选择还受到操作系统以及<code>JDK</code>发行商和版本的限制。</p>
+<h3 id="61-epsilon收集器">6.1 <code>Epsilon</code>收集器</h3>
+<p>        <code>Epsilon</code>是一款<em><strong>无操作的垃圾收集器</strong></em> ( $No-Op\ \ Garbage\ \ Collector$ )，因为它并不能进行垃圾收集，更准确的工作应该是负责内存管理，即堆内存管理布局、对象分配、与解释器和编译器的协作等。<code>Epsilon</code>的主要应用在一些小型<code>Java</code>程序中，即只需要运行几分钟甚至数秒的程序，而<code>Epsilon</code>得工作就是保证虚拟机正确分配内存，使程序能在内存耗尽前退出。</p>
+<h3 id="62-虚拟机以及垃圾收集器日志">6.2 虚拟机以及垃圾收集器日志</h3>
+<p>        每个收集器的日志格式可能都不一样，而且在<code>JDK 9</code>之前，<code>HotSpot</code>并没有提供统一日志框架，因此在其之前的日志系统很混乱。<code>JDK 9</code>之后，<code>HotSpot</code>将所有日志功能收归到了 $-Xlog$ 参数下。</p>
+<pre><code>-Xlog[:[selector][:[output][:[decorator][:output-options]]]]
+</code></pre><p>        $Selector$ 用于选取日志输出，由标签和日志级别组成，标签可以视为虚拟机中某个功能模块的名字，垃圾收集器的标签名为 $gc$。日志级别分为六级：$Trace$, $Debug$, $Info$, $Warning$, $Error$, $Off$ 。$Decorator$ 用于附加额外内容，如时间、进程<code>ID</code>等。</p>
+<h2 id="7-内存分配与回收策略">7. 内存分配与回收策略</h2>
+<ol>
+<li>大多数情况下，对象在新生代<code>Eden</code>区中分配，当<code>Eden</code>中没有足够空间时，就会发起一次<code>Minor GC</code>。</li>
+<li>大对象容易导致垃圾收集提前触发，同时具有高昂的复制开销，通过 $-XX:PretenureSizeThreshold$ 参数 ( 只对<code>Serial</code>和<code>ParNew</code>有效 )，所有大于指定值的对象都会直接分配在老年代，从而减少复制操作。</li>
+<li>虚拟机给每个对象定义了一个年龄计数器，存储在对象头中。通常对象在<code>Eden</code>区中诞生，每经历一次<code>Minor GC</code>并且进入<code>Survivor</code>区，年龄便加一。到一定程度 ( 默认为 $15$ )，就会晋升至老年代，可以通过 $-XX:MaxTenuringThreshold$ 设置。不过为了更好的适应不同程序的内存状况，当<code>Survivor</code>中某个年龄的对象内存总和达到一半以上时，所有大于等于该年龄的对象都可以进行老年代。</li>
+<li>在<code>Minor GC</code>之前，虚拟机要检查老年代最大可用的连续空间是否大于新生代所有对象的总空间。如果为真，那么可以认为这次<code>Minor GC</code>是安全的；否则，查看 $-XX:HandlePromotionFailure$ 参数是否允许担保失败。如果允许，那么检查之前的最大可用连续空间是否大于历次晋升到老年对象的平均大小，如果小于将会尝试一次<code>Minor GC</code>。如果不允许，改为<code>Full GC</code>。但是在<code>JDK 6</code>之后，这个参数不再被使用，规则变为只要老年代的连续空间大于新生代对象总大小或者历次晋升的平均大小就会进行<code>Minor GC</code>，否则进行<code>Full GC</code>。</li>
+</ol>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/jvm1%E6%8A%80%E6%9C%AF%E4%BD%93%E7%B3%BB%E4%B8%8E%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+
+
+            </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        
+        
+        
+        var all = MathJax.Hub.getAllJax(),
+            i;
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
+    </body>
+    <script src=https://z217blog.cn/js/navbutton.js></script>
+</html>

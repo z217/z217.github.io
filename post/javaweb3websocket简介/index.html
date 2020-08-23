@@ -9,6 +9,8 @@
   <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
   <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
   <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/katex.min.css"
+    integrity="sha384-9eLZqc9ds8eNjO3TmqPeYcDj8n+Qfa4nuSiGYa6DjLNcv9BtN69ZIulL9+8CqC9Y" crossorigin="anonymous">
   <title>z217&#39;s blog</title>
 </head><body><aside id="sidenav">
     <header>
@@ -96,30 +98,38 @@
 
 
 
+<div style="position:fixed; right:8px; max-width:300px; overflow:auto; top:130px; width:12vw; bottom:130px">
+    <header>
+        <h4>JavaWeb（3）：WebSocket简介</h4>
+    </header>
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#html5javascript客户端api">HTML5(JavaScript)客户端API</a></li>
+    <li><a href="#java-websocket-api">Java WebSocket API</a>
+      <ul>
+        <li><a href="#客户端api">客户端API</a></li>
+        <li><a href="#服务端api">服务端API</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+</div>
+
+
 <p><strong>参考书籍：《Pro Java for Web Apps》</strong></p>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>WebSocket</code>用于解决浏览器和服务器的通信问题。在现有体系中，如果只是简单的使用<code>Ajax</code>进行通信的话，容易出现的问题是只有浏览器发送请求时才能得到响应。也即当有新数据时，浏览器不能得知新数据的存在，也就不能及时发送请求获取新数据。<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>WebSocket</code>使用了<code>HTTP/1.1 升级</code>特性。该特性的使用很简单，只需要在请求中包含头名称和值 <span  class="math">\(Connection: Upgrade\)</span> ，并在额外的 <span  class="math">\(Upgrade\)</span> 头中指定一个或多个协议的列表。如果服务器接收升级请求，那么将返回 <span  class="math">\(101\;Switching\;Protocols\)</span> 。<code>HTTP升级</code>提供的最重要的特性是我们可以使用任意协议，并且在升级完成后就不再使用<code>HTTP</code>连接，我们可以用一个<code>Socket</code>来代替，由此产生了<code>WebSocket</code>协议。<code>WebSocket</code>协议将使用心跳消息（分别称为 <span  class="math">\(ping\)</span> 和 <span  class="math">\(pong\)</span> ）保持连接活跃，即周期性地发送小数据包。在连接升级为<code>WebScoket</code>协议之后，文本和二进制消息可以持续在两个方向上发送且不需要关闭和重连了；而且<code>HTTP</code>规范要求对应同一个主机名，只允许有两个并发连接，但由于我们升级为<code>WebScoket</code>连接了，因此该规范也不存在了。<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用<code>WebSocket</code>协议之前需先以<code>HTTP</code>协议向服务器发送特殊请求，访问一个特殊的<code>URL</code>，该<code>URL</code>以<code>ws</code>或者<code>wss</code>开头，分别对应<code>http</code>和<code>https</code>，并且除了 <span  class="math">\(Connection: Upgrade\)</span> 头之外，还包含一个 <span  class="math">\(Connection: websocket\)</span> 头，用于指定服务器将连接升级为 <code>WebSocket</code>协议。</p>
-
+<p>        <code>WebSocket</code>用于解决浏览器和服务器的通信问题。在现有体系中，如果只是简单的使用<code>Ajax</code>进行通信的话，容易出现的问题是只有浏览器发送请求时才能得到响应。也即当有新数据时，浏览器不能得知新数据的存在，也就不能及时发送请求获取新数据。<br>
+        <code>WebSocket</code>使用了<code>HTTP/1.1 升级</code>特性。该特性的使用很简单，只需要在请求中包含头名称和值 $Connection: Upgrade$ ，并在额外的 $Upgrade$ 头中指定一个或多个协议的列表。如果服务器接收升级请求，那么将返回 $101\ \ Switching\ \ Protocols$ 。<code>HTTP升级</code>提供的最重要的特性是我们可以使用任意协议，并且在升级完成后就不再使用<code>HTTP</code>连接，我们可以用一个<code>Socket</code>来代替，由此产生了<code>WebSocket</code>协议。<code>WebSocket</code>协议将使用心跳消息（分别称为 $ping$ 和 $pong$ ）保持连接活跃，即周期性地发送小数据包。在连接升级为<code>WebScoket</code>协议之后，文本和二进制消息可以持续在两个方向上发送且不需要关闭和重连了；而且<code>HTTP</code>规范要求对应同一个主机名，只允许有两个并发连接，但由于我们升级为<code>WebScoket</code>连接了，因此该规范也不存在了。<br>
+        使用<code>WebSocket</code>协议之前需先以<code>HTTP</code>协议向服务器发送特殊请求，访问一个特殊的<code>URL</code>，该<code>URL</code>以<code>ws</code>或者<code>wss</code>开头，分别对应<code>http</code>和<code>https</code>，并且除了 $Connection: Upgrade$ 头之外，还包含一个 $Connection: websocket$ 头，用于指定服务器将连接升级为 <code>WebSocket</code>协议。</p>
 <hr>
-
 <h2 id="html5javascript客户端api">HTML5(JavaScript)客户端API</h2>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>WebSocket</code>并不是只能用于浏览器和服务器的通信中，理论上可以将其应用于任何支持其的应用程序中。但如果要编写使用<code>WebSocket</code>进行连接的浏览器客户端终端，我们就要用到<code>JavaScript</code>，尽管我们使用<code>JavaScript</code>编写，但实际上<code>WebSocket</code>是<code>HTML5</code>的一部分。使用<code>JavaScript</code>创建<code>WebSocket</code>对象十分简单：</p>
+<p>        <code>WebSocket</code>并不是只能用于浏览器和服务器的通信中，理论上可以将其应用于任何支持其的应用程序中。但如果要编写使用<code>WebSocket</code>进行连接的浏览器客户端终端，我们就要用到<code>JavaScript</code>，尽管我们使用<code>JavaScript</code>编写，但实际上<code>WebSocket</code>是<code>HTML5</code>的一部分。使用<code>JavaScript</code>创建<code>WebSocket</code>对象十分简单：</p>
 <div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">connection</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">WebSocket</span><span class="p">(</span><span class="s1">&#39;ws://www.example.com/chat&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;chat.v1&#39;</span><span class="p">,</span> <span class="s1">&#39;chat.v2&#39;</span><span class="p">});</span>
-</code></pre></div>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>WebSocket</code>构造函数第一个参数为连接所使用的<code>URL</code>，第二个参数可选，为连接所使用的一个或多个协议，这些协议都是自己创建的，不受<code>WebSocket</code>管理。<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>WebSocket</code>接口中包含 <span  class="math">\(readyState\)</span> 属性表示当前状态，值为 <span  class="math">\(CONNECTING\)</span>, <span  class="math">\(OPEN\)</span>, <span  class="math">\(CLOSING\)</span>, <span  class="math">\(CLOSED\)</span> 中的一个，包含四个事件：<span  class="math">\(onopen\)</span>, <span  class="math">\(onclose\)</span>, <span  class="math">\(onerror\)</span>, <span  class="math">\(onmessage\)</span> ，前两者分别在 <span  class="math">\(readyState\)</span> 由 <span  class="math">\(CLOSING\)</span> 变为 <span  class="math">\(CLOSED\)</span> 时和 <span  class="math">\(readyState\)</span> 由 <span  class="math">\(CONNECTING\)</span> 变为 <span  class="math">\(OPEN\)</span> 时触发。传入 <span  class="math">\(onclose\)</span> 方法的事件包含三个属性：<span  class="math">\(wasClean\)</span>, <span  class="math">\(code\)</span>, <span  class="math">\(reason\)</span> ，传入 <span  class="math">\(onopen\)</span> 的是普通的事件，传入 <span  class="math">\(onerror\)</span> 和 <span  class="math">\(onmessage\)</span> 的事件包含一个 <span  class="math">\(data\)</span> 属性，在前者中是错误对象，而在后者则根据消息类型转变：消息为字符串，则 <span  class="math">\(data\)</span> 也为字符串；消息为二进制数据，并且 <span  class="math">\(WebSocket.binaryType\)</span> 将被默认设置为 <span  class="math">\(blob\)</span> 时，<span  class="math">\(data\)</span> 为 <span  class="math">\(Blob\)</span> ，而 <span  class="math">\(WebSocket.binaryType\)</span> 为 <span  class="math">\(arraybuffer\)</span> 时，<span  class="math">\(data\)</span> 为 <span  class="math">\(ArrayBuffer\)</span> 。通常我们应该在实例化之后立即设置 <span  class="math">\(bianryType\)</span> 的值。<code>WebSocket</code>对象的 <span  class="math">\(send\)</span> 方法接收 <span  class="math">\(string\)</span>, <span  class="math">\(Blob\)</span>, <span  class="math">\(ArrayBuffer\)</span>, <span  class="math">\(ArrayBufferView\)</span> 中一个类型的参数，表示要传输的数据；并且在该方法的作用域内我们还可以使用 <span  class="math">\(WebSocket.bufferedAmount\)</span> 属性，该属性的值为之前的 <span  class="math">\(send\)</span> 调用还有多少需要传输到服务器的数据。<code>WebSocket</code>的 <span  class="math">\(close\)</span> 用于关闭连接，接收两个可选参数，第一个为关闭代码（默认为 <span  class="math">\(1000\)</span> ），第二个为字符串，表示原因。</p>
-
+</code></pre></div><p>        <code>WebSocket</code>构造函数第一个参数为连接所使用的<code>URL</code>，第二个参数可选，为连接所使用的一个或多个协议，这些协议都是自己创建的，不受<code>WebSocket</code>管理。<br>
+        <code>WebSocket</code>接口中包含 $readyState$ 属性表示当前状态，值为 $CONNECTING$, $OPEN$, $CLOSING$, $CLOSED$ 中的一个，包含四个事件：$onopen$, $onclose$, $onerror$, $onmessage$ ，前两者分别在 $readyState$ 由 $CLOSING$ 变为 $CLOSED$ 时和 $readyState$ 由 $CONNECTING$ 变为 $OPEN$ 时触发。传入 $onclose$ 方法的事件包含三个属性：$wasClean$, $code$, $reason$ ，传入 $onopen$ 的是普通的事件，传入 $onerror$ 和 $onmessage$ 的事件包含一个 $data$ 属性，在前者中是错误对象，而在后者则根据消息类型转变：消息为字符串，则 $data$ 也为字符串；消息为二进制数据，并且 $WebSocket.binaryType$ 将被默认设置为 $blob$ 时，$data$ 为 $Blob$ ，而 $WebSocket.binaryType$ 为 $arraybuffer$ 时，$data$ 为 $ArrayBuffer$ 。通常我们应该在实例化之后立即设置 $bianryType$ 的值。<code>WebSocket</code>对象的 $send$ 方法接收 $string$, $Blob$, $ArrayBuffer$, $ArrayBufferView$ 中一个类型的参数，表示要传输的数据；并且在该方法的作用域内我们还可以使用 $WebSocket.bufferedAmount$ 属性，该属性的值为之前的 $send$ 调用还有多少需要传输到服务器的数据。<code>WebSocket</code>的 $close$ 用于关闭连接，接收两个可选参数，第一个为关闭代码（默认为 $1000$ ），第二个为字符串，表示原因。</p>
 <hr>
-
 <h2 id="java-websocket-api">Java WebSocket API</h2>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>Java WebSocket API</code>包含在<code>Java EE 7</code>中，包含了客户端和服务端的<code>API</code>，存储在包 <span  class="math">\(javax.websocket\)</span> 中，可以在 <a href="#https://docs.oracle.com/javaee/7/api/"><code>Java EE</code>文档</a> 中查询。</p>
-
+<p>        <code>Java WebSocket API</code>包含在<code>Java EE 7</code>中，包含了客户端和服务端的<code>API</code>，存储在包 $javax.websocket$ 中，可以在 <a href="#https://docs.oracle.com/javaee/7/api/"><code>Java EE</code>文档</a> 中查询。</p>
 <h3 id="客户端api">客户端API</h3>
-
 <table>
 <thead>
 <tr>
@@ -127,25 +137,20 @@
 <th align="center">作用</th>
 </tr>
 </thead>
-
 <tbody>
 <tr>
-<td align="center"><span  class="math">\(WebSocketContainer.connectToServer\)</span></td>
-<td align="center">连接远程终端和初始化握手，返回一个 <span  class="math">\(Session\)</span></td>
+<td align="center">$WebSocketContainer.connectToServer$</td>
+<td align="center">连接远程终端和初始化握手，返回一个 $Session$</td>
 </tr>
-
 <tr>
-<td align="center"><span  class="math">\(ContainerProvider.getWebSocketContainer(\ )\)</span></td>
+<td align="center">$ContainerProvider.getWebSocketContainer(\ )$</td>
 <td align="center">获取底层<code>WebSocket</code>客户端的实现</td>
 </tr>
 </tbody>
 </table>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;通过 <span  class="math">\(@ClientEndpoint\)</span> 注解，我们可以标注出客户端终端，在客户端终端中也有四个事件，分别使用 <span  class="math">\(@OnOpen\)</span>, <span  class="math">\(@OnClose\)</span>, <span  class="math">\(@OnError\)</span>, <span  class="math">\(@OnMessage\)</span> 标注，可以在相关文档中查阅其参数。</p>
-
+<p>        通过 $@ClientEndpoint$ 注解，我们可以标注出客户端终端，在客户端终端中也有四个事件，分别使用 $@OnOpen$, $@OnClose$, $@OnError$, $@OnMessage$ 标注，可以在相关文档中查阅其参数。</p>
 <h3 id="服务端api">服务端API</h3>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;服务端终端可以使用 <span  class="math">\(@ServerEndpoint\)</span> 注解标注，该注解需提供 <span  class="math">\(value\)</span> 特性的值，用于表示该终端所在的相对<code>URL</code>，以 <span  class="math">\(/\)</span> 开头，允许模板参数，<code>Web容器</code>将在每次收到<code>WebSocket</code>连接时创建该类的实例，连接关闭后销毁。在服务端终端中同样包含四个使用 <span  class="math">\(@OnOpen\)</span>, <span  class="math">\(@OnClose\)</span>, <span  class="math">\(@OnError\)</span>, <span  class="math">\(@OnMessage\)</span> 标注出的事件，并且在这些事件中我们还可以使用 <span  class="math">\(@PathParam\)</span> 注解使用我们的模板参数。</p>
+<p>        服务端终端可以使用 $@ServerEndpoint$ 注解标注，该注解需提供 $value$ 特性的值，用于表示该终端所在的相对<code>URL</code>，以 $/$ 开头，允许模板参数，<code>Web容器</code>将在每次收到<code>WebSocket</code>连接时创建该类的实例，连接关闭后销毁。在服务端终端中同样包含四个使用 $@OnOpen$, $@OnClose$, $@OnError$, $@OnMessage$ 标注出的事件，并且在这些事件中我们还可以使用 $@PathParam$ 注解使用我们的模板参数。</p>
 
 
 <div class="nav-next-prev">
@@ -186,7 +191,52 @@
     </div>
 </footer>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_SVG"></script></main>
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        
+        
+        
+        var all = MathJax.Hub.getAllJax(),
+            i;
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
     </body>
     <script src=https://z217blog.cn/js/navbutton.js></script>
 </html>

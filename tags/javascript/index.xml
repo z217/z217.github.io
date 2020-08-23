@@ -20,11 +20,11 @@
       <guid>https://z217blog.cn/post/%E4%BD%BF%E7%94%A8websocket%E5%AE%9E%E7%8E%B0%E7%9A%84%E4%B8%80%E4%B8%AA%E7%AE%80%E5%8D%95%E7%9A%84%E5%A4%9A%E4%BA%BA%E8%81%8A%E5%A4%A9%E5%AE%A4/</guid>
       <description>环境：JDK1.8, tomcat-8.5.51
 源码可以在GitHub上查阅：ChatRoom
-&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;WebSocket最常用的地方就是聊天室，所以我用Servlet+WebSocket实现了一个简单的多人聊天室。这个多人聊天室改一改就能作为一对一的聊天室使用，毕竟实现方法都是差不多的。
-&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;首先是maven依赖，在此只展示几个要注意的依赖项：
-&amp;lt;dependencies&amp;gt; &amp;lt;dependency&amp;gt; &amp;lt;groupId&amp;gt;org.projectlombok&amp;lt;/groupId&amp;gt; &amp;lt;artifactId&amp;gt;lombok&amp;lt;/artifactId&amp;gt; &amp;lt;version&amp;gt;1.18.12&amp;lt;/version&amp;gt; &amp;lt;scope&amp;gt;provided&amp;lt;/scope&amp;gt; &amp;lt;/dependency&amp;gt; ...... ...... &amp;lt;dependency&amp;gt; &amp;lt;groupId&amp;gt;com.fasterxml.jackson.core&amp;lt;/groupId&amp;gt; &amp;lt;artifactId&amp;gt;jackson-databind&amp;lt;/artifactId&amp;gt; &amp;lt;version&amp;gt;2.10.0&amp;lt;/version&amp;gt; &amp;lt;scope&amp;gt;compile&amp;lt;/scope&amp;gt; &amp;lt;/dependency&amp;gt; &amp;lt;dependency&amp;gt; &amp;lt;groupId&amp;gt;com.fasterxml.jackson.datatype&amp;lt;/groupId&amp;gt; &amp;lt;artifactId&amp;gt;jackson-datatype-jsr310&amp;lt;/artifactId&amp;gt; &amp;lt;version&amp;gt;2.10.0&amp;lt;/version&amp;gt; &amp;lt;scope&amp;gt;compile&amp;lt;/scope&amp;gt; &amp;lt;/dependency&amp;gt; &amp;lt;/dependencies&amp;gt; &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;Lombok简化实体的编写（虽然只有一个实体），然后jackson相关的依赖用于Java实例和JSON对象之间的相互转化。为了避免兼容问题，我这里选择依赖基本上都是最新版本。
-&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;然后是实体，\(ChatMessage\) 用于存储消息相关的信息，使用lombok简化了编写：
-import lombok.AllArgsConstructor; import lombok.Getter; import lombok.NoArgsConstructor; import lombok.Setter; import java.time.OffsetDateTime; @Getter @Setter @AllArgsConstructor @NoArgsConstructor public class ChatMessage { private String username; private String message; private OffsetDateTime timestamp; } &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;有了实体之后再建立仓库，用于存储聊天信息以及用户信息：
+ WebSocket最常用的地方就是聊天室，所以我用Servlet+WebSocket实现了一个简单的多人聊天室。这个多人聊天室改一改就能作为一对一的聊天室使用，毕竟实现方法都是差不多的。
+ 首先是maven依赖，在此只展示几个要注意的依赖项：
+&amp;lt;dependencies&amp;gt; &amp;lt;dependency&amp;gt; &amp;lt;groupId&amp;gt;org.projectlombok&amp;lt;/groupId&amp;gt; &amp;lt;artifactId&amp;gt;lombok&amp;lt;/artifactId&amp;gt; &amp;lt;version&amp;gt;1.18.12&amp;lt;/version&amp;gt; &amp;lt;scope&amp;gt;provided&amp;lt;/scope&amp;gt; &amp;lt;/dependency&amp;gt; ...... ...... &amp;lt;dependency&amp;gt; &amp;lt;groupId&amp;gt;com.fasterxml.jackson.core&amp;lt;/groupId&amp;gt; &amp;lt;artifactId&amp;gt;jackson-databind&amp;lt;/artifactId&amp;gt; &amp;lt;version&amp;gt;2.10.0&amp;lt;/version&amp;gt; &amp;lt;scope&amp;gt;compile&amp;lt;/scope&amp;gt; &amp;lt;/dependency&amp;gt; &amp;lt;dependency&amp;gt; &amp;lt;groupId&amp;gt;com.fasterxml.jackson.datatype&amp;lt;/groupId&amp;gt; &amp;lt;artifactId&amp;gt;jackson-datatype-jsr310&amp;lt;/artifactId&amp;gt; &amp;lt;version&amp;gt;2.10.0&amp;lt;/version&amp;gt; &amp;lt;scope&amp;gt;compile&amp;lt;/scope&amp;gt; &amp;lt;/dependency&amp;gt; &amp;lt;/dependencies&amp;gt;  Lombok简化实体的编写（虽然只有一个实体），然后jackson相关的依赖用于Java实例和JSON对象之间的相互转化。为了避免兼容问题，我这里选择依赖基本上都是最新版本。
+然后是实体，$ChatMessage$ 用于存储消息相关的信息，使用lombok简化了编写：
+import lombok.AllArgsConstructor; import lombok.Getter; import lombok.NoArgsConstructor; import lombok.Setter; import java.time.OffsetDateTime; @Getter @Setter @AllArgsConstructor @NoArgsConstructor public class ChatMessage { private String username; private String message; private OffsetDateTime timestamp; }  有了实体之后再建立仓库，用于存储聊天信息以及用户信息：
 import java.util.LinkedList; import java.util.List; import java.util.concurrent.CopyOnWriteArraySet; public class ChatRepository { private static List&amp;lt;ChatMessage&amp;gt; repository = new LinkedList&amp;lt;&amp;gt;(); private static CopyOnWriteArraySet&amp;lt;String&amp;gt; users = new CopyOnWriteArraySet&amp;lt;&amp;gt;(); public static List&amp;lt;ChatMessage&amp;gt; getRepository() { /*.</description>
     </item>
     
@@ -34,9 +34,9 @@ import java.util.LinkedList; import java.util.List; import java.util.concurrent.
       <pubDate>Sat, 18 Apr 2020 22:13:49 +0000</pubDate>
       
       <guid>https://z217blog.cn/post/json%E5%BA%8F%E5%88%97%E5%8C%96%E4%BC%A0%E8%BE%93%E8%BF%87%E7%A8%8B%E4%B8%AD%E4%B8%AD%E6%96%87%E4%B9%B1%E7%A0%81%E9%97%AE%E9%A2%98%E7%9A%84%E8%A7%A3%E5%86%B3%E6%96%B9%E6%B3%95/</guid>
-      <description>&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;今天在用WebSocket和Servlet写聊天室的时候发现传输中文会乱码的问题，起初以为是在用jackson的 \(ObjectMapper\) 将对象转化为字节流的时候出现的问题，但是经过检查后发现不是。又检查了一遍编码，确认了网页的编码是utf-8，输入的字符串也是utf-8，然后发现问题是出在了JSON对象传输的过程中。最后在 stackoverflow 上找到了解法。
-&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;我的问题出在将经过JSON序列化之后的消息对象字符串转换为 \(Uint8Array\) 以及将 \(Uint8Array\) 转为消息对象的过程中，对此可以采用 \(TextEncoder\) 和 \(TextDecoder\) 对象。如下所示：
-let encoder = new TextEncoder(&amp;#39;utf-8&amp;#39;); let decoder = new TextDecoder(&amp;#39;utf-8&amp;#39;); let message = { username: &amp;#39;用户&amp;#39;, content: &amp;#39;你好，世界！&amp;#39; }; let array = encoder.encode(JSON.stringify(message)); let newMessage = JSON.parse(decoder.decode(array));  &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;在上例中，我们分别使用 \(TextEncoder\) 和 \(TextDecoder\) 以utf-8作为编码方式创建了编码器和译码器，之后声明了一个 \(message\) 对象存储我们要传递的消息，使用JSON序列化该对象，并使用编码器进行编码，编码后得到的是可以进行传输的 \(Uint8Array\) 对象，而对其使用译码器进行译码可以得到另一个 \(newMessage\) 对象，该对象内存储的值与之前的 \(message\) 相同，并且没有出现中文乱码的现象。</description>
+      <description>今天在用WebSocket和Servlet写聊天室的时候发现传输中文会乱码的问题，起初以为是在用jackson的 $ObjectMapper$ 将对象转化为字节流的时候出现的问题，但是经过检查后发现不是。又检查了一遍编码，确认了网页的编码是utf-8，输入的字符串也是utf-8，然后发现问题是出在了JSON对象传输的过程中。最后在 stackoverflow 上找到了解法。
+ 我的问题出在将经过JSON序列化之后的消息对象字符串转换为 $Uint8Array$ 以及将 $Uint8Array$ 转为消息对象的过程中，对此可以采用 $TextEncoder$ 和 $TextDecoder$ 对象。如下所示：
+let encoder = new TextEncoder(&amp;#39;utf-8&amp;#39;); let decoder = new TextDecoder(&amp;#39;utf-8&amp;#39;); let message = { username: &amp;#39;用户&amp;#39;, content: &amp;#39;你好，世界！&amp;#39; }; let array = encoder.encode(JSON.stringify(message)); let newMessage = JSON.parse(decoder.decode(array));  在上例中，我们分别使用 $TextEncoder$ 和 $TextDecoder$ 以utf-8作为编码方式创建了编码器和译码器，之后声明了一个 $message$ 对象存储我们要传递的消息，使用JSON序列化该对象，并使用编码器进行编码，编码后得到的是可以进行传输的 $Uint8Array$ 对象，而对其使用译码器进行译码可以得到另一个 $newMessage$ 对象，该对象内存储的值与之前的 $message$ 相同，并且没有出现中文乱码的现象。</description>
     </item>
     
     <item>
@@ -46,12 +46,12 @@ let encoder = new TextEncoder(&amp;#39;utf-8&amp;#39;); let decoder = new TextDe
       
       <guid>https://z217blog.cn/post/javascript%E4%B8%AD%E7%9A%84%E6%95%B0%E7%BB%84/</guid>
       <description>参考书籍：《JavaScript高级程序设计（第3版）》
-&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;作为一种可以说是最常用的类型，EMCAScript当中的数组与其他语言的数组有很大区别，例如数组元素可以是不同类型，数组长度可以动态调整等，因此我总结了一下EMCAScript中的数组类型，即 \(Array\) 类型（主要集中于与其他语言不同的地方）。
- 数组创建 数组长度 数组方法  判定方法 转换方法 栈方法 队列方法 排序方法 操作方法 位置方法 迭代方法 归并方法   1. 数组创建 &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;EMCAScript中数组是一个特殊的类型，有自己的构造函数，我们可以通过 \(new\) 运算符来调用数组的构造函数。
-var array = new Array(); //建立一个空数组  &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;当然，你也可以通过传参来调用带参构造函数。
-var array1 = new Array(10); //大小为10的数组 var array2 = new Array(1, 2, 3); //包含1,2,3三个元素的数组 var array2 = new Array(&amp;#34;A&amp;#34;); //包含一个&amp;#34;A&amp;#34;的数组  &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;但是在这里要注意的是，如果你只给构造函数传一个数字，则会创建对应大小的数组,其中每一项的值都是 \(undefined\) ；如果传的是多个数字，则会创建包含这些数字的数组。
-&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;除了调用构造函数之外，我们还可以使用字面量语法。如下所示：
-var array1 = []; //空数组 var array2 = [1]; //包含一个1的数组 var array3 = [&amp;#34;A&amp;#34;, &amp;#34;B&amp;#34;, &amp;#34;C&amp;#34;]; //包含三个元素的数组   2.</description>
+ 作为一种可以说是最常用的类型，EMCAScript当中的数组与其他语言的数组有很大区别，例如数组元素可以是不同类型，数组长度可以动态调整等，因此我总结了一下EMCAScript中的数组类型，即 $Array$ 类型（主要集中于与其他语言不同的地方）。
+ 数组创建 数组长度 数组方法  判定方法 转换方法 栈方法 队列方法 排序方法 操作方法 位置方法 迭代方法 归并方法    1. 数组创建  EMCAScript中数组是一个特殊的类型，有自己的构造函数，我们可以通过 $new$ 运算符来调用数组的构造函数。
+var array = new Array(); //建立一个空数组  当然，你也可以通过传参来调用带参构造函数。
+var array1 = new Array(10); //大小为10的数组 var array2 = new Array(1, 2, 3); //包含1,2,3三个元素的数组 var array2 = new Array(&amp;#34;A&amp;#34;); //包含一个&amp;#34;A&amp;#34;的数组  但是在这里要注意的是，如果你只给构造函数传一个数字，则会创建对应大小的数组,其中每一项的值都是 $undefined$ ；如果传的是多个数字，则会创建包含这些数字的数组。
+除了调用构造函数之外，我们还可以使用字面量语法。如下所示：
+var array1 = []; //空数组 var array2 = [1]; //包含一个1的数组 var array3 = [&amp;#34;A&amp;#34;, &amp;#34;B&amp;#34;, &amp;#34;C&amp;#34;]; //包含三个元素的数组  2.</description>
     </item>
     
     <item>
@@ -61,11 +61,11 @@ var array1 = []; //空数组 var array2 = [1]; //包含一个1的数组 var arra
       
       <guid>https://z217blog.cn/post/javascript%E7%9A%84%E5%AF%B9%E8%B1%A1%E6%9E%84%E9%80%A0/</guid>
       <description>参考书籍：《JavaScript高级程序设计》（第3版）
-&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;JavaScript是一门面向对象的语言，即拥有类的概念。但ECMAScript中没有类的概念，因此它的对象与其他基于类的语言不同，我们可以把ECMAScript中的对象想象成散列表，由一组组键值对构成，值可以是数据或者函数。
- \(object\) 构造函数模式 对象字面量 工厂模式 构造函数模式 原型模式  什么是原型对象  寄生构造函数模式 稳妥构造函数模式 属性类型   1.object构造函数模式 var person = new object(); person.name = &amp;#34;A&amp;#34;; person.sayName = function() { alert(this.name); };  &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;上例创建了一个 \(person\) 对象，并为其添加了 \(name\) 属性和 \(sayName(\ )\) 方法，是最简单的构造对象的方法。
- 2.对象字面量 var person = { name: &amp;#34;XiaoMing&amp;#34;, sayName: function() { alert(this.name); } };  &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;上例创建了相同的 \(person\) 对象，不同之处在于它是使用对象字面量定义的。以花括号表示开始和结束，属性名+冒号+值的格式定义属性，用逗号隔开多个不同的属性。
-&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;在使用对象字面量时，属性名也可以使用字符串。需要注意的是，JSON只支持此种语法。
-var person = { &amp;#34;name&amp;#34;: &amp;#34;XiaoMing&amp;#34;, &amp;#34;sayName&amp;#34;: function() { alert(this.name); } };  &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;一般情况下，由于对象字面量语法的代码量少，开发人员大多采用此种方式构造对象。</description>
+ JavaScript是一门面向对象的语言，即拥有类的概念。但ECMAScript中没有类的概念，因此它的对象与其他基于类的语言不同，我们可以把ECMAScript中的对象想象成散列表，由一组组键值对构成，值可以是数据或者函数。
+ $object$ 构造函数模式 对象字面量 工厂模式 构造函数模式 原型模式  什么是原型对象   寄生构造函数模式 稳妥构造函数模式 属性类型   1.object构造函数模式 var person = new object(); person.name = &amp;#34;A&amp;#34;; person.sayName = function() { alert(this.name); };  上例创建了一个 $person$ 对象，并为其添加了 $name$ 属性和 $sayName(\ )$ 方法，是最简单的构造对象的方法。
+ 2.对象字面量 var person = { name: &amp;#34;XiaoMing&amp;#34;, sayName: function() { alert(this.name); } };  上例创建了相同的 $person$ 对象，不同之处在于它是使用对象字面量定义的。以花括号表示开始和结束，属性名+冒号+值的格式定义属性，用逗号隔开多个不同的属性。
+在使用对象字面量时，属性名也可以使用字符串。需要注意的是，JSON只支持此种语法。
+var person = { &amp;#34;name&amp;#34;: &amp;#34;XiaoMing&amp;#34;, &amp;#34;sayName&amp;#34;: function() { alert(this.</description>
     </item>
     
     <item>
@@ -75,9 +75,9 @@ var person = { &amp;#34;name&amp;#34;: &amp;#34;XiaoMing&amp;#34;, &amp;#34;sayN
       
       <guid>https://z217blog.cn/post/javascript%E7%9A%84%E5%AF%B9%E8%B1%A1%E7%BB%A7%E6%89%BF/</guid>
       <description>参考书籍：《JavaScript高级程序设计》（第3版）
-&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;继承是OO语言（面对对象语言）中的概念。许多OO语言都支持两种继承方式：接口继承（继承方法签名）和实现继承（继承实际方法）。但由于JavaScript中没有签名，因此在ECMAScript中只能实现方法继承。
- 原型链 借用构造函数 组合继承 原型式继承 寄生式继承 寄生组合式继承   1. 原型链 &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;原型链（ \(prototype\;chaining\) ）是实现继承的主要方法。基本思想是利用原型让一个引用类型继承另一个引用类型的属性和方法。
-function SuperType() { this.property = true; } SuperType.property.getSuperValue = function() { return this.property; }; function SubType() { this.subproperty = false; } //继承SuperType SubType.prototype = new SuperType(); SubType.prototype.getSubValue = function() { return this.subproperty; }  &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;上述代码中定义了两种类型—— \(SuperType\) 和 \(SubType\) ，其中 \(SubType\) 继承了 \(SuperType\) 。实现的本质是重写 \(SubType\) 的原型对象，即将一个 \(SuperType\) 对象赋给 \(SubType.property\) ，从而使得 \(SuperType\) 中所有的属性和方法均存在于 \(SubType\) 中。在实例中，我们也给 \(SubType\) 添加了一个新方法。此外，还要注意，以此种方式实现的继承中， \(SubType.</description>
+ 继承是OO语言（面对对象语言）中的概念。许多OO语言都支持两种继承方式：接口继承（继承方法签名）和实现继承（继承实际方法）。但由于JavaScript中没有签名，因此在ECMAScript中只能实现方法继承。
+ 原型链 借用构造函数 组合继承 原型式继承 寄生式继承 寄生组合式继承   1. 原型链  原型链（ $prototype\ \ chaining$ ）是实现继承的主要方法。基本思想是利用原型让一个引用类型继承另一个引用类型的属性和方法。
+function SuperType() { this.property = true; } SuperType.property.getSuperValue = function() { return this.property; }; function SubType() { this.subproperty = false; } //继承SuperType SubType.prototype = new SuperType(); SubType.prototype.getSubValue = function() { return this.subproperty; }  上述代码中定义了两种类型—— $SuperType$ 和 $SubType$ ，其中 $SubType$ 继承了 $SuperType$ 。实现的本质是重写 $SubType$ 的原型对象，即将一个 $SuperType$ 对象赋给 $SubType.property$ ，从而使得 $SuperType$ 中所有的属性和方法均存在于 $SubType$ 中。在实例中，我们也给 $SubType$ 添加了一个新方法。此外，还要注意，以此种方式实现的继承中， $SubType.</description>
     </item>
     
   </channel>

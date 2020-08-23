@@ -9,6 +9,8 @@
   <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
   <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
   <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/katex.min.css"
+    integrity="sha384-9eLZqc9ds8eNjO3TmqPeYcDj8n+Qfa4nuSiGYa6DjLNcv9BtN69ZIulL9+8CqC9Y" crossorigin="anonymous">
   <title>z217&#39;s blog</title>
 </head><body><aside id="sidenav">
     <header>
@@ -96,25 +98,23 @@
 
 
 
+
 <p><strong>参考书籍：《算法（第4版）》</strong></p>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Dijkstra\)</span> 算法应用于带权有向图中求最短路径问题。通俗来讲就是不断选择权值最小的边加入集合直到所有顶点都在集合中，属于贪心算法。需要注意的是，<span  class="math">\(Dijkstra\)</span> 算法只能用于解决边权非负的图类问题。<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;假设对于一个带权有向图 <span  class="math">\(G(V,E)\)</span> 以邻接矩阵表示，其所有边存储在一个二维整型数组 <span  class="math">\(matrix[\ \ ][\ \ ]\)</span> 中， <span  class="math">\(matrix[i][j]\)</span> 表示从顶点 <span  class="math">\(i\)</span> 到顶点 <span  class="math">\(j\)</span> 之间的边，值为边的权值，若值为 <span  class="math">\(∞\)</span> ，说明该边不存在。为了实现 <span  class="math">\(Dijkstra\)</span> 算法，我们需要一个布尔值数组 <span  class="math">\(visit[\ \ ]\)</span> ，用于判断顶点是否访问过，或者说是否在集合中；一个整型数组 <span  class="math">\(distance[\ \ ]\)</span> 用于储存原点到每个点的最短距离。定义了基本的结构，就可以实现算法了，步骤为：</p>
-
+<p>        $Dijkstra$ 算法应用于带权有向图中求最短路径问题。通俗来讲就是不断选择权值最小的边加入集合直到所有顶点都在集合中，属于贪心算法。需要注意的是，$Dijkstra$ 算法只能用于解决边权非负的图类问题。<br>
+        假设对于一个带权有向图 $G(V,E)$ 以邻接矩阵表示，其所有边存储在一个二维整型数组 $matrix[\ \ ][\ \ ]$ 中， $matrix[i][j]$ 表示从顶点 $i$ 到顶点 $j$ 之间的边，值为边的权值，若值为 $∞$ ，说明该边不存在。为了实现 $Dijkstra$ 算法，我们需要一个布尔值数组 $visit[\ \ ]$ ，用于判断顶点是否访问过，或者说是否在集合中；一个整型数组 $distance[\ \ ]$ 用于储存原点到每个点的最短距离。定义了基本的结构，就可以实现算法了，步骤为：</p>
 <ol>
-<li>从 <span  class="math">\(V\)</span> 中选择一个点 <span  class="math">\(s\)</span> 作为原点，将邻接矩阵中的 <span  class="math">\(matrix[s]\)</span> 数组复制到 <span  class="math">\(distance[s]\)</span> （复制后 <span  class="math">\(distance[s]\)</span> 应为 <span  class="math">\(0\)</span> ），建立一个 <span  class="math">\(visit[\ \ ]\)</span> 数组并清零。</li>
-<li>从 <span  class="math">\(V\)</span> 中选择一个顶点 <span  class="math">\(u\)</span> 加入集合，其中点 <span  class="math">\(u\)</span> 满足：<br>
-
+<li>从 $V$ 中选择一个点 $s$ 作为原点，将邻接矩阵中的 $matrix[s]$ 数组复制到 $distance[s]$ （复制后 $distance[s]$ 应为 $0$ ），建立一个 $visit[\ \ ]$ 数组并清零。</li>
+<li>从 $V$ 中选择一个顶点 $u$ 加入集合，其中点 $u$ 满足：
 <ul>
-<li>之前未曾访问过点 <span  class="math">\(u\)</span> （即 <span  class="math">\(visit[u] = false\)</span> ）。</li>
-<li>与 <span  class="math">\(s\)</span> 距离最短（即 <span  class="math">\(distance[u]\)</span> 的值最小）。</li>
-</ul></li>
-<li>以 <span  class="math">\(u\)</span> 为中心点，对于每个与 <span  class="math">\(u\)</span> 相邻的顶点 <span  class="math">\(k\)</span> ，令 <span  class="math">\(distance[k] = Min(distance[k], distance[u] + matrix[u][k])\)</span> ，这一步也称为<code>松弛</code>( <span  class="math">\(relaxation\)</span> )。</li>
+<li>之前未曾访问过点 $u$ （即 $visit[u] = false$ ）。</li>
+<li>与 $s$ 距离最短（即 $distance[u]$ 的值最小）。</li>
+</ul>
+</li>
+<li>以 $u$ 为中心点，对于每个与 $u$ 相邻的顶点 $k$ ，令 $distance[k] = Min(distance[k], distance[u] + matrix[u][k])$ ，这一步也称为<code>松弛</code>( $relaxation$ )。</li>
 <li>重复2、3直到所有顶点加入集合。</li>
 </ol>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Dijkstra\)</span> 算法类似于 <span  class="math">\(Prim\)</span> 算法，实质上都是构造了一颗树。经过以上步骤之后，我们得到了一个 <span  class="math">\(distance[\ \ ]\)</span> 数组，其中的值为从原点 <span  class="math">\(s\)</span> 到图中其他所有点的最短距离。在使用代码实现的过程中，有些情况下我们可以使用优先队列来简化寻找最小权值的这一过程。如果我们确认了一幅图是无环图，那么我们也可以不使用 <span  class="math">\(visit[\ \ ]\)</span> ，而是通过拓扑排序的顺序依次遍历顶点。<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;将上述过程转化为代码如下：</p>
+<p>        $Dijkstra$ 算法类似于 $Prim$ 算法，实质上都是构造了一颗树。经过以上步骤之后，我们得到了一个 $distance[\ \ ]$ 数组，其中的值为从原点 $s$ 到图中其他所有点的最短距离。在使用代码实现的过程中，有些情况下我们可以使用优先队列来简化寻找最小权值的这一过程。如果我们确认了一幅图是无环图，那么我们也可以不使用 $visit[\ \ ]$ ，而是通过拓扑排序的顺序依次遍历顶点。<br>
+        将上述过程转化为代码如下：</p>
 <div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Dijkstra</span> <span class="o">{</span>
     <span class="kd">public</span> <span class="kt">int</span><span class="o">[]</span> <span class="nf">dijkstra</span> <span class="o">(</span><span class="kt">int</span> <span class="n">s</span><span class="o">,</span> <span class="kt">int</span><span class="o">[][]</span> <span class="n">matrix</span><span class="o">)</span> <span class="o">{</span>
         <span class="kt">int</span> <span class="n">length</span> <span class="o">=</span> <span class="n">matrix</span><span class="o">.</span><span class="na">length</span><span class="o">;</span>
@@ -141,16 +141,12 @@
         <span class="o">}</span>
         <span class="k">return</span> <span class="n">distance</span><span class="o">;</span>
     <span class="o">}</span>
-<span class="o">}</span></code></pre></div>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;至此我们实现了 <span  class="math">\(Dijkstra\)</span> 算法。虽然这里我们没有使用优先队列，但是使用优先队列是可行的，也可以在一定程度上加快速度。 <span  class="math">\(Dijkstra\)</span> 算法有许多种优化策略，而不同的策略对应的时间复杂度也是不同，因此在此不作过多叙述，如果感兴趣的话可以在 <a href="https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm#Description">Dijkstra's algorithm - Wikipedia</a> 中查看。如果我们将寻找最小权值的过程改为寻找最大权值，那么就可以由最短路径算法改为最长路径算法。</p>
-
+<span class="o">}</span>
+</code></pre></div><p>        至此我们实现了 $Dijkstra$ 算法。虽然这里我们没有使用优先队列，但是使用优先队列是可行的，也可以在一定程度上加快速度。 $Dijkstra$ 算法有许多种优化策略，而不同的策略对应的时间复杂度也是不同，因此在此不作过多叙述，如果感兴趣的话可以在 <a href="https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm#Description">Dijkstra&rsquo;s algorithm - Wikipedia</a> 中查看。如果我们将寻找最小权值的过程改为寻找最大权值，那么就可以由最短路径算法改为最长路径算法。</p>
 <hr>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;关于 <span  class="math">\(Dijkstra\)</span> 算法有很多题，在这里举一道题为例。</p>
-
+<p>        关于 $Dijkstra$ 算法有很多题，在这里举一道题为例。</p>
 <p><a href="https://leetcode-cn.com/problems/find-the-city-with-the-smallest-number-of-neighbors-at-a-threshold-distance/">原题地址：Problem 1334</a></p>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;显然在这道题就是一道求最短距离的算法，分别以每个城市为原点计算 <span  class="math">\(distance[\ \ ]\)</span> 数组，再遍历数组得到答案，最终输出最大值即可。我们直接将上面的 <span  class="math">\(Dijkstra\)</span> 算法的模板套进去就行了。</p>
+<p>        显然在这道题就是一道求最短距离的算法，分别以每个城市为原点计算 $distance[\ \ ]$ 数组，再遍历数组得到答案，最终输出最大值即可。我们直接将上面的 $Dijkstra$ 算法的模板套进去就行了。</p>
 <div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">Solution</span> <span class="o">{</span>
     <span class="kd">public</span> <span class="kt">int</span> <span class="nf">findTheCity</span><span class="o">(</span><span class="kt">int</span> <span class="n">n</span><span class="o">,</span> <span class="kt">int</span><span class="o">[][]</span> <span class="n">edges</span><span class="o">,</span> <span class="kt">int</span> <span class="n">distanceThreshold</span><span class="o">)</span> <span class="o">{</span>
         <span class="c1">// 将边集转换为邻接矩阵
@@ -192,7 +188,8 @@
         <span class="o">}</span>
         <span class="k">return</span> <span class="n">res</span><span class="o">;</span>
     <span class="o">}</span>
-<span class="o">}</span></code></pre></div>
+<span class="o">}</span>
+</code></pre></div>
 
 <div class="nav-next-prev">
     <div class="nav-prev">
@@ -232,7 +229,52 @@
     </div>
 </footer>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_SVG"></script></main>
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        
+        
+        
+        var all = MathJax.Hub.getAllJax(),
+            i;
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
     </body>
     <script src=https://z217blog.cn/js/navbutton.js></script>
 </html>

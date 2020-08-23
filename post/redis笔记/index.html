@@ -9,6 +9,8 @@
   <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
   <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
   <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/katex.min.css"
+    integrity="sha384-9eLZqc9ds8eNjO3TmqPeYcDj8n+Qfa4nuSiGYa6DjLNcv9BtN69ZIulL9+8CqC9Y" crossorigin="anonymous">
   <title>z217&#39;s blog</title>
 </head><body><aside id="sidenav">
     <header>
@@ -96,142 +98,203 @@
 
 
 
+<div style="position:fixed; right:8px; max-width:300px; overflow:auto; top:130px; width:12vw; bottom:130px">
+    <header>
+        <h4>Redis笔记</h4>
+    </header>
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#1-redis简介">1. <code>Redis</code>简介</a></li>
+    <li><a href="#2-数据类型">2. 数据类型</a>
+      <ul>
+        <li><a href="#21-string">2.1 <code>string</code></a></li>
+        <li><a href="#22-hash">2.2 <code>hash</code></a></li>
+        <li><a href="#23-list">2.3 <code>list</code></a></li>
+        <li><a href="#24-set">2.4 <code>set</code></a></li>
+        <li><a href="#25-sorted_setzset">2.5 <code>sorted_set</code>/<code>zset</code></a></li>
+      </ul>
+    </li>
+    <li><a href="#3-通用命令">3. 通用命令</a>
+      <ul>
+        <li><a href="#31-key">3.1 <code>key</code></a></li>
+        <li><a href="#32-db">3.2 <code>db</code></a></li>
+      </ul>
+    </li>
+    <li><a href="#4-jedis">4. <code>Jedis</code></a></li>
+    <li><a href="#5-linux下的redis操作">5. <code>Linux</code>下的<code>Redis</code>操作</a></li>
+    <li><a href="#6-持久化">6. 持久化</a>
+      <ul>
+        <li><a href="#61-rdb指令">6.1 <code>RDB</code>指令</a></li>
+        <li><a href="#62-rdb特殊启动模式">6.2 <code>RDB</code>特殊启动模式</a></li>
+        <li><a href="#63-aof">6.3 <code>AOF</code></a></li>
+        <li><a href="#64-aof重写">6.4 <code>AOF</code>重写</a></li>
+        <li><a href="#65-对比">6.5 对比</a></li>
+      </ul>
+    </li>
+    <li><a href="#7-事务">7. 事务</a>
+      <ul>
+        <li><a href="#71-流程">7.1 流程</a></li>
+        <li><a href="#72-锁">7.2 锁</a></li>
+      </ul>
+    </li>
+    <li><a href="#8-删除策略">8. 删除策略</a>
+      <ul>
+        <li><a href="#81-逐出算法">8.1 逐出算法</a></li>
+      </ul>
+    </li>
+    <li><a href="#9-服务器配置">9. 服务器配置</a></li>
+    <li><a href="#10-高级数据类型">10. 高级数据类型</a>
+      <ul>
+        <li><a href="#101-bitmaps">10.1 <code>Bitmaps</code></a></li>
+        <li><a href="#102-hyperloglog">10.2 <code>HyperLogLog</code></a></li>
+        <li><a href="#103-geo">10.3 <code>GEO</code></a></li>
+      </ul>
+    </li>
+    <li><a href="#11-主从复制">11. 主从复制</a>
+      <ul>
+        <li><a href="#111-连接">11.1 连接</a></li>
+        <li><a href="#112-数据同步">11.2 数据同步</a></li>
+        <li><a href="#113-命令传播">11.3 命令传播</a></li>
+        <li><a href="#114-心跳机制">11.4 心跳机制</a></li>
+        <li><a href="#115-内部优化">11.5 内部优化</a></li>
+      </ul>
+    </li>
+    <li><a href="#12-哨兵模式">12. 哨兵模式</a>
+      <ul>
+        <li><a href="#121-配置">12.1 配置</a></li>
+        <li><a href="#122-原理">12.2 原理</a></li>
+      </ul>
+    </li>
+    <li><a href="#13-集群">13. 集群</a>
+      <ul>
+        <li><a href="#131-配置">13.1 配置</a></li>
+        <li><a href="#132-启动">13.2 启动</a></li>
+        <li><a href="#133-操作">13.3 操作</a></li>
+      </ul>
+    </li>
+    <li><a href="#14-解决方案">14. 解决方案</a>
+      <ul>
+        <li><a href="#141-缓存预热">14.1 缓存预热</a></li>
+        <li><a href="#142-缓存雪崩">14.2 缓存雪崩</a></li>
+        <li><a href="#143-缓存击穿">14.3 缓存击穿</a></li>
+        <li><a href="#144-缓存穿透">14.4 缓存穿透</a></li>
+        <li><a href="#145-监控">14.5 监控</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+</div>
+
+
 <h2 id="1-redis简介">1. <code>Redis</code>简介</h2>
-
-<p><code>NoSQL</code>即 <span  class="math">\(Not-Only\;SQL\)</span> ，是<code>RDBMS</code>的补充。<br>
+<p><code>NoSQL</code>即 $Not-Only\ \ SQL$ ，是<code>RDBMS</code>的补充。<br>
 <code>Redis</code>是一种<code>NoSQL</code>数据库，是一个使用<code>C</code>语言开发的开源的高性能键值对数据库，内部使用单线程机制进行工作。</p>
-
 <ol>
-<li><span  class="math">\(set\;[key]\;[value]\)</span>&nbsp;&nbsp;添加信息,</li>
-<li><span  class="math">\(get\;[key]\)</span> &nbsp;&nbsp; 查询信息，为空返回 <span  class="math">\(nil\)</span> ,</li>
-<li><span  class="math">\(del\;[key]\)</span>&nbsp;&nbsp;删除信息，<span  class="math">\(1\)</span> 代表删除成功,</li>
-<li><span  class="math">\(clear\)</span>&nbsp;&nbsp;清屏,</li>
-<li><span  class="math">\(help\;[op]\)</span>&nbsp;&nbsp;帮助,</li>
-<li><span  class="math">\(time\)</span>&nbsp;&nbsp;获取时间.</li>
+<li>$set\ \ [key]\ \ [value]$  添加信息,</li>
+<li>$get\ \ [key]$    查询信息，为空返回 $nil$ ,</li>
+<li>$del\ \ [key]$  删除信息，$1$ 代表删除成功,</li>
+<li>$clear$  清屏,</li>
+<li>$help\ \ [op]$  帮助,</li>
+<li>$time$  获取时间.</li>
 </ol>
-
 <h2 id="2-数据类型">2. 数据类型</h2>
-
-<p><code>Redis</code>采用键值对的方式存储，<span  class="math">\(key\)</span> 为字符串，<span  class="math">\(value\)</span> 则允许多种类型。</p>
-
+<p><code>Redis</code>采用键值对的方式存储，$key$ 为字符串，$value$ 则允许多种类型。</p>
 <h3 id="21-string">2.1 <code>string</code></h3>
-
-<p>最简单的数据类型，最大存储量 <span  class="math">\(512MB\)</span> ，
-可以作为数字使用，最大值为 <span  class="math">\(java.lang.Long\)</span> 类型的最大值，
+<p>最简单的数据类型，最大存储量 $512MB$ ，
+可以作为数字使用，最大值为 $java.lang.Long$ 类型的最大值，
 允许以<code>JSON</code>对象的方式存储数据，值中间不能有空白符</p>
-
 <ol>
-<li><span  class="math">\(mset/mget\)</span>&nbsp;&nbsp;获取多个数据</li>
-<li><span  class="math">\(strlen\)</span>&nbsp;&nbsp;获取字符个数</li>
-<li><span  class="math">\(append\)</span>&nbsp;&nbsp;追加，返回总长度，也可以用于添加信息</li>
-<li><span  class="math">\(incr/incrby/incrbyfloat\)</span>&nbsp;&nbsp;指定数据增加指定值，允许负数，返回数值</li>
-<li><span  class="math">\(decr/decrby\)</span>&nbsp;&nbsp;指定数据减少指定的值，允许负数，返回数值</li>
-<li><span  class="math">\(setex/psetex\)</span>&nbsp;&nbsp;设定数据周期，秒/毫秒</li>
+<li>$mset/mget$  获取多个数据</li>
+<li>$strlen$  获取字符个数</li>
+<li>$append$  追加，返回总长度，也可以用于添加信息</li>
+<li>$incr/incrby/incrbyfloat$  指定数据增加指定值，允许负数，返回数值</li>
+<li>$decr/decrby$  指定数据减少指定的值，允许负数，返回数值</li>
+<li>$setex/psetex$  设定数据周期，秒/毫秒</li>
 </ol>
-
 <h3 id="22-hash">2.2 <code>hash</code></h3>
-
-<p><code>hash</code> 属于 <span  class="math">\(value\)</span> ，其中包含多组键值对，键称为 <span  class="math">\(field\)</span> ，键值对较少时为类数组结构，较多时为 <span  class="math">\(HashMap\)</span> 结构，<span  class="math">\(value\)</span> 只能为 <code>string</code> ，且最多只能有 <span  class="math">\(2^{32} - 1\)</span> 组。</p>
-
+<p><code>hash</code> 属于 $value$ ，其中包含多组键值对，键称为 $field$ ，键值对较少时为类数组结构，较多时为 $HashMap$ 结构，$value$ 只能为 <code>string</code> ，且最多只能有 $2^{32} - 1$ 组。</p>
 <ol>
-<li><span  class="math">\(hset/hmset\)</span> ,</li>
-<li><span  class="math">\(hget/hmget/hgetall\)</span> ,</li>
-<li><span  class="math">\(hdel\)</span> ,</li>
-<li><span  class="math">\(hlen\)</span>&nbsp;&nbsp;字段数量,</li>
-<li><span  class="math">\(hexists\)</span>&nbsp;&nbsp;字段存在,</li>
-<li><span  class="math">\(hkeys\)</span>&nbsp;&nbsp;获取所有 <span  class="math">\(key\)</span> ,</li>
-<li><span  class="math">\(hvals\)</span>&nbsp;&nbsp;获取所有 <span  class="math">\(value\)</span> ,</li>
-<li><span  class="math">\(hincrby/hincrbyfloat\)</span> ,</li>
-<li><span  class="math">\(hsetnx\)</span>&nbsp;&nbsp;当前 <span  class="math">\(key\)</span> 的 <span  class="math">\(field\)</span> 不存在时才设置.</li>
+<li>$hset/hmset$ ,</li>
+<li>$hget/hmget/hgetall$ ,</li>
+<li>$hdel$ ,</li>
+<li>$hlen$  字段数量,</li>
+<li>$hexists$  字段存在,</li>
+<li>$hkeys$  获取所有 $key$ ,</li>
+<li>$hvals$  获取所有 $value$ ,</li>
+<li>$hincrby/hincrbyfloat$ ,</li>
+<li>$hsetnx$  当前 $key$ 的 $field$ 不存在时才设置.</li>
 </ol>
-
 <h3 id="23-list">2.3 <code>list</code></h3>
-
 <p>保存多个数据，底层使用双向链表实现<br>
-内部数据都是<code>string</code>类型，可以进行索引操作，最多保存 <span  class="math">\(2^{32} - 1\)</span> 个元素</p>
-
+内部数据都是<code>string</code>类型，可以进行索引操作，最多保存 $2^{32} - 1$ 个元素</p>
 <ol>
-<li><span  class="math">\(lpush/rpush\)</span>&nbsp;&nbsp;添加</li>
-<li><span  class="math">\(lrange/lindex\)</span>&nbsp;&nbsp;获取，可以通过 <span  class="math">\(0\;-1\)</span> 查询全部数据</li>
-<li><span  class="math">\(llen\)</span>&nbsp;&nbsp;长度</li>
-<li><span  class="math">\(lpop/rpop\)</span>&nbsp;&nbsp;删除</li>
-<li><span  class="math">\(blpop/brpop\)</span>&nbsp;&nbsp;周期内等待获取并删除（阻塞)</li>
-<li><span  class="math">\(lrem\)</span>&nbsp;&nbsp;移除指定数据，<span  class="math">\(count\)</span> 可以指定删除个数</li>
+<li>$lpush/rpush$  添加</li>
+<li>$lrange/lindex$  获取，可以通过 $0\ \ -1$ 查询全部数据</li>
+<li>$llen$  长度</li>
+<li>$lpop/rpop$  删除</li>
+<li>$blpop/brpop$  周期内等待获取并删除（阻塞)</li>
+<li>$lrem$  移除指定数据，$count$ 可以指定删除个数</li>
 </ol>
-
 <h3 id="24-set">2.4 <code>set</code></h3>
-
 <p>用于存储大量数据，拥有高效的查询机制。<br>
-<code>set</code>与<code>hash</code>结构相同，但仅使用 <span  class="math">\(field\)</span> ，<span  class="math">\(value\)</span> 为 <span  class="math">\(nil\)</span></p>
-
+<code>set</code>与<code>hash</code>结构相同，但仅使用 $field$ ，$value$ 为 $nil$</p>
 <ol>
-<li><span  class="math">\(sadd\)</span>&nbsp;&nbsp;添加</li>
-<li><span  class="math">\(smembers\)</span>&nbsp;&nbsp;获取全部</li>
-<li><span  class="math">\(srem\)</span>&nbsp;&nbsp;删除</li>
-<li><span  class="math">\(scard\)</span>&nbsp;&nbsp;个数</li>
-<li><span  class="math">\(sismember\)</span>&nbsp;&nbsp;存在</li>
-<li><span  class="math">\(srandmember\)</span>&nbsp;&nbsp;随机</li>
-<li><span  class="math">\(spop\)</span>&nbsp;&nbsp;随机并移除</li>
-<li><span  class="math">\(sinter/sunion/sdiff\)</span>&nbsp;&nbsp;交并差，差具有方向</li>
-<li><span  class="math">\(sinterstore/sunionstore/sdiffstore\)</span>&nbsp;&nbsp;交并差并存储</li>
-<li><span  class="math">\(smove\)</span>&nbsp;&nbsp;移动</li>
+<li>$sadd$  添加</li>
+<li>$smembers$  获取全部</li>
+<li>$srem$  删除</li>
+<li>$scard$  个数</li>
+<li>$sismember$  存在</li>
+<li>$srandmember$  随机</li>
+<li>$spop$  随机并移除</li>
+<li>$sinter/sunion/sdiff$  交并差，差具有方向</li>
+<li>$sinterstore/sunionstore/sdiffstore$  交并差并存储</li>
+<li>$smove$  移动</li>
 </ol>
-
-<h3 id="25-sortedsetzset">2.5 <code>sorted_set</code>/<code>zset</code></h3>
-
-<p>保存可排序的数据，在<code>set</code>的基础上添加可排序字段，称为 <span  class="math">\(score\)</span>。<br>
-保存的数据空间是 <span  class="math">\(64\)</span> 位，可以是一个 <span  class="math">\(double\)</span> 值。</p>
-
+<h3 id="25-sorted_setzset">2.5 <code>sorted_set</code>/<code>zset</code></h3>
+<p>保存可排序的数据，在<code>set</code>的基础上添加可排序字段，称为 $score$。<br>
+保存的数据空间是 $64$ 位，可以是一个 $double$ 值。</p>
 <ol>
-<li><span  class="math">\(zadd\)</span> ,</li>
-<li><span  class="math">\(zrange/zrevrange\)</span>&nbsp;&nbsp;升序/降序，最后添加 <span  class="math">\(withscores\)</span> 可以显示 <span  class="math">\(score\)</span> ,</li>
-<li><span  class="math">\(zrem\)</span> ,</li>
-<li><span  class="math">\(zrangebyscore/zrevrangebyscore\)</span>&nbsp;&nbsp;条件查询,</li>
-<li><span  class="math">\(zremrangebyrank/zremrangebyscore\)</span>&nbsp;&nbsp;条件删除,</li>
-<li><span  class="math">\(zcard/zcount\)</span> ,</li>
-<li><span  class="math">\(zinterstore/zunionstore\)</span>&nbsp;&nbsp;可以通过 <span  class="math">\(aggregate\)</span> 指定 <span  class="math">\(score\)</span> 值得处理方式,</li>
-<li><span  class="math">\(zrank/zrevrank\)</span>&nbsp;&nbsp;获取排位,</li>
-<li><span  class="math">\(zscore/zincrby\)</span> <span  class="math">\(score\)</span>&nbsp;&nbsp;设置.</li>
+<li>$zadd$ ,</li>
+<li>$zrange/zrevrange$  升序/降序，最后添加 $withscores$ 可以显示 $score$ ,</li>
+<li>$zrem$ ,</li>
+<li>$zrangebyscore/zrevrangebyscore$  条件查询,</li>
+<li>$zremrangebyrank/zremrangebyscore$  条件删除,</li>
+<li>$zcard/zcount$ ,</li>
+<li>$zinterstore/zunionstore$  可以通过 $aggregate$ 指定 $score$ 值得处理方式,</li>
+<li>$zrank/zrevrank$  获取排位,</li>
+<li>$zscore/zincrby$ $score$  设置.</li>
 </ol>
-
 <h2 id="3-通用命令">3. 通用命令</h2>
-
 <h3 id="31-key">3.1 <code>key</code></h3>
-
 <ol>
-<li><span  class="math">\(del/exists/type\)</span>&nbsp;&nbsp;删除/存在/类型,</li>
-<li><span  class="math">\(expire/pexpire/expireat/pexpireat\)</span>&nbsp;&nbsp;设置周期，后两者指定 <span  class="math">\(timestamp\)</span> ,</li>
-<li><span  class="math">\(ttl/pttl\)</span>&nbsp;&nbsp;获取周期，<span  class="math">\(-2/-1\)</span> 分别代表不存在和永久,</li>
-<li><span  class="math">\(persist\)</span>&nbsp;&nbsp;转换为永久,</li>
-<li><span  class="math">\(keys\)</span>&nbsp;&nbsp;查询,</li>
-<li><span  class="math">\(rename/renamenx\)</span>&nbsp;&nbsp;重命名，后者只有不存在时才会执行,</li>
-<li><span  class="math">\(sort\)</span> ,</li>
-<li><span  class="math">\(help\;@generic\)</span>&nbsp;&nbsp;查询所有相关命令,</li>
+<li>$del/exists/type$  删除/存在/类型,</li>
+<li>$expire/pexpire/expireat/pexpireat$  设置周期，后两者指定 $timestamp$ ,</li>
+<li>$ttl/pttl$  获取周期，$-2/-1$ 分别代表不存在和永久,</li>
+<li>$persist$  转换为永久,</li>
+<li>$keys$  查询,</li>
+<li>$rename/renamenx$  重命名，后者只有不存在时才会执行,</li>
+<li>$sort$ ,</li>
+<li>$help\ \ @generic$  查询所有相关命令,</li>
 </ol>
-
 <h3 id="32-db">3.2 <code>db</code></h3>
-
-<p><code>Redis</code>为每个服务提供了 <span  class="math">\(16\)</span> 个数据库，相互独立。</p>
-
+<p><code>Redis</code>为每个服务提供了 $16$ 个数据库，相互独立。</p>
 <ol>
-<li><span  class="math">\(select\)</span>&nbsp;&nbsp;切换,</li>
-<li><span  class="math">\(ping\)</span>&nbsp;&nbsp;测试服务器连接,</li>
-<li><span  class="math">\(echo\)</span> ,</li>
-<li><span  class="math">\(move\)</span>&nbsp;&nbsp;如果指定数据库包含同名 <span  class="math">\(key\)</span> ，则不会移动,</li>
-<li><span  class="math">\(flushdb/flushall\)</span>&nbsp;&nbsp;清除,</li>
-<li><span  class="math">\(dbsize\)</span>&nbsp;&nbsp;当前数据库大小查询.</li>
+<li>$select$  切换,</li>
+<li>$ping$  测试服务器连接,</li>
+<li>$echo$ ,</li>
+<li>$move$  如果指定数据库包含同名 $key$ ，则不会移动,</li>
+<li>$flushdb/flushall$  清除,</li>
+<li>$dbsize$  当前数据库大小查询.</li>
 </ol>
-
 <h2 id="4-jedis">4. <code>Jedis</code></h2>
-
 <p><code>Redis</code>中的指令名称与<code>Jedis</code>中的方法名相同。</p>
 <div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="c1">//  连接
 </span><span class="c1"></span>    <span class="n">Jedis</span> <span class="n">jedis</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Jedis</span><span class="o">(</span><span class="s">&#34;127.0.0.1&#34;</span><span class="o">,</span> <span class="n">6379</span><span class="o">);</span>
 <span class="c1">//  操作
 </span><span class="c1"></span>    <span class="n">jedis</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="s">&#34;name&#34;</span><span class="o">,</span> <span class="s">&#34;example&#34;</span><span class="o">);</span>
 <span class="c1">//  关闭
-</span><span class="c1"></span>    <span class="n">jedis</span><span class="o">.</span><span class="na">close</span><span class="o">();</span></code></pre></div>
-<p><span  class="math">\(JedisPool\)</span> 对象<br/></p>
+</span><span class="c1"></span>    <span class="n">jedis</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</code></pre></div><p>$JedisPool$ 对象<br/></p>
 <div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">JedisUtils</span> <span class="o">{</span>
   <span class="kd">private</span> <span class="kd">static</span> <span class="n">JedisPool</span> <span class="n">jedisPool</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
   <span class="kd">private</span> <span class="kd">static</span> <span class="n">String</span> <span class="n">host</span><span class="o">;</span>
@@ -254,13 +317,12 @@
   <span class="kd">public</span> <span class="kd">static</span> <span class="n">Jedis</span> <span class="nf">getJedis</span><span class="o">()</span> <span class="o">{</span>
     <span class="k">return</span> <span class="n">jedisPool</span><span class="o">.</span><span class="na">getResource</span><span class="o">();</span>
   <span class="o">}</span>
-<span class="o">}</span></code></pre></div>
-<h2 id="5-linux下的redis操作">5. <code>Linux</code>下的<code>Redis</code>操作</h2>
-
+<span class="o">}</span>
+</code></pre></div><h2 id="5-linux下的redis操作">5. <code>Linux</code>下的<code>Redis</code>操作</h2>
 <ol>
-<li><span  class="math">\(redis-server\;--port\)</span>&nbsp;&nbsp;更改端口,</li>
-<li><span  class="math">\(redis-cli\;-h\;-p\)</span>&nbsp;&nbsp;设置主机和端口,</li>
-<li><span  class="math">\(redis.conf\)</span> .</li>
+<li>$redis-server\ \ &ndash;port$  更改端口,</li>
+<li>$redis-cli\ \ -h\ \ -p$  设置主机和端口,</li>
+<li>$redis.conf$ .</li>
 </ol>
 <pre><code class="language-conf" data-lang="conf"># 端口
 port 6379
@@ -269,128 +331,105 @@ protected-mode no
 # 以守护进程方式启动, docker 环境下启动需设置为 no
 daemonize no
 # 日志文件名
-logfile &#34;6379.log&#34;
+logfile &quot;6379.log&quot;
 # 日志文件路径
-dir /data</code></pre>
-<h2 id="6-持久化">6. 持久化</h2>
-
+dir /data
+</code></pre><h2 id="6-持久化">6. 持久化</h2>
 <p>利用永久性存储介质保存数据，用于防止数据意外丢失。</p>
-
 <ol>
 <li><code>RDB</code> 保存当前数据，速度较快，但是不能保证实时性，且当数据较多时会明显变慢，快照形式,</li>
 <li><code>AOF</code> 保存操作，能够实现实时性，日志形式.</li>
 </ol>
-
 <h3 id="61-rdb指令">6.1 <code>RDB</code>指令</h3>
-
 <h4 id="611-save">6.1.1 save</h4>
-
-<p>通过<code>RDB</code>模式进行持久化，文件默认保存在 <span  class="math">\(/data/dump.rdb\)</span> 中。执行过程中会阻塞服务器，直到<code>RDB</code>过程完成，不建议在线上环境中使用。</p>
+<p>通过<code>RDB</code>模式进行持久化，文件默认保存在 $/data/dump.rdb$ 中。执行过程中会阻塞服务器，直到<code>RDB</code>过程完成，不建议在线上环境中使用。</p>
 <pre><code class="language-conf" data-lang="conf"># 文件名
-dbfilename &#34;dump-6379.rdb&#34;
+dbfilename &quot;dump-6379.rdb&quot;
 # 文件路径
 dir /data
 # 是否压缩（LZF压缩）
 rdbcompression no
 # 是否进行数据校验
-rdbchecksum no</code></pre>
-<h4 id="622-bgsave">6.2.2 bgsave</h4>
-
-<p>后台进行持久化，会调用 <span  class="math">\(fork\)</span> 函数生成一个子进程，可以在日志文件中查询记录。</p>
+rdbchecksum no
+</code></pre><h4 id="622-bgsave">6.2.2 bgsave</h4>
+<p>后台进行持久化，会调用 $fork$ 函数生成一个子进程，可以在日志文件中查询记录。</p>
 <pre><code class="language-conf" data-lang="conf"># 后台保存出错时是否停止操作，默认开启
-stop-writes-on-bgsave-error yes</code></pre>
-<h4 id="623-自动">6.2.3 自动</h4>
+stop-writes-on-bgsave-error yes
+</code></pre><h4 id="623-自动">6.2.3 自动</h4>
 <pre><code class="language-conf" data-lang="conf"># 如果在10秒内有2个key改变，就执行bgsave
-bgsave 10 2</code></pre>
-<h3 id="62-rdb特殊启动模式">6.2 <code>RDB</code>特殊启动模式</h3>
-
+bgsave 10 2
+</code></pre><h3 id="62-rdb特殊启动模式">6.2 <code>RDB</code>特殊启动模式</h3>
 <ol>
 <li>全量复制</li>
-<li><span  class="math">\(debug\;reload\)</span>&nbsp;&nbsp;服务器运行过程中重启,</li>
-<li><span  class="math">\(shutdown\;save\)</span>&nbsp;&nbsp;关闭服务器时保存.</li>
+<li>$debug\ \ reload$  服务器运行过程中重启,</li>
+<li>$shutdown\ \ save$  关闭服务器时保存.</li>
 </ol>
-
 <h3 id="63-aof">6.3 <code>AOF</code></h3>
-
-<p>写指令会先被发送到<code>AOF</code>写命令刷新缓冲区，生成 <span  class="math">\(.aof\)</span> 文件。</p>
+<p>写指令会先被发送到<code>AOF</code>写命令刷新缓冲区，生成 $.aof$ 文件。</p>
 <pre><code class="language-conf" data-lang="conf"># 开启AOF
 appendonly yes
 # AOF策略，always/everysec/no
 appendfsync everysec
 # 文件名
-appendfilename &#34;appendonly-6379.aof&#34;
+appendfilename &quot;appendonly-6379.aof&quot;
 # 路径
-dir /data</code></pre>
-<p><code>AOF</code>策略：</p>
-
+dir /data
+</code></pre><p><code>AOF</code>策略：</p>
 <ol>
-<li><span  class="math">\(always\)</span>&nbsp;&nbsp;每次，通过 <span  class="math">\(fork\)</span> 生成子进程进行,</li>
-<li><span  class="math">\(everysec\)</span>&nbsp;&nbsp;每秒，通过 <span  class="math">\(fork\)</span> 生成子进程，将操作存储在<code>AOF</code>缓存区中，如果是重写，还会有<code>aof</code>重写缓存区，时间到达后写入,</li>
-<li><span  class="math">\(no\)</span>&nbsp;&nbsp;系统控制.</li>
+<li>$always$  每次，通过 $fork$ 生成子进程进行,</li>
+<li>$everysec$  每秒，通过 $fork$ 生成子进程，将操作存储在<code>AOF</code>缓存区中，如果是重写，还会有<code>aof</code>重写缓存区，时间到达后写入,</li>
+<li>$no$  系统控制.</li>
 </ol>
-
 <h3 id="64-aof重写">6.4 <code>AOF</code>重写</h3>
-
 <ol>
-<li><span  class="math">\(bgrewriteaof\)</span>&nbsp;&nbsp;后台重写,</li>
-<li>自动<br>
-
+<li>$bgrewriteaof$  后台重写,</li>
+<li>自动
 <ol>
-<li><span  class="math">\(auto-aof-rewrite-min-size\)</span>  最小重写大小,</li>
-<li><span  class="math">\(auto-aof-rewirte-percentage\)</span> 自动重写百分比.</li>
-</ol></li>
+<li>$auto-aof-rewrite-min-size$  最小重写大小,</li>
+<li>$auto-aof-rewirte-percentage$ 自动重写百分比.</li>
 </ol>
-
-<p>执行 <span  class="math">\(info\;Persistence\)</span> 指令可以查询持久化信息。<br>
+</li>
+</ol>
+<p>执行 $info\ \ Persistence$ 指令可以查询持久化信息。<br>
 当</p>
-
-<p><span  class="math">\(aof_-current_-size>auto-aof-rewrite-min-size\\
-\Large\frac{aof_-current_-size-aof_-base_-size}{aof_-base_-size}\normalsize>=auto-aof-rewrite-percentage\)</span>,</p>
-
+<p>$aof_-current_-size&gt;auto-aof-rewrite-min-size\<br>
+\Large\frac{aof_-current_-size-aof_-base_-size}{aof_-base_-size}\normalsize&gt;=auto-aof-rewrite-percentage$,</p>
 <p>时触发自动重写。</p>
-
 <h3 id="65-对比">6.5 对比</h3>
-
 <table>
 <thead>
 <tr>
-<th align="center">&nbsp;</th>
+<th align="center"> </th>
 <th align="center"><code>RDB</code></th>
 <th align="center"><code>AOF</code></th>
 </tr>
 </thead>
-
 <tbody>
 <tr>
 <td align="center">占用存储空间</td>
 <td align="center">小（压缩）</td>
 <td align="center">大（重写）</td>
 </tr>
-
 <tr>
 <td align="center">存储速度</td>
 <td align="center">慢</td>
 <td align="center">快</td>
 </tr>
-
 <tr>
 <td align="center">恢复速度</td>
 <td align="center">快</td>
 <td align="center">慢</td>
 </tr>
-
 <tr>
 <td align="center">数据安全性</td>
 <td align="center">会丢失</td>
 <td align="center">依据策略</td>
 </tr>
-
 <tr>
 <td align="center">资源消耗</td>
 <td align="center">高</td>
 <td align="center">低</td>
 </tr>
-
 <tr>
 <td align="center">启动优先级</td>
 <td align="center">低</td>
@@ -398,275 +437,216 @@ dir /data</code></pre>
 </tr>
 </tbody>
 </table>
-
 <h2 id="7-事务">7. 事务</h2>
-
 <p>类似于<code>DBMS</code>中的事务，命令在事务内并不会立即执行。</p>
-
 <ol>
-<li><span  class="math">\(multi\)</span>&nbsp;&nbsp;开启事务,</li>
-<li><span  class="math">\(exec\)</span>&nbsp;&nbsp;执行事务,</li>
-<li><span  class="math">\(discard\)</span>&nbsp;&nbsp;取消事务.</li>
+<li>$multi$  开启事务,</li>
+<li>$exec$  执行事务,</li>
+<li>$discard$  取消事务.</li>
 </ol>
-
 <h3 id="71-流程">7.1 流程</h3>
-
 <ol>
 <li>服务器接收到指令后会判断是否处于事务状态,</li>
-<li>接收到 <span  class="math">\(multi\)</span> 指令后会创建队列，转换为事务状态,</li>
+<li>接收到 $multi$ 指令后会创建队列，转换为事务状态,</li>
 <li>之后再接收指令时，会把指令加入队列,</li>
-<li>接收到 <span  class="math">\(exec\)</span> 指令时，依次执行队列中的指令,</li>
-<li>如果接收到 <span  class="math">\(discard\)</span> 指令，销毁队列.</li>
+<li>接收到 $exec$ 指令时，依次执行队列中的指令,</li>
+<li>如果接收到 $discard$ 指令，销毁队列.</li>
 </ol>
-
 <p>如果命令中存在语法错误，则整个事务都会被销毁。</p>
-
 <h3 id="72-锁">7.2 锁</h3>
-
 <ol>
-<li><span  class="math">\(watch\)</span>&nbsp;&nbsp;添加监视锁，如果在 <span  class="math">\(exec\)</span> 之前发生了变化则终止事务执行(<span  class="math">\(exec\)</span> 返回 <span  class="math">\(nil\)</span>)，监视锁要在开启事务之前设置,</li>
-<li><span  class="math">\(unwatch\)</span>&nbsp;&nbsp;取消全部监视锁,</li>
-<li><span  class="math">\(setnx\)</span>&nbsp;&nbsp;添加公共锁，若有返回值则设置失败,</li>
-<li><span  class="math">\(del\)</span>&nbsp;&nbsp;删除公共锁,</li>
-<li><span  class="math">\(expire/pexpire\)</span>&nbsp;&nbsp;为锁添加时效，防止长时间被占用.</li>
+<li>$watch$  添加监视锁，如果在 $exec$ 之前发生了变化则终止事务执行($exec$ 返回 $nil$)，监视锁要在开启事务之前设置,</li>
+<li>$unwatch$  取消全部监视锁,</li>
+<li>$setnx$  添加公共锁，若有返回值则设置失败,</li>
+<li>$del$  删除公共锁,</li>
+<li>$expire/pexpire$  为锁添加时效，防止长时间被占用.</li>
 </ol>
-
 <h2 id="8-删除策略">8. 删除策略</h2>
-
-<p>在使用 <span  class="math">\(expire\)</span> 等操作设置数据周期时，会将数据地址和过期时间以哈希键值对的方式存储在 <span  class="math">\(expires\)</span> 块中，<code>Redis</code>的每个数据库都有一个 <span  class="math">\(expires\)</span> 区域。</p>
-
+<p>在使用 $expire$ 等操作设置数据周期时，会将数据地址和过期时间以哈希键值对的方式存储在 $expires$ 块中，<code>Redis</code>的每个数据库都有一个 $expires$ 区域。</p>
 <ol>
 <li>定时删除,<br>
-到达指定时间后同时删除存储区和 <span  class="math">\(expires\)</span> 区中的数据，对<code>CPU</code>负担较大，会抢占当前线程.</li>
+到达指定时间后同时删除存储区和 $expires$ 区中的数据，对<code>CPU</code>负担较大，会抢占当前线程.</li>
 <li>惰性删除,<br>
-到达指定时间后不删除，下次访问时再进行删除。采取此种策略时，每个访问都要调用一次 <span  class="math">\(expireIfNeeded()\)</span> 函数，用于判断数据是否过期。占用较多内存.</li>
+到达指定时间后不删除，下次访问时再进行删除。采取此种策略时，每个访问都要调用一次 $expireIfNeeded()$ 函数，用于判断数据是否过期。占用较多内存.</li>
 <li>定期删除,
-
 <ol>
-<li>使用 <span  class="math">\(info Server\)</span> 命令可以得到一个 <span  class="math">\(hz\)</span> 值，代表每秒执行的 <span  class="math">\(serverCron()\)</span> 函数的次数，轮询服务器,</li>
-<li>该函数调用 <span  class="math">\(databaseCron()\)</span> 函数，轮询 <span  class="math">\(expires\)</span>,</li>
-<li>在这些块内调用 <span  class="math">\(activeExpireCycle()\)</span> 函数，每次执行 <span  class="math">\(\Large\frac{250}{hz}\normalsize ms\)</span>,</li>
-<li>随机挑选 <span  class="math">\(W\)</span> 个 <span  class="math">\(key\)</span> 进行检测并删除超时数据，如果删除的数量 <span  class="math">\(>\Large\frac{W}{4}\)</span> ，循环,</li>
-<li>通过 <span  class="math">\(active\_expire\_cycle\_lookups\_per\_loop\)</span>配置可以设置 <span  class="math">\(W\)</span> 的值，<span  class="math">\(current\_db\)</span> 记录当前轮询的<span  class="math">\(expires\)</span> 块.</li>
-</ol></li>
+<li>使用 $info Server$ 命令可以得到一个 $hz$ 值，代表每秒执行的 $serverCron()$ 函数的次数，轮询服务器,</li>
+<li>该函数调用 $databaseCron()$ 函数，轮询 $expires$,</li>
+<li>在这些块内调用 $activeExpireCycle()$ 函数，每次执行 $\Large\frac{250}{hz}\normalsize ms$,</li>
+<li>随机挑选 $W$ 个 $key$ 进行检测并删除超时数据，如果删除的数量 $&gt;\Large\frac{W}{4}$ ，循环,</li>
+<li>通过 $active_expire_cycle_lookups_per_loop$配置可以设置 $W$ 的值，$current_db$ 记录当前轮询的$expires$ 块.</li>
 </ol>
-
+</li>
+</ol>
 <h3 id="81-逐出算法">8.1 逐出算法</h3>
-
-<p><code>Redis</code>在执行命令前会调用 <span  class="math">\(freeMemoryIfNeeded()\)</span> 函数，用于检测内存是否充足，如果不足，则会删除一些数据，而清理过程中使用的算法称为逐出算法。当逐出算法失败时，会抛出错误信息。</p>
-
+<p><code>Redis</code>在执行命令前会调用 $freeMemoryIfNeeded()$ 函数，用于检测内存是否充足，如果不足，则会删除一些数据，而清理过程中使用的算法称为逐出算法。当逐出算法失败时，会抛出错误信息。</p>
 <ol>
-<li><span  class="math">\(maxmemory\)</span>&nbsp;&nbsp;设置<code>Redis</code>的最大可支配内存，默认为全部,</li>
-<li><span  class="math">\(maxmemory-samples\)</span>&nbsp;&nbsp;随机获取数据时每次获取的个数,</li>
-<li><span  class="math">\(maxmemory-policy\)</span>&nbsp;&nbsp;挑选删除数据的策略,
-
+<li>$maxmemory$  设置<code>Redis</code>的最大可支配内存，默认为全部,</li>
+<li>$maxmemory-samples$  随机获取数据时每次获取的个数,</li>
+<li>$maxmemory-policy$  挑选删除数据的策略,
 <ol>
-<li>检测易失数据（<span  class="math">\(expires\)</span>）,
-
+<li>检测易失数据（$expires$）,
 <ol>
-<li><span  class="math">\(volatile-lru\)</span>&nbsp;&nbsp;最近最久未使用,</li>
-<li><span  class="math">\(volatile-lfu\)</span>&nbsp;&nbsp;最近最少次数使用,</li>
-<li><span  class="math">\(volatile-ttl\)</span>&nbsp;&nbsp;最接近过期,</li>
-<li><span  class="math">\(volatile-random\)</span>&nbsp;&nbsp;随机,</li>
-</ol></li>
+<li>$volatile-lru$  最近最久未使用,</li>
+<li>$volatile-lfu$  最近最少次数使用,</li>
+<li>$volatile-ttl$  最接近过期,</li>
+<li>$volatile-random$  随机,</li>
+</ol>
+</li>
 <li>全库数据,
-
 <ol>
-<li><span  class="math">\(allkeys-lru\)</span>,</li>
-<li><span  class="math">\(allkeys-lfu\)</span>,</li>
-<li><span  class="math">\(allkeys-random\)</span>,</li>
-</ol></li>
-<li>不驱逐 <span  class="math">\(no-enviction\)</span>.</li>
-</ol></li>
+<li>$allkeys-lru$,</li>
+<li>$allkeys-lfu$,</li>
+<li>$allkeys-random$,</li>
 </ol>
-
-<p>通过 <span  class="math">\(info\)</span> 命令中的 <span  class="math">\(keyspace\)</span>_<span  class="math">\(hits\)</span> 和 <span  class="math">\(keyspace\)</span>_<span  class="math">\(misses\)</span> 可以得到命中率。</p>
-
+</li>
+<li>不驱逐 $no-enviction$.</li>
+</ol>
+</li>
+</ol>
+<p>通过 $info$ 命令中的 $keyspace$_$hits$ 和 $keyspace$_$misses$ 可以得到命中率。</p>
 <h2 id="9-服务器配置">9. 服务器配置</h2>
-
 <ol>
-<li><span  class="math">\(daemonize\)</span>&nbsp;&nbsp;守护进程，<code>Docker</code>中要设为 <span  class="math">\(no\)</span>,</li>
-<li><span  class="math">\(bind\)</span>&nbsp;&nbsp;绑定主机地址，绑定之后只能通过该地址访问,</li>
-<li><span  class="math">\(port\)</span>&nbsp;&nbsp;端口号,</li>
-<li><span  class="math">\(database\)</span>&nbsp;&nbsp;数据库数量,</li>
-<li><span  class="math">\(loglevel\;[debug|verbose|notice|warning]\)</span>&nbsp;&nbsp;日志记录级别，默认为 <span  class="math">\(verbose\)</span> ，生产环境中可以设为 <span  class="math">\(notice\)</span>,</li>
-<li><span  class="math">\(logfile\)</span>&nbsp;&nbsp;日志文件名,</li>
-<li><span  class="math">\(maxclients\)</span>&nbsp;&nbsp;最大客户端连接数，默认为无限,</li>
-<li><span  class="math">\(timeout\)</span>&nbsp;&nbsp;最大闲置时间，<span  class="math">\(0\)</span> 为关闭该功能,</li>
-<li><span  class="math">\(include\)</span>&nbsp;&nbsp;导入其他配置.</li>
+<li>$daemonize$  守护进程，<code>Docker</code>中要设为 $no$,</li>
+<li>$bind$  绑定主机地址，绑定之后只能通过该地址访问,</li>
+<li>$port$  端口号,</li>
+<li>$database$  数据库数量,</li>
+<li>$loglevel\ \ [debug|verbose|notice|warning]$  日志记录级别，默认为 $verbose$ ，生产环境中可以设为 $notice$,</li>
+<li>$logfile$  日志文件名,</li>
+<li>$maxclients$  最大客户端连接数，默认为无限,</li>
+<li>$timeout$  最大闲置时间，$0$ 为关闭该功能,</li>
+<li>$include$  导入其他配置.</li>
 </ol>
-
 <h2 id="10-高级数据类型">10. 高级数据类型</h2>
-
 <h3 id="101-bitmaps">10.1 <code>Bitmaps</code></h3>
-
 <p><code>Bitmaps</code>相当于对<code>string</code>类型进行二进制操作的一个接口。</p>
-
 <ol>
-<li><span  class="math">\(getbit\)</span>&nbsp;&nbsp;获取指定偏移量上的<code>bit</code>值,</li>
-<li><span  class="math">\(setbit\)</span>&nbsp;&nbsp;设置,</li>
-<li><span  class="math">\(bitop\)</span>&nbsp;&nbsp;对 <span  class="math">\(key\)</span> 之间进行 <span  class="math">\(and/or/not/xor\)</span> 操作并保存到指定 <span  class="math">\(key\)</span> 中,</li>
-<li><span  class="math">\(bitcount\)</span>&nbsp;&nbsp;统计指定范围内<code>bit</code>为 <span  class="math">\(1\)</span> 的数量.</li>
+<li>$getbit$  获取指定偏移量上的<code>bit</code>值,</li>
+<li>$setbit$  设置,</li>
+<li>$bitop$  对 $key$ 之间进行 $and/or/not/xor$ 操作并保存到指定 $key$ 中,</li>
+<li>$bitcount$  统计指定范围内<code>bit</code>为 $1$ 的数量.</li>
 </ol>
-
 <h3 id="102-hyperloglog">10.2 <code>HyperLogLog</code></h3>
-
-<p>统计不重复的数据数，运用了<code>LogLog</code>算法，是一个估算算法，在大量数据时存在误差，估计结果是一个带有 <span  class="math">\(0.81\%\)</span> 标准错误的近似值。每个 <span  class="math">\(HyperLogLog key\)</span> 只占用最多 <span  class="math">\(12K\)</span> 内存用于标基数。</p>
-
+<p>统计不重复的数据数，运用了<code>LogLog</code>算法，是一个估算算法，在大量数据时存在误差，估计结果是一个带有 $0.81%$ 标准错误的近似值。每个 $HyperLogLog key$ 只占用最多 $12K$ 内存用于标基数。</p>
 <ol>
-<li><span  class="math">\(pfadd\)</span>&nbsp;&nbsp;添加,</li>
-<li><span  class="math">\(pfcount\)</span>&nbsp;&nbsp;统计,</li>
-<li><span  class="math">\(pfmerge\)</span>&nbsp;&nbsp;合并.</li>
+<li>$pfadd$  添加,</li>
+<li>$pfcount$  统计,</li>
+<li>$pfmerge$  合并.</li>
 </ol>
-
 <h3 id="103-geo">10.3 <code>GEO</code></h3>
-
 <p>计算坐标点之间的距离</p>
-
 <ol>
-<li><span  class="math">\(geoadd\)</span>&nbsp;&nbsp;添加，通过经纬度的方式添加,</li>
-<li><span  class="math">\(geopos\)</span>&nbsp;&nbsp;获取,</li>
-<li><span  class="math">\(geodist\)</span>&nbsp;&nbsp;计算，可以指定单位,</li>
-<li><span  class="math">\(georadius\)</span>&nbsp;&nbsp;获取指定范围内符合条件的坐标,</li>
-<li><span  class="math">\(georadiusbymember\)</span>,</li>
-<li><span  class="math">\(geohash\)</span>&nbsp;&nbsp;获取对应坐标哈希.</li>
+<li>$geoadd$  添加，通过经纬度的方式添加,</li>
+<li>$geopos$  获取,</li>
+<li>$geodist$  计算，可以指定单位,</li>
+<li>$georadius$  获取指定范围内符合条件的坐标,</li>
+<li>$georadiusbymember$,</li>
+<li>$geohash$  获取对应坐标哈希.</li>
 </ol>
-
 <h2 id="11-主从复制">11. 主从复制</h2>
-
-<p>主服务器为 <span  class="math">\(master\)</span> ，收集数据（写数据），提供给多台服务器，称为 <span  class="math">\(slave\)</span> ，用于提供数据（读数据）。一个 <span  class="math">\(master\)</span> 可以对应多个 <span  class="math">\(slave\)</span> ，而一个 <span  class="math">\(slave\)</span> 只能对应一个 <span  class="math">\(master\)</span> ，一个服务器可以既是 <span  class="math">\(slave\)</span> 也是 <span  class="math">\(master\)</span>。主从复制即将 <span  class="math">\(master\)</span> 的数据即时有效的复制到 <span  class="math">\(slave\)</span> 中。</p>
-
+<p>主服务器为 $master$ ，收集数据（写数据），提供给多台服务器，称为 $slave$ ，用于提供数据（读数据）。一个 $master$ 可以对应多个 $slave$ ，而一个 $slave$ 只能对应一个 $master$ ，一个服务器可以既是 $slave$ 也是 $master$。主从复制即将 $master$ 的数据即时有效的复制到 $slave$ 中。</p>
 <h3 id="111-连接">11.1 连接</h3>
-
-<p><span  class="math">\(slave\)</span> 连接 <span  class="math">\(master\)</span> 。</p>
-
+<p>$slave$ 连接 $master$ 。</p>
 <ol>
-<li><span  class="math">\(slaveof\;[ip]\;[port]\)</span>&nbsp;&nbsp;可以添加在配置文件中,</li>
-<li>发送指令后 <span  class="math">\(master\)</span> 响应,</li>
-<li>保存 <span  class="math">\(masterhost\)</span> 和 <span  class="math">\(masterport\)</span>,</li>
-<li>根据保存的信息创建 <span  class="math">\(socket\)</span>,</li>
-<li>周期性地发送 <span  class="math">\(ping-pong\)</span> 消息,</li>
-<li><span  class="math">\(auth\;password\)</span> 验证授权,</li>
-<li><span  class="math">\(replconflistening-port\;[port]\)</span> 发送监听端口到 <span  class="math">\(master\)</span>,</li>
-<li><span  class="math">\(master\)</span> 保存监听端口,</li>
-<li><span  class="math">\(slaveof no one\)</span> 断开连接.</li>
+<li>$slaveof\ \ [ip]\ \ [port]$  可以添加在配置文件中,</li>
+<li>发送指令后 $master$ 响应,</li>
+<li>保存 $masterhost$ 和 $masterport$,</li>
+<li>根据保存的信息创建 $socket$,</li>
+<li>周期性地发送 $ping-pong$ 消息,</li>
+<li>$auth\ \ password$ 验证授权,</li>
+<li>$replconflistening-port\ \ [port]$ 发送监听端口到 $master$,</li>
+<li>$master$ 保存监听端口,</li>
+<li>$slaveof no one$ 断开连接.</li>
 </ol>
-
 <h4 id="1111-授权访问">11.1.1 授权访问</h4>
-
 <ol>
-<li><span  class="math">\(master\)</span> 配置文件中设置密码 <span  class="math">\(requirepass\;[password]\)</span>,</li>
-<li><span  class="math">\(master\)</span> 客户端发送命令设置密码 <span  class="math">\(config\;set\;requirepass\;[password]/config\;get\;requirepass\)</span>,</li>
-<li><span  class="math">\(slave\)</span> 配置文件设置密码 <span  class="math">\(masterauth\;[password]\)</span>,</li>
-<li><span  class="math">\(slave\)</span> 客户端发送命令设置密码 <span  class="math">\(auth\;[password]\)</span>,</li>
-<li>启动客户端设置密码 <span  class="math">\(redis-cli\;-a\;[password]\)</span>.</li>
+<li>$master$ 配置文件中设置密码 $requirepass\ \ [password]$,</li>
+<li>$master$ 客户端发送命令设置密码 $config\ \ set\ \ requirepass\ \ [password]/config\ \ get\ \ requirepass$,</li>
+<li>$slave$ 配置文件设置密码 $masterauth\ \ [password]$,</li>
+<li>$slave$ 客户端发送命令设置密码 $auth\ \ [password]$,</li>
+<li>启动客户端设置密码 $redis-cli\ \ -a\ \ [password]$.</li>
 </ol>
-
 <h3 id="112-数据同步">11.2 数据同步</h3>
-
 <ol>
-<li><span  class="math">\(slave\)</span> 发送 <span  class="math">\(psync2\)</span> 请求同步,</li>
-<li><span  class="math">\(master\)</span> 执行 <span  class="math">\(bgsave\)</span> ，在第一个 <span  class="math">\(slave\)</span> 连接时，创建一个命令缓冲区，用于以<code>AOF</code>形式缓冲<code>RDB</code>过程中添加的新命令,</li>
-<li>生成<code>RDB</code>文件，通过 <span  class="math">\(socket\)</span> 发送给 <span  class="math">\(slave\)</span>,</li>
-<li><span  class="math">\(slave\)</span> 接收<code>RDB</code>，清空数据并执行<code>RDB</code>恢复,</li>
+<li>$slave$ 发送 $psync2$ 请求同步,</li>
+<li>$master$ 执行 $bgsave$ ，在第一个 $slave$ 连接时，创建一个命令缓冲区，用于以<code>AOF</code>形式缓冲<code>RDB</code>过程中添加的新命令,</li>
+<li>生成<code>RDB</code>文件，通过 $socket$ 发送给 $slave$,</li>
+<li>$slave$ 接收<code>RDB</code>，清空数据并执行<code>RDB</code>恢复,</li>
 <li>发送消息通知恢复完成，请求部分同步,</li>
-<li><span  class="math">\(master\)</span> 复制缓冲区信息，以<code>AOF</code>形式发送,</li>
-<li><span  class="math">\(slave\)</span> 执行 <span  class="math">\(bgrewriteaof\)</span> 恢复部分同步数据.</li>
+<li>$master$ 复制缓冲区信息，以<code>AOF</code>形式发送,</li>
+<li>$slave$ 执行 $bgrewriteaof$ 恢复部分同步数据.</li>
 </ol>
-
-<p><span  class="math">\(1-4\)</span> 称为全量复制，<span  class="math">\(5-7\)</span> 称为部分复制，复制完成后 <span  class="math">\(slave\)</span> 端保有 <span  class="math">\(master\)</span> 端的全部数据以及复制过程接收的数据，<span  class="math">\(master\)</span> 保有 <span  class="math">\(slave\)</span> 当前同步的位置。<br>
-在进行全量复制时，如果数据量过大，时间过长导致缓冲区中数据溢出，则必须重新进行全量复制，可以通过在配置文件中设置 <span  class="math">\(repl-backlog-size\)</span> 改变缓冲区大小。<br>
-设置 <span  class="math">\(repl-backlog-size\)</span> 的流程：</p>
-
+<p>$1-4$ 称为全量复制，$5-7$ 称为部分复制，复制完成后 $slave$ 端保有 $master$ 端的全部数据以及复制过程接收的数据，$master$ 保有 $slave$ 当前同步的位置。<br>
+在进行全量复制时，如果数据量过大，时间过长导致缓冲区中数据溢出，则必须重新进行全量复制，可以通过在配置文件中设置 $repl-backlog-size$ 改变缓冲区大小。<br>
+设置 $repl-backlog-size$ 的流程：</p>
 <ol>
-<li>测算 <span  class="math">\(master\)</span> 和 <span  class="math">\(slave\)</span> 的重连时长 <span  class="math">\(second\)</span>,</li>
-<li>获取 <span  class="math">\(master\)</span> 的 <span  class="math">\(write\_size\_per\_second\)</span>,</li>
-<li><span  class="math">\(repl-backlog-size = 2 \times second \times write\_size\_per\_second\)</span>.</li>
+<li>测算 $master$ 和 $slave$ 的重连时长 $second$,</li>
+<li>获取 $master$ 的 $write_size_per_second$,</li>
+<li>$repl-backlog-size = 2 \times second \times write_size_per_second$.</li>
 </ol>
-
-<p>在复制过程中，通过设置 <span  class="math">\(slave-serve-stale-data\)</span> 来令 <span  class="math">\(slave\)</span> 关闭对外服务。如果 <span  class="math">\(slave\)</span> 过多导致 <span  class="math">\(master\)</span> 带宽不足，应调整结构，最好为树状结构。</p>
-
+<p>在复制过程中，通过设置 $slave-serve-stale-data$ 来令 $slave$ 关闭对外服务。如果 $slave$ 过多导致 $master$ 带宽不足，应调整结构，最好为树状结构。</p>
 <h3 id="113-命令传播">11.3 命令传播</h3>
-
-<p>在 <span  class="math">\(master\)</span> 和 <span  class="math">\(slave\)</span> 建立连接后，应实时保持数据同步。在该阶段内如果发生短时间网络中断，就要进行部分复制，同步短时间内的改变。</p>
-
+<p>在 $master$ 和 $slave$ 建立连接后，应实时保持数据同步。在该阶段内如果发生短时间网络中断，就要进行部分复制，同步短时间内的改变。</p>
 <h4 id="1131-部分复制的核心要素">11.3.1 部分复制的核心要素</h4>
-
 <ol>
 <li>服务器运行<code>id</code><br>
-服务器运行时的身份识别码，在多次运行中可以生成多个，是一个由 <span  class="math">\(40\)</span> 位字符组成的随机十六进制字符串，用于身份识别。使用 <span  class="math">\(info Server\)</span> 内可以查询到运行<code>id</code> <span  class="math">\(run_-id\)</span> 。</li>
-<li><span  class="math">\(master\)</span> 的复制缓冲区<br>
-命令发送给 <span  class="math">\(master\)</span> ，<span  class="math">\(master\)</span> 在将命令同步到 <span  class="math">\(slave\)</span> 时，还会把命令发送到复制缓冲区中。复制缓冲区是一个队列，由偏移量和字节值组成，每台服务器启动时，如果开启了<code>AOF</code>或者成为 <span  class="math">\(master\)</span> ，都要创建复制缓冲区。</li>
-<li><span  class="math">\(master\)</span> 和 <span  class="math">\(slave\)</span> 间的复制偏移量<br>
-<span  class="math">\(master\)</span> 通过 <span  class="math">\(offset\)</span> 记录不同 <span  class="math">\(slave\)</span> 间传播数据的量。<span  class="math">\(offset\)</span> 既记录在 <span  class="math">\(master\)</span> 中，也记录在 <span  class="math">\(slave\)</span> 中，在每次发送时记录，用于断线后恢复（部分复制）。</li>
+服务器运行时的身份识别码，在多次运行中可以生成多个，是一个由 $40$ 位字符组成的随机十六进制字符串，用于身份识别。使用 $info Server$ 内可以查询到运行<code>id</code> $run_-id$ 。</li>
+<li>$master$ 的复制缓冲区<br>
+命令发送给 $master$ ，$master$ 在将命令同步到 $slave$ 时，还会把命令发送到复制缓冲区中。复制缓冲区是一个队列，由偏移量和字节值组成，每台服务器启动时，如果开启了<code>AOF</code>或者成为 $master$ ，都要创建复制缓冲区。</li>
+<li>$master$ 和 $slave$ 间的复制偏移量<br>
+$master$ 通过 $offset$ 记录不同 $slave$ 间传播数据的量。$offset$ 既记录在 $master$ 中，也记录在 $slave$ 中，在每次发送时记录，用于断线后恢复（部分复制）。</li>
 </ol>
-
 <h4 id="1132-流程">11.3.2 流程</h4>
-
 <ol>
-<li><span  class="math">\(slave\)</span> 发送 <span  class="math">\(psync2\;[run_-id]\;[offset]\)</span> ，在首次连接时通过发送 <span  class="math">\(psync2\;?\;-1\)</span> 获取<code>id</code>和偏移量,</li>
-<li><span  class="math">\(master\)</span> 执行 <span  class="math">\(bgsave\)</span> 记录偏移量,</li>
-<li>发送 <span  class="math">\(+FULLRESYNC\;[run_-id]\;[offset]\)</span> 进行全量复制，再通过 <span  class="math">\(socket\)</span> 发送<code>RDB</code>文件,</li>
-<li><span  class="math">\(slave\)</span> 接收到<code>id</code>和偏移量，进行全量复制,</li>
-<li><span  class="math">\(slave\)</span> 发送 <span  class="math">\(psync2\;[run_-id]\;[offset]\)</span>,</li>
-<li><span  class="math">\(master\)</span> 判断<code>id</code>是否匹配，偏移量是否存在于复制缓冲区中，若不存在，重新进行全量复制,</li>
-<li>如果接收到的偏移量与存储的偏移量相同则忽略，不同则发送 <span  class="math">\(+CONTINUE\;[offset]\)</span> ，再通过 <span  class="math">\(socket\)</span> 发送复制缓冲区中新增的数据,</li>
-<li><span  class="math">\(slave\)</span> 接收到部分复制的消息，更新偏移量，执行 <span  class="math">\(bgrewriteaof\)</span> 恢复数据.</li>
+<li>$slave$ 发送 $psync2\ \ [run_-id]\ \ [offset]$ ，在首次连接时通过发送 $psync2\ \ ?\ \ -1$ 获取<code>id</code>和偏移量,</li>
+<li>$master$ 执行 $bgsave$ 记录偏移量,</li>
+<li>发送 $+FULLRESYNC\ \ [run_-id]\ \ [offset]$ 进行全量复制，再通过 $socket$ 发送<code>RDB</code>文件,</li>
+<li>$slave$ 接收到<code>id</code>和偏移量，进行全量复制,</li>
+<li>$slave$ 发送 $psync2\ \ [run_-id]\ \ [offset]$,</li>
+<li>$master$ 判断<code>id</code>是否匹配，偏移量是否存在于复制缓冲区中，若不存在，重新进行全量复制,</li>
+<li>如果接收到的偏移量与存储的偏移量相同则忽略，不同则发送 $+CONTINUE\ \ [offset]$ ，再通过 $socket$ 发送复制缓冲区中新增的数据,</li>
+<li>$slave$ 接收到部分复制的消息，更新偏移量，执行 $bgrewriteaof$ 恢复数据.</li>
 </ol>
-
 <h3 id="114-心跳机制">11.4 心跳机制</h3>
-
 <ol>
-<li><span  class="math">\(master\)</span> 心跳指令 <span  class="math">\(PING\)</span> ，判断 <span  class="math">\(slave\)</span> 是否在线，默认周期 <span  class="math">\(10\)</span> 秒，可以通过设置 <span  class="math">\(repl-ping-slave-period\)</span> 改变，查询 <span  class="math">\(info replication\)</span> 可以获取最后一次连接时间间隔,</li>
-<li><span  class="math">\(slave\)</span> 心跳指令 <span  class="math">\(REPLCONF\;ACK\;[offset]\)</span>，默认周期 <span  class="math">\(1\)</span> 秒，用于汇报偏移量和判断 <span  class="math">\(master\)</span> 是否在线.</li>
+<li>$master$ 心跳指令 $PING$ ，判断 $slave$ 是否在线，默认周期 $10$ 秒，可以通过设置 $repl-ping-slave-period$ 改变，查询 $info replication$ 可以获取最后一次连接时间间隔,</li>
+<li>$slave$ 心跳指令 $REPLCONF\ \ ACK\ \ [offset]$，默认周期 $1$ 秒，用于汇报偏移量和判断 $master$ 是否在线.</li>
 </ol>
-
-<p><span  class="math">\(min-slaves-to-write\)</span> 最小写数量，小于就不再写数据,<br>
-<span  class="math">\(min-slaves-max-lag\)</span> 最长延迟时间，若超过这个时间，不再写数据,<br>
-<span  class="math">\(slave-serve-stale-data\)</span> 如果 <span  class="math">\(slave\)</span> 延迟过大，是否暂时屏蔽程序对 <span  class="math">\(slave\)</span> 的数据访问,<br>
-<span  class="math">\(slave\)</span> 的数量和延迟由 <span  class="math">\(REPLCONF ACK\)</span> 命令得到。</p>
-
+<p>$min-slaves-to-write$ 最小写数量，小于就不再写数据,<br>
+$min-slaves-max-lag$ 最长延迟时间，若超过这个时间，不再写数据,<br>
+$slave-serve-stale-data$ 如果 $slave$ 延迟过大，是否暂时屏蔽程序对 $slave$ 的数据访问,<br>
+$slave$ 的数量和延迟由 $REPLCONF ACK$ 命令得到。</p>
 <h4 id="1141-流程">11.4.1 流程</h4>
-
-<p>接上，命令传播阶段，在该过程中 <span  class="math">\(master\)</span> 也会发送 <span  class="math">\(PING\)</span> 指令。</p>
-
+<p>接上，命令传播阶段，在该过程中 $master$ 也会发送 $PING$ 指令。</p>
 <ol>
-<li>发送 <span  class="math">\(REPLCONF\;ACK\;[offset]\)</span>,</li>
-<li><span  class="math">\(master\)</span> 判断是否处于缓冲区,</li>
+<li>发送 $REPLCONF\ \ ACK\ \ [offset]$,</li>
+<li>$master$ 判断是否处于缓冲区,</li>
 <li>执行全量复制/部分复制,</li>
-<li><span  class="math">\(slave\)</span> 执行复制.</li>
+<li>$slave$ 执行复制.</li>
 </ol>
-
 <h3 id="115-内部优化">11.5 内部优化</h3>
-
 <p>当数据过多时，每次重启都要进行一次全量复制，内部优化机制可以缓解问题。</p>
-
 <ol>
-<li><span  class="math">\(master\)</span> 创建 <span  class="math">\(mater\_replid\)</span> ，使用 <span  class="math">\(run\_id\)</span> 生成，发送给所有 <span  class="math">\(slave\)</span>,</li>
-<li><span  class="math">\(master\)</span> 关闭时执行 <span  class="math">\(shutdown\;save\)</span> ，将 <span  class="math">\(run\)</span>_<span  class="math">\(id\)</span> 和 <span  class="math">\(offset\)</span> 保存到<code>RDB</code>文件中，使用 <span  class="math">\(redis-check-rdb\;[*.rdb]\)</span> 可以查看 <span  class="math">\(repl-id\)</span> 和 <span  class="math">\(repl-offset\)</span>,</li>
-<li><span  class="math">\(master\)</span> 重启后加载<code>RDB</code>，同时加载 <span  class="math">\(repl-id\)</span> 和 <span  class="math">\(repl-offset\)</span> ，通过 <span  class="math">\(info\)</span> 可以查看 <span  class="math">\(master\_repl\_id\)</span> 和 <span  class="math">\(master\_repl\_offset\)</span>.</li>
+<li>$master$ 创建 $mater_replid$ ，使用 $run_id$ 生成，发送给所有 $slave$,</li>
+<li>$master$ 关闭时执行 $shutdown\ \ save$ ，将 $run$_$id$ 和 $offset$ 保存到<code>RDB</code>文件中，使用 $redis-check-rdb\ \ [*.rdb]$ 可以查看 $repl-id$ 和 $repl-offset$,</li>
+<li>$master$ 重启后加载<code>RDB</code>，同时加载 $repl-id$ 和 $repl-offset$ ，通过 $info$ 可以查看 $master_repl_id$ 和 $master_repl_offset$.</li>
 </ol>
-
 <h2 id="12-哨兵模式">12. 哨兵模式</h2>
-
-<p>如果当前 <span  class="math">\(master\)</span> 宕机，需要一个 <span  class="math">\(slave\)</span> 作为新的 <span  class="math">\(master\)</span> ，这时需要通知所有 <span  class="math">\(slave\)</span> 。哨兵( <span  class="math">\(sentinel\)</span> ) 是一个分布式系统，也是一台<code>Redis</code>服务器，用于监控主从结构中得每台服务器，并通过投票机制选出新的 <span  class="math">\(master\)</span> ，通常配置奇数个哨兵。</p>
-
+<p>如果当前 $master$ 宕机，需要一个 $slave$ 作为新的 $master$ ，这时需要通知所有 $slave$ 。哨兵( $sentinel$ ) 是一个分布式系统，也是一台<code>Redis</code>服务器，用于监控主从结构中得每台服务器，并通过投票机制选出新的 $master$ ，通常配置奇数个哨兵。</p>
 <ol>
-<li>监控 <span  class="math">\(master\)</span> 和 <span  class="math">\(slave\)</span> 是否正常运行,</li>
+<li>监控 $master$ 和 $slave$ 是否正常运行,</li>
 <li>如果服务器出现问题，向其他哨兵和客户端发送通知,</li>
-<li>断开 <span  class="math">\(mater\)</span> 和 <span  class="math">\(slave\)</span> 的连接，选择一个 <span  class="math">\(slave\)</span> 作为新的 <span  class="math">\(master\)</span> ，将其他 <span  class="math">\(slave\)</span> 连接到新的 <span  class="math">\(master\)</span> ，并通知客户端新的服务器地址。</li>
+<li>断开 $mater$ 和 $slave$ 的连接，选择一个 $slave$ 作为新的 $master$ ，将其他 $slave$ 连接到新的 $master$ ，并通知客户端新的服务器地址。</li>
 </ol>
-
-<p><span  class="math">\(redis-sentinel\;[*.conf]\)</span> 启动哨兵，指定配置文件。哨兵在启动后会在配置文件中添加 <span  class="math">\(myid\)</span> 以及一些主从配置信息，并且会随着状态更新信息。<br>
-设置哨兵后可以通过 <span  class="math">\(redis-cli\;-p\;[port]\)</span> 连接哨兵服务器，但是不能进行 <span  class="math">\(get/set\)</span> 等操作，只能进行哨兵的指令，通过 <span  class="math">\(info\)</span> 的 <span  class="math">\(Sentinel\)</span> 下可以获取相关信息。</p>
-
+<p>$redis-sentinel\ \ [*.conf]$ 启动哨兵，指定配置文件。哨兵在启动后会在配置文件中添加 $myid$ 以及一些主从配置信息，并且会随着状态更新信息。<br>
+设置哨兵后可以通过 $redis-cli\ \ -p\ \ [port]$ 连接哨兵服务器，但是不能进行 $get/set$ 等操作，只能进行哨兵的指令，通过 $info$ 的 $Sentinel$ 下可以获取相关信息。</p>
 <h3 id="121-配置">12.1 配置</h3>
 <pre><code class="language-conf" data-lang="conf"># 端口
 port 26379
 # 守护进程模式
 daemonize no
 # 日志文件名
-logfile &#34;26379.log&#34;
+logfile &quot;26379.log&quot;
 # 日志路径
 dir /data
 # 监控的 master，2 代表当存在 2 台哨兵认为宕机时即判断该
@@ -677,41 +657,31 @@ sentinel down-after-milliseconds mymaster 30000
 # 新的 master 的并行同步数
 sentinel parallel-syncs mymaster 1
 # 同步的最长时间，ms
-sentinel failover-timeout mymaster 180000</code></pre>
-<h3 id="122-原理">12.2 原理</h3>
-
+sentinel failover-timeout mymaster 180000
+</code></pre><h3 id="122-原理">12.2 原理</h3>
 <h4 id="1221-监控">12.2.1 监控</h4>
-
 <ol>
-<li>连接 <span  class="math">\(master\)</span> ，通过 <span  class="math">\(INFO\)</span> 获取 <span  class="math">\(run_-id\)</span> 和 <span  class="math">\(role\)</span> 以及各个 <span  class="math">\(slave\)</span> 和 <span  class="math">\(sentinel\)</span> 的信息，建立一个<code>CMD</code>连接,</li>
-<li>获取 <span  class="math">\(sentinel\)</span> 的状态，通过 <span  class="math">\(PING\)</span> ，建立起一个通道，用于相互之间传输信息，在之后也会不断发送 <span  class="math">\(PING\)</span> 用于确认是否在线,</li>
-<li>获取 <span  class="math">\(slave\)</span> 的信息，通过 <span  class="math">\(INFO\)</span> ，获取 <span  class="math">\(run\_id,role,master\_host,master\_port,offest\)</span> 等，同样建立起<code>CMD</code>连接.</li>
+<li>连接 $master$ ，通过 $INFO$ 获取 $run_-id$ 和 $role$ 以及各个 $slave$ 和 $sentinel$ 的信息，建立一个<code>CMD</code>连接,</li>
+<li>获取 $sentinel$ 的状态，通过 $PING$ ，建立起一个通道，用于相互之间传输信息，在之后也会不断发送 $PING$ 用于确认是否在线,</li>
+<li>获取 $slave$ 的信息，通过 $INFO$ ，获取 $run_id,role,master_host,master_port,offest$ 等，同样建立起<code>CMD</code>连接.</li>
 </ol>
-
 <h4 id="1222-通知">12.2.2 通知</h4>
-
-<p><span  class="math">\(sentinel\)</span> 周期性的给各个服务器发送信息，确认其是否在线，再将取得的信息发送给其他 <span  class="math">\(sentinel\)</span>。</p>
-
+<p>$sentinel$ 周期性的给各个服务器发送信息，确认其是否在线，再将取得的信息发送给其他 $sentinel$。</p>
 <h4 id="1223-故障转移">12.2.3 故障转移</h4>
-
 <ol>
-<li>如果一个 <span  class="math">\(master\)</span> 没有及时响应，<span  class="math">\(sentinel\)</span> 会通知其他 <span  class="math">\(sentinel\)</span> ，将其标志为 <span  class="math">\(SRI\_S\_DOWN\)</span> ，即主观下线。</li>
-<li>其他 <span  class="math">\(sentinel\)</span> 也会发送信息给该 <span  class="math">\(master\)</span> ，如果有达到数量的 <span  class="math">\(sentinel\)</span> 标记其为 <span  class="math">\(SRI\_S\_DOWN\)</span> ，那么它就会被标记为 <span  class="math">\(SRI\_O\_DOWN\)</span> ，即客观下线。</li>
-<li><span  class="math">\(sentinel\)</span> 发送自己的信息，并通过投票机制（接收到信息的先后顺序），直到获得半数以上的票数后，选出的 <span  class="math">\(sentinel\)</span> 负责选出新的 <span  class="math">\(master\)</span> 。</li>
-<li><span  class="math">\(sentinel\)</span> 根据响应速度和与之前 <span  class="math">\(master\)</span> 断开时间，再通过优先原则（优先级、偏移量和 <span  class="math">\(run_-id\)</span> 大小）决出新的 <span  class="math">\(master\)</span> 。</li>
-<li><span  class="math">\(sentinel\)</span> 通知新的 <span  class="math">\(master\)</span> 和其他 <span  class="math">\(slave\;master\)</span> 改变的信息。</li>
+<li>如果一个 $master$ 没有及时响应，$sentinel$ 会通知其他 $sentinel$ ，将其标志为 $SRI_S_DOWN$ ，即主观下线。</li>
+<li>其他 $sentinel$ 也会发送信息给该 $master$ ，如果有达到数量的 $sentinel$ 标记其为 $SRI_S_DOWN$ ，那么它就会被标记为 $SRI_O_DOWN$ ，即客观下线。</li>
+<li>$sentinel$ 发送自己的信息，并通过投票机制（接收到信息的先后顺序），直到获得半数以上的票数后，选出的 $sentinel$ 负责选出新的 $master$ 。</li>
+<li>$sentinel$ 根据响应速度和与之前 $master$ 断开时间，再通过优先原则（优先级、偏移量和 $run_-id$ 大小）决出新的 $master$ 。</li>
+<li>$sentinel$ 通知新的 $master$ 和其他 $slave\ \ master$ 改变的信息。</li>
 </ol>
-
 <h2 id="13-集群">13. 集群</h2>
-
-<p><code>Redis</code>服务器将所有的存储空间计划切割成 <span  class="math">\(16384\)</span> 个槽（ <span  class="math">\(slot\)</span> ），每台主机均保存部分槽，在进行 <span  class="math">\(key\)</span> 存储时，要先计算出其存储的槽。如果在后续有增加主机，则从现有的主机中每台选出部分槽存储在新主机上。<br>
-在集群内部，各个数据库之间相互通信，保存各个库中槽的编号数据。当未命中时，数据库可以通过保存的数据给出要查找的 <span  class="math">\(key\)</span> 所在的数据库。<br>
-在集群模式中，如果 <span  class="math">\(slave\)</span> 下线，不会影响集群，下线 <span  class="math">\(slave\)</span> 的 <span  class="math">\(master\)</span> 会将下线状态发送给其他 <span  class="math">\(master\)</span> 。当 <span  class="math">\(slave\)</span> 重新上线后，会清除自己和其他 <span  class="math">\(master\)</span> 的下线状态。<br>
-如果 <span  class="math">\(master\)</span> 下线，<span  class="math">\(slave\)</span> 会重复连接( 周期为 <span  class="math">\(1s\)</span> )直到超时，超时后会选出 <span  class="math">\(slave\)</span> 成为新的 <span  class="math">\(master\)</span> 。<span  class="math">\(master\)</span> 重新连接后，新的 <span  class="math">\(master\)</span> 清除掉下线状态，将其作为 <span  class="math">\(slave\)</span> 同步。</p>
-
+<p><code>Redis</code>服务器将所有的存储空间计划切割成 $16384$ 个槽（ $slot$ ），每台主机均保存部分槽，在进行 $key$ 存储时，要先计算出其存储的槽。如果在后续有增加主机，则从现有的主机中每台选出部分槽存储在新主机上。<br>
+在集群内部，各个数据库之间相互通信，保存各个库中槽的编号数据。当未命中时，数据库可以通过保存的数据给出要查找的 $key$ 所在的数据库。<br>
+在集群模式中，如果 $slave$ 下线，不会影响集群，下线 $slave$ 的 $master$ 会将下线状态发送给其他 $master$ 。当 $slave$ 重新上线后，会清除自己和其他 $master$ 的下线状态。<br>
+如果 $master$ 下线，$slave$ 会重复连接( 周期为 $1s$ )直到超时，超时后会选出 $slave$ 成为新的 $master$ 。$master$ 重新连接后，新的 $master$ 清除掉下线状态，将其作为 $slave$ 同步。</p>
 <h3 id="131-配置">13.1 配置</h3>
-
-<p>使用集群前要更改配置，添加在 <span  class="math">\(redis.conf\)</span> 文件内。</p>
+<p>使用集群前要更改配置，添加在 $redis.conf$ 文件内。</p>
 <pre><code class="language-conf" data-lang="conf"># 启动集群
 cluster-enabled yes
 # 集群配置文件，集群开启后会生成在 dir 指定的路径
@@ -719,81 +689,63 @@ cluster-config-file node-6379.conf
 # 集群超时时间, ms
 cluster-node-timeout 30000
 # master 连接的 slave 的最小数量
-# cluster-migration-barrier 1</code></pre>
-<h3 id="132-启动">13.2 启动</h3>
-
-<p><span  class="math">\(redis-cli\;--cluster\;create\;--replicas\;[num]\;[master\_host:ip]...\;[slave\_host:ip]\)</span> 开启集群，可以通过 <span  class="math">\(--replicas\)</span> 指定内部结构，<span  class="math">\(num\)</span> 代表一台 <span  class="math">\(master\)</span> 有 <span  class="math">\(num\)</span> 台 <span  class="math">\(slave\)</span> ，后续输入的主从地址要符合结构，先输入所有的 <span  class="math">\(master\)</span> ，再按序输入所有的 <span  class="math">\(slave\)</span> 。<br>
-在连接集群服务器时，使用 <span  class="math">\(redis-cli\;-c\)</span> ，会将不属于当前服务器管理的槽的数据自动转到其他服务器或者从其他服务器取出当前服务器管理的槽的数据。</p>
-
+# cluster-migration-barrier 1
+</code></pre><h3 id="132-启动">13.2 启动</h3>
+<p>$redis-cli\ \ &ndash;cluster\ \ create\ \ &ndash;replicas\ \ [num]\ \ [master_host:ip]&hellip;\ \ [slave_host:ip]$ 开启集群，可以通过 $&ndash;replicas$ 指定内部结构，$num$ 代表一台 $master$ 有 $num$ 台 $slave$ ，后续输入的主从地址要符合结构，先输入所有的 $master$ ，再按序输入所有的 $slave$ 。<br>
+在连接集群服务器时，使用 $redis-cli\ \ -c$ ，会将不属于当前服务器管理的槽的数据自动转到其他服务器或者从其他服务器取出当前服务器管理的槽的数据。</p>
 <h3 id="133-操作">13.3 操作</h3>
-
 <ol>
-<li><span  class="math">\(cluster\;nodes\)</span>&nbsp;&nbsp;查看节点信息,</li>
-<li><span  class="math">\(cluster\;replicate\;[master\_run\_id]\)</span>&nbsp;&nbsp;切换一个 <span  class="math">\(slave\)</span> 的 <span  class="math">\(master\)</span>,</li>
-<li><span  class="math">\(cluster\;meet\;[host:ip]\)</span>&nbsp;&nbsp;为新节点添加 <span  class="math">\(master\)</span>,</li>
-<li><span  class="math">\(cluster\;forget\;[run\_id]\)</span>&nbsp;&nbsp;忽略一个没有槽的节点,</li>
-<li><span  class="math">\(cluster\;failover\)</span>&nbsp;&nbsp;手动故障转移.</li>
+<li>$cluster\ \ nodes$  查看节点信息,</li>
+<li>$cluster\ \ replicate\ \ [master_run_id]$  切换一个 $slave$ 的 $master$,</li>
+<li>$cluster\ \ meet\ \ [host:ip]$  为新节点添加 $master$,</li>
+<li>$cluster\ \ forget\ \ [run_id]$  忽略一个没有槽的节点,</li>
+<li>$cluster\ \ failover$  手动故障转移.</li>
 </ol>
-
 <h2 id="14-解决方案">14. 解决方案</h2>
-
 <h3 id="141-缓存预热">14.1 缓存预热</h3>
-
 <p>在<code>Redis</code>服务器部署后，如果发生请求数高，吞吐量大，同步操作频繁，容易发生宕机。</p>
-
 <h4 id="1411-解决">14.1.1 解决</h4>
-
 <ol>
 <li>前置,
-
 <ol>
 <li>统计高频数据,</li>
-<li>利用<code>LRU</code>构建数据留存队列（ <span  class="math">\(storm/kafka\)</span> ）,</li>
-</ol></li>
+<li>利用<code>LRU</code>构建数据留存队列（ $storm/kafka$ ）,</li>
+</ol>
+</li>
 <li>准备,
-
 <ol>
 <li><code>Redis</code>优先加载高频数据,</li>
 <li>利用分布式技术加快数据读取,</li>
-</ol></li>
+</ol>
+</li>
 <li>实施,
-
 <ol>
 <li>使用脚本触发数据预热,</li>
 <li>使用<code>CDN</code>.</li>
-</ol></li>
 </ol>
-
+</li>
+</ol>
 <h3 id="142-缓存雪崩">14.2 缓存雪崩</h3>
-
-<p>数据库连接量激增导致 <span  class="math">\(408\)</span>, <span  class="math">\(500\)</span> 等错误页面的出现，客户反复刷新导致流量居高不下。通常是<code>Redis</code>中一个较短时间内大量 <span  class="math">\(key\)</span> 过期导致。</p>
-
+<p>数据库连接量激增导致 $408$, $500$ 等错误页面的出现，客户反复刷新导致流量居高不下。通常是<code>Redis</code>中一个较短时间内大量 $key$ 过期导致。</p>
 <h4 id="1421-解决">14.2.1 解决</h4>
-
 <ol>
 <li>更多静态页面</li>
-<li>多级缓存( <span  class="math">\(Nginx\)</span>, <span  class="math">\(Redis\)</span>, <span  class="math">\(Ehcache\)</span> 等)</li>
+<li>多级缓存( $Nginx$, $Redis$, $Ehcache$ 等)</li>
 <li>优化<code>SQL</code>语句</li>
 <li>监控服务器性能指标（<code>CPU</code>占用率，内存占用率，平均响应时间，线程数等）</li>
 <li>限流</li>
 </ol>
-
 <p>也可以针对过期问题解决</p>
-
 <ol>
 <li>切换删除策略（<code>LRU</code>，<code>LFU</code>等）,</li>
 <li>调整有效期，错峰删除（分类，增加随机时间等）,</li>
-<li>对于高频数据使用永久 <span  class="math">\(key\)</span>,</li>
+<li>对于高频数据使用永久 $key$,</li>
 <li>定期维护，分析数据访问量,</li>
 <li>锁.</li>
 </ol>
-
 <h3 id="143-缓存击穿">14.3 缓存击穿</h3>
-
 <p><code>Redis</code>某个高频数据过期导致数据库访问量激增，从而使数据库崩溃。</p>
-
 <h4 id="1431-解决">14.3.1 解决</h4>
-
 <ol>
 <li>统计高频数据</li>
 <li>定时任务，在高峰期前刷新数据有效期</li>
@@ -801,93 +753,74 @@ cluster-node-timeout 30000
 <li>错峰删除</li>
 <li>锁</li>
 </ol>
-
 <h3 id="144-缓存穿透">14.4 缓存穿透</h3>
-
-<p><code>Redis</code>命中率下降导致数据库崩溃。通常由于数据库中没有对应数据或者<code>Redis</code>未持久化 <span  class="math">\(null\)</span> 数据导致，也可能是黑客攻击导致。</p>
-
+<p><code>Redis</code>命中率下降导致数据库崩溃。通常由于数据库中没有对应数据或者<code>Redis</code>未持久化 $null$ 数据导致，也可能是黑客攻击导致。</p>
 <h4 id="1441-解决">14.4.1 解决</h4>
-
 <ol>
-<li>缓存 <span  class="math">\(null\)</span> ，设置短时限</li>
+<li>缓存 $null$ ，设置短时限</li>
 <li>拦截异常访问/布隆过滤器</li>
 <li>监控<code>Redis</code>命中率，使用黑名单进行防控</li>
-<li>启动防灾业务 <span  class="math">\(key\)</span> ，如设置加密 <span  class="math">\(key\)</span> ，拦截不符合规则的访问</li>
+<li>启动防灾业务 $key$ ，如设置加密 $key$ ，拦截不符合规则的访问</li>
 </ol>
-
 <h3 id="145-监控">14.5 监控</h3>
-
 <p>监控工具：</p>
-
 <ol>
-<li><span  class="math">\(Cloud\;Insight\;Redis\)</span>,</li>
-<li><span  class="math">\(Prometheus\)</span>,</li>
-<li><span  class="math">\(Redis-stat\)</span>,</li>
-<li><span  class="math">\(Redis-faina\)</span>,</li>
-<li><span  class="math">\(RedisLive\)</span>,</li>
-<li><span  class="math">\(zabbix\)</span>.</li>
+<li>$Cloud\ \ Insight\ \ Redis$,</li>
+<li>$Prometheus$,</li>
+<li>$Redis-stat$,</li>
+<li>$Redis-faina$,</li>
+<li>$RedisLive$,</li>
+<li>$zabbix$.</li>
 </ol>
-
 <p>监控命令：</p>
-
 <ol>
-<li><span  class="math">\(redis-benchmark\;-h\;[host]\;-p\;[port]\;-c\;[connect]\;-n[request]\)</span>,<br>
-<span  class="math">\(-c\)</span> 指定连接数，<span  class="math">\(-n\)</span> 指定请求数.</li>
-<li><span  class="math">\(redis-cli\)</span>,
-
+<li>$redis-benchmark\ \ -h\ \ [host]\ \ -p\ \ [port]\ \ -c\ \ [connect]\ \ -n[request]$,<br>
+$-c$ 指定连接数，$-n$ 指定请求数.</li>
+<li>$redis-cli$,
 <ol>
-<li><span  class="math">\(monitor\)</span>,<br>
+<li>$monitor$,<br>
 开启监控.</li>
-<li><span  class="math">\(slowlog\;get/len/reset\)</span>,<br>
+<li>$slowlog\ \ get/len/reset$,<br>
 获取慢日志/获取慢日志条目/重置慢日志，
-相关配置:<br>
-
+相关配置:
 <ol>
-<li><span  class="math">\(slowlog-log-slower-than\)</span> 慢查询时间下限，微秒,</li>
-<li><span  class="math">\(slowlog-max-len\)</span> 慢查询日志长度.</li>
-</ol></li>
-</ol></li>
+<li>$slowlog-log-slower-than$ 慢查询时间下限，微秒,</li>
+<li>$slowlog-max-len$ 慢查询日志长度.</li>
 </ol>
-
+</li>
+</ol>
+</li>
+</ol>
 <h4 id="1451-性能">14.5.1 性能</h4>
-
 <ol>
-<li><span  class="math">\(latency\)</span>&nbsp;&nbsp;响应延迟,</li>
-<li><span  class="math">\(instantaneous\_ops\_per\_sec\)</span>&nbsp;&nbsp;每秒处理请求数,</li>
-<li><span  class="math">\(hit\;rate\)</span>&nbsp;&nbsp;命中率.</li>
+<li>$latency$  响应延迟,</li>
+<li>$instantaneous_ops_per_sec$  每秒处理请求数,</li>
+<li>$hit\ \ rate$  命中率.</li>
 </ol>
-
 <h4 id="1452-内存">14.5.2 内存</h4>
-
 <ol>
-<li><span  class="math">\(used_-memory\)</span>&nbsp;&nbsp;内存占用,</li>
-<li><span  class="math">\(mem\_fragmentation\_ratio\)</span>&nbsp;&nbsp;碎片率,</li>
-<li><span  class="math">\(evicted_-keys\)</span>&nbsp;&nbsp;由于内存限制而移除的 <span  class="math">\(key\)</span> 的数量,</li>
-<li><span  class="math">\(blocked_-clients\)</span>&nbsp;&nbsp;由于阻塞操作（ <span  class="math">\(blpop,brpop\)</span> 等）而阻塞的客户端数量.</li>
+<li>$used_-memory$  内存占用,</li>
+<li>$mem_fragmentation_ratio$  碎片率,</li>
+<li>$evicted_-keys$  由于内存限制而移除的 $key$ 的数量,</li>
+<li>$blocked_-clients$  由于阻塞操作（ $blpop,brpop$ 等）而阻塞的客户端数量.</li>
 </ol>
-
 <h4 id="1453-活动">14.5.3 活动</h4>
-
 <ol>
-<li><span  class="math">\(connected_-clients\)</span>&nbsp;&nbsp;客户端连接数,</li>
-<li><span  class="math">\(connected_-slaves\)</span>&nbsp;&nbsp;连接的<span  class="math">\(slave\)</span> 数,</li>
-<li><span  class="math">\(master\_last\_io\_second\_ago\)</span>&nbsp;&nbsp;最近一次交互距今,</li>
-<li><span  class="math">\(keyspace\)</span>&nbsp;&nbsp;数据库中 <span  class="math">\(key\)</span> 的数量.</li>
+<li>$connected_-clients$  客户端连接数,</li>
+<li>$connected_-slaves$  连接的$slave$ 数,</li>
+<li>$master_last_io_second_ago$  最近一次交互距今,</li>
+<li>$keyspace$  数据库中 $key$ 的数量.</li>
 </ol>
-
 <h4 id="1454-持久化">14.5.4 持久化</h4>
-
 <ol>
-<li><span  class="math">\(rdb\_last\_save\_time\)</span>&nbsp;&nbsp;最近一次<code>RDB</code>时间</li>
-<li><span  class="math">\(rdb\_changes\_since\_last\_save\)</span>&nbsp;&nbsp;最近一次<code>RDB</code>至今改变的数据量</li>
+<li>$rdb_last_save_time$  最近一次<code>RDB</code>时间</li>
+<li>$rdb_changes_since_last_save$  最近一次<code>RDB</code>至今改变的数据量</li>
 </ol>
-
 <h4 id="1455-错误">14.5.5 错误</h4>
-
 <ol>
-<li><span  class="math">\(rejected_-connections\)</span>&nbsp;&nbsp;客户端数量达到上限后拒绝的连接数</li>
-<li><span  class="math">\(keyspace_-misses\)</span>&nbsp;&nbsp;未命中次数</li>
-<li><span  class="math">\(master\_link\_down\_since\_seconds\)</span>&nbsp;&nbsp;主从断连持续时间</li>
+<li>$rejected_-connections$  客户端数量达到上限后拒绝的连接数</li>
+<li>$keyspace_-misses$  未命中次数</li>
+<li>$master_link_down_since_seconds$  主从断连持续时间</li>
 </ol>
 
 
@@ -929,7 +862,52 @@ cluster-node-timeout 30000
     </div>
 </footer>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_SVG"></script></main>
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        
+        
+        
+        var all = MathJax.Hub.getAllJax(),
+            i;
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
     </body>
     <script src=https://z217blog.cn/js/navbutton.js></script>
 </html>

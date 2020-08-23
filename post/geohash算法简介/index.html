@@ -9,6 +9,8 @@
   <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
   <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
   <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/katex.min.css"
+    integrity="sha384-9eLZqc9ds8eNjO3TmqPeYcDj8n+Qfa4nuSiGYa6DjLNcv9BtN69ZIulL9+8CqC9Y" crossorigin="anonymous">
   <title>z217&#39;s blog</title>
 </head><body><aside id="sidenav">
     <header>
@@ -96,13 +98,23 @@
 
 
 
+<div style="position:fixed; right:8px; max-width:300px; overflow:auto; top:130px; width:12vw; bottom:130px">
+    <header>
+        <h4>Geohash算法简介</h4>
+    </header>
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#1-geohash算法介绍">1. <code>Geohash</code>算法介绍</a></li>
+    <li><a href="#2-redis中使用geo数据类型">2. <code>Redis</code>中使用<code>geo</code>数据类型</a></li>
+  </ul>
+</nav>
+</div>
+
+
 <h2 id="1-geohash算法介绍">1. <code>Geohash</code>算法介绍</h2>
-
 <p><a href="https://en.wikipedia.org/wiki/Geohash">Geohash-Wikipedia</a></p>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>Geohash</code>是一种用于公共领域的地理编码系统，其将地理位置编码为字母和数字的短字符串。<code>Geohash</code>允许任意精度的属性，可以通过增长或缩短字符串来改变精度。当两个区域的公共前缀越长，说明他们的联系更加紧密。但是反过来，具有短公共前缀或者没有公共前缀并不一定代表着联系很小。<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>Geohash</code>算法可以将一个二维的经纬度坐标转换成一个可以比较的字符串，也就是降维。使用三十二进制，全球被划分为 <span  class="math">\(32\)</span> 个大块，再在每个大块内继续划分出 <span  class="math">\(32\)</span>个小块，因此对于越长的<code>geohash</code>字符串，其精度越大，代表的范围也就越小。通过<code>Base32</code>算法，<code>geohash</code>使用字母和数字表示值，如下所示：</p>
-
+<p>        <code>Geohash</code>是一种用于公共领域的地理编码系统，其将地理位置编码为字母和数字的短字符串。<code>Geohash</code>允许任意精度的属性，可以通过增长或缩短字符串来改变精度。当两个区域的公共前缀越长，说明他们的联系更加紧密。但是反过来，具有短公共前缀或者没有公共前缀并不一定代表着联系很小。<br>
+        <code>Geohash</code>算法可以将一个二维的经纬度坐标转换成一个可以比较的字符串，也就是降维。使用三十二进制，全球被划分为 $32$ 个大块，再在每个大块内继续划分出 $32$个小块，因此对于越长的<code>geohash</code>字符串，其精度越大，代表的范围也就越小。通过<code>Base32</code>算法，<code>geohash</code>使用字母和数字表示值，如下所示：</p>
 <table>
 <thead>
 <tr>
@@ -141,7 +153,6 @@
 <th align="center">31</th>
 </tr>
 </thead>
-
 <tbody>
 <tr>
 <td align="center">32进制</td>
@@ -180,33 +191,31 @@
 </tr>
 </tbody>
 </table>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;即使用了所有 <span  class="math">\(10\)</span> 以内的数字，以及除 <span  class="math">\(a\)</span>, <span  class="math">\(i\)</span>, <span  class="math">\(l\)</span> 和 <span  class="math">\(o\)</span> 之外的所有小写字母。在计算的时候只需要在十进制和三十二进制之间转换即可，举例：</p>
-
+<p>        即使用了所有 $10$ 以内的数字，以及除 $a$, $i$, $l$ 和 $o$ 之外的所有小写字母。在计算的时候只需要在十进制和三十二进制之间转换即可，举例：</p>
 <div>
-$$\begin{aligned}
+$$
+\begin{aligned}
 (ezs42)_{32} &= e \times 32^4 + z \times 32^3 + s \times 32^2 + 4 \times 32^1 + 2 \times 32^0 \\
 &= 13 \times 1048576 + 31 \times 32768 + 24 \times 1024 + 4 \times 32 + 2 \times 1 \\
-&= 14672002.
-\end{aligned}$$
+&= 14672002. \\
+\end{aligned}
+$$
 </div>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;正如之前所说的，<code>geohash</code>算法将经纬度转换成一个字符串，自然也能由字符串转回经纬度。再以 <span  class="math">\(ezs42\)</span> 为例，将其转换为二进制：</p>
-
+<p>        正如之前所说的，<code>geohash</code>算法将经纬度转换成一个字符串，自然也能由字符串转回经纬度。再以 $ezs42$ 为例，将其转换为二进制：</p>
 <div>
-$$\begin{aligned}
+$$
+\begin{aligned}
     &(e)_{32} = (01101)_2, \\
     &(z)_{32} = (11111)_2, \\
     &(s)_{32} = (11000)_2, \\
     &(4)_{32} = (00100)_2, \\
     &(2)_{32} = (00010)_2.
-\end{aligned}$$
+\end{aligned}
+$$
 </div>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;结果得到的二进制数字为：<span  class="math">\((0110111111110000010000010)_2\)</span> 。假设从左到右读，则奇数位代表纬度代码：<span  class="math">\((101111001001)_2\)</span>，偶数位代表经度代码：<span  class="math">\((0111110000000)_2\)</span>。<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;接下来再通过二分法对经纬度代码进行分别处理。纬度的范围为 <span  class="math">\(-90 \sim 90\)</span> ，我们将其划分为两块：<span  class="math">\(-90 \sim 0\)</span> 和 <span  class="math">\(0 \sim 90\)</span> 。查看纬度代码，第一位为 <span  class="math">\(1\)</span>，因此选择 <span  class="math">\(0 \sim 90\)</span>。如果为 <span  class="math">\(0\)</span> 的话，就要选择左边的区间。即为 <span  class="math">\(0\)</span> 选择左边，为 <span  class="math">\(1\)</span> 选择右边。如果没有更多的位数，那么可以认为纬度为 <span  class="math">\(45\)</span>，这样误差范围就为 <span  class="math">\(\pm45\)</span> 。但是在这里我们有更多的位数，因此可以继续下去。再对 <span  class="math">\(0 \sim 90\)</span> 进行二分分为 <span  class="math">\(0 \sim 45\)</span> 和 <span  class="math">\(45 \sim 90\)</span> ，可以看到纬度代码第二位为 <span  class="math">\(0\)</span> ，因此选择 <span  class="math">\(0 \sim 45\)</span> 。如此往复，可以确认纬度值。再使用同样的方法，可以确认经度值，不过要注意经度的范围是 <span  class="math">\(-180 \sim 180\)</span> 。<br>
+<p>        结果得到的二进制数字为：$(0110111111110000010000010)_2$ 。假设从左到右读，则奇数位代表纬度代码：$(101111001001)_2$，偶数位代表经度代码：$(0111110000000)_2$。<br>
+        接下来再通过二分法对经纬度代码进行分别处理。纬度的范围为 $-90 \sim 90$ ，我们将其划分为两块：$-90 \sim 0$ 和 $0 \sim 90$ 。查看纬度代码，第一位为 $1$，因此选择 $0 \sim 90$。如果为 $0$ 的话，就要选择左边的区间。即为 $0$ 选择左边，为 $1$ 选择右边。如果没有更多的位数，那么可以认为纬度为 $45$，这样误差范围就为 $\pm45$ 。但是在这里我们有更多的位数，因此可以继续下去。再对 $0 \sim 90$ 进行二分分为 $0 \sim 45$ 和 $45 \sim 90$ ，可以看到纬度代码第二位为 $0$ ，因此选择 $0 \sim 45$ 。如此往复，可以确认纬度值。再使用同样的方法，可以确认经度值，不过要注意经度的范围是 $-180 \sim 180$ 。<br>
 纬度确定：</p>
-
 <table>
 <thead>
 <tr>
@@ -217,7 +226,6 @@ $$\begin{aligned}
 <th align="center">最大值</th>
 </tr>
 </thead>
-
 <tbody>
 <tr>
 <td align="center">0</td>
@@ -226,7 +234,6 @@ $$\begin{aligned}
 <td align="center">0.000</td>
 <td align="center">90.000</td>
 </tr>
-
 <tr>
 <td align="center">1</td>
 <td align="center">0</td>
@@ -234,7 +241,6 @@ $$\begin{aligned}
 <td align="center">45.000</td>
 <td align="center">90.000</td>
 </tr>
-
 <tr>
 <td align="center">2</td>
 <td align="center">1</td>
@@ -242,7 +248,6 @@ $$\begin{aligned}
 <td align="center">22.500</td>
 <td align="center">45.000</td>
 </tr>
-
 <tr>
 <td align="center">3</td>
 <td align="center">1</td>
@@ -250,7 +255,6 @@ $$\begin{aligned}
 <td align="center">33.750</td>
 <td align="center">45.000</td>
 </tr>
-
 <tr>
 <td align="center">4</td>
 <td align="center">1</td>
@@ -258,7 +262,6 @@ $$\begin{aligned}
 <td align="center">39.375</td>
 <td align="center">45.000</td>
 </tr>
-
 <tr>
 <td align="center">5</td>
 <td align="center">1</td>
@@ -266,7 +269,6 @@ $$\begin{aligned}
 <td align="center">42.188</td>
 <td align="center">45.000</td>
 </tr>
-
 <tr>
 <td align="center">6</td>
 <td align="center">0</td>
@@ -274,7 +276,6 @@ $$\begin{aligned}
 <td align="center">43.594</td>
 <td align="center">45.000</td>
 </tr>
-
 <tr>
 <td align="center">7</td>
 <td align="center">0</td>
@@ -282,7 +283,6 @@ $$\begin{aligned}
 <td align="center">42.891</td>
 <td align="center">43.594</td>
 </tr>
-
 <tr>
 <td align="center">8</td>
 <td align="center">1</td>
@@ -290,7 +290,6 @@ $$\begin{aligned}
 <td align="center">42.539</td>
 <td align="center">42.891</td>
 </tr>
-
 <tr>
 <td align="center">9</td>
 <td align="center">0</td>
@@ -298,7 +297,6 @@ $$\begin{aligned}
 <td align="center">42.715</td>
 <td align="center">42.891</td>
 </tr>
-
 <tr>
 <td align="center">10</td>
 <td align="center">0</td>
@@ -306,7 +304,6 @@ $$\begin{aligned}
 <td align="center">42.627</td>
 <td align="center">42.715</td>
 </tr>
-
 <tr>
 <td align="center">11</td>
 <td align="center">1</td>
@@ -316,9 +313,7 @@ $$\begin{aligned}
 </tr>
 </tbody>
 </table>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;可得纬度为 <span  class="math">\(42.583\)</span> ，同理可得经度为 <span  class="math">\(-5.581\)</span> ，经纬度误差范围都在 <span  class="math">\(\pm0.022\)</span> 之间。根据经纬度与千米的比例表可得误差距离。</p>
-
+<p>        可得纬度为 $42.583$ ，同理可得经度为 $-5.581$ ，经纬度误差范围都在 $\pm0.022$ 之间。根据经纬度与千米的比例表可得误差距离。</p>
 <table>
 <thead>
 <tr>
@@ -330,85 +325,75 @@ $$\begin{aligned}
 <th align="left">千米误差</th>
 </tr>
 </thead>
-
 <tbody>
 <tr>
 <td align="left">1</td>
 <td align="left">2</td>
 <td align="left">3</td>
-<td align="left"><span  class="math">\(\pm23\)</span></td>
-<td align="left"><span  class="math">\(\pm23\)</span></td>
-<td align="left"><span  class="math">\(\pm2500\)</span></td>
+<td align="left">$\pm23$</td>
+<td align="left">$\pm23$</td>
+<td align="left">$\pm2500$</td>
 </tr>
-
 <tr>
 <td align="left">2</td>
 <td align="left">5</td>
 <td align="left">5</td>
-<td align="left"><span  class="math">\(\pm2.8\)</span></td>
-<td align="left"><span  class="math">\(\pm5.6\)</span></td>
-<td align="left"><span  class="math">\(\pm630\)</span></td>
+<td align="left">$\pm2.8$</td>
+<td align="left">$\pm5.6$</td>
+<td align="left">$\pm630$</td>
 </tr>
-
 <tr>
 <td align="left">3</td>
 <td align="left">7</td>
 <td align="left">8</td>
-<td align="left"><span  class="math">\(\pm0.70\)</span></td>
-<td align="left"><span  class="math">\(\pm0.70\)</span></td>
-<td align="left"><span  class="math">\(\pm78\)</span></td>
+<td align="left">$\pm0.70$</td>
+<td align="left">$\pm0.70$</td>
+<td align="left">$\pm78$</td>
 </tr>
-
 <tr>
 <td align="left">4</td>
 <td align="left">10</td>
 <td align="left">10</td>
-<td align="left"><span  class="math">\(\pm0.087\)</span></td>
-<td align="left"><span  class="math">\(\pm0.18\)</span></td>
-<td align="left"><span  class="math">\(\pm20\)</span></td>
+<td align="left">$\pm0.087$</td>
+<td align="left">$\pm0.18$</td>
+<td align="left">$\pm20$</td>
 </tr>
-
 <tr>
 <td align="left">5</td>
 <td align="left">12</td>
 <td align="left">13</td>
-<td align="left"><span  class="math">\(\pm0.022\)</span></td>
-<td align="left"><span  class="math">\(\pm0.022\)</span></td>
-<td align="left"><span  class="math">\(\pm2.4\)</span></td>
+<td align="left">$\pm0.022$</td>
+<td align="left">$\pm0.022$</td>
+<td align="left">$\pm2.4$</td>
 </tr>
-
 <tr>
 <td align="left">6</td>
 <td align="left">15</td>
 <td align="left">15</td>
-<td align="left"><span  class="math">\(\pm0.0027\)</span></td>
-<td align="left"><span  class="math">\(\pm0.0055\)</span></td>
-<td align="left"><span  class="math">\(\pm0.61\)</span></td>
+<td align="left">$\pm0.0027$</td>
+<td align="left">$\pm0.0055$</td>
+<td align="left">$\pm0.61$</td>
 </tr>
-
 <tr>
 <td align="left">7</td>
 <td align="left">17</td>
 <td align="left">18</td>
-<td align="left"><span  class="math">\(\pm0.00068\)</span></td>
-<td align="left"><span  class="math">\(\pm0.00068\)</span></td>
-<td align="left"><span  class="math">\(\pm0.076\)</span></td>
+<td align="left">$\pm0.00068$</td>
+<td align="left">$\pm0.00068$</td>
+<td align="left">$\pm0.076$</td>
 </tr>
-
 <tr>
 <td align="left">8</td>
 <td align="left">20</td>
 <td align="left">20</td>
-<td align="left"><span  class="math">\(\pm0.000085\)</span></td>
-<td align="left"><span  class="math">\(\pm0.00017\)</span></td>
-<td align="left"><span  class="math">\(\pm0.019\)</span></td>
+<td align="left">$\pm0.000085$</td>
+<td align="left">$\pm0.00017$</td>
+<td align="left">$\pm0.019$</td>
 </tr>
 </tbody>
 </table>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;对于一个给定的经纬度，要想求得经纬度的二进制代码值，只需要将上述步骤倒过来即可。再以 <span  class="math">\((42.583, -5.581)\)</span> 为例。<br>
+<p>        对于一个给定的经纬度，要想求得经纬度的二进制代码值，只需要将上述步骤倒过来即可。再以 $(42.583, -5.581)$ 为例。<br>
 纬度代码确定：</p>
-
 <table>
 <thead>
 <tr>
@@ -419,7 +404,6 @@ $$\begin{aligned}
 <th align="center">位值</th>
 </tr>
 </thead>
-
 <tbody>
 <tr>
 <td align="center">0</td>
@@ -428,7 +412,6 @@ $$\begin{aligned}
 <td align="center">90.000</td>
 <td align="center">1</td>
 </tr>
-
 <tr>
 <td align="center">1</td>
 <td align="center">0.000</td>
@@ -436,7 +419,6 @@ $$\begin{aligned}
 <td align="center">90.000</td>
 <td align="center">0</td>
 </tr>
-
 <tr>
 <td align="center">2</td>
 <td align="center">0.000</td>
@@ -444,7 +426,6 @@ $$\begin{aligned}
 <td align="center">45.000</td>
 <td align="center">1</td>
 </tr>
-
 <tr>
 <td align="center">3</td>
 <td align="center">22.500</td>
@@ -452,7 +433,6 @@ $$\begin{aligned}
 <td align="center">45.000</td>
 <td align="center">1</td>
 </tr>
-
 <tr>
 <td align="center">4</td>
 <td align="center">33.750</td>
@@ -460,7 +440,6 @@ $$\begin{aligned}
 <td align="center">45.000</td>
 <td align="center">1</td>
 </tr>
-
 <tr>
 <td align="center">5</td>
 <td align="center">39.375</td>
@@ -468,7 +447,6 @@ $$\begin{aligned}
 <td align="center">45.000</td>
 <td align="center">1</td>
 </tr>
-
 <tr>
 <td align="center">6</td>
 <td align="center">42.188</td>
@@ -476,7 +454,6 @@ $$\begin{aligned}
 <td align="center">45.000</td>
 <td align="center">0</td>
 </tr>
-
 <tr>
 <td align="center">7</td>
 <td align="center">42.188</td>
@@ -484,7 +461,6 @@ $$\begin{aligned}
 <td align="center">43.594</td>
 <td align="center">0</td>
 </tr>
-
 <tr>
 <td align="center">8</td>
 <td align="center">42.188</td>
@@ -492,7 +468,6 @@ $$\begin{aligned}
 <td align="center">42.891</td>
 <td align="center">1</td>
 </tr>
-
 <tr>
 <td align="center">9</td>
 <td align="center">42.539</td>
@@ -500,7 +475,6 @@ $$\begin{aligned}
 <td align="center">42.891</td>
 <td align="center">0</td>
 </tr>
-
 <tr>
 <td align="center">10</td>
 <td align="center">42.539</td>
@@ -510,22 +484,19 @@ $$\begin{aligned}
 </tr>
 </tbody>
 </table>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;虽然通过<code>geohash</code>可以通过公共前缀来查找一些彼此相邻的点，但是在一些边缘情况无法通过这种方式进行查询。例如在本初子午线左右两端的<code>geohash</code>值并没有公共前缀，以及靠近南北极的区域的<code>geohash</code>值差异很大。因为<code>geohash</code>依赖经纬度得到数值，因此在这些经纬度变化迅速的区域，它们的<code>geohash</code>值的变化也很迅速。</p>
-
+<p>        虽然通过<code>geohash</code>可以通过公共前缀来查找一些彼此相邻的点，但是在一些边缘情况无法通过这种方式进行查询。例如在本初子午线左右两端的<code>geohash</code>值并没有公共前缀，以及靠近南北极的区域的<code>geohash</code>值差异很大。因为<code>geohash</code>依赖经纬度得到数值，因此在这些经纬度变化迅速的区域，它们的<code>geohash</code>值的变化也很迅速。</p>
 <h2 id="2-redis中使用geo数据类型">2. <code>Redis</code>中使用<code>geo</code>数据类型</h2>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;继续以 <span  class="math">\((42.583, -5.581)\)</span> 为例，演示在<code>Redis</code>中操作<code>geo</code>数据类型。</p>
-<pre><code class="language-redis" data-lang="redis">geoadd location -5.581 42.583 gw01</code></pre>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;将 <span  class="math">\((42.583, -5.581)\)</span> 存入 <span  class="math">\(location\)</span> 并命名为 <span  class="math">\(gw01\)</span>。<span  class="math">\(location\)</span> 本质为 <span  class="math">\(zset\)</span> 数据类型。再对其获取得</p>
-<pre><code class="language-redis" data-lang="redis">geopos location gw01</code></pre>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;计算其<code>geohash</code>值</p>
-<pre><code class="language-redis" data-lang="redis">geohash location gw01</code></pre>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;此外，通过</p>
+<p>        继续以 $(42.583, -5.581)$ 为例，演示在<code>Redis</code>中操作<code>geo</code>数据类型。</p>
+<pre><code class="language-redis" data-lang="redis">geoadd location -5.581 42.583 gw01
+</code></pre><p>        将 $(42.583, -5.581)$ 存入 $location$ 并命名为 $gw01$。$location$ 本质为 $zset$ 数据类型。再对其获取得</p>
+<pre><code class="language-redis" data-lang="redis">geopos location gw01
+</code></pre><p>        计算其<code>geohash</code>值</p>
+<pre><code class="language-redis" data-lang="redis">geohash location gw01
+</code></pre><p>        此外，通过</p>
 <pre><code class="language-redis" data-lang="redis">geodist
 georadius
-georadiusbymember</code></pre>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;这些指令可以计算范围内符合条件的坐标。</p>
+georadiusbymember
+</code></pre><p>        这些指令可以计算范围内符合条件的坐标。</p>
 
 
 <div class="nav-next-prev">
@@ -566,7 +537,52 @@ georadiusbymember</code></pre>
     </div>
 </footer>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_SVG"></script></main>
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        
+        
+        
+        var all = MathJax.Hub.getAllJax(),
+            i;
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
     </body>
     <script src=https://z217blog.cn/js/navbutton.js></script>
 </html>

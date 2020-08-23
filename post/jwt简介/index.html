@@ -9,6 +9,8 @@
   <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
   <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
   <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/katex.min.css"
+    integrity="sha384-9eLZqc9ds8eNjO3TmqPeYcDj8n+Qfa4nuSiGYa6DjLNcv9BtN69ZIulL9+8CqC9Y" crossorigin="anonymous">
   <title>z217&#39;s blog</title>
 </head><body><aside id="sidenav">
     <header>
@@ -96,54 +98,60 @@
 
 
 
+<div style="position:fixed; right:8px; max-width:300px; overflow:auto; top:130px; width:12vw; bottom:130px">
+    <header>
+        <h4>JWT简介</h4>
+    </header>
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#jwt的结构"><code>JWT</code>的结构</a>
+      <ul>
+        <li><a href="#1-header">1. Header</a></li>
+        <li><a href="#2-payload">2. Payload</a></li>
+        <li><a href="#3-signature">3. Signature</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+</div>
+
+
 <p><a href="https://en.wikipedia.org/wiki/JSON_Web_Token">JWT-Wikipedia</a></p>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>JWT</code>( <span  class="math">\(JSON\;Web\;Token\)</span> )是一种基于<code>JSON</code>的用于创建可选签名或可选加密的数据的互联网标准。<code>Token</code>使用一个私钥或者公钥进行签名，持有私钥或者公钥的一方可以验证令牌的合法性。<code>Token</code>被设计为紧凑且安全的，尤其适用于<code>Web</code>浏览器单点登录 ( <code>Single-sign-on</code>, <span  class="math">\(SSO\)</span> ) 场景。<code>JWT</code>声明一般用于在身份提供者和服务提供者之间传递用户身份信息，或者用于业务流程要求的任何其他类型的声明。</p>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在传统的<code>session</code>认证中，通常使用<code>cookie</code>来保存用户的身份信息，方便下一次请求。由于<code>session</code>是存储在内存中的，因此存在开销隐患。而且使用<code>cookie</code>也意味着存在着<code>CSRF</code>问题。使用<code>JWT</code>进行认证时，用户在成功认证登录过后，将会得到一个<code>token</code>。<code>Token</code>会保存在本地（也可以保存在<code>session</code>或者<code>cookie</code>中），而不是传统的在服务器上创建一个<code>session</code>并返回<code>cookie</code>。每当用户想要访问受保护的资源时，用户代理需要发送<code>JWT</code>，<code>JWT</code>通常包含在请求头中。通过使用<code>JWT</code>，用户的状态永远也不会保存在服务器中。当接收到请求时，服务器将会检查<code>JWT</code>的有效性。由于<code>JWT</code>是独立的，存储着所有必要的信息，因此可以减少数据库查询的次数。</p>
-
+<p>        <code>JWT</code>( $JSON\ \ Web\ \ Token$ )是一种基于<code>JSON</code>的用于创建可选签名或可选加密的数据的互联网标准。<code>Token</code>使用一个私钥或者公钥进行签名，持有私钥或者公钥的一方可以验证令牌的合法性。<code>Token</code>被设计为紧凑且安全的，尤其适用于<code>Web</code>浏览器单点登录 ( <code>Single-sign-on</code>, $SSO$ ) 场景。<code>JWT</code>声明一般用于在身份提供者和服务提供者之间传递用户身份信息，或者用于业务流程要求的任何其他类型的声明。</p>
+<p>        在传统的<code>session</code>认证中，通常使用<code>cookie</code>来保存用户的身份信息，方便下一次请求。由于<code>session</code>是存储在内存中的，因此存在开销隐患。而且使用<code>cookie</code>也意味着存在着<code>CSRF</code>问题。使用<code>JWT</code>进行认证时，用户在成功认证登录过后，将会得到一个<code>token</code>。<code>Token</code>会保存在本地（也可以保存在<code>session</code>或者<code>cookie</code>中），而不是传统的在服务器上创建一个<code>session</code>并返回<code>cookie</code>。每当用户想要访问受保护的资源时，用户代理需要发送<code>JWT</code>，<code>JWT</code>通常包含在请求头中。通过使用<code>JWT</code>，用户的状态永远也不会保存在服务器中。当接收到请求时，服务器将会检查<code>JWT</code>的有效性。由于<code>JWT</code>是独立的，存储着所有必要的信息，因此可以减少数据库查询的次数。</p>
 <h2 id="jwt的结构"><code>JWT</code>的结构</h2>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>JWT</code>由三部分组成：<span  class="math">\(Header\)</span>, <span  class="math">\(Payload\)</span>, <span  class="math">\(Signature\)</span> 。</p>
-
+<p>        <code>JWT</code>由三部分组成：$Header$, $Payload$, $Signature$ 。</p>
 <h3 id="1-header">1. Header</h3>
 <div class="highlight"><pre class="chroma"><code class="language-json" data-lang="json"><span class="p">{</span>
     <span class="nt">&#34;alg&#34;</span><span class="p">:</span> <span class="s2">&#34;HS256&#34;</span><span class="p">,</span>
     <span class="nt">&#34;typ&#34;</span><span class="p">:</span> <span class="s2">&#34;JWT&#34;</span>
-<span class="p">}</span></code></pre></div>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Header\)</span> 标识用于生成签名的算法。典型的加密算法如<code>HMAC-SHA-256</code>, <code>RSA-SHA-256</code>。上例使用的是<code>HMAC-SHA-256</code>。</p>
-
+<span class="p">}</span>
+</code></pre></div><p>        $Header$ 标识用于生成签名的算法。典型的加密算法如<code>HMAC-SHA-256</code>, <code>RSA-SHA-256</code>。上例使用的是<code>HMAC-SHA-256</code>。</p>
 <h3 id="2-payload">2. Payload</h3>
 <div class="highlight"><pre class="chroma"><code class="language-json" data-lang="json"><span class="p">{</span>
     <span class="nt">&#34;loggedInAs&#34;</span><span class="p">:</span> <span class="s2">&#34;admin&#34;</span><span class="p">,</span>
     <span class="nt">&#34;iat&#34;</span><span class="p">:</span> <span class="mi">1422779638</span>
-<span class="p">}</span></code></pre></div>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$Payload$ 包含了一组声明。<code>JWT</code>标准注册了七个声明：</p>
-
+<span class="p">}</span>
+</code></pre></div><p>        $Payload$ 包含了一组声明。<code>JWT</code>标准注册了七个声明：</p>
 <ul>
-<li><span  class="math">\(iss\)</span>：<code>JWT</code>签发者</li>
-<li><span  class="math">\(sub\)</span>：<code>JWT</code>面向用户</li>
-<li><span  class="math">\(aud\)</span>：<code>JWT</code>接收方</li>
-<li><span  class="math">\(exp\)</span>：<code>JWT</code>过期时间</li>
-<li><span  class="math">\(nbf\)</span>：<code>JWT</code>启用时间</li>
-<li><span  class="math">\(iat\)</span>：<code>JWT</code>签发时间</li>
-<li><span  class="math">\(jti\)</span>：<code>JWT</code>的唯一身份标识，可以用作一次性<code>token</code></li>
+<li>$iss$：<code>JWT</code>签发者</li>
+<li>$sub$：<code>JWT</code>面向用户</li>
+<li>$aud$：<code>JWT</code>接收方</li>
+<li>$exp$：<code>JWT</code>过期时间</li>
+<li>$nbf$：<code>JWT</code>启用时间</li>
+<li>$iat$：<code>JWT</code>签发时间</li>
+<li>$jti$：<code>JWT</code>的唯一身份标识，可以用作一次性<code>token</code></li>
 </ul>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$Payload$ 中还可以添加自定义声明，如上例的 <span  class="math">\(loggedInAs\)</span>。</p>
-
+<p>        $Payload$ 中还可以添加自定义声明，如上例的 $loggedInAs$。</p>
 <h3 id="3-signature">3. Signature</h3>
 <div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">signature</span> <span class="o">=</span> <span class="nx">HMAC</span><span class="o">-</span><span class="nx">SHA256</span><span class="p">(</span>
     <span class="nx">base64urlEncoding</span><span class="p">(</span><span class="nx">header</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span> <span class="o">+</span> <span class="nx">base64urlEncoding</span><span class="p">(</span><span class="nx">payload</span><span class="p">),</span>
     <span class="s1">&#39;secret&#39;</span>
 <span class="p">);</span>
-</code></pre></div>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span  class="math">\(Signature\)</span> 用于安全地验证<code>token</code>。使用 <span  class="math">\(Base64urlEncoding\)</span> 对 <span  class="math">\(header\)</span> 和 <span  class="math">\(payload\)</span> 进行编码，再使用句点隔开，可以计算出签名。<span  class="math">\(secret\)</span>保存在服务器中，在使用指定算法生成签名的时候使用，生成哈希，确保数据不被篡改。然后再通过指定的算法，在此例中为 <code>HMAC-SHA256</code>， 进行加密。<span  class="math">\(Base64url\)</span> 编码类似于 <code>base64</code>。</p>
-
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;最终得到的<code>JWT</code>如下</p>
+</code></pre></div><p>        $Signature$ 用于安全地验证<code>token</code>。使用 $Base64urlEncoding$ 对 $header$ 和 $payload$ 进行编码，再使用句点隔开，可以计算出签名。$secret$保存在服务器中，在使用指定算法生成签名的时候使用，生成哈希，确保数据不被篡改。然后再通过指定的算法，在此例中为 <code>HMAC-SHA256</code>， 进行加密。$Base64url$ 编码类似于 <code>base64</code>。</p>
+<p>        最终得到的<code>JWT</code>如下</p>
 <div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kr">const</span> <span class="nx">token</span> <span class="o">=</span> <span class="nx">base64urlEncoding</span><span class="p">(</span><span class="nx">header</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span> <span class="o">+</span> <span class="nx">base64urlEncoding</span><span class="p">(</span><span class="nx">payload</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span> <span class="o">+</span> <span class="nx">base64urlEncoding</span><span class="p">(</span><span class="nx">signature</span><span class="p">);</span>
-</code></pre></div>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;最后在请求头中加入</p>
+</code></pre></div><p>        最后在请求头中加入</p>
 <div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="nx">Authorization</span><span class="o">:</span> <span class="sb">`Bearer&#39; + token
 </span></code></pre></div>
 
@@ -185,7 +193,52 @@
     </div>
 </footer>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_SVG"></script></main>
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        
+        
+        
+        var all = MathJax.Hub.getAllJax(),
+            i;
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
     </body>
     <script src=https://z217blog.cn/js/navbutton.js></script>
 </html>
