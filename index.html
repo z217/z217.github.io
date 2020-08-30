@@ -83,6 +83,24 @@
     
     
     <div class="list-item">
+        <a class="entry-title" href="/post/java%E7%B1%BB%E5%9E%8B%E4%BF%A1%E6%81%AF/">Java类型信息</a>
+        
+        
+        <p>Java类型信息简单介绍</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2020 Aug 30 16:50
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: Java
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
         <a class="entry-title" href="/post/jvm3%E6%80%A7%E8%83%BD%E7%9B%91%E6%8E%A7%E5%92%8C%E6%95%85%E9%9A%9C%E5%A4%84%E7%90%86/">JVM（3）：性能监控和故障处理</a>
         
         
@@ -154,24 +172,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="/post/geohash%E7%AE%97%E6%B3%95%E7%AE%80%E4%BB%8B/">Geohash算法简介</a>
-        
-        
-        <p>Geohash算法的简单解析以及在Redis中的使用</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2020 Aug 05 19:58
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: Algorithm
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -180,6 +180,42 @@
     <div class="section-title">μblog</div>
     <div class="posts">
         
+        
+        <div class="post">
+            
+            <center>
+                <h1><a href="/post/java%E7%B1%BB%E5%9E%8B%E4%BF%A1%E6%81%AF/">Java类型信息</a></h1>
+            </center>
+            <div class="post-content">
+                <p>        <strong>运行时类型信息</strong> ( $RTTI$ ) 可以让我们在程序运行时发现和使用类型信息，主要有两种方式：传统<code>RTTI</code>，假定在编译时就已经知道了所有类型；以及反射，允许在运行时发现和使用类型信息。</p>
+<h2 id="1-rtti">1. <code>RTTI</code></h2>
+<p>        传统的<code>RTTI</code>在<code>Java</code>语句执行过程中也发挥着作用。</p>
+<p><img src="/image/2020-08-30-01.png" alt="Shape基类和Circle子类"></p>
+<p>        我们定义了一个 $Circle$ 对象，将其存储在一 $List&lt;Shape&gt;$ 容器之中。那么当对象被放入容器时，会向上转型为 $Shape$ ；而在取出时，由于 $List$ 容器会将所有对象当作 $Object$ 类型持有，因此会再次转换为 $Shape$ 对象。</p>
+<h3 id="11-class对象">1.1 <code>Class</code>对象</h3>
+<p>        $Class$ 对象负责表示运行时的类型信息，<code>Java</code>通过 $Class$ 对象执行<code>RTTI</code>。每个类都拥有一个 $Class$ 对象，当它被编译时，就会通过类加载器产生一个 $.class$ 文件，存储其 $Class$ 对象。<br>
+        所有的类都是在被第一次使用时动态地被加载到<code>JVM</code>当中的。当程序创建第一个对类的静态成员的引用时，就会加载这个类。也就是说构造器也是静态的，因此使用 $new$ 创建对象就会创建一个对静态构造器的引用，从而使得这个类被加载。当类的 $Class$ 对象被载入后，这个类的所有对象都会使用 $Class$ 对象创建。$Class$ 对象还有一些常用方法：</p>
+<ul>
+<li>$forName(\ )$ ：通过全类名获取对应类的 $Class$ 对象；</li>
+<li>$getName(\ )$ ：获取全限定的类名；</li>
+<li>$getSimpleName(\ )$ ：获取不含包名的类名；</li>
+<li>$getInterfaces(\ )$ ：$Class$ 对象中实现的接口；</li>
+<li>$getSuperclass(\ )$ ：获取基类的 $Class$ 对象。</li>
+</ul>
+<p>        $Class.newInstance(\ )$ 方法允许你在不知道确切类型的情况下创建对象。通过该方法你可以得到一个 $Object$ 对象，要想正确地使用该对象，你需要对其进行转型。使用 $newInstance$ 创建对象的要求是该对象拥有一个默认构造器。<br>
+        除了通过 $forName$ 获取 $Class$ 对象之外，还可以直接通过类字面常量获取，即访问一个类型的 $class$ 字段。而且因为这种方式在编译阶段就会受到检查，因此不需要对异常进行处理，所以也更高效。对于基本数据类型的包装类如 $Integer$ 这种，还拥有一个标准字段 $TYPE$ 。访问 $TYPE$ 就相当于访问对应基本类型的 $class$ 字段，即 $Integer.TYPE$ 相当于 $int.class$ 。<br>
+        普通的 $Class$ 对象可以被重新赋值为任何其他的类型的 $Class$ 对象。而要想避免这种再次赋值，可以通过泛型进行限定。<br>
+        在类型转换的过程中，<code>Java</code>要执行类型检查。如果执行了一个错误的类型转换，就会抛出一个 $ClassCastException$ 异常。<code>RTTI</code>还可以通过 $instanceof$ 进行检查，它用于判断某个对象是否是某个类型的实例，返回一个布尔值。</p>
+<h2 id="2-反射">2. 反射</h2>
+<p>        通过<code>RTTI</code>，我们可以知道某个对象的确切类型，但这是建立在编译时已知类型的前提下。如果获取了一个不在你的程序空间的对象引用，那么就无法使用<code>RTTI</code>获取其类型了。反射提供了一种获取对象可用方法以及方法名的机制。<br>
+        $Class$ 对象与 $java.lang.reflect$ 类库一起对反射概念进行了支持，类库包含 $Field$ , $Method$ 以及 $Constructor$ 类（均实现了 $Member$ 接口），分别用于表示类里面不同类型的成员。这样我们就可以通过 $Constructor$ 创建对象，$Field$ 的 $get(\ )$ 和 $set(\ )$ 方法读取和修改字段，通过 $invoke(\ )$ 方法调用 $Method$ 对象关联的方法。这三种类型的对象分别通过 $Class$ 对象的 $getFields(\ )$ , $getMethods(\ )$ 和 $getConstructors(\ )$ 方法获取。<br>
+        要获取类信息，就需要通过类的 $Class$ 对象，也即获取其 $.class$ 文件。反射与<code>RTTI</code>的不同之处在于，<code>RTTI</code>是在编译时检查 $.class$ 文件；而反射无法在编译时获取 $.class$ 文件，是在运行时检查。<br>
+        虽然反射可以让我们获取类中字段、方法和构造器的信息，但它也带来了隐患：通过反射可以访问所有方法，甚至是 $private$ 方法。只需要取得方法关联的 $Method$ 对象，然后设置 $setAccessible(true)$ ，即可调用。</p>
+
+            </div>
+            <div class="meta post-footer"> <span>2020 Aug 30 16:50</span> <a href="/post/java%E7%B1%BB%E5%9E%8B%E4%BF%A1%E6%81%AF/"><i
+                        class="fas fa-link"></i> link</a></div>
+        </div>
         
         <div class="post">
             
@@ -609,7 +645,7 @@
 <h3 id="47-garbage-first收集器">4.7 <code>Garbage First</code>收集器</h3>
 <p>        <code>Garbage First</code>，简称<code>G1</code>收集器开创了收集器面向局部收集的设计思路和基于<code>Region</code>的内存布局形式，是一款主要面向服务端应用的垃圾收集器。在<code>G1</code>之前，收集器范围要么是新生代 ( <code>Minor GC</code> )，要么是老年代 ( <code>Major GC</code> )，要么是整个<code>Java</code>堆 ( <code>Full GC</code> )。而<code>G1</code>可以面向堆内存的任何部分组成<em><strong>回收集</strong></em> ( $Collection\ \ Set$, $CSet$ ) 进行回收，称为<code>Mixed GC</code>。实现这个的关键是基于<code>Region</code>的堆内存布局。<code>G1</code>不是按照固定大小和固定数量的分代区域划分，而是将<code>Java</code>堆分为多个等大连续的区域，可以通过参数 $-XX:G1HeapRegionSize$ 设置，大小应为 $2$ 的 $N$ 次幂，每一个区域都可以作为<code>Eden</code>、<code>Survivor</code>或者老年代。<code>Region</code>中有一特殊的<code>Humongous</code>区域，专门用于存储大对象，而对应超过<code>Region</code>的大对象，会用几个连续的<code>Humongous</code>存放。<code>G1</code>的大多数行为都会把<code>Humongous</code>作为老年代看待。<code>Region</code>是每次收集的最小单元，这样可以避免<code>Full GC</code>。收集器会跟踪每个<code>Region</code>里的垃圾价值，并在后台维护一个优先级列表，每次根据用户设定收集允许停顿时间，通过 $-XX:MaxGCPauseMillis$ 设置，优先处理价值大的<code>Region</code>。<br>
         <code>G1</code>收集器的每个<code>Region</code>都会维护一个记忆集，以哈希表的形式，$Key$ 为其他指向自己的<code>Region</code>的起始地址，$Value$ 为一个存储着卡表索引号的集合，代表着 $Key$ 指向<code>Region</code>的范围。也因为这种复杂的卡表，<code>G1</code>比其他垃圾收集器有着更高的内存占用。<br>
-        为了保证标记的正确进行，<code>CMS</code>收集器使用了增量更新算法，而<code>G1</code>使用了原始快照算法。此外，<code>G1</code>收集器为每个<code>Region</code>涉及了两个<code>TAMS</code> ( $Top\ \ at\ \ Mark\ \ Start$ ) 指针，并发回收时的新分配对象必须要在这两个指针的位置上，<code>G1</code>会默认它们是存活的。<code>G1</code>收集器仍然存在于<code>CMS</code>相同的并发失败问题，一旦发生并发失败，那么同样也需要停顿用户线程。<br>
+        为了保证标记的正确进行，<code>CMS</code>收集器使用了增量更新算法，而<code>G1</code>使用了原始快照算法。此外，<code>G1</code>收集器为每个<code>Region</code>设计了两个<code>TAMS</code> ( $Top\ \ at\ \ Mark\ \ Start$ ) 指针，并发回收时的新分配对象必须要在这两个指针的位置上，<code>G1</code>会默认它们是存活的。<code>G1</code>收集器仍然存在于<code>CMS</code>相同的并发失败问题，一旦发生并发失败，那么同样也需要停顿用户线程。<br>
         <code>G1</code>提供的 $-XX:MaxGCPauseMillis$ 参数可以设定允许停顿的时间，为此需要可靠的停顿预测模型，即预测停顿时间。<code>G1</code>通过<em><strong>衰减均值</strong></em> ( $Decaying\ \ Average$ ) 理论，记录每个<code>Region</code>的回收耗时、脏卡数量等，由此得出统计信息，从而得到平均状态。<br>
         可以将<code>G1</code>收集器的运作过程分为四步：</p>
 <ul>
@@ -760,64 +796,6 @@
 
             </div>
             <div class="meta post-footer"> <span>2020 Aug 19 19:42</span> <a href="/post/jvm1%E6%8A%80%E6%9C%AF%E4%BD%93%E7%B3%BB%E4%B8%8E%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F/"><i
-                        class="fas fa-link"></i> link</a></div>
-        </div>
-        
-        <div class="post">
-            
-            <center>
-                <h1><a href="/post/%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%E7%9A%84jdk%E7%BC%96%E8%AF%91/">从零开始的JDK编译</a></h1>
-            </center>
-            <div class="post-content">
-                <p>        首先从获取<code>JDK</code>源码开始。以<code>OpenJDK</code>为例，点击 <a href="https://hg.openjdk.java.net/jdk/">OpenJDK</a> 进入，选择对应的<code>JDK</code>版本，在此以<code>JDK12</code>为例，选择 $jdk12$ 。进入后在左侧选择 $browse$ ，然后再选择 $zip$ 即可下载。源码下载完毕之后解压，可以在解压后的文件目录下的 $/doc/building.html$ 中阅读编译文档。<br>
-        源码下载完毕之后开始准备<code>Linux</code>环境，要注意在<code>Linux</code>环境中，文件夹请尽量使用英文名，名称中不要出现空格。我使用的是<code>WSL Ubuntu</code>，在刚开始使用时要记得切换镜像源。</p>
-<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">vi /etc/apt/sources.list
-</code></pre></div><p>        使用 $vi$ 打开配置文件，然后替换为镜像源，在此我使用的是阿里云的镜像源，$sources.list$ 文件内容如下：</p>
-<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">deb http://mirrors.aliyun.com/ubuntu/ bionic main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu/ bionic-security main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu/ bionic-updates main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu/ bionic-proposed main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu/ bionic-backports main restricted universe multiverse
-deb-src http://mirrors.aliyun.com/ubuntu/ bionic main restricted universe multiverse
-deb-src http://mirrors.aliyun.com/ubuntu/ bionic-security main restricted universe multiverse
-deb-src http://mirrors.aliyun.com/ubuntu/ bionic-updates main restricted universe multiverse
-deb-src http://mirrors.aliyun.com/ubuntu/ bionic-proposed main restricted universe multiverse
-deb-src http://mirrors.aliyun.com/ubuntu/ bionic-backports main restricted universe multiverse
-</code></pre></div><p>        替换完毕后执行更新命令：</p>
-<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">sudo apt-get update
-sudo apt-get upgrade
-</code></pre></div><p>        然后就可以开始构建编译环境了：</p>
-<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">sudo apt-get install build-essential <span class="c1">#GCC</span>
-sudo apt-get install zip unzip <span class="c1">#ZIP UNZIP</span>
-sudo apt-get install libfreetype6-dev <span class="c1">#FreeType</span>
-sudo apt-get install libcups2-dev <span class="c1">#CUPS</span>
-sudo apt-get install libx11-dev libxext-dev libxrender-dev libxrandr-dev libxtst-dev libxt-dev <span class="c1">#X11</span>
-sudo apt-get install libasound2-dev <span class="c1">#ALSA</span>
-sudo apt-get install libffi-dev <span class="c1">#libffi</span>
-sudo apt-get install autoconf <span class="c1">#Autoconf</span>
-</code></pre></div><p>        虽然我们要编译<code>JDK</code>，但是仍然需要下载一份已经编译好的<code>JDK</code>。如果要编译版本为 $N$ 的<code>JDK</code>，那么至少需要一个版本为 $N-1$ 的已编译好的<code>JDK</code>。在这里我们要编译<code>JDK12</code>，因此可以下载<code>JDK11</code>进行编译。点击 <a href="https://jdk.java.net/java-se-ri/11">jdk.java.net</a> 进行下载，注意在此要下载<code>Linux</code>版。下载完成后前往下载目录，输入：</p>
-<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">tar -zxvf openjdk-11+28_linux-x64_bin.tar.gz
-</code></pre></div><p>        开始解压，解压完成会得到一个名为 $jdk-11$ 的文件夹，再输入</p>
-<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">vi /etc/profile
-</code></pre></div><p>        在打开的文件中加入以下配置：</p>
-<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash"><span class="nv">JAVA_HOME</span><span class="o">=</span><span class="nv">$YOUR_POSITION</span>/jdk-11 <span class="c1">#将$YOUR_POSITION替换为当前文件路径，可以使用pwd进行查看</span>
-<span class="nv">PATH</span><span class="o">=</span><span class="nv">$PATH</span>:<span class="nv">$JAVA_HOME</span>/bin
-<span class="nb">export</span> JAVA_HOME PATH
-</code></pre></div><p>        添加完成后输入</p>
-<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash"><span class="nb">source</span> /etc/profile
-</code></pre></div><p>        启用配置。启用后可以输入</p>
-<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">java -version
-</code></pre></div><p>        进行确认。<br>
-        在配置完编译环境后，开始编译。首先进入一开始下载好的<code>JDK</code>源码文件夹。<code>OpenJDK</code>提供了很多编译参数，可以通过输入参数来改变编译配置，输入：</p>
-<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">bash configure --help
-</code></pre></div><p>        命令可以查询到编译参数。以编译 $FastDebug$ 版、仅含 $Server$ 模式的<code>HotSpot</code>虚拟机为例，输入：</p>
-<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">bash configure --enable-debug --with-jvm-variants<span class="o">=</span>server
-</code></pre></div><p>        $configure$ 命令会检查依赖项，当出现依赖项缺失时，会抛出异常，并且会给出安装命令。当抛出异常时，只需要根据其给出的安装命令安装即可。在检查完毕后，会输出配置信息，可以在 $/build$ 文件夹中新生成的文件夹内查看。之后就可以开始编译了，输入：</p>
-<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">make images
-</code></pre></div><p>        即可开始。编译的过程很漫长，最终编译结束后会在之前 $/build$ 文件夹下配置文件夹中的 $/jdk$ 文件夹中生成<code>JDK</code>。</p>
-
-            </div>
-            <div class="meta post-footer"> <span>2020 Aug 19 05:40</span> <a href="/post/%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%E7%9A%84jdk%E7%BC%96%E8%AF%91/"><i
                         class="fas fa-link"></i> link</a></div>
         </div>
         
