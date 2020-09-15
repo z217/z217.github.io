@@ -23,7 +23,7 @@ function LightAnchor(scrollTop) {
     for (let i = 0; i < aArr.length; i++) {
         if (scrollTop >= offsetHs[i] && scrollTop < offsetHs[i + 1]) {
             if (!clickflag) {
-                cur = i;
+                cur = i - 1 <= 0 ? 0 : i - 1;
             }
         }
     }
@@ -38,8 +38,8 @@ function LightAnchor(scrollTop) {
     }
     if (scrollTop === $(document).height() - $(window).height()) {
         cur = aArr.length - 1;
+        $(aArr).css('color', 'rgba(238, 238, 238, 0.664)');
         $(aArr[cur]).css('color', 'white');
-        $(aArr[cur - 1]).css('color', 'rgba(238, 238, 238, 0.664)');
     }
 }
 

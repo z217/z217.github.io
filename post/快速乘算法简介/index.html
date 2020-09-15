@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/jquery-3.4.1.min.js></script>
+<script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="https://www.cnblogs.com/meidaoli/"  target="_blank" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+        
+        <a href="http://123.57.12.189"  target="_blank" >
+            <i class="fas fa-link fa-sm"></i>
+            <span>二站</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">快速乘算法简介</h1>
+
+
+<p>        快速乘算法的原理是俄罗斯农民乘法，这种乘法规则很简单：</p>
+<ul>
+<li>将要相乘的两个数字写在两列；</li>
+<li>将第一列乘以二，第二列除以二并写在下一行；</li>
+<li>如果这一行中第二列数字为偶数，删去这一行；</li>
+<li>在下一行重复上述二至三步直至第二列数字为 $1$ ；</li>
+<li>将第一列未被删除的数字求和即为结果</li>
+</ul>
+<p>        以 $48 \times 58$ 为例：</p>
+<div>
+$$
+\require{cancel}
+\bcancel{48}\qquad\bcancel{58}\\
+96\qquad29\\
+\bcancel{192}\qquad\bcancel{14}\\
+384\qquad7\\
+768\qquad3\\
+1536\qquad1\\
+————\\
+2784\qquad
+$$
+</div>
+<p>        从而 $48 \times 58 = 2784$ 。<br>
+        运用这个原理，我们可以对二进制数进行计算，只需要将原来的规则调整下即可。对于二进制数 $A$ 和 $B$ ，如果要计算 $A \times B$ ，那么可以：</p>
+<ul>
+<li>如果 $B$ 末位为 $1$ ，将 $A$ 加到结果上；</li>
+<li>将 $A$ 左移一位，$B$ 右移一位；</li>
+<li>重复上述两步直至 $B$ 为零。</li>
+</ul>
+<p>        将上述步骤用代码实现如下：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">QuickMulti</span> <span class="o">{</span>
+    <span class="kd">public</span> <span class="kt">int</span> <span class="nf">quickMulti</span><span class="o">(</span><span class="kt">int</span> <span class="n">A</span><span class="o">,</span> <span class="kt">int</span> <span class="n">B</span><span class="o">)</span> <span class="o">{</span>
+        <span class="kt">int</span> <span class="n">res</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span>
+        <span class="k">while</span> <span class="o">(</span><span class="n">B</span> <span class="o">!=</span> <span class="n">0</span><span class="o">)</span> <span class="o">{</span>
+            <span class="k">if</span> <span class="o">(</span><span class="n">B</span> <span class="o">&amp;</span> <span class="n">1</span> <span class="o">==</span> <span class="n">1</span><span class="o">)</span> <span class="n">res</span> <span class="o">+=</span> <span class="n">A</span><span class="o">;</span>
+            <span class="n">A</span> <span class="o">&lt;&lt;=</span> <span class="n">1</span><span class="o">;</span>
+            <span class="n">B</span> <span class="o">&gt;&gt;=</span> <span class="n">1</span><span class="o">;</span>
+        <span class="o">}</span>
+        <span class="k">return</span> <span class="n">res</span><span class="o">;</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div><p>        在这里举一道题为例演示快速乘算法的使用：<a href="https://leetcode-cn.com/problems/qiu-12n-lcof/">求1+2+&hellip;+n</a> 。<br>
+        题目描述很简单，但要注意不能使用循环，即迭代，因此可以使用递归代替。不能使用条件判断语句，因此需要借助 $\And\And$ 逻辑运算符近似实现 $if$ 。而在<code>Java</code>中并不能直接在一条语句中使用 $\And\And$ ，因此可以先声明一个 $boolean$ 变量。实现代码如下：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">Solution</span> <span class="o">{</span>
+    <span class="kd">public</span> <span class="kt">int</span> <span class="nf">sumNums</span><span class="o">(</span><span class="kt">int</span> <span class="n">n</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">recurse</span><span class="o">(</span><span class="n">n</span><span class="o">,</span> <span class="n">n</span> <span class="o">+</span> <span class="n">1</span><span class="o">,</span> <span class="n">0</span><span class="o">)</span> <span class="o">&gt;&gt;</span> <span class="n">1</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="kd">private</span> <span class="kt">int</span> <span class="nf">recurse</span><span class="o">(</span><span class="kt">int</span> <span class="n">A</span><span class="o">,</span> <span class="kt">int</span> <span class="n">B</span><span class="o">,</span> <span class="kt">int</span> <span class="n">res</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">B</span> <span class="o">==</span> <span class="n">0</span><span class="o">)</span> <span class="k">return</span> <span class="n">res</span><span class="o">;</span>
+        <span class="kt">boolean</span> <span class="n">b</span> <span class="o">=</span> <span class="o">(</span><span class="n">B</span> <span class="o">&amp;</span> <span class="n">1</span><span class="o">)</span> <span class="o">==</span> <span class="n">1</span> <span class="o">&amp;&amp;</span> <span class="o">(</span><span class="n">res</span> <span class="o">+=</span> <span class="n">A</span><span class="o">)</span> <span class="o">&gt;</span> <span class="n">0</span><span class="o">;</span>
+        <span class="n">A</span> <span class="o">&lt;&lt;=</span> <span class="n">1</span><span class="o">;</span>
+        <span class="n">B</span> <span class="o">&gt;&gt;=</span> <span class="n">1</span><span class="o">;</span>
+        <span class="k">return</span> <span class="n">recurse</span><span class="o">(</span><span class="n">A</span><span class="o">,</span> <span class="n">B</span><span class="o">,</span> <span class="n">res</span><span class="o">);</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div><p>        这里使用快速乘算法计算 $n \times (n + 1)$ 的值，再最后返回的时候再将结果除以 $2$ ，即利用了公式 $\large\frac{n(n + 1)}{2}$ 计算连续自然数的和。</p>
+
+
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/java%E6%B3%A8%E8%A7%A3/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        
+        
+        
+        var all = MathJax.Hub.getAllJax(),
+            i;
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
+</body>
+
+</html>

@@ -68,6 +68,12 @@
         </a>
         
         
+        <a href="https://www.cnblogs.com/meidaoli/"  target="_blank" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+        
         <a href="http://123.57.12.189"  target="_blank" >
             <i class="fas fa-link fa-sm"></i>
             <span>二站</span>
@@ -84,6 +90,24 @@
 <div class="section">
     <div class="section-title">recent</div>
     
+    
+    <div class="list-item">
+        <a class="entry-title" href="/post/%E5%BF%AB%E9%80%9F%E4%B9%98%E7%AE%97%E6%B3%95%E7%AE%80%E4%BB%8B/">快速乘算法简介</a>
+        
+        
+        <p>快速乘算法（俄罗斯农民乘法）简单介绍</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2020 Sep 15 15:05
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: Algorithm
+            
+        </div>
+    </div>
     
     <div class="list-item">
         <a class="entry-title" href="/post/java%E6%B3%A8%E8%A7%A3/">Java注解</a>
@@ -157,24 +181,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="/post/jvm3%E6%80%A7%E8%83%BD%E7%9B%91%E6%8E%A7%E5%92%8C%E6%95%85%E9%9A%9C%E5%A4%84%E7%90%86/">JVM（3）：性能监控和故障处理</a>
-        
-        
-        <p>深入理解Java虚拟机（3）</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2020 Aug 25 20:11
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: JVM
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -183,6 +189,75 @@
     <div class="section-title">μblog</div>
     <div class="posts">
         
+        
+        <div class="post">
+            
+            <center>
+                <h1><a href="/post/%E5%BF%AB%E9%80%9F%E4%B9%98%E7%AE%97%E6%B3%95%E7%AE%80%E4%BB%8B/">快速乘算法简介</a></h1>
+            </center>
+            <div class="post-content">
+                <p>        快速乘算法的原理是俄罗斯农民乘法，这种乘法规则很简单：</p>
+<ul>
+<li>将要相乘的两个数字写在两列；</li>
+<li>将第一列乘以二，第二列除以二并写在下一行；</li>
+<li>如果这一行中第二列数字为偶数，删去这一行；</li>
+<li>在下一行重复上述二至三步直至第二列数字为 $1$ ；</li>
+<li>将第一列未被删除的数字求和即为结果</li>
+</ul>
+<p>        以 $48 \times 58$ 为例：</p>
+<div>
+$$
+\require{cancel}
+\bcancel{48}\qquad\bcancel{58}\\
+96\qquad29\\
+\bcancel{192}\qquad\bcancel{14}\\
+384\qquad7\\
+768\qquad3\\
+1536\qquad1\\
+————\\
+2784\qquad
+$$
+</div>
+<p>        从而 $48 \times 58 = 2784$ 。<br>
+        运用这个原理，我们可以对二进制数进行计算，只需要将原来的规则调整下即可。对于二进制数 $A$ 和 $B$ ，如果要计算 $A \times B$ ，那么可以：</p>
+<ul>
+<li>如果 $B$ 末位为 $1$ ，将 $A$ 加到结果上；</li>
+<li>将 $A$ 左移一位，$B$ 右移一位；</li>
+<li>重复上述两步直至 $B$ 为零。</li>
+</ul>
+<p>        将上述步骤用代码实现如下：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">QuickMulti</span> <span class="o">{</span>
+    <span class="kd">public</span> <span class="kt">int</span> <span class="nf">quickMulti</span><span class="o">(</span><span class="kt">int</span> <span class="n">A</span><span class="o">,</span> <span class="kt">int</span> <span class="n">B</span><span class="o">)</span> <span class="o">{</span>
+        <span class="kt">int</span> <span class="n">res</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span>
+        <span class="k">while</span> <span class="o">(</span><span class="n">B</span> <span class="o">!=</span> <span class="n">0</span><span class="o">)</span> <span class="o">{</span>
+            <span class="k">if</span> <span class="o">(</span><span class="n">B</span> <span class="o">&amp;</span> <span class="n">1</span> <span class="o">==</span> <span class="n">1</span><span class="o">)</span> <span class="n">res</span> <span class="o">+=</span> <span class="n">A</span><span class="o">;</span>
+            <span class="n">A</span> <span class="o">&lt;&lt;=</span> <span class="n">1</span><span class="o">;</span>
+            <span class="n">B</span> <span class="o">&gt;&gt;=</span> <span class="n">1</span><span class="o">;</span>
+        <span class="o">}</span>
+        <span class="k">return</span> <span class="n">res</span><span class="o">;</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div><p>        在这里举一道题为例演示快速乘算法的使用：<a href="https://leetcode-cn.com/problems/qiu-12n-lcof/">求1+2+&hellip;+n</a> 。<br>
+        题目描述很简单，但要注意不能使用循环，即迭代，因此可以使用递归代替。不能使用条件判断语句，因此需要借助 $\And\And$ 逻辑运算符近似实现 $if$ 。而在<code>Java</code>中并不能直接在一条语句中使用 $\And\And$ ，因此可以先声明一个 $boolean$ 变量。实现代码如下：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">Solution</span> <span class="o">{</span>
+    <span class="kd">public</span> <span class="kt">int</span> <span class="nf">sumNums</span><span class="o">(</span><span class="kt">int</span> <span class="n">n</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">recurse</span><span class="o">(</span><span class="n">n</span><span class="o">,</span> <span class="n">n</span> <span class="o">+</span> <span class="n">1</span><span class="o">,</span> <span class="n">0</span><span class="o">)</span> <span class="o">&gt;&gt;</span> <span class="n">1</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="kd">private</span> <span class="kt">int</span> <span class="nf">recurse</span><span class="o">(</span><span class="kt">int</span> <span class="n">A</span><span class="o">,</span> <span class="kt">int</span> <span class="n">B</span><span class="o">,</span> <span class="kt">int</span> <span class="n">res</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">B</span> <span class="o">==</span> <span class="n">0</span><span class="o">)</span> <span class="k">return</span> <span class="n">res</span><span class="o">;</span>
+        <span class="kt">boolean</span> <span class="n">b</span> <span class="o">=</span> <span class="o">(</span><span class="n">B</span> <span class="o">&amp;</span> <span class="n">1</span><span class="o">)</span> <span class="o">==</span> <span class="n">1</span> <span class="o">&amp;&amp;</span> <span class="o">(</span><span class="n">res</span> <span class="o">+=</span> <span class="n">A</span><span class="o">)</span> <span class="o">&gt;</span> <span class="n">0</span><span class="o">;</span>
+        <span class="n">A</span> <span class="o">&lt;&lt;=</span> <span class="n">1</span><span class="o">;</span>
+        <span class="n">B</span> <span class="o">&gt;&gt;=</span> <span class="n">1</span><span class="o">;</span>
+        <span class="k">return</span> <span class="n">recurse</span><span class="o">(</span><span class="n">A</span><span class="o">,</span> <span class="n">B</span><span class="o">,</span> <span class="n">res</span><span class="o">);</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div><p>        这里使用快速乘算法计算 $n \times (n + 1)$ 的值，再最后返回的时候再将结果除以 $2$ ，即利用了公式 $\large\frac{n(n + 1)}{2}$ 计算连续自然数的和。</p>
+
+            </div>
+            <div class="meta post-footer"> <span>2020 Sep 15 15:05</span> <a href="/post/%E5%BF%AB%E9%80%9F%E4%B9%98%E7%AE%97%E6%B3%95%E7%AE%80%E4%BB%8B/"><i
+                        class="fas fa-link"></i> link</a></div>
+        </div>
         
         <div class="post">
             
@@ -1336,42 +1411,6 @@
 
             </div>
             <div class="meta post-footer"> <span>2020 Sep 2 21:23</span> <a href="/post/java%E6%B3%9B%E5%9E%8B/"><i
-                        class="fas fa-link"></i> link</a></div>
-        </div>
-        
-        <div class="post">
-            
-            <center>
-                <h1><a href="/post/java%E7%B1%BB%E5%9E%8B%E4%BF%A1%E6%81%AF/">Java类型信息</a></h1>
-            </center>
-            <div class="post-content">
-                <p>        <strong>运行时类型信息</strong> ( $RTTI$ ) 可以让我们在程序运行时发现和使用类型信息，主要有两种方式：传统<code>RTTI</code>，假定在编译时就已经知道了所有类型；以及反射，允许在运行时发现和使用类型信息。</p>
-<h2 id="1-rtti">1. <code>RTTI</code></h2>
-<p>        传统的<code>RTTI</code>在<code>Java</code>语句执行过程中也发挥着作用。</p>
-<p><img src="/image/2020-08-30-01.png" alt="Shape基类和Circle子类"></p>
-<p>        我们定义了一个 $Circle$ 对象，将其存储在一 $List&lt;Shape&gt;$ 容器之中。那么当对象被放入容器时，会向上转型为 $Shape$ ；而在取出时，由于 $List$ 容器会将所有对象当作 $Object$ 类型持有，因此会再次转换为 $Shape$ 对象。</p>
-<h3 id="11-class对象">1.1 <code>Class</code>对象</h3>
-<p>        $Class$ 对象负责表示运行时的类型信息，<code>Java</code>通过 $Class$ 对象执行<code>RTTI</code>。每个类都拥有一个 $Class$ 对象，当它被编译时，就会通过类加载器产生一个 $.class$ 文件，存储其 $Class$ 对象。<br>
-        所有的类都是在被第一次使用时动态地被加载到<code>JVM</code>当中的。当程序创建第一个对类的静态成员的引用时，就会加载这个类。也就是说构造器也是静态的，因此使用 $new$ 创建对象就会创建一个对静态构造器的引用，从而使得这个类被加载。当类的 $Class$ 对象被载入后，这个类的所有对象都会使用 $Class$ 对象创建。$Class$ 对象还有一些常用方法：</p>
-<ul>
-<li>$forName(\ )$ ：通过全类名获取对应类的 $Class$ 对象；</li>
-<li>$getName(\ )$ ：获取全限定的类名；</li>
-<li>$getSimpleName(\ )$ ：获取不含包名的类名；</li>
-<li>$getInterfaces(\ )$ ：$Class$ 对象中实现的接口；</li>
-<li>$getSuperclass(\ )$ ：获取基类的 $Class$ 对象。</li>
-</ul>
-<p>        $Class.newInstance(\ )$ 方法允许你在不知道确切类型的情况下创建对象。通过该方法你可以得到一个 $Object$ 对象，要想正确地使用该对象，你需要对其进行转型。使用 $newInstance$ 创建对象的要求是该对象拥有一个默认构造器。<br>
-        除了通过 $forName$ 获取 $Class$ 对象之外，还可以直接通过类字面常量获取，即访问一个类型的 $class$ 字段。而且因为这种方式在编译阶段就会受到检查，因此不需要对异常进行处理，所以也更高效。对于基本数据类型的包装类如 $Integer$ 这种，还拥有一个标准字段 $TYPE$ 。访问 $TYPE$ 就相当于访问对应基本类型的 $class$ 字段，即 $Integer.TYPE$ 相当于 $int.class$ 。<br>
-        普通的 $Class$ 对象可以被重新赋值为任何其他的类型的 $Class$ 对象。而要想避免这种再次赋值，可以通过泛型进行限定。<br>
-        在类型转换的过程中，<code>Java</code>要执行类型检查。如果执行了一个错误的类型转换，就会抛出一个 $ClassCastException$ 异常。<code>RTTI</code>还可以通过 $instanceof$ 进行检查，它用于判断某个对象是否是某个类型的实例，返回一个布尔值。</p>
-<h2 id="2-反射">2. 反射</h2>
-<p>        通过<code>RTTI</code>，我们可以知道某个对象的确切类型，但这是建立在编译时已知类型的前提下。如果获取了一个不在你的程序空间的对象引用，那么就无法使用<code>RTTI</code>获取其类型了。反射提供了一种获取对象可用方法以及方法名的机制。<br>
-        $Class$ 对象与 $java.lang.reflect$ 类库一起对反射概念进行了支持，类库包含 $Field$ , $Method$ 以及 $Constructor$ 类（均实现了 $Member$ 接口），分别用于表示类里面不同类型的成员。这样我们就可以通过 $Constructor$ 创建对象，$Field$ 的 $get(\ )$ 和 $set(\ )$ 方法读取和修改字段，通过 $invoke(\ )$ 方法调用 $Method$ 对象关联的方法。这三种类型的对象分别通过 $Class$ 对象的 $getFields(\ )$ , $getMethods(\ )$ 和 $getConstructors(\ )$ 方法获取。<br>
-        要获取类信息，就需要通过类的 $Class$ 对象，也即获取其 $.class$ 文件。反射与<code>RTTI</code>的不同之处在于，<code>RTTI</code>是在编译时检查 $.class$ 文件；而反射无法在编译时获取 $.class$ 文件，是在运行时检查。<br>
-        虽然反射可以让我们获取类中字段、方法和构造器的信息，但它也带来了隐患：通过反射可以访问所有方法，甚至是 $private$ 方法。只需要取得方法关联的 $Method$ 对象，然后设置 $setAccessible(true)$ ，即可调用。</p>
-
-            </div>
-            <div class="meta post-footer"> <span>2020 Aug 30 16:50</span> <a href="/post/java%E7%B1%BB%E5%9E%8B%E4%BF%A1%E6%81%AF/"><i
                         class="fas fa-link"></i> link</a></div>
         </div>
         
