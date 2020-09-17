@@ -92,6 +92,24 @@
     
     
     <div class="list-item">
+        <a class="entry-title" href="/post/jvm4class%E6%96%87%E4%BB%B6%E7%BB%93%E6%9E%84/">JVM（4）：Class文件结构</a>
+        
+        
+        <p>深入理解Java虚拟机（4）</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2020 Sep 17 22:58
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: JVM
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
         <a class="entry-title" href="/post/%E5%BF%AB%E9%80%9F%E4%B9%98%E7%AE%97%E6%B3%95%E7%AE%80%E4%BB%8B/">快速乘算法简介</a>
         
         
@@ -163,24 +181,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="/post/java%E7%B1%BB%E5%9E%8B%E4%BF%A1%E6%81%AF/">Java类型信息</a>
-        
-        
-        <p>Java类型信息简单介绍</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2020 Aug 30 16:50
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: Java
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -189,6 +189,1374 @@
     <div class="section-title">μblog</div>
     <div class="posts">
         
+        
+        <div class="post">
+            
+            <center>
+                <h1><a href="/post/jvm4class%E6%96%87%E4%BB%B6%E7%BB%93%E6%9E%84/">JVM（4）：Class文件结构</a></h1>
+            </center>
+            <div class="post-content">
+                <h2 id="1-平台无关性">1. 平台无关性</h2>
+<p>        <code>Java</code>在刚刚诞生时就有一句非常著名的口号：一次编写，到处运行。这个想法通过虚拟机实现，这些虚拟机都可以执行同一种与平台无关的字节码，从而达到一次编写，到处运行。可以说，字节码就是平台无关性的基石。<code>Java</code>虚拟机并不与<code>Java</code>语言绑定，在其之上还可以运行许多其他语言，如<code>Kotlin</code>、<code>Groovy</code>和<code>Scala</code>等。<code>Java</code>虚拟机唯一绑定的是类似于<code>Class</code>文件这种特殊的二进制文件，其中包含了<code>Java</code>虚拟机的指令集、符号表以及其他辅助信息。通过<code>Class</code>文件，<code>Java</code>虚拟机并不需要关心来源是什么语言，只要这门语言能够生成可以被读取的<code>Class</code>文件，那么它就可以在<code>Java</code>虚拟机上运行。<br>
+        <code>Java</code>语言中的各种语法、关键字、常量变量和运算符号的语义最终都会转成字节码指令的组合，这就要求字节码指令的表达能力必须比<code>Java</code>语言的表达能力更强。从而，一些<code>Java</code>语言中并不支持的特性，字节码也能够表达出来。</p>
+<h2 id="2-class类文件">2. <code>Class</code>类文件</h2>
+<p>        <code>Class</code>文件是一组以 $8$ 个字节为单位的二进制流，数据项目按照顺序紧凑地排列在文件之中。对于 $8$ 字节以上空间的数据项，会按照高位在前的大端序分割存储在若干个 $8$ 字节中。<br>
+        <code>Class</code>文件采取一种类似于<code>C</code>语言结构体的伪结构来存储数据，包含两种数据类型：</p>
+<ul>
+<li>无符号数：即基本数据类型，通过 $u1$ 、$u2$ 、$u3$ 、$u4$ 分别表示 $1$ 个字节、$2$ 个字节、$4$ 个字节和 $8$ 个字节的无符号数，用于表示数字、索引引用、数量值或者<code>UTF-8</code>编码的字符串；</li>
+<li>表：由多个无符号数或者其他表构成的复合数据类型，一般以 $_-info$ 结尾，用于表示具有层次关系的数据。可以把整个<code>Class</code>文件都视为表，按照对应类型的数据紧凑排列而成。</li>
+</ul>
+<p>        当需要描述类型相同但数量不定的数据时，经常会使用一个前置的容器计数器加若干个连续的数据项的形式，称为该类型的集合。</p>
+<h3 id="21-魔数和版本号">2.1 魔数和版本号</h3>
+<p>        <code>Class</code>文件的头 $4$ 字节称为<strong>魔数</strong> ( $Magic\ \ Number$ )，用于确定该文件能否被虚拟机接受。魔数在很多文件格式中都存在，文件格式制定者可以自定义魔数，只要不会引起混淆。<code>Class</code>文件的魔数为 $0xCAFEBABE$ ，象征着一款咖啡。<br>
+        在魔数之后是<code>Class</code>文件的版本号，前两个字节是<strong>次版本号</strong> ( $Minor\ \ Version$ )，后两个字节是<strong>主版本号</strong> ( $Major\ \ Version$ )。<code>Java</code>主版本号从 $45$ 开始，<code>JDK 1.1</code>之后每个大版本都会在之前的基础上加 $1$ 。次版本号在<code>JDK 1.1</code>及以前曾经短暂使用过，在<code>JDK 1.2</code>之后废弃，全部使用 $0$ 代替，直到<code>JDK 12</code>，由于一些复杂特性需要进行公测，于是重新启用了次版本号。</p>
+<h3 id="22-常量池">2.2 常量池</h3>
+<p>        常量池是<code>Class</code>文件中第一次出现表的数据项目，也是与其他项目关联最多的数据，通常也是最庞大的数据项目之一。常量池入口是一个 $u2$ 类型的数据，是<em><strong>常量池容量计数值</strong></em> ( $constant_-pool_-count$ )，从 $1$ 开始，$0$ 表示不指向常量池中的数据项目。<code>Class</code>文件中只有常量池的容量计数是从 $1$ 开始的。<br>
+        常量池中主要存放字面量 ( $Literal$ ) 和符号引用 ( $Symbolic\ \ References$ )。字面量类似于<code>Java</code>中的常量，存放字符串、$final$ 常量等。符号引用则属于编译原理方面的概念，包括：</p>
+<ul>
+<li>被模块导出或者开放的<strong>包</strong> ( $Package$ )；</li>
+<li>类和接口的<strong>全限定名</strong> ( $Fully\ \ Qualified\ \ Name$ )；</li>
+<li>字段的名称和<strong>描述符</strong> ( $Descriptor$ )；</li>
+<li>方法的名称和描述符；</li>
+<li><strong>方法句柄</strong> ( $Method\ \ Handle$ ) 和<strong>方法类型</strong> ( $Method\ \ Type$ )；</li>
+<li><strong>动态调用点</strong> ( $Dynamically-Computed\ \ Call\ \ Site$ ) 和<strong>动态常量</strong> ( $Dynamic-Computed\ \ Constant$ )。</li>
+</ul>
+<p>        <code>Java</code>代码在进行<code>Javac</code>编译时没有连接步骤，而是在虚拟机加载<code>Class</code>文件时进行动态连接，所以<code>Class</code>文件中不会保存方法和字段在内存中的位置信息，需要虚拟机在运行期进行转换。在类加载时，会从常量池中获取对应的符号引用，并在类创建和运行时解析，并翻译到具体内存地址中。<br>
+        常量池的每一个常量都是一个表，包含 $17$ 结构不同的表结构数据，起始都是一个 $u1$ 类型标志位表示常量类型。</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">标志</th>
+<th align="center">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$CONSTANT_-Utf8_-info$</td>
+<td align="center">$1$</td>
+<td align="center"><code>UTF-8</code>编码的字符串</td>
+</tr>
+<tr>
+<td align="center">$CONSTANT_-Integer_-info$</td>
+<td align="center">$3$</td>
+<td align="center">整型字面量</td>
+</tr>
+<tr>
+<td align="center">$CONSTANT_-Float_-info$</td>
+<td align="center">$4$</td>
+<td align="center">浮点型字面量</td>
+</tr>
+<tr>
+<td align="center">$CONSTANT_-Long_-info$</td>
+<td align="center">$5$</td>
+<td align="center">长整型字面量</td>
+</tr>
+<tr>
+<td align="center">$CONSTANT_-Double_-info$</td>
+<td align="center">$6$</td>
+<td align="center">双精度浮点型字面量</td>
+</tr>
+<tr>
+<td align="center">$CONSTANT_-Class_-info$</td>
+<td align="center">$7$</td>
+<td align="center">类或接口的符号引用</td>
+</tr>
+<tr>
+<td align="center">$CONSTANT_-String_-info$</td>
+<td align="center">$8$</td>
+<td align="center">字符串类型字面量</td>
+</tr>
+<tr>
+<td align="center">$CONSTANT_-Fieldref_-info$</td>
+<td align="center">$9$</td>
+<td align="center">字段的符号引用</td>
+</tr>
+<tr>
+<td align="center">$CONSTANT_-Methodref_-info$</td>
+<td align="center">$10$</td>
+<td align="center">类中方法的符号引用</td>
+</tr>
+<tr>
+<td align="center">$CONSTANT_-InterfaceMethodref_-info$</td>
+<td align="center">$11$</td>
+<td align="center">接口中方法的符号引用</td>
+</tr>
+<tr>
+<td align="center">$CONSTANT_-NameAndType_-info$</td>
+<td align="center">$12$</td>
+<td align="center">字段或方法的部分符号引用</td>
+</tr>
+<tr>
+<td align="center">$CONSTANT_-MethodHandle_-info$</td>
+<td align="center">$15$</td>
+<td align="center">方法句柄</td>
+</tr>
+<tr>
+<td align="center">$CONSTANT_-MethodType_-info$</td>
+<td align="center">$16$</td>
+<td align="center">方法类型</td>
+</tr>
+<tr>
+<td align="center">$CONSTANT_-Dynamic_-info$</td>
+<td align="center">$17$</td>
+<td align="center">动态计算常量</td>
+</tr>
+<tr>
+<td align="center">$CONSTANT_-InvokeDynamic_-info$</td>
+<td align="center">$18$</td>
+<td align="center">动态方法调用点</td>
+</tr>
+<tr>
+<td align="center">$CONSTANT_-Module_-info$</td>
+<td align="center">$19$</td>
+<td align="center">模块</td>
+</tr>
+<tr>
+<td align="center">$CONSTANT_-Package_-info$</td>
+<td align="center">$20$</td>
+<td align="center">模块中开放或者导出的包</td>
+</tr>
+</tbody>
+</table>
+<p>        起初只提供了前 $11$ 种结构，后续为了更好地支持动态语言，额外增加了 $4$ 种，之后又为了支持<code>Java</code><em><strong>模块化系统</strong></em> ( $Jigsaw$ )，又加入了两种。<br>
+        我们可以通过 $javap\ \ -verbose$ 命令查看<code>Class</code>文件中常量池的常量。</p>
+<h3 id="23-访问标志">2.3 访问标志</h3>
+<p>        在常量池之后是<strong>访问标志</strong> ( $access_-flags$ )，由 $2$ 字节组成，用于识别一些类或者接口的访问信息，包括：<code>Class</code>是类还是接口、是否为 $public$ 、是否为 $abstract$ 、是否为 $final$ ( 如果是类 ) 等等。</p>
+<table>
+<thead>
+<tr>
+<th align="center">标志</th>
+<th align="center">标志值</th>
+<th align="center">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$ACC_-PUBLIC$</td>
+<td align="center">$0x0001$</td>
+<td align="center">是否为 $public$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-FINAL$</td>
+<td align="center">$0x0010$</td>
+<td align="center">是否为 $final$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-SUPER$</td>
+<td align="center">$0x0020$</td>
+<td align="center">是否允许使用 $invokespecial$ 字节码指令的新语义，在<code>JDK 1.0.2</code>之后都设置为真</td>
+</tr>
+<tr>
+<td align="center">$ACC_-INTERFACE$</td>
+<td align="center">$0x0200$</td>
+<td align="center">表示接口</td>
+</tr>
+<tr>
+<td align="center">$ACC_-ABSTRACT$</td>
+<td align="center">$0x400$</td>
+<td align="center">是否为 $abstract$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-SYNTHETIC$</td>
+<td align="center">$0x1000$</td>
+<td align="center">表示该类并非由用户代码产生</td>
+</tr>
+<tr>
+<td align="center">$ACC_-ANNOTATION$</td>
+<td align="center">$0x2000$</td>
+<td align="center">表示注解</td>
+</tr>
+<tr>
+<td align="center">$ACC_-ENUM$</td>
+<td align="center">$0x4000$</td>
+<td align="center">表示枚举</td>
+</tr>
+<tr>
+<td align="center">$ACC_-MODULE$</td>
+<td align="center">$0x8000$</td>
+<td align="center">表示模块</td>
+</tr>
+</tbody>
+</table>
+<h3 id="24-索引">2.4 索引</h3>
+<p>        <strong>类索引</strong> ( $this_-class$ ) 和<b>父类索引</b> ( $super_-class$ ) 都是 $u2$ 类型的数据，均指向一个 $CONSTANT_-Class_-info$ 的类描述符常量；<b>接口索引集合</b> ( $interfaces$ ) 是一组 $u2$ 类型的数据的集合，第一项 $u2$ 为接口计数器 ( $interfaces_-count$ )，表示索引表容量，后面的每一项均指向一个 $CONSTANT_-Class_-info$ 的类描述符常量。 <code>Class</code>文件通过这三项数据确定继承关系。类索引确定类的全限定名，父类索引确定类的父类的全限定名。除了 $Java.lang.Object$ 之外，所有的类都具有父类，而在 $Object$ 中，父类索引为 $0$ 。接口索引集合用于表示类实现的接口，按照声明顺序从左到右存储。</p>
+<h3 id="25-字段表集合">2.5 字段表集合</h3>
+<p>        <strong>字段表</strong> ( $Field_-info$ ) 用于表示接口和类中声明的变量。</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$access_-flags$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$name_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$descriptor_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$attributes_-count$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$attribute_-info$</td>
+<td align="center">$attributes$</td>
+<td align="center">$attributes_-count$</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th align="center">名称</th>
+<th align="center">标志值</th>
+<th align="center">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$ACC_-PUBLIC$</td>
+<td align="center">$0x0001$</td>
+<td align="center">是否为 $public$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-PRIVATE$</td>
+<td align="center">$0x0002$</td>
+<td align="center">是否为 $private$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-PROTECTED$</td>
+<td align="center">$0x0004$</td>
+<td align="center">是否为 $protected$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-STATIC$</td>
+<td align="center">$0x0008$</td>
+<td align="center">是否为 $static$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-FINAL$</td>
+<td align="center">$0x0010$</td>
+<td align="center">是否为 $final$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-VOLATILE$</td>
+<td align="center">$0x0040$</td>
+<td align="center">是否为 $volatile$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-TRANSIENT$</td>
+<td align="center">$0x0080$</td>
+<td align="center">是否为 $transient$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-SYNTHETIC$</td>
+<td align="center">$0x1000$</td>
+<td align="center">是否为编译器自动产生</td>
+</tr>
+<tr>
+<td align="center">$ACC_-ENUM$</td>
+<td align="center">$0x4000$</td>
+<td align="center">是否为 $enum$</td>
+</tr>
+</tbody>
+</table>
+<p>        接口当中的字段必须有 $ACC_-PUBLIC$ 、$ACC_-STATIC$ 、$ACC_-FINAL$ 标志。<br>
+        $name_-index$ 和 $descriptor_-index$ 在标志值之后，是常量池的引用，表示字段简单名称以及字段和方法的描述符。在描述符中，基本数据类型以及 $void$ 使用一个大写字母表示，对象类型使用 $L$ 加全限定名表示。</p>
+<table>
+<thead>
+<tr>
+<th align="center">标识字符</th>
+<th align="center">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$B$</td>
+<td align="center">$byte$</td>
+</tr>
+<tr>
+<td align="center">$C$</td>
+<td align="center">$char$</td>
+</tr>
+<tr>
+<td align="center">$D$</td>
+<td align="center">$double$</td>
+</tr>
+<tr>
+<td align="center">$F$</td>
+<td align="center">$float$</td>
+</tr>
+<tr>
+<td align="center">$I$</td>
+<td align="center">$int$</td>
+</tr>
+<tr>
+<td align="center">$J$</td>
+<td align="center">$long$</td>
+</tr>
+<tr>
+<td align="center">$S$</td>
+<td align="center">$short$</td>
+</tr>
+<tr>
+<td align="center">$Z$</td>
+<td align="center">$boolean$</td>
+</tr>
+<tr>
+<td align="center">$V$</td>
+<td align="center">$void$</td>
+</tr>
+<tr>
+<td align="center">$L$</td>
+<td align="center">对象类型</td>
+</tr>
+</tbody>
+</table>
+<p>        对于数组类型，每一个维度都会使用一个前置的 $[$ 字符表示，例如 $int[\ ][\ ]$ 会表示为 $[[I$ 。对于方法，会按照参数、返回值的方式描述，参数按照顺序放在 $(\ )$ 之中，例如 $int indexOf(char[] source, int index)$ 表示为 $([CI)I$ 。<br>
+        $descriptor_-index$ 之后是属性表计数器，当字段存在额外信息如值时，计数器会记录字段的额外信息个数，并可以在之后的 $attribute_-info$ 中查询。字段表集合不会列出从父类或者父接口中继承而来的字段，但有可能出现原来<code>Java</code>代码之中不存在的字段，譬如内部类中包含的指向外部类实例的字段。</p>
+<h3 id="26-方法表集合">2.6 方法表集合</h3>
+<p>        <code>Class</code>文件中对字段和方法的描述采取了几乎一样的方式，同样包括 $access_-flags$、$name_-index$、$descriptor_-index$ 和 $attributes$ 。</p>
+<table>
+<thead>
+<tr>
+<th align="center">名称</th>
+<th align="center">标志值</th>
+<th align="center">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$ACC_-PUBLIC$</td>
+<td align="center">$0x0001$</td>
+<td align="center">是否为 $PUBLIC$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-PRIVATE$</td>
+<td align="center">$0x0002$</td>
+<td align="center">是否为 $PRIVATE$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-PROTECTED$</td>
+<td align="center">$0x0004$</td>
+<td align="center">是否为 $protected$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-STATIC$</td>
+<td align="center">$0x0008$</td>
+<td align="center">是否为 $static$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-FINAL$</td>
+<td align="center">$0x0010$</td>
+<td align="center">是否为 $final$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-SYNCHRONIZED$</td>
+<td align="center">$0x0020$</td>
+<td align="center">是否为 $synchronized$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-BRIDGE$</td>
+<td align="center">$0x0040$</td>
+<td align="center">是否为编译器产生的桥接方法</td>
+</tr>
+<tr>
+<td align="center">$ACC_-VARARGS$</td>
+<td align="center">$0x0080$</td>
+<td align="center">是否接受变长参数</td>
+</tr>
+<tr>
+<td align="center">$ACC_-NATIVE$</td>
+<td align="center">$0x0100$</td>
+<td align="center">是否为 $native$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-ABSTRACT$</td>
+<td align="center">$0x0400$</td>
+<td align="center">是否为 $abstract$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-STRICT$</td>
+<td align="center">$0x0800$</td>
+<td align="center">是否为 $strictfp$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-SYNTHETIC$</td>
+<td align="center">$0x1000$</td>
+<td align="center">是否由编译器自动产生</td>
+</tr>
+</tbody>
+</table>
+<p>        方法块内的<code>Java</code>代码，经由<code>Javac</code>编译后，存放在方法属性表集合中名为 $Code$ 的属性内。<code>Java</code>语言重载要求简单名称相同之外，还要拥有一个与原方法不同的特征签名。特征签名包括方法名称、参数顺序及参数类型。也就是说，仅仅改变返回值并不能算重载。但是<code>Class</code>文件中只要描述符不是完全一致，那么就允许多个方法共存，也即允许除了返回值之外其他都相同的方法共存。</p>
+<h3 id="27-属性表集合">2.7 属性表集合</h3>
+<p>        <strong>属性表</strong> ( $attribute_-info$ ) 在前面已经出现过，<code>Class</code>文件、字段表、方法表都可以包含一个属性表集合。属性表集合对顺序没有严格要求，而且可以在属性名不重复的前提下写入自定义的属性信息。<code>Java</code>虚拟机在运行时会忽略不认识的属性信息。对于每一个属性，它的名称都要从常量池中引用一个 $CONSTANT_-Utf8_-info$ 类型的常量表示。</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$attribute_-name_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u4$</td>
+<td align="center">$attribute_-length$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u1$</td>
+<td align="center">$info$</td>
+<td align="center">$attribute_-length$</td>
+</tr>
+</tbody>
+</table>
+<p>        属性值的结构是完全自定义的，只需要通过一个 $u4$ 类型的属性说明其占用位数即可。</p>
+<h4 id="271-code">2.7.1 <code>Code</code></h4>
+<p>        $Code$属性存储方法体内的经过<code>Javac</code>编译后产生的字节码指令。接口方法和抽象方法中不存在该属性。</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$attribute_-name_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u4$</td>
+<td align="center">$attribute_-length$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$max_-stack$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$max_-locals$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u4$</td>
+<td align="center">$code_-length$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u1$</td>
+<td align="center">$code$</td>
+<td align="center">$code_-length$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$exception_-table_-length$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$exception_-info$</td>
+<td align="center">$exception_-table$</td>
+<td align="center">$exception_-table_-length$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$attributes_-count$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$attribute_-info$</td>
+<td align="center">$attributes$</td>
+<td align="center">$attributes_-count$</td>
+</tr>
+</tbody>
+</table>
+<p>        $attribute_-name_-index$ 指向 $CONSTANT_-Utf8_-info$ ，固定为 $Code$ 。$attribute_-length$ 表示属性值长度，固定为属性长度减去本身以及上一个属性的长度即 $6$ 个字节。$max_-stack$ 为<b>操作数栈</b> ( $Operand\ \ Stack$ ) 深度的最大值，虚拟机根据这个值分配<b>栈帧</b> ( $Stack\ \ Frame$ ) 中的操作栈深度。$max_-locals$ 表示局部变量所需的空间，单位为<b>变量槽</b> ( $Slot$ )，即虚拟机为局部变量分配内存的最小单位。对于 $32$ 位的数据类型，会使用一个槽；而对于 $64$ 位的数据类型 $double$ 和 $long$ ，则会使用两个槽。方法参数（包括实例方法中的隐藏参数 $this$ ）、异常处理参数、局部变量都要依赖于局部变量表，<code>Javac</code>编译器会根据每个变量的生命周期和类型计算出 $max_-locals$ 的大小。$code_-length$ 和 $code$ 存储字节码指令，每个指令使用 $u1$ 类型的数据大小存储。<br>
+        如果方法中存在异常处理块的话，那么异常处理表会跟在字节码指令之后。</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$start_-pc$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$end_-pc$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$handler_-pc$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$catch_-type$</td>
+<td align="center">$1$</td>
+</tr>
+</tbody>
+</table>
+<p>        $start_-pc$ 和 $end_-pc$ 表示出现异常的代码行，$handler_-pc$ 为处理异常的行，当 $catch_-type$ 为 $0$ 时，任何异常都要跳转到 $handler_-pc$ 进行处理。</p>
+<h4 id="272-exceptions">2.7.2 <code>Exceptions</code></h4>
+<p>        $Exceptions$ 属性列举出方法中可能抛出的<strong>受查异常</strong> ( $Checked\ \ Exceptions$ )，也就是方法声明时在 $throws$ 关键字后面列举的异常。</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$attribute_-name_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u4$</td>
+<td align="center">$attribute_-length$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$number_-of_-exceptions$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$exception_-index_-table$</td>
+<td align="center">$number_-of_-exceptions$</td>
+</tr>
+</tbody>
+</table>
+<p>        $number_-of_-exceptions$ 表示可能抛出的 $number_-of_-exceptions$ 种异常，每种异常使用一个 $exception_-index_-table$ 表示，指向 $CONSTANT_-Class_-info$ 型常量的索引，代表异常类型。</p>
+<h4 id="273-linenumbertable">2.7.3 <code>LineNumberTable</code></h4>
+<p>        $LineNumberTable$ 用于描述<code>Java</code>源码行号与字节码行号之间的对应关系，并非运行时的必须属性，可以在<code>Javac</code>中使用 $-g:none$ 或者 $-g:lines$ 来取消或者强制生成该信息。如果取消生成，那么当程序抛出异常时，不会显示出错的行号，并且在调试时也无法在源码处设置断点。</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$attribute_-name_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u4$</td>
+<td align="center">$attribute_-length$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$line_-number_-table_-length$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$line_-number_-info$</td>
+<td align="center">$line_-number_-table$</td>
+<td align="center">$line_-number_-table_-length$</td>
+</tr>
+</tbody>
+</table>
+<p>        $line_-number_-table$ 是一个数量为 $line_-number_-table_-length$ ，类型为 $line_-number_-info$ 的集合。$line_-number_-info$ 包含 $start_pc$ 和 $line_-number$ 两个 $u2$ 类型的数据，前者为字节码行号，后者为源码行号。</p>
+<h4 id="274-localvariabletable和localvariabletypetable">2.7.4 <code>LocalVariableTable</code>和<code>LocalVariableTypeTable</code></h4>
+<p>        $LocalVariableTable$ 描述栈帧中局部变量表与<code>Java</code>源码中变量的关系，同样并非运行时的必须属性，可以在<code>Javac</code>中使用 $-g:none$ 或者 $-g:vars$ 来取消或者强制生成该信息。如果取消生成，那么当其他人引用该方法时，所有参数名称都会丢失，<code>IDE</code>会使用譬如 $arg0$ 这样的占位符代替参数名。</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$attribute_-name_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u4$</td>
+<td align="center">$attribute_-length$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$local_-variable_-table_-length$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$local_-variable_-info$</td>
+<td align="center">$local_-variable_-table$</td>
+<td align="center">$local_-variable_-table_-length$</td>
+</tr>
+</tbody>
+</table>
+<p>        其中 $local_-variable_-info$ 的结构如下：</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$start_-pc$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$length$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$name_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$descriptor_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$index$</td>
+<td align="center">$1$</td>
+</tr>
+</tbody>
+</table>
+<p>        $start_-pc$ 和 $length$ 分别代表局部变量生命周期开始的字节码行数以及作用域长度；$name_-index$ 和 $descriptor_-index$ 指向 $CONSTANT_-Utf8_-info$ 类型的常量，分别代表局部变量的名称以及描述符；$index$ 存储局部变量在栈帧的局部变量表中变量槽的起始位置。<br>
+        $LocalVariableTypeTable$ 类似于 $LocalVariableTable$ ，但是将 $descriptor_-index$ 替换为<b>特征签名</b> ( $Signature$ )。对于非泛型类来说，描述符和特征签名相同。但是对于泛型类，由于擦除的存在，需要特征签名来对泛型进行描述。</p>
+<h4 id="275-sourcefile和sourcedebugextension">2.7.5 <code>SourceFile</code>和<code>SourceDebugExtension</code></h4>
+<p>        $SourceFile$ 用于记录生成<code>Class</code>文件的源码文件名称，同样是可选的，可以在<code>Javac</code>中使用 $-g:none$ 或者 $-g:source$ 来取消或者强制生成信息。对于大多数类来说，类名和文件名一致，但是对于特殊情况如内部类，如果取消生成，那么在抛出异常时不会显示出错代码所在的文件名。</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$attribute_-name_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u4$</td>
+<td align="center">$attribute_-length$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$sourcefile_-index$</td>
+<td align="center">$1$</td>
+</tr>
+</tbody>
+</table>
+<p>        $sourcefile_-index$ 指向 $CONSTANT_-Utf8_-info$ 类型的常量索引，常量值为源码文件的文件名。<br>
+        <code>JDK 5</code>中加入的 $SourceDebugExtension$ 属性存储额外的代码调试信息，为非<code>Java</code>语言编写的，但需要编译成字节码在虚拟机中运行的程序，比如<code>JSP</code>等，提供了一个进行调试的标准机制。通过<code>SourceDebugExtension</code>，可以快速从异常堆栈中定位出<code>JSP</code>中出现问题的行号。</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$attribute_-name_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u4$</td>
+<td align="center">$attribute_-length$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u1$</td>
+<td align="center">$debug_-extension[attribute_-length]$</td>
+<td align="center">$1$</td>
+</tr>
+</tbody>
+</table>
+<p>        $debug_-extension$ 存储的就是额外的调试信息，通过一组变长的<code>UTF-8</code>格式的字符串。一个类最多只允许一个 $SourceDebugExtension$ 属性。</p>
+<h4 id="276-constantvalue">2.7.6 <code>ConstantValue</code></h4>
+<p>        $ConstantValue$ 用于通知虚拟机自动为静态变量赋值，只有静态变量才能使用该属性。对于非静态变量，会在实例构造器 &lt;$init$&gt;$(\ )$ 方法中赋值；而静态变量可以通过类构造器 &lt;$clinit$&gt;$(\ )$ 或者 $ConstantValue$ 进行赋值。<code>Javac</code>编译器会根据变量是否为 $final$ 以及变量类型来决定是否生成 $ConstantValue$ ：如果为 $final$ 并且类型为基本类型或者 $String$ ，则生成。</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$attribute_-name_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u4$</td>
+<td align="center">$attribute_-length$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$constantvalue_-index$</td>
+<td align="center">$1$</td>
+</tr>
+</tbody>
+</table>
+<p>        $constantvalue_-index$ 指向常量池中一个字面量常量的引用，可以是 $CONSTANT_-Long_-info$ 、$CONSTANT_-Integer_-info$ 等。</p>
+<h4 id="277-innerclasses">2.7.7 <code>InnerClasses</code></h4>
+<p>        $InnerClasses$ 用于记录内部类与宿主类之间的关联。</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$attribute_-name_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u4$</td>
+<td align="center">$attribute_-length$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$number_-of_-classes$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$inner_-classes_-info$</td>
+<td align="center">$inner_-class$</td>
+<td align="center">$number_-of_-classes$</td>
+</tr>
+</tbody>
+</table>
+<p>        $inner_-classes_-info$ 的结构如下：</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$inner_-class_-info_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$outer_-class_-info_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$inner_-name_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$inner_-class_-access_flags$</td>
+<td align="center">$1$</td>
+</tr>
+</tbody>
+</table>
+<p>        $inner_-class_-info_-index$ 和 $outer_-class_-info_-index$ 都指向 $CONSTANT_-Class_-info$ 类型的常量的索引，分别为内部类和宿主类的符号引用。$inner_-name_-index$ 指向 $CONSTANT_-Utf8_-info$ 类型的常量的索引，表示内部类的名称 (匿名内部类值为 $0$ )。</p>
+<table>
+<thead>
+<tr>
+<th align="center">名称</th>
+<th align="center">标志值</th>
+<th align="center">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$ACC_-PUBLIC$</td>
+<td align="center">$0x0001$</td>
+<td align="center">是否为 $public$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-PRIVATE$</td>
+<td align="center">$0x0002$</td>
+<td align="center">是否为 $private$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-PROTECTED$</td>
+<td align="center">$0x0004$</td>
+<td align="center">是否为 $protected$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-STATIC$</td>
+<td align="center">$0x0008$</td>
+<td align="center">是否为 $static$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-FINAL$</td>
+<td align="center">$0x0010$</td>
+<td align="center">是否为 $final$</td>
+</tr>
+<tr>
+<td align="center">$ACC_-INTERFACE$</td>
+<td align="center">$0x0020$</td>
+<td align="center">是否为接口</td>
+</tr>
+<tr>
+<td align="center">$ACC_-ABSTRACT$</td>
+<td align="center">$0x0400$</td>
+<td align="center">是否为抽象类</td>
+</tr>
+<tr>
+<td align="center">$ACC_-SYNTHETIC$</td>
+<td align="center">$0x1000$</td>
+<td align="center">是否为编译器自动生成</td>
+</tr>
+<tr>
+<td align="center">$ACC_-ANNOTATION$</td>
+<td align="center">$0x2000$</td>
+<td align="center">是否为注解</td>
+</tr>
+<tr>
+<td align="center">$ACC_-ENUM$</td>
+<td align="center">$0x4000$</td>
+<td align="center">是否为枚举</td>
+</tr>
+</tbody>
+</table>
+<h4 id="278-deprecated和synthetic">2.7.8 <code>Deprecated</code>和<code>Synthetic</code></h4>
+<p>        $Deprecated$ 和 $Synthetic$ 都是布尔值，分别表示是否废弃和是否由编译器自动产生。后者也可以通过设置标志位 $ACC_-SYNTHETIC$ 代替。当它们存在时，即代表为真。</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$attribute_-name_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u4$</td>
+<td align="center">$attribute_-length$</td>
+<td align="center">$1$</td>
+</tr>
+</tbody>
+</table>
+<p>        其中 $attribute_-length$ 的值恒为 $0x00000000$ 。</p>
+<h4 id="279-stackmaptable">2.7.9 <code>StackMapTable</code></h4>
+<p>        $StackMapTable$ 在<code>JDK 6</code>之后加入<code>Class</code>文件结构中，位于 $Code$ 属性的属性表中，在虚拟机类加载的字节码验证阶段被<em><strong>新类型检查验证器</strong></em> ( $Type\ \ Checker$ ) 使用。</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$attribute_-name_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u4$</td>
+<td align="center">$attribute_-length$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$number_-of_-entries$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$stack_-map_-frame$</td>
+<td align="center">$stack_-map_-frame_-entries$</td>
+<td align="center">$number_-of_-entries$</td>
+</tr>
+</tbody>
+</table>
+<p>        <code>JDK 7</code>后，如果 $Code$ 中没有 $StackMapTable$ ，那么他就具有一个隐式的 $StackMapTable$ 属性，$number_-of_-entries$ 值为 $0$ 。</p>
+<h4 id="2710-signature">2.7.10 <code>Signature</code></h4>
+<p>        $Signature$ 是一个可选的定长属性，可以出现在类、字段表和方法表结构的属性表中，记录泛型签名信息。</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$attribute_-name_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u4$</td>
+<td align="center">$attribute_-length$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$signature_-index$</td>
+<td align="center">$1$</td>
+</tr>
+</tbody>
+</table>
+<p>        $signature_-index$ 指向 $CONSTANT_-Utf8_-info$ 类型的常量的索引，表示类签名或者方法类型或者字段类型签名。</p>
+<h4 id="2711-bootstrapmethod">2.7.11 <code>BootstrapMethod</code></h4>
+<p>        $BootstrapMethod$ 在<code>JDK 7</code>之后添加到<code>Class</code>文件结构中，存储 $invokedynamic$ 指令引用的引导方法限定符。如果某个<code>Class</code>文件常量池中出现过 $CONSTANT_-InvokeDynamic_-info$ 类型的常量，那么这个文件属性表中必须存在一个 $BootstrapMethod$ 属性，且最多只能有一个。</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$attribute_-name_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u4$</td>
+<td align="center">$attribute_-length$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$num_-bootstrap_-methods$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$bootstrap_-method$</td>
+<td align="center">$bootstrap_-methods$</td>
+<td align="center">$num_-bootstrap_-methods$</td>
+</tr>
+</tbody>
+</table>
+<p>        $bootstrap_-method$ 结构如下：</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$bootstrap_-method_-ref$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$num_-bootstrap_-arguments$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$bootstrap_-arguments$</td>
+<td align="center">$num_-bootstrap_-arguments$</td>
+</tr>
+</tbody>
+</table>
+<p>        $bootstrap_-method_-ref$ 指向 $CONSTANT_-MethodHandle$ 结构的索引值，代表一个引导方法。</p>
+<h4 id="2712-methodparameters">2.7.12 <code>MethodParameters</code></h4>
+<p>        $MethodParameters$ 在<code>JDK 8</code>之后加入到<code>Class</code>文件结构中，用于记录变长参数中各个形参的名称和信息。</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$attribute_-name_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u4$</td>
+<td align="center">$attribute_-length$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u1$</td>
+<td align="center">$parameters_-count$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$parameter$</td>
+<td align="center">$parameters$</td>
+<td align="center">$parameters_-count$</td>
+</tr>
+</tbody>
+</table>
+<p>        其中 $parameter$ 结构如下：</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$name_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$access_-flags$</td>
+<td align="center">$1$</td>
+</tr>
+</tbody>
+</table>
+<p>        $name_-index$ 指向 $CONSTANT_-Utf8_-info$ 类型的常量的索引，表示参数名称。$access_-flags$ 是参数的状态指示器。</p>
+<table>
+<thead>
+<tr>
+<th align="center">名称</th>
+<th align="center">标志值</th>
+<th align="center">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$ACC_-FINAL$</td>
+<td align="center">$0x0010$</td>
+<td align="center">参数被 $final$ 修饰</td>
+</tr>
+<tr>
+<td align="center">$ACC_-SYNTHETIC$</td>
+<td align="center">$0x1000$</td>
+<td align="center">参数是编译器自动生成的</td>
+</tr>
+<tr>
+<td align="center">$ACC_-MANDATED$</td>
+<td align="center">$0x8000$</td>
+<td align="center">参数是在源文件中隐式定义的（如 $this$ ）</td>
+</tr>
+</tbody>
+</table>
+<h4 id="2713-模块化相关属性">2.7.13 模块化相关属性</h4>
+<p>        <code>JDK 9</code>中添加了<code>Java</code>的模块化功能，因为模块描述文件 ( $module_-info.java$ ) 最终要编译为<code>Class</code>文件，所以<code>Class</code>文件结构中添加了 $Module$ 、$ModulePackages$ 和 $ModuleMainClass$ 三个属性。<br>
+        $Module$ 属性是一个复杂的变长属性。</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$attribute_-name_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u4$</td>
+<td align="center">$attribute_-length$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$module_-name_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$module_-flags$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$module_-version_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$requires_-count$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$require$</td>
+<td align="center">$requires$</td>
+<td align="center">$requires_-count$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$exports_-count$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$export$</td>
+<td align="center">$exports$</td>
+<td align="center">$exports_-count$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$opens_-count$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$open$</td>
+<td align="center">$opens$</td>
+<td align="center">$opens_-count$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$uses_-count$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$use$</td>
+<td align="center">$uses_-index$</td>
+<td align="center">$uses_-count$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$provides_-count$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$provide$</td>
+<td align="center">$provides$</td>
+<td align="center">$provides_-count$</td>
+</tr>
+</tbody>
+</table>
+<p>        $module_-flags$ 是模块状态指示器。</p>
+<table>
+<thead>
+<tr>
+<th align="center">名称</th>
+<th align="center">标志值</th>
+<th align="center">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$ACC_-OPEN$</td>
+<td align="center">$0x0020$</td>
+<td align="center">模块开放</td>
+</tr>
+<tr>
+<td align="center">$ACC_-SYNTHETIC$</td>
+<td align="center">$0x1000$</td>
+<td align="center">模块是编译器自动生成的</td>
+</tr>
+<tr>
+<td align="center">$ACC_-MANDATED$</td>
+<td align="center">$0x8000$</td>
+<td align="center">模块是在源文件中隐式定义的</td>
+</tr>
+</tbody>
+</table>
+<p>        $module_-versions_-index$ 指向 $CONSTANT_-Utf8_-info$ 类型的常量的索引，表示模块版本号。<br>
+        $ModulePackages$ 用于描述模块中所有的包。</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$attribute_-name_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u4$</td>
+<td align="center">$attribute_-length$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$package_-count$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$package_-index$</td>
+<td align="center">$package_-count$</td>
+</tr>
+</tbody>
+</table>
+<p>        $package_-index$ 指向 $CONSTANT_-Package_-info$ 类型的常量的索引，代表模块中的一个包。<br>
+        $ModuleMainClass$ 用于确定模块的主类。</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$attribute_-name_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u4$</td>
+<td align="center">$attribute_-length$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$main_-class_-index$</td>
+<td align="center">$1$</td>
+</tr>
+</tbody>
+</table>
+<p>        $main_-class_-index$ 指向 $CONSTANT_-Class_-info$ 类型的常量的索引，代表模块的主类。</p>
+<h4 id="2714-运行时注解相关属性">2.7.14 运行时注解相关属性</h4>
+<p>        <code>Class</code>文件在<code>JDK 5</code>之后增加了 $RuntimeVisibleAnnotation$ 、$RuntimeInvisibleAnnotation$ 、$RuntimeVisibleParameterAnnotations$ 和 $RuntimeInvisibleParameterAnnotations$ 四个属性，用于支持注解。<code>JDK 8</code>之后，又添加了 $RuntimeVisibleTypeAnnotations$ 和 $RuntimeInvisibleTypeAnnotations$ 两个属性。<br>
+        $RuntimeVisibleAnnotations$ 记录了类、字段或方法声明上的运行时可见注解，可以通过反射获取这个属性。</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$attribute_-name_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u4$</td>
+<td align="center">$attribute_-length$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$num_-annotations$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$annotation$</td>
+<td align="center">$annotations$</td>
+<td align="center">$num_-annotations$</td>
+</tr>
+</tbody>
+</table>
+<p>        其中 $annotation$ 的结构如下：</p>
+<table>
+<thead>
+<tr>
+<th align="center">类型</th>
+<th align="center">名称</th>
+<th align="center">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$Type_-index$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$u2$</td>
+<td align="center">$num_-element_-value_-pairs$</td>
+<td align="center">$1$</td>
+</tr>
+<tr>
+<td align="center">$element_-value_-pair$</td>
+<td align="center">$element_-value_-pairs$</td>
+<td align="center">$num_-element_-value_-pairs$</td>
+</tr>
+</tbody>
+</table>
+<p>        $Type_-index$ 指向 $CONSTANT_-Utf8_-info$ 类型的常量的索引，以字段描述符的形式表示一个注解；$element_-value_-pair$ 以键值对的形式表示注解的参数和值。</p>
+
+            </div>
+            <div class="meta post-footer"> <span>2020 Sep 17 22:58</span> <a href="/post/jvm4class%E6%96%87%E4%BB%B6%E7%BB%93%E6%9E%84/"><i
+                        class="fas fa-link"></i> link</a></div>
+        </div>
         
         <div class="post">
             
@@ -1092,324 +2460,6 @@ $$
 
             </div>
             <div class="meta post-footer"> <span>2020 Sep 6 21:28</span> <a href="/post/java-i-o/"><i
-                        class="fas fa-link"></i> link</a></div>
-        </div>
-        
-        <div class="post">
-            
-            <center>
-                <h1><a href="/post/java%E6%B3%9B%E5%9E%8B/">Java泛型</a></h1>
-            </center>
-            <div class="post-content">
-                <p>        泛型允许一个类应用于多种类型，实现了参数化类型的概念。促使泛型产生的原因之一就是容器类，泛型可以用于指定一个容器具体要持有怎样的类型。当然，也可以通过泛型实现持有多个类型的类，如元组类：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">TwoTuple</span><span class="o">&lt;</span><span class="n">A</span><span class="o">,</span> <span class="n">B</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">final</span> <span class="n">A</span> <span class="n">first</span><span class="o">;</span>
-    <span class="kd">public</span> <span class="kd">final</span> <span class="n">B</span> <span class="n">second</span><span class="o">;</span>
-
-    <span class="kd">public</span> <span class="nf">TwoTuple</span><span class="o">(</span><span class="n">A</span> <span class="n">a</span><span class="o">,</span> <span class="n">B</span> <span class="n">b</span><span class="o">)</span> <span class="o">{</span>
-        <span class="k">this</span><span class="o">.</span><span class="na">first</span> <span class="o">=</span> <span class="n">a</span><span class="o">;</span>
-        <span class="k">this</span><span class="o">.</span><span class="na">second</span> <span class="o">=</span> <span class="n">b</span><span class="o">;</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        如果需要长度更长的元组如三元组，我们可以在二元组的基础上声明三元组类，并令其继承二元组类。<br>
-        除了具体类外，泛型还可以应用于抽象类和接口当中。<br>
-        <code>Java</code>泛型存在着很多局限性，第一个就是不能以基本类型作为其类型参数。当然，通过<code>Java</code>自动包装和自动拆包的功能，基本类型和其包装类型可以很方便地进行转换。<br>
-        之前提到的泛型都是应用于一个类上的，但是泛型同样可以应用于方法上，而且不仅可以应用于泛型类的方法上，也可以应用于普通类的方法上。如果通过使用泛型方法就可以避免使用泛型类，那么推荐使用泛型方法。此外，由于 $static$ 方法无法获取类型参数，因此如果要让 $static$ 方法使用泛型，那么就必须让其成为泛型方法。与使用泛型类不同，使用泛型方法时可以不用指定具体类型，通过类型参数推断，编译器可以为我们找出具体类型。</p>
-<h2 id="1-擦除">1. 擦除</h2>
-<p>        通过泛型，我们可以声明一个 $ArrayList&lt;Integer&gt;$ 对象，然后我们可以获取 $ArraysList.class$ ，但是却不能获取 $ArrayList&lt;Integer&gt;.class$ 对象。这个行为说明了在编译器的眼中，$ArrayList&lt;Integer&gt;$ 和 $ArrayList&lt;String&gt;$ 是同一类型。更加夸张的是，不同于<code>C++</code>，在<code>Java</code>的泛型内，你无法获取任何有关于泛型参数类型的信息。这些行为的原因都是因为<code>Java</code>的泛型是使用擦除实现的。在基于擦除的实现中，泛型被认为是第二类类型，既不能在某些重要的上下文环境中使用的类型。泛型类型只有在静态类型检查期间才会出现，之后泛型类型将被擦除，并替换为非泛型边界如 $List$ , $Object$ 等。<br>
-        在<code>C++</code>中，我们可以实现以下代码：</p>
-<div class="highlight"><pre class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span> <span class="k">class</span> <span class="nc">Test</span> <span class="p">{</span>
-    <span class="n">T</span> <span class="n">obj</span><span class="p">;</span>
-<span class="k">public</span><span class="o">:</span>
-    <span class="n">Test</span><span class="p">(</span><span class="n">T</span> <span class="n">t</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">this</span><span class="p">.</span><span class="n">obj</span> <span class="o">=</span> <span class="n">t</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="kt">void</span> <span class="nf">f</span><span class="p">()</span> <span class="p">{</span>
-        <span class="n">obj</span><span class="p">.</span><span class="n">f</span><span class="p">();</span>
-    <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div><p>        但是在<code>Java</code>中，这种行为就无法实现了。因为擦除的存在，<code>Java</code>编译器无法认为 $obj$ 含有 $f(\ )$ 方法。而为了调用 $f(\ )$ ，在<code>Java</code>中需要这样实现：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">interface</span> <span class="nc">HasF</span> <span class="o">{</span>
-    <span class="kt">void</span> <span class="nf">f</span><span class="o">();</span>
-<span class="o">}</span>
-
-<span class="kd">public</span> <span class="kd">class</span> <span class="nc">Test</span><span class="o">&lt;?</span> <span class="kd">extends</span> <span class="n">HasF</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="kd">private</span> <span class="n">T</span> <span class="n">obj</span><span class="o">;</span>
-    <span class="n">Test</span><span class="o">(</span><span class="n">T</span> <span class="n">t</span><span class="o">)</span> <span class="o">{</span>
-        <span class="k">this</span><span class="o">.</span><span class="na">obj</span> <span class="o">=</span> <span class="n">t</span><span class="o">;</span>
-    <span class="o">}</span>
-    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">f</span><span class="o">()</span> <span class="o">{</span>
-        <span class="n">obj</span><span class="o">.</span><span class="na">f</span><span class="o">();</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        通过给定泛型类的边界，泛型类只能接受符合这个边界的类型参数，从而就能确保含有 $f(\ )$ 方法了。<br>
-        虽然通过擦除，<code>Java</code>保证了向后兼容。但是带来的代价也是显著的，所有关于类型参数的信息都丢失了。也因为这个原因，泛型并不是强制使用的：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">A</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{}</span>
-
-<span class="kd">class</span> <span class="nc">Derived1</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="kd">extends</span> <span class="n">A</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{}</span>
-
-<span class="kd">class</span> <span class="nc">Derived2</span> <span class="kd">extends</span> <span class="n">A</span> <span class="o">{}</span>
-</code></pre></div><p>        但是擦除机制带来的最令人困惑的并不是这个，而是“看起来好像持有”：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">ArrayMaker</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="kd">private</span> <span class="n">Class</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">kind</span><span class="o">;</span>
-
-    <span class="kd">public</span> <span class="nf">ArrayMaker</span><span class="o">(</span><span class="n">Class</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">kind</span><span class="o">)</span> <span class="o">{</span>
-        <span class="k">this</span><span class="o">.</span><span class="na">kind</span> <span class="o">=</span> <span class="n">kind</span><span class="o">;</span>
-    <span class="o">}</span>
-    <span class="nd">@SuppressWarnings</span><span class="o">(</span><span class="s">&#34;unchecked&#34;</span><span class="o">)</span>
-    <span class="n">T</span><span class="o">[]</span> <span class="nf">create</span><span class="o">(</span><span class="kt">int</span> <span class="n">size</span><span class="o">)</span> <span class="o">{</span>
-        <span class="k">return</span> <span class="o">(</span><span class="n">T</span><span class="o">[])</span> <span class="n">Array</span><span class="o">.</span><span class="na">newInstance</span><span class="o">(</span><span class="n">kind</span><span class="o">,</span> <span class="n">size</span><span class="o">);</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        即使使用了 $Class&lt;T&gt;$ 储存 $kind$ ，因为擦除的存在，它会被存储为 $Class$ 对象，从而使得创建数组时不会产生具体结果，只能配合转型使用。</p>
-<h2 id="2-擦除的补偿">2. 擦除的补偿</h2>
-<p>        因为擦除的原因，类内部无法得到类型参数信息，因此 $instanceof$ 不能使用。但是可以使用动态 $isInstance(\ )$ ：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">Building</span> <span class="o">{}</span>
-
-<span class="kd">class</span> <span class="nc">House</span> <span class="kd">extends</span> <span class="n">Building</span> <span class="o">{}</span>
-
-<span class="kd">class</span> <span class="nc">ClassType</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="n">Class</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">kind</span><span class="o">;</span>
-
-    <span class="kd">public</span> <span class="nf">ClassType</span><span class="o">(</span><span class="n">Class</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">kind</span><span class="o">)</span> <span class="o">{</span>
-        <span class="k">this</span><span class="o">.</span><span class="na">kind</span> <span class="o">=</span> <span class="n">kind</span><span class="o">;</span>
-    <span class="o">}</span>
-
-    <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">f</span><span class="o">(</span><span class="n">Object</span> <span class="n">obj</span><span class="o">)</span> <span class="o">{</span>
-        <span class="k">return</span> <span class="n">kind</span><span class="o">.</span><span class="na">isInstance</span><span class="o">(</span><span class="n">obj</span><span class="o">);</span>
-    <span class="o">}</span>
-
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">ClassType</span><span class="o">&lt;</span><span class="n">Building</span><span class="o">&gt;</span> <span class="n">classType</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ClassType</span><span class="o">&lt;&gt;(</span><span class="n">Building</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">classType</span><span class="o">.</span><span class="na">f</span><span class="o">(</span><span class="k">new</span> <span class="n">Building</span><span class="o">()));</span> <span class="c1">// true
-</span><span class="c1"></span>        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">classType</span><span class="o">.</span><span class="na">f</span><span class="o">(</span><span class="k">new</span> <span class="n">House</span><span class="o">()));</span> <span class="c1">// true
-</span><span class="c1"></span>    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        在泛型类中，通过类似 $new\ \ T(\ )$ 的方式创建类是不行的，因为<code>Java</code>编译器无法确认类型拥有默认构造器。而在<code>C++</code>中由于编译器的定期检查，这种行为的安全性得以确保。如果想要在<code>Java</code>中以类似方式创建对象，可以通过工厂模式：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">ClassAsFactory</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="n">T</span> <span class="n">x</span><span class="o">;</span>
-    <span class="kd">public</span> <span class="nf">ClassAsFactory</span><span class="o">(</span><span class="n">Class</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">kind</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">NoSuchMethodException</span> <span class="o">{</span>
-        <span class="k">try</span> <span class="o">{</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="n">kind</span><span class="o">.</span><span class="na">getDeclaredConstructor</span><span class="o">().</span><span class="na">newInstance</span><span class="o">();</span>
-        <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">IllegalAccessException</span> <span class="o">|</span> <span class="n">InstantiationException</span> <span class="o">|</span> <span class="n">InvocationTargetException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
-            <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
-        <span class="o">}</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        虽然编译可以通过，但是不一定每次都能成功创建，比如 $ClassAsFactory&lt;Integer&gt;$ 就会失败，因为 $Integer$ 类没有默认构造器。为了避免这个问题，可以使用显示工厂：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">interface</span> <span class="nc">Factory</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="n">T</span> <span class="nf">create</span><span class="o">();</span>
-<span class="o">}</span>
-
-<span class="kd">class</span> <span class="nc">IntegerFactory</span> <span class="kd">implements</span> <span class="n">Factory</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="n">Integer</span> <span class="nf">create</span><span class="o">()</span> <span class="o">{</span>
-        <span class="k">return</span> <span class="k">new</span> <span class="n">Integer</span><span class="o">(</span><span class="n">0</span><span class="o">);</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-
-<span class="kd">class</span> <span class="nc">Foo</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="kd">private</span> <span class="n">T</span> <span class="n">x</span><span class="o">;</span>
-    <span class="kd">public</span> <span class="o">&lt;</span><span class="n">F</span> <span class="kd">extends</span> <span class="n">Factory</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="nf">Foo</span><span class="o">(</span><span class="n">F</span> <span class="n">factory</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="na">create</span><span class="o">();</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        除了工厂方法之外，还可以使用模板方法：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">abstract</span> <span class="kd">class</span> <span class="nc">GenericWithCreate</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="kd">private</span> <span class="kd">final</span> <span class="n">T</span> <span class="n">element</span><span class="o">;</span>
-
-    <span class="kd">public</span> <span class="nf">GenericWithCreate</span><span class="o">()</span> <span class="o">{</span>
-        <span class="n">element</span> <span class="o">=</span> <span class="n">create</span><span class="o">();</span>
-    <span class="o">}</span>
-
-    <span class="kd">public</span> <span class="kd">abstract</span> <span class="n">T</span> <span class="nf">create</span><span class="o">();</span>
-<span class="o">}</span>
-
-<span class="kd">class</span> <span class="nc">X</span> <span class="o">{}</span>
-
-<span class="kd">class</span> <span class="nc">Creator</span> <span class="kd">extends</span> <span class="n">GenericWithCreate</span><span class="o">&lt;</span><span class="n">x</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="nd">@Override</span>
-    <span class="kd">public</span> <span class="n">X</span> <span class="nf">create</span><span class="o">()</span> <span class="o">{</span>
-        <span class="k">return</span> <span class="k">new</span> <span class="n">X</span><span class="o">();</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        在泛型类内，你无法直接通过 $new$ 创建泛型数组，一般情况下都是使用 $ArrayList$ 进行替代。但是在一些需要建立泛型数组的情况下，通过 $new$ 建立之后再进行转型这种方式是无效的。因为<code>Java</code>数组将跟踪它们被创建时的实际类型，信息在编译期存储，因此无论怎么转型，它都是 $Object$ 数组。因此最好是在集合内部使用 $Object[\ ]$ ，然后在取出元素时再将其转型为 $T$ 。</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">GenericArray</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="kd">private</span> <span class="n">Object</span><span class="o">[]</span> <span class="n">array</span><span class="o">;</span>
-
-    <span class="kd">public</span> <span class="nf">GenericArray</span><span class="o">(</span><span class="kt">int</span> <span class="n">size</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">array</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Object</span><span class="o">[</span><span class="n">size</span><span class="o">];</span>
-    <span class="o">}</span>
-
-    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">put</span><span class="o">(</span><span class="kt">int</span> <span class="n">index</span><span class="o">,</span> <span class="n">T</span> <span class="n">item</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">array</span><span class="o">[</span><span class="n">index</span><span class="o">]</span> <span class="o">=</span> <span class="n">item</span><span class="o">;</span>
-    <span class="o">}</span>
-
-    <span class="nd">@SuppressWarnings</span><span class="o">(</span><span class="s">&#34;unchecked&#34;</span><span class="o">)</span>
-    <span class="kd">public</span> <span class="n">T</span> <span class="nf">get</span><span class="o">(</span><span class="kt">int</span> <span class="n">index</span><span class="o">)</span> <span class="o">{</span>
-        <span class="k">return</span> <span class="o">(</span><span class="n">T</span><span class="o">)</span> <span class="n">array</span><span class="o">[</span><span class="n">index</span><span class="o">];</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        如果要获得整个数组对象，那么就不能使用 $new$ ，而要改为使用 $Class$ 对象：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">GenericArrayWithTypeToken</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="kd">private</span> <span class="n">T</span><span class="o">[]</span> <span class="n">array</span><span class="o">;</span>
-
-    <span class="nd">@SuppressWarnings</span><span class="o">(</span><span class="s">&#34;unchecked&#34;</span><span class="o">)</span>
-    <span class="kd">public</span> <span class="nf">GenericArrayWithTypeToken</span><span class="o">(</span><span class="n">Class</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">type</span><span class="o">,</span> <span class="kt">int</span> <span class="n">size</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">array</span> <span class="o">=</span> <span class="o">(</span><span class="n">T</span><span class="o">[])</span> <span class="n">Array</span><span class="o">.</span><span class="na">newInstance</span><span class="o">(</span><span class="n">type</span><span class="o">,</span> <span class="n">size</span><span class="o">);</span>
-    <span class="o">}</span>
-
-    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">put</span><span class="o">(</span><span class="kt">int</span> <span class="n">index</span><span class="o">,</span> <span class="n">T</span> <span class="n">item</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">array</span><span class="o">[</span><span class="n">index</span><span class="o">]</span> <span class="o">=</span> <span class="n">item</span><span class="o">;</span>
-    <span class="o">}</span>
-
-    <span class="kd">public</span> <span class="n">T</span> <span class="nf">get</span><span class="o">(</span><span class="kt">int</span> <span class="n">index</span><span class="o">)</span> <span class="o">{</span>
-        <span class="k">return</span> <span class="n">array</span><span class="o">[</span><span class="n">index</span><span class="o">];</span>
-    <span class="o">}</span>
-
-    <span class="kd">public</span> <span class="n">T</span><span class="o">[]</span> <span class="nf">rep</span><span class="o">()</span> <span class="o">{</span>
-        <span class="k">return</span> <span class="n">array</span><span class="o">;</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        可以发现，这两种情况都会产生大量警告。当然，警告是可以忽略的。</p>
-<h2 id="3-边界">3. 边界</h2>
-<p>        边界提供了一种限制泛型参数类型的机制，潜在的效果是允许泛型调用一些方法。如果能够将参数限制为某个类型的子集，那么就可以运用子集来调用方法。同时，如果你需要的话，还可以在继承的每个层次上添加不同的限制：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">A</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{}</span>
-
-<span class="kd">class</span> <span class="nc">B</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{}</span>
-
-<span class="kd">class</span> <span class="nc">C</span><span class="o">&lt;&lt;</span><span class="n">T</span> <span class="kd">extends</span> <span class="n">B</span><span class="o">&gt;</span> <span class="kd">extends</span> <span class="n">A</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="o">{}</span>
-
-<span class="kd">class</span> <span class="nc">D</span><span class="o">&lt;</span><span class="n">T</span> <span class="kd">extends</span> <span class="n">A</span> <span class="o">&amp;</span> <span class="n">B</span><span class="o">&gt;</span> <span class="o">{}</span>
-</code></pre></div><p>        再考虑一种情况，假设 $Apple$ 是 $Fruit$ 的子类，那么：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">List</span><span class="o">&lt;</span><span class="n">Fruit</span><span class="o">&gt;</span> <span class="n">list</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;</span><span class="n">Apple</span><span class="o">&gt;();</span>
-</code></pre></div><p>        虽然看起来好像是正确的，但却是错误的，因为 $Apple$ 的 $List$ 在类型上并不等价于 $Fruit$ 的 $List$ 。如果你想要让其正确地向上转型，就需要使用通配符：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">List</span><span class="o">&lt;?</span> <span class="kd">extends</span> <span class="n">Fruit</span><span class="o">&gt;</span> <span class="n">list</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;</span><span class="n">Apple</span><span class="o">&gt;();</span>
-</code></pre></div><p>        这种方式给定了一个“任何扩展了 $Fruit$ 对象”的边界，$List$ 就可以接受任何可以向上转型为 $Fruit$ 的类型了。除了这种方式外，还可以使用超类通配符，即声明某个特定类的基类：$&lt;?\ \ super\ \ MyClass&gt;$ ，甚至使用类型参数 $&lt;?\ \ super\ \ T&gt;$ 。<br>
-        在上面的例子中使用了无界通配符 $?$ 。如果单独使用无界通配符，看起来好像就等价于原生类型。事实也确实是这样，编译器很少关心原生类型和仅使用无界通配符之间的区别。但这也并不意味着仅使用无界通配符没有意义，它可以标识你想在这里使用泛型。此外，无界通配符表示可以接受任何类型的特性还使得它成为存储泛型类的场所，可以将此特性应用于传参中。当然，编译器也会有关注它们间差异的时候：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">Holder</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="kd">private</span> <span class="n">T</span> <span class="n">obj</span><span class="o">;</span>
-
-    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setObj</span><span class="o">(</span><span class="n">T</span> <span class="n">obj</span><span class="o">)</span> <span class="o">{</span>
-        <span class="k">this</span><span class="o">.</span><span class="na">obj</span> <span class="o">=</span> <span class="n">obj</span><span class="o">;</span>
-    <span class="o">}</span>
-
-    <span class="kd">public</span> <span class="n">T</span> <span class="nf">getObj</span><span class="o">()</span> <span class="o">{</span>
-        <span class="k">return</span> <span class="k">this</span><span class="o">.</span><span class="na">obj</span><span class="o">;</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-
-<span class="kd">public</span> <span class="kd">class</span> <span class="nc">Wildcards</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">rawArgs</span><span class="o">(</span><span class="n">Holder</span> <span class="n">holder</span><span class="o">,</span> <span class="n">Object</span> <span class="n">object</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">holder</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="n">object</span><span class="o">);</span> <span class="c1">// warning
-</span><span class="c1"></span>    <span class="o">}</span>
-
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">unboundedArg</span><span class="o">(</span><span class="n">Holder</span><span class="o">&lt;?&gt;</span> <span class="n">holder</span><span class="o">,</span> <span class="n">Object</span> <span class="n">object</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">holder</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="n">object</span><span class="o">);</span> <span class="c1">// error
-</span><span class="c1"></span>    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        当 $holder$ 是一个 $Holder&lt;?&gt;$ 时，调用 $rawArgs(\ )$ 后，因为编译器仍然知道它是个泛型类型，因此认为传递一个 $Object$ 类型对象是不安全的，所以会产生警告。同样的，在调用 $unboundedArg(\ )$ 时，因为 $Holder&lt;?&gt;$ 要持有一个具体类型的，因此不能只是向其传递 $Object$ 。<br>
-        上面演示了需要使用原生类型的情况，也有情况需要使用 $&lt;?&gt;$ ：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">CaptureConversion</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="kt">void</span> <span class="nf">f1</span><span class="o">(</span><span class="n">Holder</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">holder</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">T</span> <span class="n">t</span> <span class="o">=</span> <span class="n">holder</span><span class="o">.</span><span class="na">get</span><span class="o">();</span>
-    <span class="o">}</span>
-
-    <span class="kd">public</span> <span class="kd">static</span> <span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="kt">void</span> <span class="nf">f2</span><span class="o">(</span><span class="n">Holder</span> <span class="n">holder</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">f1</span><span class="o">(</span><span class="n">holder</span><span class="o">);</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        在上面的例子中将原生类型传入 $f1(\ )$ 会产生异常，而传入 $f2(\ )$ 不会。因为 $f2(\ )$ 使用 $&lt;?&gt;$ 作为参数，编译器可能会推断出实际类型，这种行为称为捕获转换。</p>
-<h2 id="4-自限定类型">4. 自限定类型</h2>
-<p>        先看下面这个例子：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">GenericType</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{}</span>
-
-<span class="kd">public</span> <span class="kd">class</span> <span class="nc">CuriouslyRecurringGeneric</span> <span class="kd">extends</span> <span class="n">GenericType</span><span class="o">&lt;</span><span class="n">CuriouslyRecurringGeneric</span><span class="o">&gt;</span> <span class="o">{}</span>
-</code></pre></div><p>        这种泛型称为<em><strong>古怪的循环泛型</strong></em> ( $CRG$ ) ，本质是将基类的类型参数使用导出类来代替。类似的我们还可以进行下面的声明：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">SelfBounded</span><span class="o">&lt;</span><span class="n">T</span> <span class="kd">extends</span> <span class="n">SelfBounded</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="o">{}</span>
-</code></pre></div><p>        这样 $T$ 的类型就被限定为类似于：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">A</span> <span class="kd">extends</span> <span class="n">SelfBounded</span><span class="o">&lt;</span><span class="n">A</span><span class="o">&gt;</span> <span class="o">{}</span>
-</code></pre></div><p>        通过使用自限定类型，可以保证类型参数与当前正在被定义的类相同。当然，这个规则也可以通过下面方式避免：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">B</span> <span class="kd">extends</span> <span class="n">SelfBounded</span> <span class="o">{}</span>
-</code></pre></div><p>        上面的代码可以编译，而且不会产生警告。因此自限定并非强制保证类型相同，如果你确实需要强制保证的话，就需要外部工具的辅助。<br>
-        自限定类型的价值在于它们可以产生协变参数类型：方法参数类型随子类变化。可以对比下下面的两个例子：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">Base</span> <span class="o">{}</span>
-
-<span class="kd">class</span> <span class="nc">Derived</span> <span class="kd">extends</span> <span class="n">Base</span> <span class="o">{}</span>
-
-<span class="kd">interface</span> <span class="nc">OrdinaryGetter</span> <span class="o">{</span>
-    <span class="kt">void</span> <span class="nf">set</span><span class="o">(</span><span class="n">Base</span> <span class="n">base</span><span class="o">);</span>
-<span class="o">}</span>
-
-<span class="kd">interface</span> <span class="nc">DerivedGetter</span> <span class="kd">extends</span> <span class="n">OrdinaryGetter</span> <span class="o">{</span>
-    <span class="kt">void</span> <span class="nf">set</span><span class="o">(</span><span class="n">Derived</span> <span class="n">derived</span><span class="o">);</span>
-<span class="o">}</span>
-</code></pre></div><p>        在这个例子中，$DerivedGetter$ 重写了 $set(\ )$ 方法，这是合理的，但是会存在两个 $set(\ )$ 方法。有时候我们想要让方法接受子类作为参数，又不想因为重写而同时存在两个同名方法，那么可以通过自限定实现：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">interface</span> <span class="nc">SelfBounded</span><span class="o">&lt;</span><span class="n">T</span> <span class="kd">extends</span> <span class="n">SelfBounded</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="o">{</span>
-    <span class="kt">void</span> <span class="nf">set</span><span class="o">(</span><span class="n">T</span> <span class="n">arg</span><span class="o">);</span>
-<span class="o">}</span>
-
-<span class="kd">interface</span> <span class="nc">Setter</span> <span class="kd">extends</span> <span class="n">SelfBounded</span><span class="o">&lt;</span><span class="n">Setter</span><span class="o">&gt;</span> <span class="o">{}</span>
-</code></pre></div><h2 id="5-混型">5. 混型</h2>
-<p>        混型可以混合多个类，产生一个表示混型中所有类型的类，使得组装多个类变得简单。在<code>C++</code>中可以这样使用混型：</p>
-<div class="highlight"><pre class="chroma"><code class="language-c++" data-lang="c++"><span class="o">&lt;</span><span class="k">template</span> <span class="n">T</span><span class="o">&gt;</span> <span class="k">class</span> <span class="nc">A</span> <span class="o">:</span> <span class="k">public</span> <span class="n">T</span> <span class="p">{}</span>
-</code></pre></div><p>        但是在<code>Java</code>中因为擦除的原因，并不能使用这种方式。一种常见的解决方案是通过接口：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">interface</span> <span class="nc">A</span> <span class="o">{}</span>
-
-<span class="kd">class</span> <span class="nc">AImpl</span> <span class="kd">implements</span> <span class="n">A</span> <span class="o">{}</span>
-</code></pre></div><p>        第二种方案是通过装饰器模式：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">Basic</span> <span class="o">{}</span>
-
-<span class="kd">class</span> <span class="nc">Decorator</span> <span class="kd">extends</span> <span class="n">Base</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="n">Basic</span> <span class="n">basic</span><span class="o">;</span>
-
-    <span class="kd">public</span> <span class="nf">Decorator</span><span class="o">(</span><span class="n">Basic</span> <span class="n">basic</span><span class="o">)</span> <span class="o">{</span>
-        <span class="k">this</span><span class="o">.</span><span class="na">basic</span> <span class="o">=</span> <span class="n">basic</span><span class="o">;</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-
-<span class="kd">class</span> <span class="nc">A</span> <span class="kd">extends</span> <span class="n">Decorator</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="nf">A</span><span class="o">(</span><span class="n">Basic</span> <span class="n">basic</span><span class="o">)</span> <span class="o">{</span>
-        <span class="kd">super</span><span class="o">(</span><span class="n">basic</span><span class="o">);</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-
-<span class="kd">class</span> <span class="nc">B</span> <span class="kd">extends</span> <span class="n">Decorator</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="nf">B</span><span class="o">(</span><span class="n">Basic</span> <span class="n">basic</span><span class="o">)</span> <span class="o">{</span>
-        <span class="kd">super</span><span class="o">(</span><span class="n">basic</span><span class="o">);</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><h2 id="6-潜在类型机制">6. 潜在类型机制</h2>
-<p>        潜在类型机制或结构化类型机制，允许我们横跨类继承结构，可以调用不属于公共接口的方法。当然，因为<code>Java</code>擦除机制的存在，类内部无法保证传入的类型包含特定方法，因此无法像<code>C++</code>那样直接使用潜在类型机制。一个简单的模仿方法是通过接口：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">interface</span> <span class="nc">I</span> <span class="o">{</span>
-    <span class="kt">void</span> <span class="nf">f1</span><span class="o">();</span>
-<span class="o">}</span>
-
-<span class="kd">class</span> <span class="nc">A</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="o">&lt;</span><span class="n">T</span> <span class="kd">extends</span> <span class="n">I</span><span class="o">&gt;</span>
-    <span class="kt">void</span> <span class="nf">f2</span><span class="o">(</span><span class="n">T</span> <span class="n">t</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">t</span><span class="o">.</span><span class="na">f1</span><span class="o">();</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        但是通过接口方式显然存在着局限性，为了消除这个局限性，我们需要付出更多工作，使用反射机制来实现：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">B</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">f3</span><span class="o">()</span> <span class="o">{}</span>
-<span class="o">}</span>
-
-<span class="kd">class</span> <span class="nc">CommunicateReflectively</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">f4</span><span class="o">(</span><span class="n">Object</span> <span class="n">obj</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">Class</span><span class="o">&lt;?&gt;</span> <span class="n">c</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="na">getClass</span><span class="o">();</span>
-        <span class="k">try</span> <span class="o">{</span>
-            <span class="n">Method</span> <span class="n">f</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="na">getMethod</span><span class="o">(</span><span class="s">&#34;f3&#34;</span><span class="o">);</span>
-            <span class="n">f</span><span class="o">.</span><span class="na">invoke</span><span class="o">(</span><span class="n">obj</span><span class="o">);</span>
-        <span class="o">}</span> <span class="k">catch</span><span class="o">(</span><span class="n">NoSuchMethodException</span> <span class="o">|</span> <span class="n">IllegalAccessException</span> <span class="o">|</span> <span class="n">InvocationTargetException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
-            <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
-        <span class="o">}</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        反射会在运行时进行动态检查。通过反射可以在运行时动态地确定所需要的方法是否需要并且调用，而且通过 $try-catch$ ，可以在缺少必须方法时部分实现目标。</p>
-
-            </div>
-            <div class="meta post-footer"> <span>2020 Sep 2 21:23</span> <a href="/post/java%E6%B3%9B%E5%9E%8B/"><i
                         class="fas fa-link"></i> link</a></div>
         </div>
         

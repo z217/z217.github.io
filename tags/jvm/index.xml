@@ -7,10 +7,26 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved.</copyright>
-    <lastBuildDate>Tue, 25 Aug 2020 20:11:27 +0800</lastBuildDate>
+    <lastBuildDate>Thu, 17 Sep 2020 22:58:37 +0800</lastBuildDate>
     
 	<atom:link href="https://z217blog.cn/tags/jvm/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>JVM（4）：Class文件结构</title>
+      <link>https://z217blog.cn/post/jvm4class%E6%96%87%E4%BB%B6%E7%BB%93%E6%9E%84/</link>
+      <pubDate>Thu, 17 Sep 2020 22:58:37 +0800</pubDate>
+      
+      <guid>https://z217blog.cn/post/jvm4class%E6%96%87%E4%BB%B6%E7%BB%93%E6%9E%84/</guid>
+      <description>1. 平台无关性  Java在刚刚诞生时就有一句非常著名的口号：一次编写，到处运行。这个想法通过虚拟机实现，这些虚拟机都可以执行同一种与平台无关的字节码，从而达到一次编写，到处运行。可以说，字节码就是平台无关性的基石。Java虚拟机并不与Java语言绑定，在其之上还可以运行许多其他语言，如Kotlin、Groovy和Scala等。Java虚拟机唯一绑定的是类似于Class文件这种特殊的二进制文件，其中包含了Java虚拟机的指令集、符号表以及其他辅助信息。通过Class文件，Java虚拟机并不需要关心来源是什么语言，只要这门语言能够生成可以被读取的Class文件，那么它就可以在Java虚拟机上运行。
+Java语言中的各种语法、关键字、常量变量和运算符号的语义最终都会转成字节码指令的组合，这就要求字节码指令的表达能力必须比Java语言的表达能力更强。从而，一些Java语言中并不支持的特性，字节码也能够表达出来。
+2. Class类文件  Class文件是一组以 $8$ 个字节为单位的二进制流，数据项目按照顺序紧凑地排列在文件之中。对于 $8$ 字节以上空间的数据项，会按照高位在前的大端序分割存储在若干个 $8$ 字节中。
+Class文件采取一种类似于C语言结构体的伪结构来存储数据，包含两种数据类型：
+ 无符号数：即基本数据类型，通过 $u1$ 、$u2$ 、$u3$ 、$u4$ 分别表示 $1$ 个字节、$2$ 个字节、$4$ 个字节和 $8$ 个字节的无符号数，用于表示数字、索引引用、数量值或者UTF-8编码的字符串； 表：由多个无符号数或者其他表构成的复合数据类型，一般以 $_-info$ 结尾，用于表示具有层次关系的数据。可以把整个Class文件都视为表，按照对应类型的数据紧凑排列而成。   当需要描述类型相同但数量不定的数据时，经常会使用一个前置的容器计数器加若干个连续的数据项的形式，称为该类型的集合。
+2.1 魔数和版本号  Class文件的头 $4$ 字节称为魔数 ( $Magic\ \ Number$ )，用于确定该文件能否被虚拟机接受。魔数在很多文件格式中都存在，文件格式制定者可以自定义魔数，只要不会引起混淆。Class文件的魔数为 $0xCAFEBABE$ ，象征着一款咖啡。
+在魔数之后是Class文件的版本号，前两个字节是次版本号 ( $Minor\ \ Version$ )，后两个字节是主版本号 ( $Major\ \ Version$ )。Java主版本号从 $45$ 开始，JDK 1.1之后每个大版本都会在之前的基础上加 $1$ 。次版本号在JDK 1.1及以前曾经短暂使用过，在JDK 1.2之后废弃，全部使用 $0$ 代替，直到JDK 12，由于一些复杂特性需要进行公测，于是重新启用了次版本号。
+2.2 常量池  常量池是Class文件中第一次出现表的数据项目，也是与其他项目关联最多的数据，通常也是最庞大的数据项目之一。常量池入口是一个 $u2$ 类型的数据，是常量池容量计数值 ( $constant_-pool_-count$ )，从 $1$ 开始，$0$ 表示不指向常量池中的数据项目。Class文件中只有常量池的容量计数是从 $1$ 开始的。</description>
+    </item>
     
     <item>
       <title>JVM（3）：性能监控和故障处理</title>
