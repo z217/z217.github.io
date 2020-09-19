@@ -92,6 +92,24 @@
     
     
     <div class="list-item">
+        <a class="entry-title" href="/post/%E5%9B%9E%E6%BA%AF%E7%AE%97%E6%B3%95%E5%85%AB%E7%9A%87%E5%90%8E/">回溯算法：八皇后</a>
+        
+        
+        <p>回溯算法的应用，以八皇后为例</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2020 Sep 19 16:11
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: Algorithm
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
         <a class="entry-title" href="/post/jvm4class%E6%96%87%E4%BB%B6%E7%BB%93%E6%9E%84/">JVM（4）：Class文件结构</a>
         
         
@@ -163,24 +181,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="/post/java%E6%B3%9B%E5%9E%8B/">Java泛型</a>
-        
-        
-        <p>Java泛型简单介绍</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2020 Sep 02 21:23
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: Java
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -189,6 +189,58 @@
     <div class="section-title">μblog</div>
     <div class="posts">
         
+        
+        <div class="post">
+            
+            <center>
+                <h1><a href="/post/%E5%9B%9E%E6%BA%AF%E7%AE%97%E6%B3%95%E5%85%AB%E7%9A%87%E5%90%8E/">回溯算法：八皇后</a></h1>
+            </center>
+            <div class="post-content">
+                <p><a href="https://leetcode-cn.com/problems/n-queens/">原题地址：Problem 51</a></p>
+<p>        将 $N$ 个皇后放在 $N \times N$ 的棋盘上，要求皇后不能处于同行、同列、同对角线上。没有什么取巧的方案，只能尝试所有情况后将可行的情况列出，因此可以使用回溯算法。<br>
+        此题的难点在于判断皇后之间是否能相互攻击。如果将皇后所处的格子视为 $1$ ，其它格子视为 $0$ ，那么就可以使用位运算来判断。保证皇后不同行的方式很简单，只需要保证每一行只放置一个皇后即可。而如果想要保证皇后不同列，就需要记录之前行的皇后的位置。我们可以通过按位或和按位和进行记录和判断。</p>
+<div>
+$$
+.\ \ Q\ .\ \ .\ \ \\
+.\ \ .\ \ .\ \ Q\ \\
+Q\ .\ \ .\ \ .\ \ \\
+.\ \ .\ \ Q\ .\ \ \\
+$$
+</div>
+<p>        对于上面的例子，第一行我们可以记为 $0100$ 。到第二行通过按位和进行判断：$0100 \And 0001$ ，如果不为 $0$ ，说明发生冲突。如果没有冲突，那么可以通过按位和获取新值：$0100 | 0001 = 0101$ 。重复上述步骤即可保证皇后处于不同列。<br>
+        如果要保证皇后不处于同对角线，进行观察可以发现：下一行的皇后不能处于上一行皇后的左一格或者右一格，不能处于上上一行皇后的左二格或者右二格……也就是每过一行，就让之前行的皇后统一左移或者右移一格，然后再使用类似于之前判断皇后是否同列的方法进行判断就行了。我们可以使用两个数字 $left$ 和 $right$，专门用于记录之前行皇后的左移或者右移。再以上面的例子，第二行的 $left$ 为 $1000$ ，第三行为 $0010$ ；第二行的 $right$ 为 $0010$ ，第三行的 $right$ 为 $0001$ 。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">Solution</span> <span class="o">{</span>
+    <span class="kd">public</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;&gt;</span> <span class="nf">solveNQueens</span><span class="o">(</span><span class="kt">int</span> <span class="n">n</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">queens</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;&gt;();</span>
+        <span class="n">List</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;&gt;</span> <span class="n">res</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;&gt;();</span>
+        <span class="n">backtrack</span><span class="o">(</span><span class="n">res</span><span class="o">,</span> <span class="n">queens</span><span class="o">,</span> <span class="n">n</span><span class="o">,</span> <span class="n">0</span><span class="o">,</span> <span class="n">0</span><span class="o">,</span> <span class="n">0</span><span class="o">);</span>
+        <span class="k">return</span> <span class="n">res</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="kd">private</span> <span class="kt">void</span> <span class="nf">backtrack</span><span class="o">(</span>
+        <span class="n">List</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;&gt;</span> <span class="n">res</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">queens</span><span class="o">,</span> <span class="kt">int</span> <span class="n">n</span><span class="o">,</span> <span class="kt">int</span> <span class="n">visit</span><span class="o">,</span> <span class="kt">int</span> <span class="n">left</span><span class="o">,</span> <span class="kt">int</span> <span class="n">right</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">queens</span><span class="o">.</span><span class="na">size</span><span class="o">()</span> <span class="o">==</span> <span class="n">n</span><span class="o">)</span> <span class="o">{</span>
+            <span class="n">res</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;&gt;(</span><span class="n">queens</span><span class="o">));</span>
+            <span class="k">return</span><span class="o">;</span>
+        <span class="o">}</span>
+        <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n</span><span class="o">;</span> <span class="n">i</span><span class="o">++)</span> <span class="o">{</span>
+            <span class="kt">int</span> <span class="n">position</span> <span class="o">=</span> <span class="n">1</span> <span class="o">&lt;&lt;</span> <span class="o">(</span><span class="n">n</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="n">1</span><span class="o">);</span>
+            <span class="k">if</span> <span class="o">((</span><span class="n">visit</span> <span class="o">&amp;</span> <span class="n">position</span><span class="o">)</span> <span class="o">!=</span> <span class="n">0</span> <span class="o">||</span> <span class="o">(</span><span class="n">left</span> <span class="o">&amp;</span> <span class="n">position</span><span class="o">)</span> <span class="o">!=</span> <span class="n">0</span> <span class="o">||</span> <span class="o">(</span><span class="n">right</span> <span class="o">&amp;</span> <span class="n">position</span><span class="o">)</span> <span class="o">!=</span> <span class="n">0</span><span class="o">)</span> <span class="k">continue</span><span class="o">;</span>
+            <span class="kt">char</span><span class="o">[]</span> <span class="n">chars</span> <span class="o">=</span> <span class="k">new</span> <span class="kt">char</span><span class="o">[</span><span class="n">n</span><span class="o">];</span>
+            <span class="n">Arrays</span><span class="o">.</span><span class="na">fill</span><span class="o">(</span><span class="n">chars</span><span class="o">,</span> <span class="sc">&#39;.&#39;</span><span class="o">);</span>
+            <span class="n">chars</span><span class="o">[</span><span class="n">i</span><span class="o">]</span> <span class="o">=</span> <span class="sc">&#39;Q&#39;</span><span class="o">;</span>
+            <span class="n">queens</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">String</span><span class="o">.</span><span class="na">valueOf</span><span class="o">(</span><span class="n">chars</span><span class="o">));</span>
+            <span class="n">backtrack</span><span class="o">(</span><span class="n">res</span><span class="o">,</span> <span class="n">queens</span><span class="o">,</span> <span class="n">n</span><span class="o">,</span> <span class="n">visit</span> <span class="o">|</span> <span class="n">position</span><span class="o">,</span> <span class="o">(</span><span class="n">left</span> <span class="o">|</span> <span class="n">position</span><span class="o">)</span> <span class="o">&lt;&lt;</span> <span class="n">1</span><span class="o">,</span> <span class="o">(</span><span class="n">right</span> <span class="o">|</span> <span class="n">position</span><span class="o">)</span> <span class="o">&gt;&gt;</span> <span class="n">1</span><span class="o">);</span>
+            <span class="n">queens</span><span class="o">.</span><span class="na">remove</span><span class="o">(</span><span class="n">queens</span><span class="o">.</span><span class="na">size</span><span class="o">()</span> <span class="o">-</span> <span class="n">1</span><span class="o">);</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div><p>        $visit$ 、$left$ 、$right$ 分别用于判断同列、左对角线和右对角线的冲突。每次递归时，通过按位或以及左移和右移运算符移动之前行皇后的位置。</p>
+
+            </div>
+            <div class="meta post-footer"> <span>2020 Sep 19 16:11</span> <a href="/post/%E5%9B%9E%E6%BA%AF%E7%AE%97%E6%B3%95%E5%85%AB%E7%9A%87%E5%90%8E/"><i
+                        class="fas fa-link"></i> link</a></div>
+        </div>
         
         <div class="post">
             
@@ -1702,764 +1754,6 @@ $$
 
             </div>
             <div class="meta post-footer"> <span>2020 Sep 7 23:32</span> <a href="/post/java%E6%B3%A8%E8%A7%A3/"><i
-                        class="fas fa-link"></i> link</a></div>
-        </div>
-        
-        <div class="post">
-            
-            <center>
-                <h1><a href="/post/java-i-o/">Java I/O</a></h1>
-            </center>
-            <div class="post-content">
-                <h2 id="1-file类">1. <code>File</code>类</h2>
-<p>        $File$ 类用于储存文件路径，可以代表一个特定文件或者一组文件的名称，如果是后者，可以通过 $list(\ )$ 获得一个字符数组。在不传入参数时，$list(\ )$ 方法返回全部列表，也可以接受一个 $FilenameFilter$ 类型的参数，实现目录过滤：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">DirFilter</span> <span class="kd">implements</span> <span class="n">FilenameFilter</span> <span class="o">{</span>
-    <span class="kd">private</span> <span class="n">Pattern</span> <span class="n">pattern</span><span class="o">;</span>
-    <span class="kd">public</span> <span class="nf">DirFilter</span><span class="o">(</span><span class="n">String</span> <span class="n">regex</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">pattern</span> <span class="o">=</span> <span class="n">Pattern</span><span class="o">.</span><span class="na">compile</span><span class="o">(</span><span class="n">regex</span><span class="o">);</span>
-    <span class="o">}</span>
-
-    <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">accept</span><span class="o">(</span><span class="n">File</span> <span class="n">dir</span><span class="o">,</span> <span class="n">String</span> <span class="n">name</span><span class="o">)</span> <span class="o">{</span>
-        <span class="k">return</span> <span class="n">pattern</span><span class="o">.</span><span class="na">matcher</span><span class="o">(</span><span class="n">name</span><span class="o">).</span><span class="na">matches</span><span class="o">();</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-
-<span class="kd">public</span> <span class="kd">class</span> <span class="nc">DirList</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">Arrays</span><span class="o">.</span><span class="na">toString</span><span class="o">(</span><span class="k">new</span> <span class="n">File</span><span class="o">(</span><span class="s">&#34;.&#34;</span><span class="o">).</span><span class="na">list</span><span class="o">(</span><span class="k">new</span> <span class="n">DirFilter</span><span class="o">(</span><span class="n">args</span><span class="o">[</span><span class="n">0</span><span class="o">]))));</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        除了代表文件和目录之外，$File$ 对象还可以用于创建和删除目录，查看文件信息等：</p>
-<table>
-<thead>
-<tr>
-<th align="center">方法</th>
-<th align="center">作用</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td align="center">$getAbsolutePath$</td>
-<td align="center">返回绝对路径</td>
-</tr>
-<tr>
-<td align="center">$canRead$</td>
-<td align="center">可读性</td>
-</tr>
-<tr>
-<td align="center">$canWrite$</td>
-<td align="center">可写性</td>
-</tr>
-<tr>
-<td align="center">$getName$</td>
-<td align="center">返回名称</td>
-</tr>
-<tr>
-<td align="center">$getParent$</td>
-<td align="center">返回父目录</td>
-</tr>
-<tr>
-<td align="center">$getPath$</td>
-<td align="center">返回路径</td>
-</tr>
-<tr>
-<td align="center">$lastModified$</td>
-<td align="center">最后修改时间</td>
-</tr>
-<tr>
-<td align="center">$isFile$</td>
-<td align="center">是否为文件</td>
-</tr>
-<tr>
-<td align="center">$isDirectory$</td>
-<td align="center">是否为目录</td>
-</tr>
-<tr>
-<td align="center">$exists$</td>
-<td align="center">是否存在</td>
-</tr>
-<tr>
-<td align="center">$mkdirs$</td>
-<td align="center">创建</td>
-</tr>
-<tr>
-<td align="center">$delete$</td>
-<td align="center">删除</td>
-</tr>
-<tr>
-<td align="center">$renameTo$</td>
-<td align="center">重命名或移动文件</td>
-</tr>
-</tbody>
-</table>
-<h2 id="2-io类">2. <code>I/O</code>类</h2>
-<p>        编程语言的<code>I/O</code>类库常使用流这个概念，代表任何有能力产出数据的数据源或者有接受能力的接收端对象。“流”屏蔽了设备处理<code>I/O</code>操作的细节。在<code>Java</code>中，任何由 $InputStream$ 和 $Reader$ 的类都含有 $read(\ )$ 方法，任何由 $OutputStream$ 和 $Writer$ 派生的类都含有 $write(\ )$ 方法。$InputStream$ 和 $OutputStream$ 类型用于处理单个字节，$Reader$ 和 $Writer$ 类型用于处理字节数组。一般情况下都是通过叠加多个对象提供功能，也因此，当需要一个流的时候，往往需要创建多个对象。</p>
-<h3 id="21-inputstreamoutputstream">2.1 <code>InputStream</code>/<code>OutputStream</code></h3>
-<table>
-<thead>
-<tr>
-<th align="center">类</th>
-<th align="center">功能</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td align="center">$ByteArrayInputStream$</td>
-<td align="center">将内存缓冲区当 $InputStream$ 使用</td>
-</tr>
-<tr>
-<td align="center">$StringBufferStream$</td>
-<td align="center">将 $String$ 当 $InputStream$ 使用</td>
-</tr>
-<tr>
-<td align="center">$FileInputStream$</td>
-<td align="center">读取文件信息</td>
-</tr>
-<tr>
-<td align="center">$PipedInputStream$</td>
-<td align="center">写入相关的 $PipedOutputStream$ 数据，实现管道</td>
-</tr>
-<tr>
-<td align="center">$SequenceInputStream$</td>
-<td align="center">将多个 $InputStream$ 转换为一个</td>
-</tr>
-<tr>
-<td align="center">$FilterInputStream$</td>
-<td align="center">抽象类，作为装饰器接口，为其他 $InputStream$ 提供功能</td>
-</tr>
-</tbody>
-</table>
-<table>
-<thead>
-<tr>
-<th align="center">类</th>
-<th align="center">功能</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td align="center">$ByteArrayOutputStream$</td>
-<td align="center">使用内存缓冲区存储数据</td>
-</tr>
-<tr>
-<td align="center">$FileOutputStream$</td>
-<td align="center">写入文件信息</td>
-</tr>
-<tr>
-<td align="center">$PipedOutputStream$</td>
-<td align="center">写入其中的信息都会成为相关 $PipedInputStream$ 的输出，实现管道</td>
-</tr>
-<tr>
-<td align="center">$FilterOutputStream$</td>
-<td align="center">抽象类，作为装饰器接口，为其他 $OutputStream$ 提供功能</td>
-</tr>
-</tbody>
-</table>
-<h3 id="22-filterinputstreamfilteroutputstream">2.2 <code>FilterInputStream</code>/<code>FilterOutputStream</code></h3>
-<p>        <code>Java</code>的<code>I/O</code>类内存在 $Filter$ 类作为所有装饰器类的基类。通过装饰器模式，我们可以根据需求定制<code>I/O</code>类。当然，这也带来了麻烦，因为我们需要创建许多类才能得到所需的对象。</p>
-<table>
-<thead>
-<tr>
-<th align="center">类</th>
-<th align="center">功能</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td align="center">$DataInputStream$</td>
-<td align="center">搭配 $DataOutputStream$ 使用，按照可移植方式从流读取基本数据类型</td>
-</tr>
-<tr>
-<td align="center">$BufferedInputStream$</td>
-<td align="center">使用缓冲区暂时存储信息，防止每次都进行实际读操作</td>
-</tr>
-<tr>
-<td align="center">$LineNumberInputStream$</td>
-<td align="center">跟踪输入流中的行号</td>
-</tr>
-<tr>
-<td align="center">$PushbackInputStream$</td>
-<td align="center">可以回退读到的最后一个字符</td>
-</tr>
-</tbody>
-</table>
-<table>
-<thead>
-<tr>
-<th align="center">类</th>
-<th align="center">功能</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td align="center">$DataOutputStream$</td>
-<td align="center">搭配 $DataInputStream$ 使用，按照可移植方式向流中写入基本数据类型</td>
-</tr>
-<tr>
-<td align="center">$PrintStream$</td>
-<td align="center">产生格式化输出</td>
-</tr>
-<tr>
-<td align="center">$BufferedOutputStream$</td>
-<td align="center">使用缓冲区暂时存储信息，防止每次都进行实际写操作</td>
-</tr>
-</tbody>
-</table>
-<h3 id="23-readerwriter">2.3 <code>Reader</code>/<code>Writer</code></h3>
-<p>        $Reader$ 和 $Writer$ 提供了兼容<code>Unicode</code>与面向字符的<code>I/O</code>功能。如果要把字节类和字符类结合起来，需要使用适配器，$InputStreamReader$ 可以将 $InputStream$ 转为 $Reader$ ，$OutputStreamWriter$ 可以将 $OutputStream$ 转为 $Writer$ 。几乎所有原始的<code>I/O</code>流类都有相应的 $Reader$ 和 $Writer$ ，在大部分场合，我们通常会倾向于用他们。当然，有时候，比如 $java.util.zip$ 类库，是面向字节的，因此需要使用 $InputStream$ 和 $OutputStream$ 。</p>
-<table>
-<thead>
-<tr>
-<th align="center">来源</th>
-<th align="center">对应的类</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td align="center">$InputStream$</td>
-<td align="center">$Reader$</td>
-</tr>
-<tr>
-<td align="center">$OutputStream$</td>
-<td align="center">$Writer$</td>
-</tr>
-<tr>
-<td align="center">$FileInputStream$</td>
-<td align="center">$FileReader$</td>
-</tr>
-<tr>
-<td align="center">$FileOutputStream$</td>
-<td align="center">$FileWriter$</td>
-</tr>
-<tr>
-<td align="center">$StringBufferInputStream$</td>
-<td align="center">$StringReader$</td>
-</tr>
-<tr>
-<td align="center">$N/A$</td>
-<td align="center">$StringWriter$</td>
-</tr>
-<tr>
-<td align="center">$ByteArrayInputStream$</td>
-<td align="center">$CharArrayReader$</td>
-</tr>
-<tr>
-<td align="center">$ByteArrayOutputStream$</td>
-<td align="center">$CharArrayWriter$</td>
-</tr>
-<tr>
-<td align="center">$PipedInputStream$</td>
-<td align="center">$PipedReader$</td>
-</tr>
-<tr>
-<td align="center">$PipedOutputStream$</td>
-<td align="center">$PipedWriter$</td>
-</tr>
-</tbody>
-</table>
-<p>        对应 $FilterInputStream$ 和 $FilterOutputStream$ ，$Reader$ 和 $Writer$ 也有对应的结构。</p>
-<table>
-<thead>
-<tr>
-<th align="center">来源</th>
-<th align="center">对应的类</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td align="center">$FilterInputStream$</td>
-<td align="center">$FilterReader$</td>
-</tr>
-<tr>
-<td align="center">$FilterOutputStream$</td>
-<td align="center">$FilterWriter$</td>
-</tr>
-<tr>
-<td align="center">$BufferedInputStream$</td>
-<td align="center">$BufferedReader$</td>
-</tr>
-<tr>
-<td align="center">$BufferedOutputStream$</td>
-<td align="center">$BufferedWriter$</td>
-</tr>
-<tr>
-<td align="center">$DataInputStream$</td>
-<td align="center">$DataInputStream$</td>
-</tr>
-<tr>
-<td align="center">$PrintStream$</td>
-<td align="center">$PrintWriter$</td>
-</tr>
-<tr>
-<td align="center">$LineNumberInputStream$</td>
-<td align="center">$LineNumberReader$</td>
-</tr>
-<tr>
-<td align="center">$StreamTokenizer$</td>
-<td align="center">$StreamTokenizer$</td>
-</tr>
-<tr>
-<td align="center">$PushbackInputStream$</td>
-<td align="center">$PushbackReader$</td>
-</tr>
-</tbody>
-</table>
-<p>        可以发现 $DataInputStream$ 是相同的，但要注意的是，使用 $DataInputStream.readLine(\ )$ 方法会触发编译器的警告，应该改为使用 $BufferedReader.readLine(\ )$ 。尽管 $BufferedOutputStream$ 是 $FilterOutputStream$ 的子类，但是 $BufferedWriter$ 并不是 $FilterWriter$ 的子类，$FilterWriter$ 是一个抽象类。</p>
-<h3 id="24-radomaccessfile">2.4 <code>RadomAccessFile</code></h3>
-<p>        $RadomAccessFile$ 适用于由大小已知的记录组成的文件，可以通过 $seek(\ )$ 方法移动指针，实现读取或修改特定位置的记录，它并非 $InputStream$ 或 $OutputStream$ 继承层次的一部分，甚至不使用其中已有的功能，和 $DataInputStream$ 与 $DataOutputStream$ 一样实现了 $DataInput$ 和 $DataOutput$ 接口。$RadomAccessFile$ 支持读写功能，可以通过 $getFilePointer(\ )$ 方法获取文件指针位置，$length(\ )$ 获取文件长度。在<code>JDK 1.4</code>之后，$RadomAccessFile$ 的大部分功能被 $nio$ 存储映射文件替代。</p>
-<h2 id="3-io流的使用">3. <code>I/O</code>流的使用</h2>
-<h3 id="31-文件输入">3.1 文件输入</h3>
-<p>        $FileInputReader$ 用于文件字符输入，如果要提高速度，可以使用 $BufferedReader$ 作为参数构造，而且 $BufferedReader$ 也提供了 $readLine(\ )$ 方法。</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">BufferedInputFile</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="n">String</span> <span class="nf">read</span><span class="o">(</span><span class="n">String</span> <span class="n">filename</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
-        <span class="n">BufferedReader</span> <span class="n">in</span> <span class="o">=</span> <span class="k">new</span> <span class="n">BufferedReader</span><span class="o">(</span><span class="k">new</span> <span class="n">FileReader</span><span class="o">(</span><span class="n">filename</span><span class="o">));</span>
-        <span class="n">String</span> <span class="n">s</span><span class="o">;</span>
-        <span class="n">StringBuilder</span> <span class="n">sb</span> <span class="o">=</span> <span class="k">new</span> <span class="n">StringBuilder</span><span class="o">();</span>
-        <span class="k">while</span> <span class="o">((</span><span class="n">s</span> <span class="o">=</span> <span class="n">in</span><span class="o">.</span><span class="na">readLine</span><span class="o">())</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
-            <span class="n">sb</span><span class="o">.</span><span class="na">append</span><span class="o">(</span><span class="n">s</span> <span class="o">+</span> <span class="s">&#34;\n&#34;</span><span class="o">);</span>
-        <span class="o">}</span>
-        <span class="n">in</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
-        <span class="k">return</span> <span class="n">sb</span><span class="o">.</span><span class="na">toString</span><span class="o">();</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><h3 id="32-格式化内存输入">3.2 格式化内存输入</h3>
-<p>        $DataInputStream$ 是一个面向字节的<code>I/O</code>类，可以读取格式化数据。</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">FormattedMemoryInput</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">DataInputStream</span> <span class="n">in</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DataInputStream</span><span class="o">(</span><span class="k">new</span> <span class="n">ByteArrayInputStream</span><span class="o">(</span><span class="s">&#34;read test&#34;</span><span class="o">.</span><span class="na">getBytes</span><span class="o">()));</span>
-        <span class="k">while</span> <span class="o">(</span><span class="n">in</span><span class="o">.</span><span class="na">available</span><span class="o">()</span> <span class="o">!=</span> <span class="n">0</span><span class="o">)</span> <span class="o">{</span>
-            <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">((</span><span class="kt">char</span><span class="o">)</span> <span class="n">in</span><span class="o">.</span><span class="na">readByte</span><span class="o">());</span>
-        <span class="o">}</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        $ByteArrayInputStream$ 接受一个字节数组，传递给 $DataInputStream$ 。</p>
-<h3 id="33-文件输出">3.3 文件输出</h3>
-<p>        $FileWriter$ 可以向文件写入数据，可以通过 $BufferedWriter$ 进行缓冲输出。</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">BasicFileOutput</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
-        <span class="n">BufferedReader</span> <span class="n">in</span> <span class="o">=</span> <span class="k">new</span> <span class="n">BufferedReader</span><span class="o">(</span><span class="k">new</span> <span class="n">StringReader</span><span class="o">(</span><span class="s">&#34;write test&#34;</span><span class="o">));</span>
-        <span class="n">PrintWriter</span> <span class="n">out</span> <span class="o">=</span> <span class="k">new</span> <span class="n">PrintWriter</span><span class="o">(</span><span class="k">new</span> <span class="n">BufferedWriter</span><span class="o">(</span><span class="k">new</span> <span class="n">FileWriter</span><span class="o">(</span><span class="n">args</span><span class="o">[</span><span class="n">0</span><span class="o">])));</span>
-        <span class="n">String</span> <span class="n">s</span><span class="o">;</span>
-        <span class="k">while</span> <span class="o">((</span><span class="n">s</span> <span class="o">=</span> <span class="n">in</span><span class="o">.</span><span class="na">readLine</span><span class="o">())</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
-            <span class="n">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">s</span> <span class="o">+</span> <span class="s">&#34;\n&#34;</span><span class="o">);</span>
-        <span class="o">}</span>
-        <span class="n">out</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        $PrintWriter$ 中存在一个辅助构造器，可以在创建文本文件并向其写入时自动进行缓冲，从而避免了装饰操作，只需以如下方式调用：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">PrintWriter</span> <span class="n">out</span> <span class="o">=</span> <span class="k">new</span> <span class="n">PrintWriter</span><span class="o">(</span><span class="n">args</span><span class="o">[</span><span class="n">0</span><span class="o">]);</span>
-</code></pre></div><p>        这样的写法等价于上面的写法。</p>
-<h3 id="34-数据存储和恢复">3.4 数据存储和恢复</h3>
-<p>        我们可以通过 $DataInputStream$ 写入数据，并通过 $DataOutputStream$ 恢复数据。</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">StoringAndRecoveringData</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
-        <span class="n">DataOutputStream</span> <span class="n">out</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DataOutputStream</span><span class="o">(</span><span class="k">new</span> <span class="n">BufferedOutputStream</span><span class="o">(</span><span class="k">new</span> <span class="n">FileOutputStream</span><span class="o">(</span><span class="s">&#34;Data.txt&#34;</span><span class="o">)));</span>
-        <span class="n">out</span><span class="o">.</span><span class="na">writerUTF</span><span class="o">(</span><span class="s">&#34;Write Test&#34;</span><span class="o">);</span>
-        <span class="n">out</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
-        <span class="n">DataInputStream</span> <span class="n">in</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DataInputStream</span><span class="o">(</span><span class="k">new</span> <span class="n">BufferedInputStream</span><span class="o">(</span><span class="k">new</span> <span class="n">FileInputStream</span><span class="o">(</span><span class="s">&#34;Data.txt&#34;</span><span class="o">)));</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">in</span><span class="o">.</span><span class="na">readUTF</span><span class="o">());</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><h3 id="35-随机访问">3.5 随机访问</h3>
-<p>        $RandomAccessFile$ 类类似于组合了 $DataInputStream$ 和 $DataOutputStream$ ，因为他们使用了相同的接口。在使用 $RandomAccessFile$ 之前必须先知道文件排版才能进行正确操作。$RandomAccessFile$ 构造函数的第二个参数接受一个字符串，$r$ 、 $w$ 、 $rw$ 分别对应只读、只写和读写。</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">UsingRandomAccessFile</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">display</span><span class="o">(</span><span class="n">String</span> <span class="n">filename</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
-        <span class="n">RandomAccessFile</span> <span class="n">rf</span> <span class="o">=</span> <span class="k">new</span> <span class="n">RandomAccessFile</span><span class="o">(</span><span class="n">filename</span><span class="o">,</span> <span class="s">&#34;r&#34;</span><span class="o">);</span>
-        <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">7</span><span class="o">;</span> <span class="n">i</span><span class="o">++)</span>
-            <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&#34;Value &#34;</span> <span class="o">+</span> <span class="n">i</span> <span class="o">+</span> <span class="s">&#34;: &#34;</span> <span class="o">+</span> <span class="n">rf</span><span class="o">.</span><span class="na">readDouble</span><span class="o">());</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">rf</span><span class="o">.</span><span class="na">readUTF</span><span class="o">());</span>
-        <span class="n">rf</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
-    <span class="o">}</span>
-
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
-        <span class="n">RandomAccessFile</span> <span class="n">rf</span> <span class="o">=</span> <span class="k">new</span> <span class="n">RandomAccessFile</span><span class="o">(</span><span class="n">args</span><span class="o">[</span><span class="n">0</span><span class="o">],</span> <span class="s">&#34;rw&#34;</span><span class="o">);</span>
-        <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">7</span><span class="o">;</span> <span class="n">i</span><span class="o">++)</span>
-            <span class="n">rf</span><span class="o">.</span><span class="na">writeDouble</span><span class="o">(</span><span class="n">i</span> <span class="o">*</span> <span class="n">1</span><span class="o">.</span><span class="na">414</span><span class="o">);</span>
-        <span class="n">rf</span><span class="o">.</span><span class="na">writeUTF</span><span class="o">(</span><span class="s">&#34;End of the file&#34;</span><span class="o">);</span>
-        <span class="n">rf</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
-        <span class="n">display</span><span class="o">(</span><span class="n">args</span><span class="o">[</span><span class="n">0</span><span class="o">]);</span>
-        <span class="n">rf</span> <span class="o">=</span> <span class="k">new</span> <span class="n">RandomAccessFile</span><span class="o">(</span><span class="n">args</span><span class="o">[</span><span class="n">0</span><span class="o">],</span> <span class="s">&#34;rw&#34;</span><span class="o">);</span>
-        <span class="n">rf</span><span class="o">.</span><span class="na">seek</span><span class="o">(</span><span class="n">5</span> <span class="o">*</span> <span class="n">8</span><span class="o">);</span>
-        <span class="n">rf</span><span class="o">.</span><span class="na">writeDouble</span><span class="o">(</span><span class="n">47</span><span class="o">.</span><span class="na">001</span><span class="o">);</span>
-        <span class="n">rf</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
-        <span class="n">display</span><span class="o">();</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><h2 id="4-标准io">4. 标准<code>I/O</code></h2>
-<p>        通过标准<code>I/O</code>，我们可以很容易的把程序串联起来。标准输入可以是程序输入的来源，标准输出也可以接受程序的输出，同样的，程序的所有错误信息也可以发送到标准错误。参照标准<code>I/O</code>模型，<code>Java</code>提供了 $System.in$ , $System.out$ 和 $System.err$ 。其中 $System.out$ 和 $System.err$ 被包装为 $PrintStream$ ；$System.in$ 则只是简单的 $InputStream$ ，因此在使用前要进行包装。</p>
-<h3 id="41-读取">4.1 读取</h3>
-<p>        通常我们会用 $readLine(\ )$ 读取一行的输入，因此可以使用 $BufferedReader$ 进行包装。</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Echo</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
-        <span class="n">BufferedReader</span> <span class="n">stdin</span> <span class="o">=</span> <span class="k">new</span> <span class="n">BufferedReader</span><span class="o">(</span><span class="k">new</span> <span class="n">InputStreamReader</span><span class="o">(</span><span class="n">System</span><span class="o">.</span><span class="na">in</span><span class="o">));</span>
-        <span class="n">String</span> <span class="n">s</span><span class="o">;</span>
-        <span class="k">while</span><span class="o">((</span><span class="n">s</span> <span class="o">=</span> <span class="n">stdin</span><span class="o">.</span><span class="na">readLine</span><span class="o">())</span> <span class="o">!=</span> <span class="kc">null</span> <span class="o">&amp;&amp;</span> <span class="n">s</span><span class="o">.</span><span class="na">length</span><span class="o">()</span> <span class="o">!=</span> <span class="n">0</span><span class="o">)</span> <span class="o">{</span>
-            <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">s</span><span class="o">);</span>
-        <span class="o">}</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><h3 id="42-使用printwriter">4.2 使用<code>PrintWriter</code></h3>
-<p>        默认情况下 $System.out$ 和 $System.err$ 被包装为 $PrintStream$ ，但是 $PrintWriter$ 有一个接受 $OutputStream$ 的构造器，通过该构造器可以将 $System.in$ 和 $System.err$ 包装为 $PrintWriter$ 。要注意接受两个参数的构造器，并将第二个参数设置为 $true$ 表示在每次调用 $println(\ )$ 方法后自动清空，否则可能会看不到输出。</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">ChangeSystemOut</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">PrintWriter</span> <span class="n">out</span> <span class="o">=</span> <span class="k">new</span> <span class="n">PrintWriter</span><span class="o">(</span><span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><h3 id="43-重定向">4.3 重定向</h3>
-<p>        <code>Java</code>的 $System$ 类提供了一些静态方法，允许我们对标准<code>I/O</code>进行重定向。重定向在产生大量输出的程序中十分有用，可以通过 $System.setIn$ , $System.setOut$ 和 $System.setErr$ 方法进行重定向。</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Redirecting</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
-        <span class="n">PrintStream</span> <span class="n">console</span> <span class="o">=</span> <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">;</span>
-        <span class="n">BufferedInputStream</span> <span class="n">in</span> <span class="o">=</span> <span class="k">new</span> <span class="n">BufferedInputStream</span><span class="o">(</span><span class="k">new</span> <span class="n">FileInputStream</span><span class="o">(</span><span class="n">args</span><span class="o">[</span><span class="n">0</span><span class="o">]));</span>
-        <span class="n">PrintStream</span> <span class="n">out</span> <span class="o">=</span> <span class="k">new</span> <span class="n">PrintStream</span><span class="o">(</span><span class="k">new</span> <span class="n">BufferedOutputStream</span><span class="o">(</span><span class="s">&#34;test.out&#34;</span><span class="o">));</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">setIn</span><span class="o">(</span><span class="n">in</span><span class="o">);</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">setOut</span><span class="o">(</span><span class="n">out</span><span class="o">);</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">setErr</span><span class="o">(</span><span class="n">out</span><span class="o">);</span>
-        <span class="n">out</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">setOut</span><span class="o">(</span><span class="n">console</span><span class="o">);</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">setErr</span><span class="o">(</span><span class="n">console</span><span class="o">);</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><h2 id="5-新io">5. 新<code>I/O</code></h2>
-<p>        <code>JDK 1.4</code>之后引入的 $java.nio.*$ 包引入了新的<code>I/O</code>库，目的是为了提高速度。当然，旧的<code>I/O</code>包已经使用其重新实现过。速度的提高来源于使用了更接近于系统<code>I/O</code>的方式：通道和缓冲器。数据存储在通道上，缓冲器从通道中获取信息，我们再从缓冲器中获取信息，而写过程就是反过来。唯一一个直接与通道交互的缓冲器是 $ByteBuffer$ 。旧<code>I/O</code>中的 $FileInputStream$ 、$FileOutputStream$ 和 $RandomAccessFile$ 。$Reader$ 和 $Writer$ 不能用于产生通道，但是通过 $java.nio.channels.Channels$ 类，可以在通道中产生 $Reader$ 和 $Writer$ 。</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">GetChannel</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
-        <span class="n">FileChannel</span> <span class="n">fc</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FileOutputStream</span><span class="o">(</span><span class="s">&#34;test.txt&#34;</span><span class="o">).</span><span class="na">getChannel</span><span class="o">();</span>
-        <span class="n">fc</span><span class="o">.</span><span class="na">write</span><span class="o">(</span><span class="n">ByteBuffer</span><span class="o">.</span><span class="na">wrap</span><span class="o">(</span><span class="s">&#34;Write test 1&#34;</span><span class="o">.</span><span class="na">getBytes</span><span class="o">()));</span>
-        <span class="n">fc</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
-        <span class="n">fc</span> <span class="o">=</span> <span class="k">new</span> <span class="n">RandomAccessFile</span><span class="o">(</span><span class="s">&#34;test.txt&#34;</span><span class="o">,</span> <span class="s">&#34;rw&#34;</span><span class="o">).</span><span class="na">getChannel</span><span class="o">();</span>
-        <span class="n">fc</span><span class="o">.</span><span class="na">position</span><span class="o">(</span><span class="n">fc</span><span class="o">.</span><span class="na">size</span><span class="o">());</span>
-        <span class="n">fc</span><span class="o">.</span><span class="na">write</span><span class="o">(</span><span class="n">ByteBuffer</span><span class="o">.</span><span class="na">wrap</span><span class="o">(</span><span class="s">&#34;Write test 2&#34;</span><span class="o">.</span><span class="na">getBytes</span><span class="o">()));</span>
-        <span class="n">fc</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
-        <span class="n">fc</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FileInputStream</span><span class="o">(</span><span class="s">&#34;test.txt&#34;</span><span class="o">).</span><span class="na">getChannel</span><span class="o">();</span>
-        <span class="n">ByteBuffer</span> <span class="n">buffer</span> <span class="o">=</span> <span class="n">ByteBuffer</span><span class="o">.</span><span class="na">allocate</span><span class="o">(</span><span class="n">1024</span><span class="o">);</span>
-        <span class="n">fc</span><span class="o">.</span><span class="na">read</span><span class="o">(</span><span class="n">buffer</span><span class="o">);</span>
-        <span class="n">buffer</span><span class="o">.</span><span class="na">flip</span><span class="o">();</span>
-        <span class="k">while</span> <span class="o">(</span><span class="n">buffer</span><span class="o">.</span><span class="na">hasRemaining</span><span class="o">())</span> <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">((</span><span class="kt">char</span><span class="o">)</span> <span class="n">buffer</span><span class="o">.</span><span class="na">get</span><span class="o">());</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        $getChannel(\ )$ 产生一个 $FileChannel$ 对象，可以向其传送 $ByteBuffer$ 对象用于读写。在调用了 $read(\ )$ 向 $ByteBuffer$ 存储字节时，需要再调用 $flip(\ )$ 方法使得 $ByteBuffer$ 进入可以被读取的状态。如果需要进一步调用 $read(\ )$ 进行写入时，需要先调用 $clear(\ )$ 方法使 $ByteBuffer$ 进入可以被写入的状态。</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">TransferTo</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
-        <span class="n">FileChannel</span> <span class="n">in</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FileInputStream</span><span class="o">(</span><span class="n">args</span><span class="o">[</span><span class="n">0</span><span class="o">]).</span><span class="na">getChannel</span><span class="o">(),</span>
-                    <span class="n">out</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FileOutputStream</span><span class="o">(</span><span class="n">args</span><span class="o">[</span><span class="n">1</span><span class="o">]).</span><span class="na">getChannel</span><span class="o">();</span>
-        <span class="n">in</span><span class="o">.</span><span class="na">transferTo</span><span class="o">(</span><span class="n">0</span><span class="o">,</span> <span class="n">in</span><span class="o">.</span><span class="na">size</span><span class="o">(),</span> <span class="n">out</span><span class="o">);</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        $transferTo(\ )$ 和 $transferFrom(\ )$ 允许我们直接连接两个通道，从而在通道间进行数据传输。</p>
-<h3 id="51-数据转换">5.1 数据转换</h3>
-<p>        从 $ByteBuffer$ 中读取字节时读取到的是 $byte$ 类型的数据。如果要读取字符型，可以通过类型转换。$ByteBuffer.asCharBuffer(\ )$ 返回一个 $CharBuffer$ 对象，可以利用该方法进行更方便的数据转换。</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">BufferToText</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
-        <span class="n">FileChannel</span> <span class="n">fc</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FileOutputStream</span><span class="o">(</span><span class="s">&#34;test.txt&#34;</span><span class="o">).</span><span class="na">getChannel</span><span class="o">();</span>
-        <span class="n">fc</span><span class="o">.</span><span class="na">write</span><span class="o">(</span><span class="n">ByteBuffer</span><span class="o">.</span><span class="na">wrap</span><span class="o">(</span><span class="s">&#34;Write test&#34;</span><span class="o">.</span><span class="na">getBytes</span><span class="o">()));</span>
-        <span class="n">fc</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
-        <span class="n">fc</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FileInputStream</span><span class="o">(</span><span class="s">&#34;test.txt&#34;</span><span class="o">).</span><span class="na">getChannel</span><span class="o">();</span>
-        <span class="n">ByteBuffer</span> <span class="n">buffer</span> <span class="o">=</span> <span class="n">ByteBuffer</span><span class="o">.</span><span class="na">allocate</span><span class="o">(</span><span class="n">1024</span><span class="o">);</span>
-        <span class="n">fc</span><span class="o">.</span><span class="na">read</span><span class="o">(</span><span class="n">buffer</span><span class="o">);</span>
-        <span class="n">buffer</span><span class="o">.</span><span class="na">flip</span><span class="o">();</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">buffer</span><span class="o">.</span><span class="na">asCharBuffer</span><span class="o">());</span> <span class="c1">// ????
-</span><span class="c1"></span>        <span class="n">buffer</span><span class="o">.</span><span class="na">rewind</span><span class="o">();</span>
-        <span class="n">String</span> <span class="n">encoding</span> <span class="o">=</span> <span class="n">System</span><span class="o">.</span><span class="na">getProperty</span><span class="o">(</span><span class="s">&#34;file.encoding&#34;</span><span class="o">);</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span>
-            <span class="s">&#34;Decoded using &#34;</span> <span class="o">+</span> <span class="n">encoding</span> <span class="o">+</span> <span class="s">&#34;: &#34;</span> <span class="o">+</span> <span class="n">Charset</span><span class="o">.</span><span class="na">forName</span><span class="o">(</span><span class="n">encoding</span><span class="o">).</span><span class="na">decode</span><span class="o">(</span><span class="n">buffer</span><span class="o">));</span> <span class="c1">// Decoded using UTF-8: Write test
-</span><span class="c1"></span>        <span class="n">fc</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FileOutputStream</span><span class="o">(</span><span class="s">&#34;test.txt&#34;</span><span class="o">).</span><span class="na">getChannel</span><span class="o">();</span>
-        <span class="n">fc</span><span class="o">.</span><span class="na">write</span><span class="o">(</span><span class="n">ByteBuffer</span><span class="o">.</span><span class="na">wrap</span><span class="o">(</span><span class="s">&#34;write test&#34;</span><span class="o">.</span><span class="na">getBytes</span><span class="o">(</span><span class="n">StandardCharsets</span><span class="o">.</span><span class="na">UTF_16BE</span><span class="o">)));</span>
-        <span class="n">fc</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
-        <span class="n">fc</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FileInputStream</span><span class="o">(</span><span class="s">&#34;test.txt&#34;</span><span class="o">).</span><span class="na">getChannel</span><span class="o">();</span>
-        <span class="n">buffer</span><span class="o">.</span><span class="na">clear</span><span class="o">();</span>
-        <span class="n">fc</span><span class="o">.</span><span class="na">read</span><span class="o">(</span><span class="n">buffer</span><span class="o">);</span>
-        <span class="n">buffer</span><span class="o">.</span><span class="na">flip</span><span class="o">();</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">buffer</span><span class="o">.</span><span class="na">asCharBuffer</span><span class="o">());</span> <span class="c1">// Write test
-</span><span class="c1"></span>        <span class="n">fc</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FileOutputStream</span><span class="o">(</span><span class="s">&#34;test.txt&#34;</span><span class="o">).</span><span class="na">getChannel</span><span class="o">();</span>
-        <span class="n">buffer</span> <span class="o">=</span> <span class="n">ByteBuffer</span><span class="o">.</span><span class="na">allocate</span><span class="o">(</span><span class="n">24</span><span class="o">);</span>
-        <span class="n">buffer</span><span class="o">.</span><span class="na">asCharBuffer</span><span class="o">().</span><span class="na">put</span><span class="o">(</span><span class="s">&#34;write test&#34;</span><span class="o">);</span>
-        <span class="n">fc</span><span class="o">.</span><span class="na">write</span><span class="o">(</span><span class="n">buffer</span><span class="o">);</span>
-        <span class="n">fc</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
-        <span class="n">fc</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FileInputStream</span><span class="o">(</span><span class="s">&#34;test.txt&#34;</span><span class="o">).</span><span class="na">getChannel</span><span class="o">();</span>
-        <span class="n">buffer</span><span class="o">.</span><span class="na">clear</span><span class="o">();</span>
-        <span class="n">fc</span><span class="o">.</span><span class="na">read</span><span class="o">(</span><span class="n">buffer</span><span class="o">);</span>
-        <span class="n">buffer</span><span class="o">.</span><span class="na">flip</span><span class="o">();</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">buffer</span><span class="o">.</span><span class="na">asCharBuffer</span><span class="o">());</span>  <span class="c1">// Write test
-</span><span class="c1"></span>    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        可以发现，如果要使用 $asCharBuffer(\ )$ 方法，必须要使用<code>UTF-8</code>编码后写入或者在读出时使用<code>UTF-8</code>编码格式读出。$java.nip.charset.Charset$ 类提供了数据编码的功能。</p>
-<h3 id="52-获取基本类型">5.2 获取基本类型</h3>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">GetData</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
-        <span class="n">ByteBuffer</span> <span class="n">bb</span> <span class="o">=</span> <span class="n">ByteBuffer</span><span class="o">.</span><span class="na">allocate</span><span class="o">(</span><span class="n">1024</span><span class="o">);</span>
-        <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span>
-        <span class="k">while</span> <span class="o">(</span><span class="n">i</span><span class="o">++</span> <span class="o">&lt;</span> <span class="n">bb</span><span class="o">.</span><span class="na">limit</span><span class="o">())</span> <span class="k">if</span> <span class="o">(</span><span class="n">bb</span><span class="o">.</span><span class="na">get</span><span class="o">()</span> <span class="o">!=</span> <span class="n">0</span><span class="o">)</span> <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">print</span><span class="o">(</span><span class="s">&#34;nonzero&#34;</span><span class="o">);</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&#34;i = &#34;</span> <span class="o">+</span> <span class="n">i</span><span class="o">);</span>
-        <span class="n">bb</span><span class="o">.</span><span class="na">rewind</span><span class="o">();</span>
-        <span class="n">bb</span><span class="o">.</span><span class="na">asCharBuffer</span><span class="o">().</span><span class="na">put</span><span class="o">(</span><span class="s">&#34;Howdy!&#34;</span><span class="o">);</span>
-        <span class="kt">char</span> <span class="n">c</span><span class="o">;</span>
-        <span class="k">while</span> <span class="o">((</span><span class="n">c</span> <span class="o">=</span> <span class="n">bb</span><span class="o">.</span><span class="na">getChar</span><span class="o">())</span> <span class="o">!=</span> <span class="n">0</span><span class="o">)</span> <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">c</span> <span class="o">+</span> <span class="s">&#34; &#34;</span><span class="o">);</span>
-        <span class="n">bb</span><span class="o">.</span><span class="na">rewind</span><span class="o">();</span>
-        <span class="n">bb</span><span class="o">.</span><span class="na">asShortBuffer</span><span class="o">().</span><span class="na">put</span><span class="o">((</span><span class="kt">short</span><span class="o">)</span> <span class="n">471142</span><span class="o">);</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">bb</span><span class="o">.</span><span class="na">getShort</span><span class="o">());</span>
-        <span class="n">bb</span><span class="o">.</span><span class="na">rewind</span><span class="o">();</span>
-        <span class="n">bb</span><span class="o">.</span><span class="na">asIntBuffer</span><span class="o">().</span><span class="na">put</span><span class="o">(</span><span class="n">99471142</span><span class="o">);</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">bb</span><span class="o">.</span><span class="na">getInt</span><span class="o">());</span>
-        <span class="n">bb</span><span class="o">.</span><span class="na">rewind</span><span class="o">();</span>
-        <span class="n">bb</span><span class="o">.</span><span class="na">asLongBuffer</span><span class="o">().</span><span class="na">put</span><span class="o">(</span><span class="n">99471142</span><span class="o">);</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">bb</span><span class="o">.</span><span class="na">getLong</span><span class="o">());</span>
-        <span class="n">bb</span><span class="o">.</span><span class="na">rewind</span><span class="o">();</span>
-        <span class="n">bb</span><span class="o">.</span><span class="na">asFloatBuffer</span><span class="o">().</span><span class="na">put</span><span class="o">(</span><span class="n">99471142</span><span class="o">);</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">bb</span><span class="o">.</span><span class="na">getFloat</span><span class="o">());</span>
-        <span class="n">bb</span><span class="o">.</span><span class="na">rewind</span><span class="o">();</span>
-        <span class="n">bb</span><span class="o">.</span><span class="na">asDoubleBuffer</span><span class="o">().</span><span class="na">put</span><span class="o">(</span><span class="n">99471142</span><span class="o">);</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">bb</span><span class="o">.</span><span class="na">getDouble</span><span class="o">());</span>
-        <span class="n">bb</span><span class="o">.</span><span class="na">rewind</span><span class="o">();</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        通过 $asCharBuffer(\ )$ 、 $asShortBuffer(\ )$ 、$asIntBuffer(\ )$ 等方法向 $ByteBuffer$ 中写入数据，再使用 $getChar(\ )$ 、$getShort(\ )$ 、$getInt(\ )$ 等方法读出。</p>
-<h3 id="53-缓冲器">5.3 缓冲器</h3>
-<p>        视图缓冲器可以让我们通过某个特定的基本数据类型的视图查看其底层 $ByteBuffer$ ，对视图的任意修改都会映射到 $ByteBuffer$ 。视图还允许我们从 $ByteBuffer$ 一次一次地或者通过数组成批地获取基本类型。</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Endians</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">ByteBuffer</span> <span class="n">bb</span> <span class="o">=</span> <span class="n">ByteBuffer</span><span class="o">.</span><span class="na">wrap</span><span class="o">(</span><span class="k">new</span> <span class="kt">byte</span><span class="o">[</span><span class="n">12</span><span class="o">]);</span>
-        <span class="n">bb</span><span class="o">.</span><span class="na">asCharBuffer</span><span class="o">().</span><span class="na">put</span><span class="o">(</span><span class="s">&#34;abcdef&#34;</span><span class="o">);</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">Arrays</span><span class="o">.</span><span class="na">toString</span><span class="o">(</span><span class="n">bb</span><span class="o">.</span><span class="na">array</span><span class="o">()));</span>
-        <span class="n">bb</span><span class="o">.</span><span class="na">rewind</span><span class="o">();</span>
-        <span class="n">bb</span><span class="o">.</span><span class="na">order</span><span class="o">(</span><span class="n">ByteOrder</span><span class="o">.</span><span class="na">BIG_ENDIAN</span><span class="o">);</span>
-        <span class="n">bb</span><span class="o">.</span><span class="na">asCharBuffer</span><span class="o">().</span><span class="na">put</span><span class="o">(</span><span class="s">&#34;abcdef&#34;</span><span class="o">);</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">Arrays</span><span class="o">.</span><span class="na">toString</span><span class="o">(</span><span class="n">bb</span><span class="o">.</span><span class="na">array</span><span class="o">()));</span>
-        <span class="n">bb</span><span class="o">.</span><span class="na">rewind</span><span class="o">();</span>
-        <span class="n">bb</span><span class="o">.</span><span class="na">order</span><span class="o">(</span><span class="n">ByteOrder</span><span class="o">.</span><span class="na">LITTLE_ENDIAN</span><span class="o">);</span>
-        <span class="n">bb</span><span class="o">.</span><span class="na">asCharBuffer</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">&#34;abcdef&#34;</span><span class="o">);</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">Arrays</span><span class="o">.</span><span class="na">toString</span><span class="o">(</span><span class="n">bb</span><span class="o">.</span><span class="na">array</span><span class="o">()));</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        通过 $CharBuffer$ 视图，我们可以将 $charArray$ 插入 $ByteBuffer$ 中。利用 $ByteBuffer.order(\ )$ 方法，我们可以设置字节排序方式为大端序或者小端序。<br>
-        $ByteBuffer$ 是数据进出通道的唯一方式。虽然我们不能将基本类型转换为 $ByteBuffer$ ，但是可以通过视图缓冲器将基本类型从 $ByteBuffer$ 中移入和移出。<br>
-        $Buffer$ 由数据和可以高效地访问及操纵这些数据的四个索引：$mark$ , $position$ , $limit$ 和 $capacity$ 组成，分别对应的操作方法有：</p>
-<table>
-<thead>
-<tr>
-<th align="center">方法</th>
-<th align="center">作用</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td align="center">$capacity(\ )$</td>
-<td align="center">缓冲区容量</td>
-</tr>
-<tr>
-<td align="center">$clear(\ )$</td>
-<td align="center">清空缓冲区，$position$ 清零，$limit$ 设为容量</td>
-</tr>
-<tr>
-<td align="center">$flip(\ )$</td>
-<td align="center">$limit$ 设为 $position$ ，$position$ 清零</td>
-</tr>
-<tr>
-<td align="center">$limit(\ )$</td>
-<td align="center">返回 $limit$ ，或者设置 $limit$</td>
-</tr>
-<tr>
-<td align="center">$mark(\ )$</td>
-<td align="center">$mark$ 设为 $position$</td>
-</tr>
-<tr>
-<td align="center">$reset(\ )$</td>
-<td align="center">将 $position$ 设为 $mark$</td>
-</tr>
-<tr>
-<td align="center">$position(\ )$</td>
-<td align="center">返回 $position$</td>
-</tr>
-<tr>
-<td align="center">$remaining(\ )$</td>
-<td align="center">返回 $limit - position$</td>
-</tr>
-<tr>
-<td align="center">$hasRemaining(\ )$</td>
-<td align="center">若有介于 $limit$ 和 $position$ 之间的元素，返回 $true$</td>
-</tr>
-</tbody>
-</table>
-<p>        缓冲器会先将数据存储在内存中，如果遇到那些因为过大而不能存储在内存中的文件，可以使用内存映射文件。通过内存映射文件，我们可以假定整个文件都处于内存中，可以使用类似于数组的方式进行访问。</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">LargeMappedFiles</span> <span class="o">{</span>
-    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">length</span> <span class="o">=</span> <span class="n">0x8FFFFFF</span><span class="o">;</span>
-
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
-        <span class="n">MappedByteBuffer</span> <span class="n">out</span> <span class="o">=</span>
-            <span class="k">new</span> <span class="n">RandomAccessFile</span><span class="o">(</span><span class="s">&#34;test.txt&#34;</span><span class="o">,</span> <span class="s">&#34;rw&#34;</span><span class="o">)</span>
-                <span class="o">.</span><span class="na">getChannel</span><span class="o">()</span>
-                <span class="o">.</span><span class="na">map</span><span class="o">(</span><span class="n">FileChannel</span><span class="o">.</span><span class="na">MapMode</span><span class="o">.</span><span class="na">READ_WRITE</span><span class="o">,</span> <span class="n">0</span><span class="o">,</span> <span class="n">length</span><span class="o">);</span>
-        <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">length</span><span class="o">;</span> <span class="n">i</span><span class="o">++)</span>
-            <span class="n">out</span><span class="o">.</span><span class="na">put</span><span class="o">((</span><span class="kt">byte</span><span class="o">)</span> <span class="sc">&#39;x&#39;</span><span class="o">);</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&#34;Finished!&#34;</span><span class="o">);</span>
-        <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">length</span> <span class="o">/</span> <span class="n">2</span><span class="o">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">length</span> <span class="o">/</span> <span class="n">2</span> <span class="o">+</span> <span class="n">6</span><span class="o">;</span> <span class="n">i</span><span class="o">++)</span>
-            <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">((</span><span class="kt">char</span><span class="o">)</span> <span class="n">out</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">i</span><span class="o">));</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        通过 $FileChannel.map(\ )$ 方法，我们可以获取一个 $MappedByByteBuffer$ 对象。这种特殊的缓冲器会将某个大文件的较小部分映射到内存中，也因此我们在创建的时候要指定初始位置和映射区长度。$MappedByByteBuffer$ 是 $ByteBuffer$ 的子类，因此可以使用它的所有方法。</p>
-<h3 id="54-文件锁">5.4 文件锁</h3>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">FileLocking</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
-        <span class="n">FileOutputStream</span> <span class="n">fos</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FileOutputStream</span><span class="o">(</span><span class="s">&#34;test.txt&#34;</span><span class="o">);</span>
-        <span class="n">FileLock</span> <span class="n">fl</span> <span class="o">=</span> <span class="n">fos</span><span class="o">.</span><span class="na">getChannel</span><span class="o">().</span><span class="na">tryLock</span><span class="o">();</span>
-        <span class="k">if</span> <span class="o">(</span><span class="n">fl</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
-            <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&#34;Locked File&#34;</span><span class="o">);</span>
-            <span class="n">TimeUnit</span><span class="o">.</span><span class="na">MILLISECONDS</span><span class="o">.</span><span class="na">sleep</span><span class="o">(</span><span class="n">100</span><span class="o">);</span>
-            <span class="n">fl</span><span class="o">.</span><span class="na">release</span><span class="o">();</span>
-            <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&#34;Released Lock&#34;</span><span class="o">);</span>
-        <span class="o">}</span>
-        <span class="n">fos</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        通过 $FileChannel.tryLock(\ )$ 、$FileChannel.lock(\ )$ 和 $FileChannel.release(\ )$ 方法可以实现对文件的上锁和解锁。 $tryLock(\ )$ 是非阻塞的，这意味着如果没有获得锁的话会直接返回。相反的，$lock(\ )$ 是阻塞式的，会一直等待到获得锁。$tryLock(\ )$ 和 $lock(\ )$ 都可以接受参数，实现对文件的部分上锁，将第三个参数设置为 $true$ 还可以设置共享锁。共享锁的实现需要依赖于操作系统，通过 $FileLock.isShared(\ )$ 可以判断一个锁是共享锁还是独占锁。</p>
-<h2 id="6-压缩">6. 压缩</h2>
-<p>        <code>I/O</code>类库支持读写压缩格式的数据流，这些类是由 $InputStream$ 和 $OutputStream$ 派生而来的。</p>
-<table>
-<thead>
-<tr>
-<th align="center">压缩类</th>
-<th align="center">功能</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td align="center">$CheckedInputStream$</td>
-<td align="center">$GetCheckSum(\ )$ 为任何 $InputStream$ 产生校验和</td>
-</tr>
-<tr>
-<td align="center">$CheckedOutputStream$</td>
-<td align="center">$GetCheckSum(\ )$ 为任何 $OutputStream$ 产生校验和</td>
-</tr>
-<tr>
-<td align="center">$DeflaterOutputStream$</td>
-<td align="center">压缩类基类</td>
-</tr>
-<tr>
-<td align="center">$ZipOutputStream$</td>
-<td align="center">将数据压缩为<code>Zip</code>文件格式</td>
-</tr>
-<tr>
-<td align="center">$GZIPOutputStream$</td>
-<td align="center">将数据压缩为<code>GZIP</code>文件格式</td>
-</tr>
-<tr>
-<td align="center">$InflaterInputStream$</td>
-<td align="center">解压缩类基类</td>
-</tr>
-<tr>
-<td align="center">$ZipInputStream$</td>
-<td align="center">解压缩<code>Zip</code>文件格式</td>
-</tr>
-<tr>
-<td align="center">$GZIPInputStream$</td>
-<td align="center">解压缩<code>GZIP</code>文件格式</td>
-</tr>
-</tbody>
-</table>
-<p>        <code>Zip</code>格式的<code>Java</code>类库更加全面，可以用于保存多个文件。</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">ZipCompress</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
-        <span class="n">FileOutputStream</span> <span class="n">f</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FileOutputStream</span><span class="o">(</span><span class="s">&#34;test.zip&#34;</span><span class="o">);</span>
-        <span class="n">CheckedOutputStream</span> <span class="n">csum</span> <span class="o">=</span> <span class="k">new</span> <span class="n">CheckedOutputStream</span><span class="o">(</span><span class="n">f</span><span class="o">,</span> <span class="k">new</span> <span class="n">Adler32</span><span class="o">());</span>
-        <span class="n">ZipOutputStream</span> <span class="n">zos</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ZipOutputStream</span><span class="o">(</span><span class="n">csum</span><span class="o">);</span>
-        <span class="n">BufferedOutputStream</span> <span class="n">out</span> <span class="o">=</span> <span class="k">new</span> <span class="n">BufferedOutputStream</span><span class="o">(</span><span class="n">zos</span><span class="o">);</span>
-        <span class="n">zos</span><span class="o">.</span><span class="na">setComment</span><span class="o">(</span><span class="s">&#34;A test of Java Zipping&#34;</span><span class="o">);</span>
-        <span class="k">for</span> <span class="o">(</span><span class="n">String</span> <span class="n">arg</span> <span class="o">:</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
-            <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&#34;Wrting file &#34;</span> <span class="o">+</span> <span class="n">arg</span><span class="o">);</span>
-            <span class="n">BufferedReader</span> <span class="n">in</span> <span class="o">=</span> <span class="k">new</span> <span class="n">BufferedReader</span><span class="o">(</span><span class="k">new</span> <span class="n">FileReader</span><span class="o">(</span><span class="n">arg</span><span class="o">));</span>
-            <span class="n">zos</span><span class="o">.</span><span class="na">putNextEntry</span><span class="o">(</span><span class="k">new</span> <span class="n">ZipEntry</span><span class="o">(</span><span class="n">arg</span><span class="o">));</span>
-            <span class="kt">int</span> <span class="n">c</span><span class="o">;</span>
-            <span class="k">while</span> <span class="o">((</span><span class="n">c</span> <span class="o">=</span> <span class="n">in</span><span class="o">.</span><span class="na">read</span><span class="o">())</span> <span class="o">!=</span> <span class="o">-</span><span class="n">1</span><span class="o">)</span> <span class="n">out</span><span class="o">.</span><span class="na">write</span><span class="o">(</span><span class="n">c</span><span class="o">);</span>
-            <span class="n">in</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
-            <span class="n">out</span><span class="o">.</span><span class="na">flush</span><span class="o">();</span>
-        <span class="o">}</span>
-        <span class="n">out</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&#34;Checksum: &#34;</span> <span class="o">+</span> <span class="n">csum</span><span class="o">.</span><span class="na">getChecksum</span><span class="o">().</span><span class="na">getValue</span><span class="o">());</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&#34;Reading file&#34;</span><span class="o">);</span>
-        <span class="n">FileInputStream</span> <span class="n">fi</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FileInputStream</span><span class="o">(</span><span class="s">&#34;test.zip&#34;</span><span class="o">);</span>
-        <span class="n">CheckedInputStream</span> <span class="n">csumi</span> <span class="o">=</span> <span class="k">new</span> <span class="n">CheckedInputStream</span><span class="o">(</span><span class="n">fi</span><span class="o">,</span> <span class="k">new</span> <span class="n">Adler32</span><span class="o">());</span>
-        <span class="n">ZipInputStream</span> <span class="n">in2</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ZipInputStream</span><span class="o">(</span><span class="n">csumi</span><span class="o">);</span>
-        <span class="n">BufferedInputStream</span> <span class="n">bis</span> <span class="o">=</span> <span class="k">new</span> <span class="n">BufferedInputStream</span><span class="o">(</span><span class="n">in2</span><span class="o">);</span>
-        <span class="n">ZipEntry</span> <span class="n">ze</span><span class="o">;</span>
-        <span class="k">while</span> <span class="o">((</span><span class="n">ze</span> <span class="o">=</span> <span class="n">in2</span><span class="o">.</span><span class="na">getNextEntry</span><span class="o">())</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
-            <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&#34;Reading file &#34;</span> <span class="o">+</span> <span class="n">ze</span><span class="o">);</span>
-            <span class="kt">int</span> <span class="n">x</span><span class="o">;</span>
-            <span class="k">while</span> <span class="o">((</span><span class="n">x</span> <span class="o">=</span> <span class="n">bis</span><span class="o">.</span><span class="na">read</span><span class="o">())</span> <span class="o">!=</span> <span class="o">-</span><span class="n">1</span><span class="o">)</span> <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">print</span><span class="o">(</span><span class="n">x</span> <span class="o">+</span> <span class="s">&#34; &#34;</span><span class="o">);</span>
-        <span class="o">}</span>
-        <span class="k">if</span> <span class="o">(</span><span class="n">args</span><span class="o">.</span><span class="na">length</span> <span class="o">==</span> <span class="n">1</span><span class="o">)</span> <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&#34;Checksum: &#34;</span> <span class="o">+</span> <span class="n">csumi</span><span class="o">.</span><span class="na">getChecksum</span><span class="o">().</span><span class="na">getValue</span><span class="o">());</span>
-        <span class="n">bis</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
-        <span class="n">ZipFile</span> <span class="n">zf</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ZipFile</span><span class="o">(</span><span class="s">&#34;test.zip&#34;</span><span class="o">);</span>
-        <span class="n">Enumeration</span> <span class="n">e</span> <span class="o">=</span> <span class="n">zf</span><span class="o">.</span><span class="na">entries</span><span class="o">();</span>
-        <span class="k">while</span> <span class="o">(</span><span class="n">e</span><span class="o">.</span><span class="na">hasMoreElements</span><span class="o">())</span> <span class="o">{</span>
-            <span class="n">ZipEntry</span> <span class="n">ze2</span> <span class="o">=</span> <span class="o">(</span><span class="n">ZipEntry</span><span class="o">)</span> <span class="n">e</span><span class="o">.</span><span class="na">nextElement</span><span class="o">();</span>
-            <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&#34;File: &#34;</span> <span class="o">+</span> <span class="n">ze2</span><span class="o">);</span>
-        <span class="o">}</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        $CheckSum$ 类提供了用于计算和校验文件的检验和方法，可以选择更快的 $Adler32$ 或者更准确的 $CRC32$ 类型。对于每一个要加入压缩档案的文件，都要调用 $putNextEntry(\ )$ 方法，传递一个 $ZipEntry$ 对象。通过 $ZipEntry$ 对象可以获得压缩文件的信息，比如名字、压缩后的大小、解压后的大小、日期、校验和等。虽然 $CheckSum$ 支持 $Adler32$ 和 $CRC32$ ，但是 $ZipEntry$ 类只支持 $CRC32$ 。如果要解压缩文件，$getNextEntry(\ )$ 方法可以获得 $ZipEntry$ ；也可以通过 $ZipFile$ 对象，该对象包含的 $entries(\ )$ 方法可以返回一个包含 $ZipEntry$ 的枚举。读取校验和要求拥有至少一个与之关联的 $CheckSum$ 对象，当然 $CheckedInputStream$ 和 $CheckedOutputStream$ 对象也是可以的。<br>
-        <code>Zip</code>格式也可以应用于<code>Jar</code>文件中。<code>Jar</code>文件由一组压缩文件组成，还包括一张描述了这些压缩文件的清单。可以通过命令行的方式调用<code>Jar</code>文件：</p>
-<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">jar <span class="o">[</span>options<span class="o">]</span> destination <span class="o">[</span>manifest<span class="o">]</span> inputfile<span class="o">(</span>s<span class="o">)</span>
-</code></pre></div><table>
-<thead>
-<tr>
-<th align="center">$options$</th>
-<th align="center">功能</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td align="center">$c$</td>
-<td align="center">创建新的或者空的压缩文档</td>
-</tr>
-<tr>
-<td align="center">$t$</td>
-<td align="center">列出目录表</td>
-</tr>
-<tr>
-<td align="center">$x$</td>
-<td align="center">解压所有文件</td>
-</tr>
-<tr>
-<td align="center">$x\ \ file$</td>
-<td align="center">解压该文件</td>
-</tr>
-<tr>
-<td align="center">$f$</td>
-<td align="center">指定一个文件名，从该文件中读取输入和输出（未指定则为标准<code>I/O</code>）</td>
-</tr>
-<tr>
-<td align="center">$m$</td>
-<td align="center">将文件清单名字设为第一个参数</td>
-</tr>
-<tr>
-<td align="center">$v$</td>
-<td align="center">产生详细输出</td>
-</tr>
-<tr>
-<td align="center">$O$</td>
-<td align="center">储存文件但不压缩</td>
-</tr>
-<tr>
-<td align="center">$M$</td>
-<td align="center">不自动创建文件清单</td>
-</tr>
-</tbody>
-</table>
-<p>        <code>Jar</code>工具的功能没有<code>Zip</code>那样强大，比如不能对已有的<code>Jar</code>文件进行修改，只能重新创建。但是<code>Jar</code>文件具有跨平台的便利性，只需要在一个平台上创建，就能被其他所有平台访问。</p>
-<h2 id="7-对象序列化">7. 对象序列化</h2>
-<p>        对象序列化会将实现了 $Serializable$ 接口的对象转换为字节序列，并且能够在之后由这个序列重新恢复为对象，而且通过序列化还可以跨平台传输对象。利用序列化可以实现轻量级持久性，即对象的声明周期并不取决于程序，因为对象可以通过序列化存储在磁盘中，然后在重新调用程序时恢复。对象序列化可以追踪对象内包含的引用，并保存那些对象。将一个序列恢复为对象时，需要注意的是必须存在对应的 $Class$ 对象，否则就会产生 $ClassNotFoundException$ 异常。要想序列化一个对象，首先要创建一些 $OutputStream$ ，并将它们封装在 $ObjectOutputStream$ 中，通过 $writeObject(\ )$ 方法将其序列化。而将一个序列还原为一个对象，则需要使用 $ObjectInputStream$ 封装 $InputStream$ 并调用 $readObject(\ )$ 方法，最终会得到一个 $Object$ 对象，需要进行向上转型。在一些特殊情况下，我们希望实现对序列化的控制，可以通过实现 $Externalizable$ 接口，$Externalizable$ 接口继承了 $Serializable$ 接口，提供了 $writeExternal(\ )$ 和 $readExternal(\ )$ 方法，会在序列化的过程中被自动调用。<br>
-        通过 $transient$ 关键字，可以将某个特定的子对象不进行序列化，这对于一些敏感信息比如密码等十分有用。由于 $Externalizable$ 默认不保存字段，因此 $transient$ 只能与 $Serializable$ 一起使用。<br>
-        如果不想使用 $Externalizable$ 接口，那么可以实现 $Serializable$ 接口并添加以下方法：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">private</span> <span class="kt">void</span> <span class="nf">writeObject</span><span class="o">(</span><span class="n">ObjectOutputStream</span> <span class="n">stream</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span><span class="o">;</span>
-<span class="kd">private</span> <span class="kt">void</span> <span class="nf">readObject</span><span class="o">(</span><span class="n">ObjecetInputStream</span> <span class="n">stream</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span><span class="o">,</span> <span class="n">ClassNotFoundException</span><span class="o">;</span>
-</code></pre></div><p>        当对象被序列化和反序列化的时候就会自动调用这两个方法。在方法内部，还可以调用 $ObjectOutputStream.defaultWriteObject(\ )$ 和 $ObjectInputStream.defaultReadObject(\ )$ 方法执行默认序列化和反序列方法。<br>
-        $Class$ 对象是序列化的，因此也可以使用序列化。如果想要序列化 $static$ 字段，那么需要声明并实现：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">serializeStaticState</span><span class="o">(</span><span class="n">ObjectOutputStream</span> <span class="n">stream</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span><span class="o">;</span>
-<span class="n">deserializaStaticState</span><span class="o">(</span><span class="n">ObjectInputStream</span> <span class="n">stream</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span><span class="o">;</span>
-</code></pre></div><p>        这两个方法会在序列化和反序列化过程中被调用，从而序列化 $static$ 字段。</p>
-
-            </div>
-            <div class="meta post-footer"> <span>2020 Sep 6 21:28</span> <a href="/post/java-i-o/"><i
                         class="fas fa-link"></i> link</a></div>
         </div>
         
