@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/jquery-3.4.1.min.js></script>
+<script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="https://www.cnblogs.com/meidaoli/"  target="_blank" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+        
+        <a href="http://123.57.12.189"  target="_blank" >
+            <i class="fas fa-link fa-sm"></i>
+            <span>二站</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">JVM（5）：类加载</h1>
+
+
+<h2 id="1-类加载的时机">1. 类加载的时机</h2>
+<p>        一个类型从被加载到卸载的过程中，会经历<strong>加载</strong> ( $Loading$ )、<strong>验证</strong> ( $Verification$ )、<strong>准备</strong> ( $Preparation$ )、<strong>解析</strong> ( $Resolution$ )、<strong>初始化</strong> ( $Initialization$ )、<strong>使用</strong> ( $Using$ ) 和<strong>卸载</strong> ( $Unloading$ ) 七个阶段，其中可以把验证、准备、解析统称为<strong>连接</strong> ( $Linking$ )。这些阶段之间可以交叉进行。加载、验证、准备、初始化、卸载的顺序是确定的，解析阶段则不一定，可能开始在初始化之后。<br>
+        《<code>Java</code>虚拟机规范》中并没有规定社么时候需要进行加载，但是严格规定了有且只有六种情况需要进行初始化：</p>
+<ul>
+<li>执行 $new$ 、$getstatic$ 、$putstatic$ 、$invokestatic$ 四条字节码指令时，如果类型没有初始化，需要先进行初始化阶段。这四条字节码指令分别对应：使用 $new$ 创建对象实例、读取和设置静态字段 ( $final$ 字段除外，因为它在编译器就已被置入常量池 )、调用静态方法；</li>
+<li>对类型进行反射调用时，如果类型没有初始化，需要先进行初始化阶段；</li>
+<li>初始化类时如果父类没有初始化，需要先初始化父类；</li>
+<li>虚拟机启动时，主类需要先进行初始化；</li>
+<li><code>JDK 7</code>之后，如果一个 $java.lang.invoke.MethodHandle$ 实例的解析结果为 $REF_-getStatic$ 、$REF_-putStatic$ 、$REF_-newInvokeSpecial$ 四种类型的方法句柄时，如果该方法句柄对应的类没有初始化，需要先进行初始化阶段；</li>
+<li><code>JDK 8</code>之后，接口中包含 $default$ 方法时，在其实现类发生初始化前，需要先进行接口的初始化阶段。</li>
+</ul>
+<p>        这六种情况触发初始化场景的行为称为主动引用，除此之外的引用称为被动引用。例如通过子类访问父类的静态字段并不会触发子类的初始化，只会触发父类的初始化；声明一个引用数组并不会触发引用类型的初始化，而是初始化一个数组类型。<br>
+        与类相同，接口也具有初始化过程。虽然接口中不能使用静态代码块，但是编译器仍然会生成 &lt;$clinit$&gt;$(\ )$ 类构造器，用于初始化成员变量。在前面的六种主动引用触发场景中，只有在初始化父类时才会对接口进行初始化。但是一个接口在初始化时，并不要求其父接口全部初始化，只有在用到时才需要进行初始化。</p>
+<h2 id="2-类加载的过程">2. 类加载的过程</h2>
+<h3 id="21-加载">2.1 加载</h3>
+<p>        类加载过程，虚拟机需要完成以下三件事：</p>
+<ul>
+<li>通过类的全限定名获取二进制字节流；</li>
+<li>将字节流所代表的静态存储结构转为方法区的运行时数据结构；</li>
+<li>在内存中生成一个代表这个类的 $java.lang.Class$ 对象，作为方法区中该类各种数据的访问入口。</li>
+</ul>
+<p>        由于没有限制获取字节流的位置，因此可以从许多地方以许多方式获取，例如从<code>Jar</code>包、<code>War</code>包获取，从<code>JSP</code>文件获取、从数据库中读取等。相较于其他阶段，非数组类型的类加载的可控性很强，可以通过自定义的类加载器完成。数组类的加载十分特殊，它并不依赖类加载器，而是由<code>JVM</code>在内存中直接构造。但是数组类仍然与类加载器有着密切关系，因为其元素类型仍然需要依赖类加载完成加载。一个数组类的创建规则如下：</p>
+<ul>
+<li>如果数组的组件类型（数组去掉一个维度的类型）是引用类型，需要依赖类加载器递归加载，并将该数组标识在组件类加载器的类名称空间上；</li>
+<li>如果数组的组件类型为基本类型，则数组会被标识为与引导类加载器关联；</li>
+<li>数组类的可访问性与组件类型的可访问性一致，如果组件类型为基本类型，则默认为 $public$ 。</li>
+</ul>
+<p>        加载阶段与连接阶段是交叉进行的，但是一些夹在加载阶段中进行的动作仍然属于连接阶段的一部分。加载阶段与连接阶段保持着一个严格的开始顺序，即前者必须先于后者开始。</p>
+<h3 id="22-验证">2.2 验证</h3>
+<p>        验证是连接阶段的第一步，确保<code>Class</code>文件中的信息符合要求，保证执行后不会危害虚拟机安全，一些不安全的行为如数组越界访问、不允许的类型转换等会被验证。验证阶段在类加载过程中占了很大一部分比重，但它是值得的，因为保证了<code>JVM</code>的安全。<br>
+        虽然验证阶段十分重要，但并非必要执行的，因为一个程序在被发布时往往会进行大量测试和验证，因此可以通过 $-Xverify:none$ 参数关闭大部分类验证措施，从而缩短虚拟机类加载时间。</p>
+<h4 id="221-文件格式验证">2.2.1 文件格式验证</h4>
+<p>        文件格式验证要验证字节流是否符合<code>Class</code>文件格式的规范，并且能否被当前版本的虚拟机处理。可能包括以下验证点：</p>
+<ul>
+<li>魔数；</li>
+<li>主次版本号；</li>
+<li>常量类型；</li>
+<li>索引值所指向的常量是否存在或者类型是否合理。</li>
+</ul>
+<h4 id="222-元数据验证">2.2.2 元数据验证</h4>
+<p>        元数据验证是对字节码描述的信息进行语义分析，保证其描述的信息符合要求。可能包括以下验证点：</p>
+<ul>
+<li>类是否有父类 ( 除了 $java.lang.Object$ )；</li>
+<li>类是否继承了不允许被继承的类；</li>
+<li>实现类是否实现了抽象类中的抽象方法；</li>
+<li>子类是否出现不合规则的重载，是否覆盖了 $final$ 字段。</li>
+</ul>
+<h4 id="223-字节码验证">2.2.3 字节码验证</h4>
+<p>        字节码验证是最复杂的一个阶段，主要通过数据流分析和控制流分析确定语义是否合法、符合逻辑。保证类方法在运行时不会做出危害虚拟机安全的行为也是在这一阶段进行的。可能的验证点包括：</p>
+<ul>
+<li>操作数栈的数据类型与指令代码序列指定的类型相符；</li>
+<li>跳转指令不会跳至方法体外；</li>
+<li>类型转换的有效性；</li>
+</ul>
+<p>        即使一个类通过了字节码验证，也不能保证其是绝对安全的。由于数据流分析和控制流分析的高度复杂性，<code>JDK 6</code>之后方法体<code>Code</code>属性表内添加了一个新属性：$StackMapTable$ ，用于描述所有基本快开始时本地变量表和操作栈应有的状态。这样<code>JVM</code>在验证时只需要检查 $StackMapTable$ 中的记录是否合法即可。</p>
+<h4 id="224-符号引用验证">2.2.4 符号引用验证</h4>
+<p>        符号引用验证发生在虚拟机将符号引用转换为直接引用时（这个转换发生在解析阶段）。可能包括以下验证点：</p>
+<ul>
+<li>符号引用中通过字符串描述的全限定名是否存在对应的类；</li>
+<li>指定类中是否存在符合方法的字段描述符以及简单名称所描述的方法和字段；</li>
+<li>符号引用中的类、字段和方法的可访问性；</li>
+</ul>
+<p>        符号引用验证主要是为了保证解析的正常执行。如果无法通过符号引用验证，<code>JVM</code>会抛出 $java.lang.IncompatibleClassChangError$ 的子类的异常，如 $IllegalAccessError$ 、$NoSuchFieldError$ 、$NoSuchMethodError$ 等。</p>
+<h3 id="23-准备">2.3 准备</h3>
+<p>        准备阶段为类中定义的静态变量分配内存并设置初始值。概念上，变量使用的内存都应该分配在方法区中，<code>JDK 7</code>之前，方法区在永久代中，<code>JDK 8</code>之后，方法区则处于<code>Java</code>堆之中。这里进行赋值的是类变量，而非实例变量，所以通常情况下初始值是零值，因为准备阶段并未执行初始化方法。初始化静态变量是 &lt;$clinit$&gt;$(\ )$ 方法中的 $putstatic$ 指令。如果要使初始值为非零值，那么需要将字段声明为 $final$ 。</p>
+<h3 id="24-解析">2.4 解析</h3>
+<p>        解析是<code>JVM</code>将常量池内符号引用替换为直接引用的过程。<strong>符号引用</strong> ( $Symboic\ \ References$ ) 可以是任何形式的字面量，其使用一组符号描述其引用目标。符号引用的引用目标并不要求已经加载到虚拟机内存中，不同的虚拟机能接受的符号引用都是一致的。与符号引用相对应的是<strong>直接引用</strong> ( $Direct\ \ References$ )，可以是一个直接指向目标的指针、相对偏移量，或者是一个能间接定位到目标的句柄。直接引用与虚拟机的内存布局直接挂钩，同一个符号引用在不同虚拟机上可能会翻译出不同的直接引用。和符号引用不同，直接引用引用的目标必须是已经加载在虚拟机内存中的。<br>
+        《<code>Java</code>虚拟机规范》中规定了在进行操作符号引用的操作之前必须先对符号引用进行解析，但并未规定其具体时机，因此解析可以发生在许多时刻。对同一个符号引用进行多次解析是很常见的，虚拟机可以对第一次解析的结果进行缓存，从而避免重复解析。<br>
+        在触发解析的指令中，$invokedynamic$ 是特殊的，因为该指令用于支持动态语言，而动态语言需要在程序运行时解析，因此由该指令触发的解析并不能被其他 $invokedynamic$ 指令使用。与动态解析对应，其余指令触发的解析可以称为静态解析，即在程序运行之前进行解析。</p>
+<h4 id="241-类接口的解析">2.4.1 类/接口的解析</h4>
+<p>        假设当前代码所处类为 $D$ ，对符号引用 $N$ 进行第一次解析，将其解析为类/接口 $C$ 的直接引用，那么需要进行以下步骤：</p>
+<ol>
+<li>$C$ 非数组类型，<code>JVM</code>会将 $N$ 的全限定名传递给 $D$ 的类加载器，加载 $C$ ，在这个过程中可能还会加载其他相关类；</li>
+<li>$C$ 为数组类型，并且数组元素为非基本数据类型，那么 $N$ 的描述符会是类似于 $[Ljava/lang/Integer$ 的形式，类加载器会加载 $Integer$ 类型，再由<code>JVM</code>生成一个代表该数组维度和元素的数组对象；</li>
+<li>如果上两步没有异常，那么<code>JVM</code>中已经生成 $C$ 了，但是还要进行符号引用验证，确认 $D$ 是否具备对 $C$ 的访问权限。</li>
+</ol>
+<p>        <code>JDK 9</code>中引入的模块化使得 $public$ 类型也并不是可以被任何位置访问了，所以还要检查模块间的访问权限。</p>
+<h4 id="242-字段解析">2.4.2 字段解析</h4>
+<p>        解析一个字段符号引用，首先会对字段表中 $class_-index$ 项中索引的 $CONSTANT_-Class_-info$ 符号引用进行解析，也就是字段所属的类或接口的符号引用。将该类或接口用 $C$ 表示，接下来会进行以下步骤：</p>
+<ol>
+<li>如果 $C$ 本身包含了简单名称与字段描述符都与目标匹配的字段，返回字段的直接引用；</li>
+<li>如果 $C$ 实现了接口，会按照继承关系由下往上递归搜索接口，直到找到相匹配的字段；</li>
+<li>如果 $C$ 不是 $java.lang.Object$ ，按照继承关系由下往上递归搜索父类，直到找到相匹配的字段。</li>
+<li>查找失败，抛出 $java.lang.NoSuchFieldError$ 异常。</li>
+</ol>
+<p>        如果返回引用，则会对字段进行权限验证。实际情况中，往往会采取更加严格的约束，如同名字段出现在不同的接口或者父类中，<code>Javac</code>可能会拒绝编译。</p>
+<h4 id="243-方法解析">2.4.3 方法解析</h4>
+<p>        解析一个方法符号引用，首先会对字段表中 $class_-index$ 项中索引的方法所属的类或接口的符号引用进行解析。将类或接口用 $C$ 表示，接下来会进行以下步骤：</p>
+<ol>
+<li>如果 $C$ 为接口，抛出 $java.lang.IncompatibleClassChangeError$ 异常；</li>
+<li>在 $C$ 中查找简单名称和描述符都与目标相匹配的方法，如果有则返回方法引用；</li>
+<li>在 $C$ 的父类中递归查找相匹配的方法；</li>
+<li>在 $C$ 的实现列表及其父接口中递归查找相匹配的方法，如果找到，说明 $C$ 为抽象类，抛出 $java.lang.AbstractMethodError$ 异常；</li>
+<li>查找失败，抛出 $java.lang.NoSuchMethodError$ 异常。</li>
+</ol>
+<p>        如果成功查找到了方法，会对方法进行权限验证。</p>
+<h4 id="244-接口方法解析">2.4.4 接口方法解析</h4>
+<p>        解析一个接口方法符号引用，首先会对字段表中 $class_-index$ 项中索引的方法所属的类或接口的符号引用进行解析。将类或接口用 $C$ 表示，接下来会进行以下步骤：</p>
+<ol>
+<li>如果 $C$ 为类，抛出 $java.lang.IncompatibleClassChangeError$ 异常；</li>
+<li>在 $C$ 中查找简单名称和描述符都与目标相匹配的方法，如果有则返回；</li>
+<li>在 $C$ 的父接口中递归查找，直到 $java.lang.Object$ 类。如果存在多个匹配方法，返回其中一个；</li>
+<li>查找失败，抛出 $java.lang.NoSuchMethodError$ 异常。</li>
+</ol>
+<p>        <code>JDK 9</code>之前接口方法都是 $public$ 的，不存在访问权限问题。<code>JDK 9</code>之后添加了接口的静态私有方法以及模块化访问约束，因此也需要对接口方法进行权限验证。</p>
+<h3 id="25-初始化">2.5 初始化</h3>
+<p>        初始化是类加载的最后一个步骤。在之前的阶段中，除了用户可以通过自定义类加载器的方式局部参与外，都由<code>JVM</code>主导。而直到初始化阶段，程序代码才真正开始执行，用户才开始拥有了主导权。初始化阶段可以简单的理解为执行类构造器 &lt;$clinit$&gt;$(\ )$ 的过程，这是个由<code>Javac</code>自动生成的方法。</p>
+<ul>
+<li>&lt;$clinit$&gt;$(\ )$ 方法是由编译器自动收集类中所有类变量的复制动作和静态代码块中的语句合并产生的，顺序由源文件决定。需要注意的是，静态代码块中的语句只能访问到块之前声明的变量，之后的声明的变量可以赋值，但不能访问；</li>
+<li>&lt;$clinit$&gt;$(\ )$ 方法不需要显示调用父类构造器，<code>JVM</code>保证父类会在子类之前调用，因此第一个执行的肯定是 $java.lang.Object$ 类；</li>
+<li>&lt;$clinit$&gt;$(\ )$ 方法并非必须，如果类中没有静态代码块和变量赋值操作，那么编译器可以不生成；</li>
+<li>接口中虽然不存在静态代码块，但是仍然有变量初始化赋值的操作，因此也可以生成 &lt;$clinit$&gt;$(\ )$ 方法。但是与类不同的是，只有父接口中的变量被使用时才会初始化父接口，这个原则同样适用于接口的实现类；</li>
+<li>&lt;$clinit$&gt;$(\ )$ 被保证是同步的。当一个线程执行时，其他线程会被阻塞。同一个类加载器下，一个类的初始化方法只会被执行一次。</li>
+</ul>
+<h2 id="3-类加载器">3. 类加载器</h2>
+<p>        <strong>类加载器</strong> ( $Class\ \ Loader$ ) 负责通过类的全限定名获取描述该类的二进制字节流。</p>
+<h3 id="31-类与类加载器">3.1 类与类加载器</h3>
+<p>        对于任意一个类，都必须由加载它的类加载器和这个类本身一起共同决定其在<code>JVM</code>中的唯一性。每一个类加载器都有一个独立的类名称空间，对于两个类，如果它们来自不同的类加载器，那么它们就不相等。</p>
+<h3 id="32-双亲委派模型">3.2 双亲委派模型</h3>
+<p>        在<code>JVM</code>看来，只有两种类加载器：<strong>启动类加载器</strong> ( $Bootstrap\ \ ClassLoader$ ) 和其他所有的类加载器。启动类加载器是使用<code>C++</code>实现的，属于虚拟机的一部分。其他所有类加载器由<code>Java</code>实现，且全部继承自 $java.lang.ClassLoader$ 。自<code>JDK 1.2</code>以来，<code>Java</code>一直保持着三层类加载器、双亲委派的类加载架构。在<code>JDK 8</code>之前，绝大多数程序都会使用到以下三个系统提供的类加载器：</p>
+<ul>
+<li>启动类加载器，负责将存放在 &lt;$JAVA_-HOME$&gt;$\backslash lib$ 目录或者被 $-Xbootclasspath$ 参数指定的路径中存放的能够被<code>JVM</code>识别的类库加载到虚拟机内存中。启动类加载器无法被<code>Java</code>程序直接引用，如果用户需要将加载请求委托给引导类加载器处理，可以直接使用 $null$ ；</li>
+<li><strong>扩展类加载器</strong> ( $Extension\ \ Class\ \ Loader$ )，在类 $sun.misc.Launcher\$ExtClassLoader$ 中以<code>Java</code>代码的形式实现，负责加载 $&lt;JAVA_-HOME&gt;\backslash lib\backslash ext$ 目录中，或者被 $java.exit.dirs$ 系统变量指定的路径中所有的类库。<code>JDK 9</code>之后这种扩展机制被模块取代。由于是<code>Java</code>代码实现，因此开发者可以直接使用；</li>
+<li><strong>应用程序类加载器</strong> ( $Application\ \ Class\ \ Loader$ )，由 $sun.misc.Launcher\$AppClassLoader$ 实现，是 $ClassLoader.getSystemClassLoader(\ )$ 方法的返回值，负责加载用户类路径 ( $ClassPath$ ) 上所有的类库，开发者同样可以在代码中使用，是程序中默认的类加载器。</li>
+</ul>
+<p>        <code>JDK 9</code>之前的<code>Java</code>应用都是由这三种类加载器互相配合完成的。用户也可以添加自定义的类加载器，如增加磁盘位置之外的<code>Class</code>文件来源等。<br>
+        类加载器的<strong>双亲委派模型</strong> ( $Parents\ \ Delegation\ \ Model$ ) 要求除了顶层的启动类加载器外，其余的类加载器都要有自己的父类加载器。加载器之间的父子关系不是以继承方式实现的，而是以组合关系复用父加载器代码。双亲委派模型的工作过程是：如果一个类加载器收到了类加载的请求，会将请求委派给父类加载器完成，最终会传送到最顶的启动类加载器。当父类加载器无法完成时会进行反馈，这时子加载器才会尝试自己完成加载。</p>
+
+
+<a href="javascript:void(0)" id="tocbtn" onclick="tocToggle()"><i class="fas fa-bars fa-lg"></i></a>
+<div id="sidetoc">
+    <header>
+        <h4>JVM（5）：类加载</h4>
+    </header>
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#1-类加载的时机">1. 类加载的时机</a></li>
+    <li><a href="#2-类加载的过程">2. 类加载的过程</a>
+      <ul>
+        <li><a href="#21-加载">2.1 加载</a></li>
+        <li><a href="#22-验证">2.2 验证</a></li>
+        <li><a href="#23-准备">2.3 准备</a></li>
+        <li><a href="#24-解析">2.4 解析</a></li>
+        <li><a href="#25-初始化">2.5 初始化</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-类加载器">3. 类加载器</a>
+      <ul>
+        <li><a href="#31-类与类加载器">3.1 类与类加载器</a></li>
+        <li><a href="#32-双亲委派模型">3.2 双亲委派模型</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+</div>
+<script src=https://z217blog.cn/js/tocbutton.js></script>
+
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/%E5%9B%9E%E6%BA%AF%E7%AE%97%E6%B3%95%E5%85%AB%E7%9A%87%E5%90%8E/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        
+        
+        
+        var all = MathJax.Hub.getAllJax(),
+            i;
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
+</body>
+
+</html>
