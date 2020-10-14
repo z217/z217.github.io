@@ -7,10 +7,20 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved.</copyright>
-    <lastBuildDate>Tue, 22 Sep 2020 22:20:52 +0800</lastBuildDate>
+    <lastBuildDate>Wed, 14 Oct 2020 17:02:05 +0800</lastBuildDate>
     
 	<atom:link href="https://z217blog.cn/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>JVM（6）：字节码执行引擎</title>
+      <link>https://z217blog.cn/post/jvm6%E5%AD%97%E8%8A%82%E7%A0%81%E6%89%A7%E8%A1%8C%E5%BC%95%E6%93%8E/</link>
+      <pubDate>Wed, 14 Oct 2020 17:02:05 +0800</pubDate>
+      
+      <guid>https://z217blog.cn/post/jvm6%E5%AD%97%E8%8A%82%E7%A0%81%E6%89%A7%E8%A1%8C%E5%BC%95%E6%93%8E/</guid>
+      <description>1. 运行时栈帧  JVM以方法作为最基本的执行单元，栈帧 ( $Stack\ \ Frame$ ) 是用于支持虚拟机进行方法调用和方法执行背后的数据结构，也是虚拟机运行时数据区中的虚拟机栈 ( $Virtual\ \ Machine\ \ Stack$ ) 的栈元素，存储了方法的局部变量表、操作数栈、动态连接和方法返回地址和一些额外的附加信息，方法表的 $Code$ 属性包含了栈帧所需的局部变量表和操作数栈的大小。对于执行引擎来讲，在每个线程中，只有处于调用堆栈栈顶的方法才是正在运行的方法，称为当前栈帧 ( $Current\ \ Stack\ \ Frame$ )，与这个栈帧关联的方法称为当前方法 ( $Current\ \ Method$ )。
+1.1 局部变量表  局部变量表 ( $Local\ \ Variable\ \ Table$ ) 是一组变量值的存储空间，用于存放方法参数和方法内部定义的局部变量，其最大容量由方法 $Code$ 属性中的 $max_-locals$ 数据项决定。局部变量表以变量槽 ( $Variable\ \ Slot$ ) 为最小单位，每个变量槽都应该能存放一个 $boolean$ 、$byte$ 、$char$ 、$short$ 、$int$ 、$float$ 、$reference$ 或 $returnAddress$ 类型的数据。这些数据长度一般都为 $32$ 位 ( $reference$ 可能为 $64$ 位 )，也意味着变量槽的长度至少为 $32$ 位。而对于 $64$ 位的数据类型，比如 $long$ 和 $double$ ，会通过高位对齐的方式分配两个连续的变量槽。</description>
+    </item>
     
     <item>
       <title>JVM（5）：类加载</title>
@@ -19,7 +29,7 @@
       
       <guid>https://z217blog.cn/post/jvm5%E7%B1%BB%E5%8A%A0%E8%BD%BD/</guid>
       <description>1. 类加载的时机  一个类型从被加载到卸载的过程中，会经历加载 ( $Loading$ )、验证 ( $Verification$ )、准备 ( $Preparation$ )、解析 ( $Resolution$ )、初始化 ( $Initialization$ )、使用 ( $Using$ ) 和卸载 ( $Unloading$ ) 七个阶段，其中可以把验证、准备、解析统称为连接 ( $Linking$ )。这些阶段之间可以交叉进行。加载、验证、准备、初始化、卸载的顺序是确定的，解析阶段则不一定，可能开始在初始化之后。
-《Java虚拟机规范》中并没有规定社么时候需要进行加载，但是严格规定了有且只有六种情况需要进行初始化：
+《Java虚拟机规范》中并没有规定什么时候需要进行加载，但是严格规定了有且只有六种情况需要进行初始化：
  执行 $new$ 、$getstatic$ 、$putstatic$ 、$invokestatic$ 四条字节码指令时，如果类型没有初始化，需要先进行初始化阶段。这四条字节码指令分别对应：使用 $new$ 创建对象实例、读取和设置静态字段 ( $final$ 字段除外，因为它在编译器就已被置入常量池 )、调用静态方法； 对类型进行反射调用时，如果类型没有初始化，需要先进行初始化阶段； 初始化类时如果父类没有初始化，需要先初始化父类； 虚拟机启动时，主类需要先进行初始化； JDK 7之后，如果一个 $java.lang.invoke.MethodHandle$ 实例的解析结果为 $REF_-getStatic$ 、$REF_-putStatic$ 、$REF_-newInvokeSpecial$ 四种类型的方法句柄时，如果该方法句柄对应的类没有初始化，需要先进行初始化阶段； JDK 8之后，接口中包含 $default$ 方法时，在其实现类发生初始化前，需要先进行接口的初始化阶段。   这六种情况触发初始化场景的行为称为主动引用，除此之外的引用称为被动引用。例如通过子类访问父类的静态字段并不会触发子类的初始化，只会触发父类的初始化；声明一个引用数组并不会触发引用类型的初始化，而是初始化一个数组类型。
 与类相同，接口也具有初始化过程。虽然接口中不能使用静态代码块，但是编译器仍然会生成 &amp;lt;$clinit$&amp;gt;$(\ )$ 类构造器，用于初始化成员变量。在前面的六种主动引用触发场景中，只有在初始化父类时才会对接口进行初始化。但是一个接口在初始化时，并不要求其父接口全部初始化，只有在用到时才需要进行初始化。
 2. 类加载的过程 2.1 加载  类加载过程，虚拟机需要完成以下三件事：</description>

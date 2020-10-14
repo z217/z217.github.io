@@ -92,6 +92,24 @@
     
     
     <div class="list-item">
+        <a class="entry-title" href="/post/jvm6%E5%AD%97%E8%8A%82%E7%A0%81%E6%89%A7%E8%A1%8C%E5%BC%95%E6%93%8E/">JVM（6）：字节码执行引擎</a>
+        
+        
+        <p>深入理解Java虚拟机（6）</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2020 Oct 14 17:02
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: JVM
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
         <a class="entry-title" href="/post/jvm5%E7%B1%BB%E5%8A%A0%E8%BD%BD/">JVM（5）：类加载</a>
         
         
@@ -163,24 +181,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="/post/java%E6%B3%A8%E8%A7%A3/">Java注解</a>
-        
-        
-        <p>Java注解简单介绍</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2020 Sep 07 23:32
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: Java
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -193,12 +193,205 @@
         <div class="post">
             
             <center>
+                <h1><a href="/post/jvm6%E5%AD%97%E8%8A%82%E7%A0%81%E6%89%A7%E8%A1%8C%E5%BC%95%E6%93%8E/">JVM（6）：字节码执行引擎</a></h1>
+            </center>
+            <div class="post-content">
+                <h2 id="1-运行时栈帧">1. 运行时栈帧</h2>
+<p>        <code>JVM</code>以方法作为最基本的执行单元，<strong>栈帧</strong> ( $Stack\ \ Frame$ ) 是用于支持虚拟机进行方法调用和方法执行背后的数据结构，也是虚拟机运行时数据区中的<strong>虚拟机栈</strong> ( $Virtual\ \ Machine\ \ Stack$ ) 的栈元素，存储了方法的局部变量表、操作数栈、动态连接和方法返回地址和一些额外的附加信息，方法表的 $Code$ 属性包含了栈帧所需的局部变量表和操作数栈的大小。对于执行引擎来讲，在每个线程中，只有处于调用堆栈栈顶的方法才是正在运行的方法，称为<em><strong>当前栈帧</strong></em> ( $Current\ \ Stack\ \ Frame$ )，与这个栈帧关联的方法称为<em><strong>当前方法</strong></em> ( $Current\ \ Method$ )。</p>
+<h3 id="11-局部变量表">1.1 局部变量表</h3>
+<p>        <strong>局部变量表</strong> ( $Local\ \ Variable\ \ Table$ ) 是一组变量值的存储空间，用于存放方法参数和方法内部定义的局部变量，其最大容量由方法 $Code$ 属性中的 $max_-locals$ 数据项决定。局部变量表以<b>变量槽</b> ( $Variable\ \ Slot$ ) 为最小单位，每个变量槽都应该能存放一个 $boolean$ 、$byte$ 、$char$ 、$short$ 、$int$ 、$float$ 、$reference$ 或 $returnAddress$ 类型的数据。这些数据长度一般都为 $32$ 位 ( $reference$ 可能为 $64$ 位 )，也意味着变量槽的长度至少为 $32$ 位。而对于 $64$ 位的数据类型，比如 $long$ 和 $double$ ，会通过高位对齐的方式分配两个连续的变量槽。<br>
+        <code>JVM</code>通过索引定位的方式使用局部变量表。对于 $32$ 位数据类型的变量，使用一个索引值；对于 $64$ 位数据类型的变量，使用相邻的两个索引值。当方法被调用时，<code>JVM</code>使用局部变量表将参数值传递到参数变量列表，即从实参到形参。如果方法为实例方法，那么局部变量表第 $0$ 位索引的变量槽默认为传递方法所属对象实例的引用。在参数表分配完毕后，再根据方法体内部定义的变量顺序和作用域分配其余的变量槽。因为方法中定义的变量的作用域不一定会覆盖整个方法体，因此变量槽是可以重用的。<br>
+        局部变量槽会影响系统的垃圾收集行为，可以观察以下三种情况：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
+    <span class="kt">byte</span><span class="o">[]</span> <span class="n">placeholder</span> <span class="o">=</span> <span class="k">new</span> <span class="kt">byte</span><span class="o">[</span><span class="n">64</span> <span class="o">*</span> <span class="n">1024</span> <span class="o">*</span> <span class="n">1024</span><span class="o">];</span>
+    <span class="n">System</span><span class="o">.</span><span class="na">gc</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div><div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
+    <span class="o">{</span>
+        <span class="kt">byte</span><span class="o">[]</span> <span class="n">placeholder</span> <span class="o">=</span> <span class="k">new</span> <span class="kt">byte</span><span class="o">[</span><span class="n">64</span> <span class="o">*</span> <span class="n">1024</span> <span class="o">*</span> <span class="n">1024</span><span class="o">];</span>
+    <span class="o">}</span>
+    <span class="n">System</span><span class="o">.</span><span class="na">gc</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div><div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
+    <span class="o">{</span>
+        <span class="kt">byte</span><span class="o">[]</span> <span class="n">placeholder</span> <span class="o">=</span> <span class="k">new</span> <span class="kt">byte</span><span class="o">[</span><span class="n">64</span> <span class="o">*</span> <span class="n">1024</span> <span class="o">*</span> <span class="n">1024</span><span class="o">];</span>
+    <span class="o">}</span>
+    <span class="kt">int</span> <span class="n">a</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span>
+    <span class="n">System</span><span class="o">.</span><span class="na">gc</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div><p>        在前两种情况中进行垃圾收集并不能回收 $placeholder$ 中的空间，但第三种情况可以。根本原因是局部变量表的变量槽中是否还存在 $placeholder$ 数组对象的引用。局部变量表是<code>GC Roots</code>的一部分，$placeholder$ 是其所关联的对象，因此无法被回收。如果想要回收这种变量，可以通过手动设置为 $null$ 的方法，但是在即时编译中，这种赋值往往会被优化掉。</p>
+<h3 id="12-操作数栈">1.2 操作数栈</h3>
+<p>        <strong>操作数栈</strong> ( $Operand\ \ Stack$ )，也被称为操作栈。同局部变量表一样，其长度也在编译时被写入 $Code$ 属性的 $max_-stacks$ 数据项之中。操作数栈的每一个元素都可以是任意数据类型，包括 $long$ 和 $double$ 。$32$ 位数据类型所占的栈容量为 $1$ ，$64$ 位数据类型所占的栈容量为 $2$ 。<br>
+        在方法执行的开始，它的操作数栈为空。随着方法的执行，各种字节码指令会被压入操作数栈或者从操作数栈中弹出。操作数栈中的元素的数据类型必须与字节码指令的序列严格匹配。在概念模型中，两个不同栈帧作为不同方法的虚拟机栈的元素，应该是完全独立的。但是大多数虚拟机都会进行优化，将上部分栈帧的部分局部变量表与下部分栈帧的部分操作数栈重叠，节省空间的同时还可以实现共用部分数据。</p>
+<h3 id="13-动态连接">1.3 动态连接</h3>
+<p>        每个栈帧都包含一个指向运行时常量池中该栈帧所属方法的引用，持有这个引用是为了支持方法调用过程中的<strong>动态连接</strong> ( $Dynamic\ \ Linking$ )。<code>Class</code>文件常量池中存有大量符号引用，字节码的方法调用指令以其中指向方法的符号引用作为参数。这些符号引用的一部分会在类加载阶段或者第一次被使用时转为直接引用，这种转化称为静态解析。另外未加载的一部分则在运行时期转化为直接引用，这部分就称为动态连接。</p>
+<h3 id="14-方法返回地址">1.4 方法返回地址</h3>
+<p>        方法在执行后，一种退出方式是遇到方法返回的字节码指令，这种退出方式称为<em><strong>正常调用完成</strong></em> ( $Normal\ \ Method\ \ Invocation\ \ Completion$ )。另一种退出方式是执行过程中遇到未处理的异常，这种退出方式称为<em><strong>异常调用完成</strong></em> ( $Abrupt\ \ Method\ \ Invocation\ \ Completion$ )。无论采用何种方式，方法都需要在栈帧中存储一些信息，用于恢复到上层主调方式的执行状态。一般情况下，以第一种方式退出的方法可以直接将上层方法的<code>PC</code>计数器的值作为返回地址，栈帧中也可能保存这个计数值。而以第二种方式退出的方法就要通过异常处理表确定，栈帧中无法保存。</p>
+<h2 id="2-方法调用">2. 方法调用</h2>
+<p>        方法调用阶段的任务是确定哪个方法被调用。</p>
+<h3 id="21-解析">2.1 解析</h3>
+<p>        所有方法的调用目标都是<code>Class</code>文件中一个常量池的符号引用。在类加载的解析阶段，其中一部分符号会转化为直接引用，前提是方法只有一个确定的可调用版本，并且在运行期不改变。这类方法调用称为<strong>解析</strong> ( $Resolution$ )。<br>
+        <code>JVM</code>支持以下 $5$ 条方法调用字节码指令，分别是：</p>
+<ul>
+<li>$invokestatic$ ：调用静态方法；</li>
+<li>$invokespecial$ ：调用实例构造器的 &lt;$init$&gt;$(\ )$ 方法、私有方法和父类中的方法；</li>
+<li>$invokevirtual$ ：调用所有虚方法；</li>
+<li>$invokeinterface$ ：调用接口方法，运行时会确定一个接口实例；</li>
+<li>$invokedynamic$ ：由用户设计的引导方法决定，在运行时动态解析出调用点限定符所引用的方法。</li>
+</ul>
+<p>        能被 $invokestatic$ 和 $invokespecial$ 调用的方法就可以在解析阶段确定版本，包括静态方法、私有方法、实例构造器、父类方法以及被 $final$ 修饰的方法 ( 使用 $invokevirtual$ 指令调用 ) 。这些方法统称为<strong>非虚方法</strong> ( $Non-Virtual\ \ Method$ )，与之对应的方法称为<strong>虚方法</strong> ( $Virtual\ \ Method$ )。</p>
+<h3 id="22-分派">2.2 分派</h3>
+<h4 id="221-静态分派">2.2.1 静态分派</h4>
+<p>        <strong>静态类型</strong> ( $Static\ \ Type$ ) ，也叫<strong>外观类型</strong> ( $Apparent\ \ Type$ ) ，是声明的类型。对象的<strong>实际类型</strong> ( $Actual\ \ Type$ ) 也就是<strong>运行时类型</strong> ( $Runtime\ \ Type$ )。静态类型的变化仅在使用时才发生，并且在编译期可知；而实际类型只有在运行时才可以确定。由于编译阶段只能获取静态类型，因此<code>Javac</code>编译器会根据参数的静态类型决定调用哪个版本的方法，而所有依赖于静态类型的分派都称为静态分派。静态分派最典型的表现方式就是重载。如果存在多个优先级相同的选择，那么会编译失败，并提示<em><strong>类型模糊</strong></em> ( $Type\ \ Ambiguous$ )，这时候就需要使用类型转换显示指定。</p>
+<h4 id="222-动态分派">2.2.2 动态分派</h4>
+<p>        静态分派与重载相关，而动态分派与重写相关。具体表现为调用类中的重写方法时，会调用实际类型的方法而非静态类型的方法。实现这种模式的关键是 $invokespecial$ 指令，其解析过程可以分为以下几步：</p>
+<ul>
+<li>找到操作数栈栈顶的第一个元素指向的对象的世界流行，记为 $C$ ；</li>
+<li>如果在 $C$ 中找到了与常量中描述符和简单名称都相符的方法，则检验访问权限。如果可以访问则返回该方法，否则抛出 $java.lang.IllegalAccessError$ 异常；</li>
+<li>按照继承关系从下往上寻找；</li>
+<li>如果没有找到符合的方法，抛出 $java.lang.AbstractMethodError$ 异常。</li>
+</ul>
+<p>        正因为 $invokevirtual$ 在第一步就是确定运行期中接收者的实际类型，因此会根据接收者的实际类型选择方法版本，这也是<code>Java</code>重写的本质，通过这种方式确定方法版本的分派称为动态分派。需要注意的是，动态分派只对方法起效，对字段不奏效，因为并不存在虚字段的概念。如果子类声明了与父类相同的字段，虽然在内存中两个字段都会存在，但是子类字段会掩盖父类字段。</p>
+<h4 id="223-单分派与多分派">2.2.3 单分派与多分派</h4>
+<p>        方法的接收者与方法的参数统称为方法的宗量。根据分派基于多少种宗量，可以将分派划分为根据一个宗量进行选择的单分派和根据多个宗量进行选择的多分派两种。对于静态分派，选择方法的依据有两个：静态类型和方法参数，因此静态分派属于多分派；对于动态分派，由于在编译期就已经决定了方法签名，唯一影响的因素只有接收者的实际类型，因此动态分派属于单分派。因此<code>Java</code>是一门静态多分派、动态单分派的语言。</p>
+<h4 id="224-动态分派的实现">2.2.4 动态分派的实现</h4>
+<p>        动态分派要求运行时在接收者类型的方法元数据中搜索合适的目标方法。为了性能考虑，<code>JVM</code>建立了一个<strong>虚方法表</strong> ( $Virtual\ \ Method\ \ Table$ ，$vtable$ )，用来代替元数据查找。虚方法表中存放着各个方法的实际入口地址。如果方法未被重写，那么子类和父类的入口地址相同；如果方法被重写，那么子类虚方法表的入口地址会被替换为子类实现版本的入口地址。为了程序实现的方便，具有相同签名的方法在子类和父类中的索引序号都相同，这样在类型改变时只需要从虚方法表中按索引转换出入口地址即可。虚方法表一般在类加载的连接阶段初始化，在子类的变量初始值准备时一同初始化。除了虚方法表之外，<code>JVM</code>还会使用<em><strong>类型继承关系分析</strong></em> ( $Class\ \ Hierarcht\ \ Analysis$ ，$CHA$ )、<em><strong>守护内联</strong></em> ( $Guarded\ \ Inlining$ )、<em><strong>内联缓存</strong></em> ( $Inline\ \ Cache$ ) 等多种非稳定的激进优化来争取性能空间。</p>
+<h2 id="3-动态类型语言支持">3. 动态类型语言支持</h2>
+<h3 id="31-javalanginvoke包">3.1 <code>java.lang.invoke</code>包</h3>
+<p>        $java.lang.invoke$ 包的目的是为了提供除了依靠符号引用确定调用的目标方法之外的动态确定目标方法的机制，称为<strong>方法句柄</strong> ( $Method\ \ Handle$ )，类似于<code>C</code>/<code>C++</code>中的函数指针。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">MethodHandleTest</span> <span class="o">{</span>
+  <span class="kd">private</span> <span class="kd">static</span> <span class="n">MethodHandle</span> <span class="nf">getPrintlnMH</span><span class="o">(</span><span class="n">Object</span> <span class="n">receiver</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Throwable</span> <span class="o">{</span>
+    <span class="c1">// MethodType代表方法类型，包含了方法的返回值（第一个参数）和具体参数
+</span><span class="c1"></span>    <span class="n">MethodType</span> <span class="n">mt</span> <span class="o">=</span> <span class="n">MethodType</span><span class="o">.</span><span class="na">methodType</span><span class="o">(</span><span class="kt">void</span><span class="o">.</span><span class="na">class</span><span class="o">,</span> <span class="n">String</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+    <span class="c1">// lookup()用于查找符合给定的方法名称、类型和调用权限的句柄
+</span><span class="c1"></span>    <span class="c1">// 此处查找虚方法并调用，根据Java的规则，方法的第一个参数隐式为this，以前是通过参数列表进行传递，如今可以使用bingTo()方法
+</span><span class="c1"></span>    <span class="k">return</span> <span class="n">MethodHandles</span><span class="o">.</span><span class="na">lookup</span><span class="o">().</span><span class="na">findVirtual</span><span class="o">(</span><span class="n">receiver</span><span class="o">.</span><span class="na">getClass</span><span class="o">(),</span> <span class="s">&#34;println&#34;</span><span class="o">,</span> <span class="n">mt</span><span class="o">).</span><span class="na">bindTo</span><span class="o">(</span><span class="n">receiver</span><span class="o">);</span>
+  <span class="o">}</span>
+
+  <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Throwable</span> <span class="o">{</span>
+    <span class="n">Object</span> <span class="n">obj</span> <span class="o">=</span> <span class="n">System</span><span class="o">.</span><span class="na">currentTimeMillis</span><span class="o">()</span> <span class="o">%</span> <span class="n">2</span> <span class="o">==</span> <span class="n">0</span> <span class="o">?</span> <span class="n">System</span><span class="o">.</span><span class="na">out</span> <span class="o">:</span> <span class="k">new</span> <span class="n">ClassA</span><span class="o">();</span>
+    <span class="n">getPrintlnMH</span><span class="o">(</span><span class="n">obj</span><span class="o">).</span><span class="na">invokeExact</span><span class="o">(</span><span class="s">&#34;icyfenix&#34;</span><span class="o">);</span>
+  <span class="o">}</span>
+
+  <span class="kd">static</span> <span class="kd">class</span> <span class="nc">ClassA</span> <span class="o">{</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">println</span><span class="o">(</span><span class="n">String</span> <span class="n">s</span><span class="o">)</span> <span class="o">{</span>
+      <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">s</span><span class="o">);</span>
+    <span class="o">}</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div><p>        $MethodHandle$ 可以视为方法的一个“引用”。与反射相比，$Reflection$ 是在模拟<code>Java</code>代码层次的调用，而 $MethodHandle$ 是在模拟字节码层次的调用。</p>
+<h3 id="32-invokedynamic指令">3.2 <code>invokedynamic</code>指令</h3>
+<p>        $invokedynamic$ 是<code>JDK 7</code>中新增的一条字节码指令，用于实现对动态类型语言的支持。动态类型语言的关键特征是类型检查的主体过程是在运行期而不是编译期进行的，因此<code>Java</code>是一门静态类型语言。但是<code>JVM</code>中不只可以运行<code>Java</code>，还有其他语言比如<code>Groovy</code>和<code>Clojure</code>等，它们都是动态类型语言。$invokedynamic$ 的引入是为了更好的支持动态类型语言。从某种意义上，$invokedynamic$ 的作用与 $MethodHandle$ 是一样的，即将查找目标方法的决定权转嫁给用户的具体代码之中。<br>
+        每一处含有 $invokedynamic$ 指令的位置都被称为<strong>动态调用点</strong> ( $Dynamically-Computed\ \ Call\ \ Site$ )，该指令的第一个参数不再是 $CONSTANT_-Methodref_-info$ ，而是 $CONSTANT_-InvokeDynamic_-info$ 。该常量包含三项信息：<i><b>引导方法</b></i> ( $Bootstrap\ \ Method$ )、<i><b>方法类型</b></i> ( $MethodType$ ) 和名称。引导方法具有固定参数，并且返回值必定是 $java.lang.invoke.CallSite$ 对象，表示真正要执行的目标方法调用。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">InvokeDynamicTest</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Throwable</span> <span class="o">{</span>
+    <span class="n">INDY_BootstrapMethod</span><span class="o">().</span><span class="na">invokeExact</span><span class="o">(</span><span class="s">&#34;icyfenix&#34;</span><span class="o">);</span> <span class="c1">//
+</span><span class="c1"></span>  <span class="o">}</span>
+
+  <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">testMethod</span><span class="o">(</span><span class="n">String</span> <span class="n">s</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&#34;hello String:&#34;</span> <span class="o">+</span> <span class="n">s</span><span class="o">);</span>
+  <span class="o">}</span>
+
+  <span class="kd">public</span> <span class="kd">static</span> <span class="n">CallSite</span> <span class="nf">BootstrapMethod</span><span class="o">(</span><span class="n">MethodHandles</span><span class="o">.</span><span class="na">Lookup</span> <span class="n">lookup</span><span class="o">,</span> <span class="n">String</span> <span class="n">name</span><span class="o">,</span> <span class="n">MethodType</span> <span class="n">mt</span><span class="o">)</span>
+      <span class="kd">throws</span> <span class="n">NoSuchMethodException</span><span class="o">,</span> <span class="n">IllegalAccessException</span> <span class="o">{</span>
+    <span class="k">return</span> <span class="k">new</span> <span class="n">ConstantCallSite</span><span class="o">(</span><span class="n">lookup</span><span class="o">.</span><span class="na">findStatic</span><span class="o">(</span><span class="n">InvokeDynamicTest</span><span class="o">.</span><span class="na">class</span><span class="o">,</span> <span class="n">name</span><span class="o">,</span> <span class="n">mt</span><span class="o">));</span>
+  <span class="o">}</span>
+
+  <span class="kd">private</span> <span class="kd">static</span> <span class="n">MethodType</span> <span class="nf">MT_BootstrapMethod</span><span class="o">()</span> <span class="o">{</span>
+    <span class="k">return</span> <span class="n">MethodType</span><span class="o">.</span><span class="na">fromMethodDescriptorString</span><span class="o">(</span>
+        <span class="s">&#34;(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;&#34;</span><span class="o">,</span>
+        <span class="kc">null</span><span class="o">);</span>
+  <span class="o">}</span>
+
+  <span class="kd">private</span> <span class="kd">static</span> <span class="n">MethodHandle</span> <span class="nf">MH_BootstrapMethod</span><span class="o">()</span>
+      <span class="kd">throws</span> <span class="n">NoSuchMethodException</span><span class="o">,</span> <span class="n">IllegalAccessException</span> <span class="o">{</span>
+    <span class="k">return</span> <span class="n">MethodHandles</span><span class="o">.</span><span class="na">lookup</span><span class="o">()</span>
+        <span class="o">.</span><span class="na">findStatic</span><span class="o">(</span><span class="n">InvokeDynamicTest</span><span class="o">.</span><span class="na">class</span><span class="o">,</span> <span class="s">&#34;BootstrapMethod&#34;</span><span class="o">,</span> <span class="n">MT_BootstrapMethod</span><span class="o">());</span>
+  <span class="o">}</span>
+
+  <span class="kd">private</span> <span class="kd">static</span> <span class="n">MethodHandle</span> <span class="nf">INDY_BootstrapMethod</span><span class="o">()</span> <span class="kd">throws</span> <span class="n">Throwable</span> <span class="o">{</span>
+    <span class="n">CallSite</span> <span class="n">cs</span> <span class="o">=</span>
+        <span class="o">(</span><span class="n">CallSite</span><span class="o">)</span>
+            <span class="n">MH_BootstrapMethod</span><span class="o">()</span>
+                <span class="o">.</span><span class="na">invokeWithArguments</span><span class="o">(</span>
+                    <span class="n">MethodHandles</span><span class="o">.</span><span class="na">lookup</span><span class="o">(),</span>
+                    <span class="s">&#34;testMethod&#34;</span><span class="o">,</span>
+                    <span class="n">MethodType</span><span class="o">.</span><span class="na">fromMethodDescriptorString</span><span class="o">(</span><span class="s">&#34;(Ljava/lang/String;)V&#34;</span><span class="o">,</span> <span class="kc">null</span><span class="o">));</span>
+    <span class="k">return</span> <span class="n">cs</span><span class="o">.</span><span class="na">dynamicInvoker</span><span class="o">();</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div><h2 id="4-基于栈的字节码解释引擎">4. 基于栈的字节码解释引擎</h2>
+<p>        许多<code>JVM</code>的执行引擎在执行<code>Java</code>代码的时候都有解释执行和编译执行两种选择。在最初的版本，虚拟机大多通过解释执行，但在如今主流的虚拟机中包含了即时编译器后，如何执行<code>Class</code>文件中的代码就变成了因虚拟机决定了。</p>
+<h3 id="41-基于栈的指令集与基于寄存器的指令集">4.1 基于栈的指令集与基于寄存器的指令集</h3>
+<p>        <code>Javac</code>编译器输出的字节码指令流基本上是一种基于栈的<strong>指令集架构</strong> ( $Instruction\ \ Set\ \ Architecture$ ，$ISA$ )，里面的指令大都是零地址指令，依赖操作数栈进行工作。与之对应的是基于寄存器的指令集，也就是如今主流<code>PC</code>中物理硬件直接支持的指令集架构，依赖于寄存器进行工作。基于栈的指令集的优点是可移植，因为寄存器由硬件提供，容易受到硬件约束。而且基于栈的指令集具有更加紧凑的代码，实现更加简单。但是相应的，缺点就是速度会慢一些，这也是如今主流物理机都是寄存器架构的原因。</p>
+<h3 id="42-基于栈的解释器执行过程">4.2 基于栈的解释器执行过程</h3>
+<p>        以如下代码为例：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kt">int</span> <span class="nf">calc</span><span class="o">()</span> <span class="o">{</span>
+    <span class="kt">int</span> <span class="n">a</span> <span class="o">=</span> <span class="n">100</span><span class="o">;</span>
+    <span class="kt">int</span> <span class="n">b</span> <span class="o">=</span> <span class="n">200</span><span class="o">;</span>
+    <span class="kt">int</span> <span class="n">c</span> <span class="o">=</span> <span class="n">300</span><span class="o">;</span>
+    <span class="k">return</span> <span class="o">(</span><span class="n">a</span> <span class="o">+</span> <span class="n">b</span><span class="o">)</span> <span class="o">*</span> <span class="n">c</span><span class="o">;</span>
+<span class="o">}</span>
+</code></pre></div><p>        使用<code>javap</code>进行反编译后的结果如下：</p>
+<pre><code>public int calc();
+    descriptor: ()I
+    flags: (0x0001) ACC_PUBLIC
+    Code:
+      stack=2, locals=4, args_size=1
+         0: bipush        100
+         2: istore_1
+         3: sipush        200
+         6: istore_2
+         7: sipush        300
+        10: istore_3
+        11: iload_1
+        12: iload_2
+        13: iadd
+        14: iload_3
+        15: imul
+        16: ireturn
+      LineNumberTable:
+        line 5: 0
+        line 6: 3
+        line 7: 7
+        line 8: 11
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0      17     0  this   Lcom/jvm/execution/Calc;
+            3      14     1     a   I
+            7      10     2     b   I
+           11       6     3     c   I
+</code></pre><p>        上述代码表明需要深度为 $2$ 的栈，$4$ 个变量槽，参数数量为 $1$ ( $this$ )。程序计数器从 $0$ 开始，按照偏移量依次执行指令。对上述字节码指令的解释如下：</p>
+<ol>
+<li>$bipush\ \ 100$ ： 将 $100$ 压入栈内；</li>
+<li>$istore_-1$ ：取出栈顶整型值 ( $100$ ) 并存放到第一个变量槽中；</li>
+<li>$sipush\ \ 200$ ：将 $200$ 压入栈内；</li>
+<li>$istore_-2$ ：取出栈顶整型值并存放到第二个变量槽中；</li>
+<li>$sipush\ \ 300$ ：将 $300$ 压入栈内；</li>
+<li>$istore_-3$ ：取出栈顶整型值并存放到第三个变量槽中；</li>
+<li>$iload_-1$ ：将第一个变量槽中的整型值复制到操作数栈顶；</li>
+<li>$iload_-2$ ：将第二个变量槽中的整型值复制到操作数栈顶；</li>
+<li>$iadd$ ：取出操作数栈顶的两个元素，将他们相加的结果压入栈内；</li>
+<li>$iload_-3$ ：将第三个变量槽中的整型值复制到操作数栈顶；</li>
+<li>$imul$ ：取出操作数栈顶的两个元素，将他们相乘的结果压入栈内；</li>
+<li>$ireturn$ ：结束方法并将操作数栈顶的整型值返回给该方法的调用者。</li>
+</ol>
+<p>        当然上述的执行过程只是一种概念模型，<code>JVM</code>可能会对执行过程进行优化，从而提高性能。实际执行的情况会与上述的情况差距很大，根本原因是虚拟机中解析器和即时编译器都会对字节码进行优化。例如<code>HotSpot</code>虚拟机中存在很多以 $fast_-$ 开头的非标准字节码，用于合并、替换输入的字节码，从而提高性能。</p>
+
+            </div>
+            <div class="meta post-footer"> <span>2020 Oct 14 17:02</span> <a href="/post/jvm6%E5%AD%97%E8%8A%82%E7%A0%81%E6%89%A7%E8%A1%8C%E5%BC%95%E6%93%8E/"><i
+                        class="fas fa-link"></i> link</a></div>
+        </div>
+        
+        <div class="post">
+            
+            <center>
                 <h1><a href="/post/jvm5%E7%B1%BB%E5%8A%A0%E8%BD%BD/">JVM（5）：类加载</a></h1>
             </center>
             <div class="post-content">
                 <h2 id="1-类加载的时机">1. 类加载的时机</h2>
 <p>        一个类型从被加载到卸载的过程中，会经历<strong>加载</strong> ( $Loading$ )、<strong>验证</strong> ( $Verification$ )、<strong>准备</strong> ( $Preparation$ )、<strong>解析</strong> ( $Resolution$ )、<strong>初始化</strong> ( $Initialization$ )、<strong>使用</strong> ( $Using$ ) 和<strong>卸载</strong> ( $Unloading$ ) 七个阶段，其中可以把验证、准备、解析统称为<strong>连接</strong> ( $Linking$ )。这些阶段之间可以交叉进行。加载、验证、准备、初始化、卸载的顺序是确定的，解析阶段则不一定，可能开始在初始化之后。<br>
-        《<code>Java</code>虚拟机规范》中并没有规定社么时候需要进行加载，但是严格规定了有且只有六种情况需要进行初始化：</p>
+        《<code>Java</code>虚拟机规范》中并没有规定什么时候需要进行加载，但是严格规定了有且只有六种情况需要进行初始化：</p>
 <ul>
 <li>执行 $new$ 、$getstatic$ 、$putstatic$ 、$invokestatic$ 四条字节码指令时，如果类型没有初始化，需要先进行初始化阶段。这四条字节码指令分别对应：使用 $new$ 创建对象实例、读取和设置静态字段 ( $final$ 字段除外，因为它在编译器就已被置入常量池 )、调用静态方法；</li>
 <li>对类型进行反射调用时，如果类型没有初始化，需要先进行初始化阶段；</li>
@@ -718,7 +911,7 @@ $$
 </tr>
 </tbody>
 </table>
-<p>        对于数组类型，每一个维度都会使用一个前置的 $[$ 字符表示，例如 $int[\ ][\ ]$ 会表示为 $[[I$ 。对于方法，会按照参数、返回值的方式描述，参数按照顺序放在 $(\ )$ 之中，例如 $int indexOf(char[] source, int index)$ 表示为 $([CI)I$ 。<br>
+<p>        对于数组类型，每一个维度都会使用一个前置的 $[$ 字符表示，例如 $int[\ ][\ ]$ 会表示为 $[[I$ 。对于方法，会按照参数、返回值的方式描述，参数按照顺序放在 $(\ )$ 之中，例如 $int\ \ indexOf(char[]\ \ source,\ \ int\ \ index)$ 表示为 $([CI)I$ 。<br>
         $descriptor_-index$ 之后是属性表计数器，当字段存在额外信息如值时，计数器会记录字段的额外信息个数，并可以在之后的 $attribute_-info$ 中查询。字段表集合不会列出从父类或者父接口中继承而来的字段，但有可能出现原来<code>Java</code>代码之中不存在的字段，譬如内部类中包含的指向外部类实例的字段。</p>
 <h3 id="26-方法表集合">2.6 方法表集合</h3>
 <p>        <code>Class</code>文件中对字段和方法的描述采取了几乎一样的方式，同样包括 $access_-flags$、$name_-index$、$descriptor_-index$ 和 $attributes$ 。</p>
@@ -1746,74 +1939,6 @@ $$
 
             </div>
             <div class="meta post-footer"> <span>2020 Sep 17 22:58</span> <a href="/post/jvm4class%E6%96%87%E4%BB%B6%E7%BB%93%E6%9E%84/"><i
-                        class="fas fa-link"></i> link</a></div>
-        </div>
-        
-        <div class="post">
-            
-            <center>
-                <h1><a href="/post/%E5%BF%AB%E9%80%9F%E4%B9%98%E7%AE%97%E6%B3%95%E7%AE%80%E4%BB%8B/">快速乘算法简介</a></h1>
-            </center>
-            <div class="post-content">
-                <p>        快速乘算法的原理是俄罗斯农民乘法，这种乘法规则很简单：</p>
-<ul>
-<li>将要相乘的两个数字写在两列；</li>
-<li>将第一列乘以二，第二列除以二并写在下一行；</li>
-<li>如果这一行中第二列数字为偶数，删去这一行；</li>
-<li>在下一行重复上述二至三步直至第二列数字为 $1$ ；</li>
-<li>将第一列未被删除的数字求和即为结果</li>
-</ul>
-<p>        以 $48 \times 58$ 为例：</p>
-<div>
-$$
-\require{cancel}
-\bcancel{48}\qquad\bcancel{58}\\
-96\qquad29\\
-\bcancel{192}\qquad\bcancel{14}\\
-384\qquad7\\
-768\qquad3\\
-1536\qquad1\\
-————\\
-2784\qquad
-$$
-</div>
-<p>        从而 $48 \times 58 = 2784$ 。<br>
-        运用这个原理，我们可以对二进制数进行计算，只需要将原来的规则调整下即可。对于二进制数 $A$ 和 $B$ ，如果要计算 $A \times B$ ，那么可以：</p>
-<ul>
-<li>如果 $B$ 末位为 $1$ ，将 $A$ 加到结果上；</li>
-<li>将 $A$ 左移一位，$B$ 右移一位；</li>
-<li>重复上述两步直至 $B$ 为零。</li>
-</ul>
-<p>        将上述步骤用代码实现如下：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">QuickMulti</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kt">int</span> <span class="nf">quickMulti</span><span class="o">(</span><span class="kt">int</span> <span class="n">A</span><span class="o">,</span> <span class="kt">int</span> <span class="n">B</span><span class="o">)</span> <span class="o">{</span>
-        <span class="kt">int</span> <span class="n">res</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span>
-        <span class="k">while</span> <span class="o">(</span><span class="n">B</span> <span class="o">!=</span> <span class="n">0</span><span class="o">)</span> <span class="o">{</span>
-            <span class="k">if</span> <span class="o">(</span><span class="n">B</span> <span class="o">&amp;</span> <span class="n">1</span> <span class="o">==</span> <span class="n">1</span><span class="o">)</span> <span class="n">res</span> <span class="o">+=</span> <span class="n">A</span><span class="o">;</span>
-            <span class="n">A</span> <span class="o">&lt;&lt;=</span> <span class="n">1</span><span class="o">;</span>
-            <span class="n">B</span> <span class="o">&gt;&gt;=</span> <span class="n">1</span><span class="o">;</span>
-        <span class="o">}</span>
-        <span class="k">return</span> <span class="n">res</span><span class="o">;</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        在这里举一道题为例演示快速乘算法的使用：<a href="https://leetcode-cn.com/problems/qiu-12n-lcof/">求1+2+&hellip;+n</a> 。<br>
-        题目描述很简单，但要注意不能使用循环，即迭代，因此可以使用递归代替。不能使用条件判断语句，因此需要借助 $\And\And$ 逻辑运算符近似实现 $if$ 。而在<code>Java</code>中并不能直接在一条语句中使用 $\And\And$ ，因此可以先声明一个 $boolean$ 变量。实现代码如下：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">Solution</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kt">int</span> <span class="nf">sumNums</span><span class="o">(</span><span class="kt">int</span> <span class="n">n</span><span class="o">)</span> <span class="o">{</span>
-        <span class="k">return</span> <span class="n">recurse</span><span class="o">(</span><span class="n">n</span><span class="o">,</span> <span class="n">n</span> <span class="o">+</span> <span class="n">1</span><span class="o">,</span> <span class="n">0</span><span class="o">)</span> <span class="o">&gt;&gt;</span> <span class="n">1</span><span class="o">;</span>
-    <span class="o">}</span>
-
-    <span class="kd">private</span> <span class="kt">int</span> <span class="nf">recurse</span><span class="o">(</span><span class="kt">int</span> <span class="n">A</span><span class="o">,</span> <span class="kt">int</span> <span class="n">B</span><span class="o">,</span> <span class="kt">int</span> <span class="n">res</span><span class="o">)</span> <span class="o">{</span>
-        <span class="kt">int</span> <span class="n">res</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span>
-        <span class="kt">boolean</span> <span class="n">b</span> <span class="o">=</span> <span class="n">B</span> <span class="o">!=</span> <span class="n">0</span> <span class="o">&amp;&amp;</span> <span class="o">(</span><span class="n">B</span> <span class="o">&amp;</span> <span class="n">1</span><span class="o">)</span> <span class="o">==</span> <span class="n">1</span> <span class="o">&amp;&amp;</span> <span class="o">(</span><span class="n">res</span> <span class="o">=</span> <span class="n">A</span><span class="o">)</span> <span class="o">&gt;</span> <span class="n">0</span><span class="o">;</span>
-        <span class="n">b</span> <span class="o">=</span> <span class="n">B</span> <span class="o">!=</span> <span class="n">0</span> <span class="o">&amp;&amp;</span> <span class="o">(</span><span class="n">res</span> <span class="o">+=</span> <span class="n">recurse</span><span class="o">(</span><span class="n">A</span> <span class="o">&lt;&lt;</span> <span class="n">1</span><span class="o">,</span> <span class="n">B</span> <span class="o">&gt;&gt;</span> <span class="n">1</span><span class="o">))</span> <span class="o">&gt;</span> <span class="n">0</span><span class="o">;</span>
-        <span class="k">return</span> <span class="n">res</span><span class="o">;</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        这里使用快速乘算法计算 $n \times (n + 1)$ 的值，再最后返回的时候再将结果除以 $2$ ，即利用了公式 $\large\frac{n(n + 1)}{2}$ 计算连续自然数的和。</p>
-
-            </div>
-            <div class="meta post-footer"> <span>2020 Sep 15 15:05</span> <a href="/post/%E5%BF%AB%E9%80%9F%E4%B9%98%E7%AE%97%E6%B3%95%E7%AE%80%E4%BB%8B/"><i
                         class="fas fa-link"></i> link</a></div>
         </div>
         
