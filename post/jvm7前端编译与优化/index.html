@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/jquery-3.4.1.min.js></script>
+<script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="https://www.cnblogs.com/meidaoli/"  target="_blank" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+        
+        <a href="http://123.57.12.189"  target="_blank" >
+            <i class="fas fa-link fa-sm"></i>
+            <span>二站</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">JVM（7）：前端编译与优化</h1>
+
+
+<h2 id="1-javac编译器">1. <code>Javac</code>编译器</h2>
+<p>        <code>Javac</code>是一个由<code>Java</code>语言编写的程序，从其代码总体结构来看，可以将编译过程大致分为 $1$ 个准备过程和 $3$ 个处理过程：</p>
+<ol>
+<li>准备过程：初始化插入式注解处理器</li>
+<li>解析与填充符号表过程，包括词法分析、语法分析和符号表创建</li>
+<li>插入式注解处理器的注解处理过程</li>
+<li>分析与字节码生成过程，包括标注检查、数据流及控制流分析、解语法糖和字节码生成</li>
+</ol>
+<p>        在上述处理过程中，执行插入式注解时可能又会产生新的符号。如果产生新的符号，就必须对它们进行解析，因此又回到了步骤 $2$ 。<code>Javac</code>编译动作得入口是 $com.sun.tools.javac.main.JavaCompiler$ 类，上述 $3$ 个过程的代码逻辑集中在这个类的 $compiler(\ )$ 和 $compiler2(\ )$ 方法。</p>
+<h3 id="11-解析与填充符号表">1.1 解析与填充符号表</h3>
+<p>        解析过程通过 $JavaCompiler.parseFiles(\ )$ 方法发起。</p>
+<h4 id="111-词法语法分析">1.1.1 词法、语法分析</h4>
+<p>        词法分析过程由 $com.sun.tools.javac.parser.Scanner$ 类完成。语法分析过程由 $com.sun.tools.javac.parser.Parser$ 类完成，产出的抽象语法树以 $com.sun.tools.javac.tree.JCTree$ 类表示。在完成词法、语法分析之后，编译器后续的操作都建立在抽象语法树的基础上，不会再对源码进行操作了。</p>
+<h4 id="112-填充符号表">1.1.2 填充符号表</h4>
+<p>        填充符号表过程通过 $JavaCompiler.enterTrees(\ )$ 方法发起，由 $com.sun.tools.javac.comp.Enter$ 类完成，产出一个待处理列表，其中包含了每一个编译单元的抽象语法树的顶级结点。</p>
+<h3 id="12-注解处理器">1.2 注解处理器</h3>
+<p>        在<code>JDK 5</code>时，注解只会在程序运行期间发挥作用。<code>JDK 6</code>中提供了一组称为“插入式注解处理器”的标准<code>API</code>，使得特定注解的处理可以提前至编译期进行。插入式注解处理器可以读取、修改和添加抽象语法树的元素。如果在这个过程中发生了修改操作，那么编译器需要返回解析与填充符号表过程重新处理。</p>
+<h3 id="13-语义分析与字节码生成">1.3 语义分析与字节码生成</h3>
+<p>        抽象语法树能够表示一个结构正确的源程序，但无法保证源程序的语义符合逻辑，因此需要进行语义分析对源程序进行上下文相关性质的检查，譬如类型检查、控制流检查、数据流检查等。</p>
+<h4 id="131-标注检查">1.3.1 标注检查</h4>
+<p>        标注检查由 $JavaCompiler.attribute(\ )$ 方法发起。标注检查步骤要检查的内容包括变量使用前是否已声明、变量与赋值之间的数据类型是否匹配等。此外还会进行常量折叠 ( $Constant\ \ Folding$ ) 。</p>
+<h4 id="132-数据及控制流分析">1.3.2 数据及控制流分析</h4>
+<p>        数据及控制流分析是对程序上下文逻辑的更进一步验证，可以检查出诸如程序局部变量在使用前是否有赋值、方法的每条路径是否都有返回值、是否所有受查异常都被正确处理等。编译期的数据及控制流分析与类加载时的数据及控制流分析的目的基本上可以看作是一致的，但有一些校验项只有在编译期或者运行期才能进行。数据及控制流分析由 $JavaCompiler.flow(\ )$ 方法发起，由 $com.sun.tools.javac.comp.Flow$ 类完成。</p>
+<h4 id="133-解语法糖">1.3.3 解语法糖</h4>
+<p>        <code>Java</code>中最常见的语法糖包括泛型、变长参数、自动装箱拆箱等。<code>JVM</code>并不支持这些语法，它们会在编译期还原为基础语法结构，这个过程称为解语法糖。解语法糖过程由 $JavaCompiler.desugar(\ )$ 方法发起，由 $com.sun.tools.javac.comp.TransTypes$ 类和 $com.sun.tools.javac.comp.Lower$ 类完成。</p>
+<h4 id="134-字节码生成">1.3.4 字节码生成</h4>
+<p>        字节码生成过程由 $com.sun.tools.javac.jvm.Gen$ 类完成，除了把之前步骤生成的信息（语法树、符号表）转化成字节码指令之外，还进行少量的代码添加和转换工作。例如实例构造器 &lt;$init$&gt;$(\ )$ 和类构造器 &lt;$clinit$&gt;$(\ )$ 就是在这个阶段被添加到语法树中的。要注意的是这里的构造器并非默认构造器，默认构造器的产生是在填充符号表的过程中执行的。除了生成构造器外，还有一些其他的代码替换工作比如将字符串连接替换为 $StringBuffer$ 或者 $StringBuilder$ 的 $append(\ )$ 等。在完成上述步骤后，$com.sun.tools.javac.jvm.ClassWriter.writeClass(\ )$ 方法将会输出<code>Class</code>文件，代表编译完成。</p>
+<h2 id="2-语法糖">2. 语法糖</h2>
+<h3 id="21-泛型">2.1 泛型</h3>
+<p>        泛型的本质是参数化类型 ( $Parameterized\ \ Type$ ) 或者参数化多态 ( $Parametric\ \ Polymorphism$ ) 的应用。<code>Java</code>选择的泛型实现方式称为“类型擦除式泛型” ( $Type\ \ Erasure\ \ Generics$ ) ，即泛型只在源码中存在，在字节码文件中被替换为裸类型 ( $Raw\ \ Type$ )，并且在相应的地方插入了强制转型代码。裸类型可以视为所有该类型泛型化实例的父类，因而可以将泛型化实例赋值给裸类型实例。<code>Java</code>在编译时会将泛型化实例，如 $ArrayList$&lt;$Integer$&gt;还原为裸类型实例，如 $ArrayList$ ，并在元素访问和修改时插入一些强制类型转换和类型检查指令。因为不能将原生类型转换为 $Object$ ，因此<code>Java</code>不支持原生类型的泛型，同时也增加了对原生类型的装箱拆箱工作。</p>
+<h3 id="22-自动装箱拆箱与遍历循环">2.2 自动装箱、拆箱与遍历循环</h3>
+<p>        自动装箱、拆箱与遍历循环是<code>Java</code>语言中使用的最多的语法糖。使用语法糖的示例如下：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">List</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span> <span class="n">list</span> <span class="o">=</span> <span class="n">Arrays</span><span class="o">.</span><span class="na">asList</span><span class="o">(</span><span class="n">1</span><span class="o">,</span> <span class="n">2</span><span class="o">,</span> <span class="n">3</span><span class="o">,</span> <span class="n">4</span><span class="o">);</span>
+    <span class="kt">int</span> <span class="n">sum</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span>
+    <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">:</span> <span class="n">list</span><span class="o">)</span> <span class="n">sum</span> <span class="o">+=</span> <span class="n">i</span><span class="o">;</span>
+    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">sum</span><span class="o">);</span>
+<span class="o">}</span>
+</code></pre></div><p>对上述代码进行编译和反编译后得到的结果为：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">List</span> <span class="n">list</span> <span class="o">=</span> <span class="n">Arrays</span><span class="o">.</span><span class="na">asList</span><span class="o">(</span><span class="k">new</span> <span class="n">Integer</span><span class="o">[]</span> <span class="o">{</span>
+        <span class="n">Integer</span><span class="o">.</span><span class="na">valueOf</span><span class="o">(</span><span class="n">1</span><span class="o">),</span>
+        <span class="n">Integer</span><span class="o">.</span><span class="na">valueOf</span><span class="o">(</span><span class="n">2</span><span class="o">),</span>
+        <span class="n">Integer</span><span class="o">.</span><span class="na">valueOf</span><span class="o">(</span><span class="n">3</span><span class="o">),</span>
+        <span class="n">Integer</span><span class="o">.</span><span class="na">valueOf</span><span class="o">(</span><span class="n">4</span><span class="o">)</span>
+    <span class="o">});</span>
+    <span class="kt">int</span> <span class="n">sum</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span>
+    <span class="k">for</span> <span class="o">(</span><span class="n">Iterator</span> <span class="n">localIterator</span> <span class="o">=</span> <span class="n">list</span><span class="o">.</span><span class="na">iterator</span><span class="o">();</span> <span class="n">localIterator</span><span class="o">.</span><span class="na">hasNext</span><span class="o">();)</span> <span class="o">{</span>
+        <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="o">((</span><span class="n">Integer</span><span class="o">)</span><span class="n">localIterator</span><span class="o">.</span><span class="na">next</span><span class="o">()).</span><span class="na">intValue</span><span class="o">();</span>
+        <span class="n">sum</span> <span class="o">+=</span> <span class="n">i</span><span class="o">;</span>
+    <span class="o">}</span>
+    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">sum</span><span class="o">);</span>
+<span class="o">}</span>
+</code></pre></div><p>        类似的还有变长参数，它通过在编译时转换为一个数组类型的参数实现。</p>
+<h3 id="23-条件编译">2.3 条件编译</h3>
+<p>        在<code>C/C++</code>中，我们可以通过预处理器实现条件编译。虽然<code>Java</code>中并没有预处理器，但是也可以实现条件编译，即通过条件为常量的 $if$ 语句。在编译的过程中，编译器会删去分支中无法到达的代码，这一工作也属于解语法糖的范畴。</p>
+<p>        除了上述所提到的以外，内部类、枚举类、断言、数值字面量、对枚举的 $switch$ 支持、$try-with-resources$ 、$Lambda$ 表达式（虽然不能算单纯的语法糖，但也在前端编译器中做了大量的转换工作）等都属于语法糖。</p>
+
+
+<a href="javascript:void(0)" id="tocbtn" onclick="tocToggle()"><i class="fas fa-bars fa-lg"></i></a>
+<div id="sidetoc">
+    <header>
+        <h4>JVM（7）：前端编译与优化</h4>
+    </header>
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#1-javac编译器">1. <code>Javac</code>编译器</a>
+      <ul>
+        <li><a href="#11-解析与填充符号表">1.1 解析与填充符号表</a></li>
+        <li><a href="#12-注解处理器">1.2 注解处理器</a></li>
+        <li><a href="#13-语义分析与字节码生成">1.3 语义分析与字节码生成</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-语法糖">2. 语法糖</a>
+      <ul>
+        <li><a href="#21-泛型">2.1 泛型</a></li>
+        <li><a href="#22-自动装箱拆箱与遍历循环">2.2 自动装箱、拆箱与遍历循环</a></li>
+        <li><a href="#23-条件编译">2.3 条件编译</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+</div>
+<script src=https://z217blog.cn/js/tocbutton.js></script>
+
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/jvm6%E5%AD%97%E8%8A%82%E7%A0%81%E6%89%A7%E8%A1%8C%E5%BC%95%E6%93%8E/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        
+        
+        
+        var all = MathJax.Hub.getAllJax(),
+            i;
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
+</body>
+
+</html>
