@@ -7,10 +7,21 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved.</copyright>
-    <lastBuildDate>Fri, 08 Jan 2021 20:09:14 +0800</lastBuildDate>
+    <lastBuildDate>Sat, 09 Jan 2021 20:58:35 +0800</lastBuildDate>
     
 	<atom:link href="https://z217blog.cn/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>JVM（8）：后端编译与优化</title>
+      <link>https://z217blog.cn/post/jvm8%E5%90%8E%E7%AB%AF%E7%BC%96%E8%AF%91%E4%B8%8E%E4%BC%98%E5%8C%96/</link>
+      <pubDate>Sat, 09 Jan 2021 20:58:35 +0800</pubDate>
+      
+      <guid>https://z217blog.cn/post/jvm8%E5%90%8E%E7%AB%AF%E7%BC%96%E8%AF%91%E4%B8%8E%E4%BC%98%E5%8C%96/</guid>
+      <description>1. 即时编译器  目前主流的两款商用Java虚拟机里，Java程序最初都是通过解释器执行的。当虚拟机发现某个方法或者代码块运行频繁，就会把代码认为是热点代码 ( $Hot\ \ Spot\ \ Code$ )，并将这些代码编译为本地机器码，同时进行代码优化。完成这个任务的后端编译器就称为即时编译器。
+1.1 解释器与编译器  当程序需要迅速启动和执行时，解释器可以省去编译时间立即运行；当程序启动后，越来越多的代码会被编译成本地代码，从而减少解释器带来的中间损耗，获得更快的执行速度。如果程序运行环境中内存限制过大，可以使用解释执行从而节约内存，反之可以使用编译执行提升效率。当编译器采取的优化手段出现罕见陷阱 ( $Uncommon\ \ Trap$ ) 时，可以通过逆优化 ( $Deoptimization$ ) 退回到解释状态执行。 HotSpot虚拟机中内置了两个（或三个）即时编译器，其中两个存在已久的编译器分别称为客户端编译器 ( $Client\ \ Compiler$ ) 和服务端编译器 ( $Server\ \ Compiler$ )，简称为 $C1$ 编译器和 $C2$ 编译器。第三个编译器是JDK 10时出现的，目标是替代 $C2$ 的 $Graal$ 编译器。 在分层编译 ( $Tiered\ \ Compilation$ ) 的工作模式出现前，通常采用解释器与一个编译器直接搭配的方式工作，这时用户也可以通过 $-client$ 和 $-server$ 参数直接运行模式。解释器与编译器搭配使用的方式称为混合模式 ( $Mixed\ \ Mode$ )，也可以通过 $-Xint$ 或者 $-Xcomp$ 强制运行解释模式或者编译模式。 即时编译需要占用程序运行时间，而且编译过程中还需要进行优化。要想达到好的优化效果，解释器需要替编译器收集性能监控信息。当然，这也会影响解释执行的速度。为了寻求启动响应速度与运行效率之间的平衡，HotSpot虚拟机在编译子系统中加入了分层编译，包括：
+ 第 $0$ 层，程序解释执行，不开启性能监控； 第 $1$ 层，使用客户端编译器，进行简单优化，不开启性能监控； 第 $2$ 层，使用客户端编译器，开启方法和回边次数统计等监控； 第 $3$ 层，使用客户端编译器，开启全部性能监控，除了第 $2$ 层的统计信息外，还会收集分支跳转、虚方法等统计信息； 第 $4$ 层，使用服务端编译器将字节码编译为本地代码，需要更多的优化，还可能采取一些不可靠的激进优化。   实施分层编译后，解释器、客户端编译器、服务端编译器就会同时工作，热点代码可能会被多次编译。使用客户端编译器编译可以获得更高的编译速度，使用服务端编译器可以获得更好的编译质量。</description>
+    </item>
     
     <item>
       <title>JVM（7）：前端编译与优化</title>

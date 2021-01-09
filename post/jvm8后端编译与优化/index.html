@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/jquery-3.4.1.min.js></script>
+<script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="https://www.cnblogs.com/meidaoli/"  target="_blank" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+        
+        <a href="http://123.57.12.189"  target="_blank" >
+            <i class="fas fa-link fa-sm"></i>
+            <span>二站</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">JVM（8）：后端编译与优化</h1>
+
+
+<h2 id="1-即时编译器">1. 即时编译器</h2>
+<p>        目前主流的两款商用<code>Java</code>虚拟机里，<code>Java</code>程序最初都是通过解释器执行的。当虚拟机发现某个方法或者代码块运行频繁，就会把代码认为是热点代码 ( $Hot\ \ Spot\ \ Code$ )，并将这些代码编译为本地机器码，同时进行代码优化。完成这个任务的后端编译器就称为即时编译器。</p>
+<h3 id="11-解释器与编译器">1.1 解释器与编译器</h3>
+<p>        当程序需要迅速启动和执行时，解释器可以省去编译时间立即运行；当程序启动后，越来越多的代码会被编译成本地代码，从而减少解释器带来的中间损耗，获得更快的执行速度。如果程序运行环境中内存限制过大，可以使用解释执行从而节约内存，反之可以使用编译执行提升效率。当编译器采取的优化手段出现罕见陷阱 ( $Uncommon\ \ Trap$ ) 时，可以通过逆优化 ( $Deoptimization$ ) 退回到解释状态执行。<br/>
+        <code>HotSpot</code>虚拟机中内置了两个（或三个）即时编译器，其中两个存在已久的编译器分别称为客户端编译器 ( $Client\ \ Compiler$ ) 和服务端编译器 ( $Server\ \ Compiler$ )，简称为 $C1$ 编译器和 $C2$ 编译器。第三个编译器是<code>JDK 10</code>时出现的，目标是替代 $C2$ 的 $Graal$ 编译器。<br/>
+        在分层编译 ( $Tiered\ \ Compilation$ ) 的工作模式出现前，通常采用解释器与一个编译器直接搭配的方式工作，这时用户也可以通过 $-client$ 和 $-server$ 参数直接运行模式。解释器与编译器搭配使用的方式称为混合模式 ( $Mixed\ \ Mode$ )，也可以通过 $-Xint$ 或者 $-Xcomp$ 强制运行解释模式或者编译模式。<br/>
+        即时编译需要占用程序运行时间，而且编译过程中还需要进行优化。要想达到好的优化效果，解释器需要替编译器收集性能监控信息。当然，这也会影响解释执行的速度。为了寻求启动响应速度与运行效率之间的平衡，<code>HotSpot</code>虚拟机在编译子系统中加入了分层编译，包括：</p>
+<ol>
+<li>第 $0$ 层，程序解释执行，不开启性能监控；</li>
+<li>第 $1$ 层，使用客户端编译器，进行简单优化，不开启性能监控；</li>
+<li>第 $2$ 层，使用客户端编译器，开启方法和回边次数统计等监控；</li>
+<li>第 $3$ 层，使用客户端编译器，开启全部性能监控，除了第 $2$ 层的统计信息外，还会收集分支跳转、虚方法等统计信息；</li>
+<li>第 $4$ 层，使用服务端编译器将字节码编译为本地代码，需要更多的优化，还可能采取一些不可靠的激进优化。</li>
+</ol>
+<p>        实施分层编译后，解释器、客户端编译器、服务端编译器就会同时工作，热点代码可能会被多次编译。使用客户端编译器编译可以获得更高的编译速度，使用服务端编译器可以获得更好的编译质量。</p>
+<h3 id="12-编译对象与触发条件">1.2 编译对象与触发条件</h3>
+<p>        即时编译器的编译目标是热点代码，在这里热点代码主要有两类：</p>
+<ul>
+<li>多次调用的方法</li>
+<li>多次执行的循环体</li>
+</ul>
+<p>        后者主要是解决少次调用方法内存在循环次数较多的循环体的问题，因此这两类热点代码的编译对象都是整个方法体，不同之处在于执行入口点字节码序号 ( $Byte\ \ Code\ \ Index$, $BCI$ )，因为后者的编译发生在方法执行过程中，所以栈中的方法会在执行的过程中被替换，称为栈上替换 ( $On\ \ Stack\ \ Replacement$, $OSR$ )。<br/>
+        判断一段代码是不是热点代码的行为称为热点探测 ( $Hot\ \ Spot\ \ Code\ \ Detection$ )。主流的热点探测方式有两种：</p>
+<ul>
+<li>基于采样 ( $Sample\ \ Based$ ) 的热点探测：通过周期性地检查调用栈顶发现热点代码</li>
+<li>基于计数器 ( $Counter\ \ Based$ ) 的热点探测：为每个方法建立计数器，统计执行次数</li>
+</ul>
+<p>        <code>HotSpot</code>虚拟机中采用的是第二种方法，每个方法有两个计数器：方法调用计数器 ( $Invocation\ \ Counter$ ) 和回边（在循环边界往回跳转）计数器 ( $Back\ \ Edge\ \ Counter$ )。这两个计数器都存在一个阈值，只要超过这个阈值，就认为方法为热点代码。<br/>
+        对于方法调用计数器，在方法被调用时，虚拟机会先检查方法是否已被即时编译，如果没有则递增计数器，超过阈值便提交编译请求。在客户端编译器中，阈值为 $1500$ ；在服务端编译器中，阈值为 $10000$ 。可以通过 $-XX:CompileThreshold$ 设定。默认情况下执行引擎不会等待编译请求完成，而是会继续解释执行字节码，直到编译完成。方法调用计数器存储的并不是方法被调用的次数，而是一个相对频率。如果在一定时间内方法调用次数没有超过阈值，那么计数器数值就会减半，称为热度衰减 ( $Counter\ \ Decay$ )，衰减的周期称为半衰周期 ( $Counter\ \ Half\ \ Life\ \ Time$ )。虚拟机会在垃圾收集的过程中顺便执行热度衰减操作，可以通过 $-XX:-UserCounterDecay$ 来关闭热度衰减，或者通过 $-XX:CounterHalfLifeTime$ 设置半衰周期，单位是秒。<br/>
+        对于回边计数器，在遇到字节码的控制流向后跳转指令时就递增，同样在默认情况下不会同步编译请求。回边计数器不存在热度衰减的过程，也就是说统计的是方法循环执行的绝对次数。当回边计数器溢出时，还会将方法调用计数器的值也调整为溢出，从而使得下次进入该方法时执行标准编译过程。虽然<code>HotSpot</code>虚拟机中提供了 $-XX:BackEdgeThreshold$ 参数，但是实际上并没有作用。我们通过另一个参数 $-XX:OnStackReplacePercentage$ ( $OSR$ 比率 ) 间接调整回边计数器阈值，计算公式有两种：</p>
+<ul>
+<li>客户端模式下：方法调用计数器阈值 $\times\ \ OSR$ 比率 $/\ \ 100$ ，在客户端模式下 $OSR$ 比率默认为 $933$ ，默认情况下回边计数器阈值为 $13995$ ；</li>
+<li>服务端模式下：方法调用计数器阈值 $\times\ \ (OSR$ 比率 $-$ 解释器监控比率 ( $-XX:InterpreterProfilePercentage$ ) $)\ \ /\ \ 100$ ，在服务端模式下 $OSR$ 比率默认为 $140$ ，解释器监控比率默认为 $33$ ，默认情况下回边计数器阈值为 $10700$ 。</li>
+</ul>
+<h3 id="13-编译过程">1.3 编译过程</h3>
+<p>        默认情况下，解释器不会同步编译请求，用户可以通过 $-XX:-BackgroundCompilation$ 禁止。对于客户端编译器来说，后台编译是一个三段式的编译过程：</p>
+<ul>
+<li>第一阶段，前端将字节码构造成高级中间代码 ( $High-Level\ \ Intermediate\ \ Representation$, $HIR$ ) ，中间代码使用静态单分配 ( $Static\ \ Single\ \ Assignment$, $SSA$ ) 的形式代表代码值，这个过程会进行一些基础优化如方法内联、常量传播等；</li>
+<li>第二阶段，完成另一些优化如消除空值检查和范围检查等，之后后端会从 $HIR$ 中产生低级中间代码 ( $Low-Level\ \ Intermediate\ \ Representation$, $LIR$ )；</li>
+<li>第三阶段，使用线性扫描算法 ( $Linear\ \ Scan\ \ Register\ \ Allocation$ ) 在 $LIR$ 上分配寄存器，这个过程会进行窥孔 ( $Peephole$ ) 优化，最后产生机器码。</li>
+</ul>
+<p>        服务端编译使用的是经过针对性调整后的可以容忍很高优化复杂度的高级编译器，执行大部分优化动作如无用代码消除、循环展开、循环外提、消除公共表达式、常量传播、基本块重排等，以及一些与<code>Java</code>相关的优化技术如消除范围检查和空值检查等，此外还有可能根据性能监控信息进行一些激进优化，如守护内联、分支频率预测等。服务端编译采用的寄存器分配器是一个全局图着色分配器，可以充分利用某些处理器架构上的大寄存器集合。因此，虽然服务端编译的速度很慢，但是能够产生可以大幅减少执行时间的代码，从而抵消掉编译开销，这也使得一些非服务端应用选择使用服务端模式运行。</p>
+<h2 id="2-提前编译器">2. 提前编译器</h2>
+<p>        提前编译器存在两条分支，一条是在程序运行前将程序代码编译成机器码，另一条是把原本即时编译器在运行时要做的工作提前做好并保存下来。<code>Java</code>的即时编译需要占用程序运行时间和运算资源，而提前编译可以在一定程度上减少即时编译的工作量，这也是提前编译的目的之一。因为不需要考虑执行时间和资源消耗等问题，所以提前编译可以使用重负载的优化手段。但是即时编译相较于提前编译还是存在着天然优势：</p>
+<ul>
+<li>性能分析制导优化 ( $Profile-Guided\ \ Optimization$, $PGO$ )：通过解释器收集性能监控信息，从而动态获取热点代码，这是提前编译无法做到的。在获得热点代码之后，可以对它们进行集中优化，分配更好的资源；</li>
+<li>激进预测性优化 ( $Aggressive\ \ Speculative\ \ Optimization$ )：静态优化必须保证优化后所有程序的外部可见影响与优化前等效，然而即时编译可以利用性能监控信息进行一些激进优化，如果优化失败则进行逆优化；</li>
+<li>链接时优化 ( $Link-Time\ \ Optimization$, $LTO$ )：<code>Java</code>是一门动态链接语言，而提前编译无法解决动态链接库之间的边界隔阂问题，还会产生优化问题。</li>
+</ul>
+<h2 id="3-编译器优化技术">3. 编译器优化技术</h2>
+<h3 id="31-方法内联">3.1 方法内联</h3>
+<p>        方法内联即将方法实现复制到调用方法中，从而避免方法调用。但是<code>JVM</code>中，只有 $invokespecial$ 和 $invokestatic$ 调用的方法才会在编译期进行解析，其他方法都必须在运行时进行多态选择，即<code>Java</code>中默认的实例方法都是虚方法。为了解决虚方法带来的问题，<code>JVM</code>引入了类型继承关系分析 ( $Class\ \ Hierarchy\ \ Analysis$, $CHA$ ) 技术，用于确定目前已加载的类中某个接口是否存在多于一种方式的实现、某个类是否存在子类、子类是否存在方法覆盖等。如果方法只有一个版本，那么就可以假设应用程序的全貌就是现在这样，从而进行内联，这种方式称为守护内联 ( $Guarded\ \ Inlining$ )。当之前的条件假设不成立时，虚拟机加载到令方法接收者的继承关系发生变化的类，也就是守护内联失败时，就必须抛弃已经编译的代码，退回解释状态。如果方法存在多个版本，那么即时编译器会采用内联缓存 ( $Inling\ \ Cache$ ) 的方式减少开销，即记录方法接收者的版本信息，并在之后比较版本信息，如果相同，则为单态内联缓存 ( $Monomorphic\ \ Inline\ \ Cache$ )，比普通方法调用的开销要小一些，因为不需要查询虚方法表；如果不同，则退化为超多态内联缓存 ( $Megamorphic\ \ Inline\ \ Cache$ )，相当于普通调用的方法开销。</p>
+<h3 id="32-逃逸分析">3.2 逃逸分析</h3>
+<p>        逃逸分析 ( $Escape\ \ Analysis$ ) 并不是直接优化代码的手段，而是为其他优化措施提供依据的分析技术。基本原理是：分析对象动态作用域，对象在方法内被定义后又被外部方法引用，称为方法逃逸；被外部线程访问，称为线程逃逸。对象的逃逸程度按从低到高排为不逃逸、方法逃逸和线程逃逸。对于不逃逸或者逃逸程度低的对象，可以进行优化：</p>
+<ul>
+<li>栈上分配 ( $Stack\ \ Allocations$ )：对于非线程逃逸对象，可以分配在栈上；</li>
+<li>标量替换 ( $Scalar\ \ Replacement$ )：将一个聚合量拆为多个原始类型的过程称为标量替换。对于不逃逸对象，可以将它们的创建过程改为创建多个原始类型变量，从而方便后续优化；</li>
+<li>同步消除 ( $Synchronization\ \ Elimination$ )：对于非线程逃逸对象，可以消除其同步措施。</li>
+</ul>
+<h3 id="33-数组边界检查消除">3.3 数组边界检查消除</h3>
+<p>        对于<code>JVM</code>的执行子系统来说，每次数组元素的读写都有一次隐式地边界检查。如果可以在编译期根据数据流分析确定数组长度，并对一些代码进行下标判断，就可以提前发现其是否越界，从而避免了每次执行时的判断，这个过程称为数组边界检查消除。</p>
+
+
+<a href="javascript:void(0)" id="tocbtn" onclick="tocToggle()"><i class="fas fa-bars fa-lg"></i></a>
+<div id="sidetoc">
+    <header>
+        <h4>JVM（8）：后端编译与优化</h4>
+    </header>
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#1-即时编译器">1. 即时编译器</a>
+      <ul>
+        <li><a href="#11-解释器与编译器">1.1 解释器与编译器</a></li>
+        <li><a href="#12-编译对象与触发条件">1.2 编译对象与触发条件</a></li>
+        <li><a href="#13-编译过程">1.3 编译过程</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-提前编译器">2. 提前编译器</a></li>
+    <li><a href="#3-编译器优化技术">3. 编译器优化技术</a>
+      <ul>
+        <li><a href="#31-方法内联">3.1 方法内联</a></li>
+        <li><a href="#32-逃逸分析">3.2 逃逸分析</a></li>
+        <li><a href="#33-数组边界检查消除">3.3 数组边界检查消除</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+</div>
+<script src=https://z217blog.cn/js/tocbutton.js></script>
+
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/jvm7%E5%89%8D%E7%AB%AF%E7%BC%96%E8%AF%91%E4%B8%8E%E4%BC%98%E5%8C%96/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        
+        
+        
+        var all = MathJax.Hub.getAllJax(),
+            i;
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
+</body>
+
+</html>
