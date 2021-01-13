@@ -115,7 +115,7 @@
 <h3 id="12-volatile">1.2 <code>volatile</code></h3>
 <p>        $volatile$ 具有一些特殊的访问规则。当一个变量被定义为 $volatile$ 之后，它将具有两条性质：一是保证变量是所有线程可见的，即一个线程的修改可以在之后被另一个线程所发现；二是指令重排序优化会被禁止，以保证语句之间的相对执行顺序。虽然可见性使得线程间变量值的传递不再需要经过对主内存的读取和写入，但这并不意味读取到的变量值是正确的。因为 $volatile$ 允许多线程同时对变量进行写操作，这就意味着对于一些非原子性的操作，譬如<code>Java</code>中的运算操作符（需要先将值读取到操作栈之后才能进行运算），$volatile$ 只能保证值被读取的时候是正确的，并不能保证在之后进行运算的过程中值不会发生改变。因此对于第一条性质，要保证运算结果并不依赖变量的当前值，或者只有一个线程会修改变量值。<br/>
         保证 $volatile$ 可见性的关键在于 $lock$ 操作，它会清空变量值，并在之后对变量进行 $store$ 和 $write$ 操作，从而保证了对变量的修改可以被其他线程发现。同时，$lock$ 操作也充当着内存屏障的功能，即执行 $lock$ 操作代表之前的操作已经执行完毕，从而可以利用 $lock$ 操作保证指令之间的相对执行顺序。也因此，$volatile$ 相比于 $synchronized$ 或者 $java.util.concurrent$ ，读操作速度没有什么差别，但是写操作会慢上一些，因为需要插入许多内存屏障以保证执行顺序，当然总体上来讲还是要快于后两者的。<br/>
-        <code>Java</code>内存模型也对 $volatile$ 变量定义了特殊规则，设 $T$ 代表线程，$V$ 和 $W$ 代表两个 $volatile$ 变量，则有：</p>
+        <code>Java</code>内存模型也对 $volatile$ 变量定义了特殊规则，设 $V$ 和 $W$ 代表两个 $volatile$ 变量，则有：</p>
 <ul>
 <li>只有前一条指令是 $load$ 时才能 $use$ ；只有后一条指令是 $use$ 时才能 $load$ ，即 $load$ 和 $use$ 必须连续一起出现；</li>
 <li>只有前一条指令是 $assign$ 时才能 $store$ ；只有后一条指令是 $store$ 时才能 $assign$ ，即 $assign$ 和 $store$ 必须连续一起出现；</li>
@@ -200,7 +200,7 @@
     <a class="nav-top" href="#">回到顶部</i></a>
     <div class="nav-next">
         
-        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        <a href="https://z217blog.cn/post/jvm10%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8%E4%B8%8E%E9%94%81%E4%BC%98%E5%8C%96/"><i class="fas fa-chevron-right"></i></a>
         
     </div>
 </div>
