@@ -92,6 +92,24 @@
     
     
     <div class="list-item">
+        <a class="entry-title" href="/post/java-8%E5%AE%9E%E6%88%98%E6%B5%81%E5%A4%84%E7%90%86/">Java 8实战：流处理</a>
+        
+        
+        <p>Java 8流处理介绍</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2021 Feb 17 18:00
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: Java
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
         <a class="entry-title" href="/post/jvm10%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8%E4%B8%8E%E9%94%81%E4%BC%98%E5%8C%96/">JVM（10）：线程安全与锁优化</a>
         
         
@@ -163,24 +181,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="/post/jvm6%E5%AD%97%E8%8A%82%E7%A0%81%E6%89%A7%E8%A1%8C%E5%BC%95%E6%93%8E/">JVM（6）：字节码执行引擎</a>
-        
-        
-        <p>深入理解Java虚拟机（6）</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2020 Oct 14 17:02
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: JVM
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -189,6 +189,273 @@
     <div class="section-title">μblog</div>
     <div class="posts">
         
+        
+        <div class="post">
+            
+            <center>
+                <h1><a href="/post/java-8%E5%AE%9E%E6%88%98%E6%B5%81%E5%A4%84%E7%90%86/">Java 8实战：流处理</a></h1>
+            </center>
+            <div class="post-content">
+                <p>        <code>流</code>是一系列数据项，一次只生成一项。程序可以从输入流中一个一个读取数据项，然后以同样的方式将数据项写入输出流。一个程序的输出流很可能是另一个程序的输入流。基于<code>流</code>的思想，<code>Java 8</code>在 $java.util.stream$ 中添加了一个<code>Stream API</code>。 $Stream$&lt;$T$&gt; 就是一系列 $T$ 类型的项目。<br/>
+        和<code>Collection API</code>相比，<code>Stream API</code>处理数据的方式非常不同。用集合的话，需要使用 $for$ 循环迭代并处理元素，我们称之为<code>外部迭代</code>。相反，<code>Stream API</code>的数据处理完全是在库内部进行的，我们称之为<code>内部迭代</code>。虽然都能访问数据项目的序列，但是相比之下，<code>Collection API</code>主要是为了存储和访问数据，而<code>Stream API</code>主要用于描述对数据的计算。这里的关键点在于，<code>Stream API</code>允许并行处理一个 $Stream$ 中的元素。筛选一个 $Collection$ 最快的方式通常是将其转换为 $Stream$ ，进行并行处理，再转换回 $List$ 。粗略地说，流与集合之间的差异就在于什么时候进行计算。集合是一个内存中的数据结构，包含数据结构中目前所有的值，集合中的元素只有经过计算后才能添加；相比之下，流是在概念上固定的数据结构，不能通过流添加或删除元素，流中的元素是按需计算的，即只从流中提取出需要的值。与迭代器类似，流只能遍历一次。遍历完之后，我们就说这个流已经被消费掉了。要想重新遍历，可以从原始数据源中重新获取一个新的流。尝试再次遍历一个已经消费的流会抛出 $IllegalStateException$ 异常。流与集合的另一个关键区别在于遍历数据的方式，正如之前所说，使用 $Collection$ 接口需要用户进行外部迭代，而 $Steams$ 库使用的是内部迭代，即库自动完成迭代，并将流值存放在某个地方。相较于显式的外部迭代，内部迭代下项目可以透明地并行处理，或者用更优化的顺序进行处理，例如同时处理多个数据，或者优先处理某些数据等。<br/></p>
+<h2 id="1-流操作">1. 流操作</h2>
+<table>
+<thead>
+<tr>
+<th align="center">操作</th>
+<th align="center">类型</th>
+<th align="center">返回类型</th>
+<th align="center">操作参数</th>
+<th align="center">函数描述符</th>
+<th align="center">目的</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$filter$</td>
+<td align="center">中间</td>
+<td align="center">$Stream$&lt;$T$&gt;</td>
+<td align="center">$Predicate$&lt;$T$&gt;</td>
+<td align="center">$T \rightarrow boolean$</td>
+<td align="center">返回一个包含所有符合谓词的元素的流</td>
+</tr>
+<tr>
+<td align="center">$distinct$</td>
+<td align="center">中间</td>
+<td align="center">$Stream$&lt;$T$&gt;</td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center">返回一个元素各异的流</td>
+</tr>
+<tr>
+<td align="center">$map$</td>
+<td align="center">中间</td>
+<td align="center">$Stream$&lt;$R$&gt;</td>
+<td align="center">$Function$&lt;$T, R$&gt;</td>
+<td align="center">$T \rightarrow R$</td>
+<td align="center">将函数应用到每个元素上，并映射成一个新元素</td>
+</tr>
+<tr>
+<td align="center">$flatMap$</td>
+<td align="center">中间</td>
+<td align="center">$Stream$&lt;$R$&gt;</td>
+<td align="center">$Function$&lt;$T,R$&gt;</td>
+<td align="center">$T \rightarrow R$</td>
+<td align="center">将多个生成流扁平化为单个流</td>
+</tr>
+<tr>
+<td align="center">$limit$</td>
+<td align="center">中间</td>
+<td align="center">$Stream$&lt;$T$&gt;</td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center">返回一个不超过给定长度的流</td>
+</tr>
+<tr>
+<td align="center">$skip$</td>
+<td align="center">中间</td>
+<td align="center">$Stream$&lt;$T$&gt;</td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center">返回一个跳过给定数量元素的流</td>
+</tr>
+<tr>
+<td align="center">$sorted$</td>
+<td align="center">中间</td>
+<td align="center">$Stream$&lt;$T$&gt;</td>
+<td align="center">$Comparator$&lt;$T$&gt;</td>
+<td align="center">$(T, T) \rightarrow int$</td>
+<td align="center">返回一个经过排序的流</td>
+</tr>
+<tr>
+<td align="center">$forEach$</td>
+<td align="center">终端</td>
+<td align="center">$void$</td>
+<td align="center">$Consumer$&lt;$T$&gt;</td>
+<td align="center">$T \rightarrow void$</td>
+<td align="center">消费流中的每一个元素并对其应用<code>Lambda</code>，返回类型为 $void$</td>
+</tr>
+<tr>
+<td align="center">$count$</td>
+<td align="center">终端</td>
+<td align="center">$long$</td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center">返回流中元素的个数，返回类型为 $long$</td>
+</tr>
+<tr>
+<td align="center">$collect$</td>
+<td align="center">终端</td>
+<td align="center">$R$</td>
+<td align="center">$Collector$&lt;$T, A, R$&gt;</td>
+<td align="center"></td>
+<td align="center">把流归约成一个集合并返回</td>
+</tr>
+<tr>
+<td align="center">$anyMatch$</td>
+<td align="center">终端</td>
+<td align="center">$boolean$</td>
+<td align="center">$Predicate$&lt;$T$&gt;</td>
+<td align="center">$T \rightarrow boolean$</td>
+<td align="center">流中是否含有一个元素能匹配给定的谓词</td>
+</tr>
+<tr>
+<td align="center">$allMatch$</td>
+<td align="center">终端</td>
+<td align="center">$boolean$</td>
+<td align="center">$Predicate$&lt;$T$&gt;</td>
+<td align="center">$T \rightarrow boolean$</td>
+<td align="center">流中的元素是否都能匹配给定的谓词</td>
+</tr>
+<tr>
+<td align="center">$noneMatch$</td>
+<td align="center">终端</td>
+<td align="center">$boolean$</td>
+<td align="center">$Predicate$&lt;$T$&gt;</td>
+<td align="center">$T \rightarrow boolean$</td>
+<td align="center">流中是否没有元素与给定的谓词匹配</td>
+</tr>
+<tr>
+<td align="center">$findAny$</td>
+<td align="center">终端</td>
+<td align="center">$Optional$&lt;$T$&gt;</td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center">返回当前流中的任意元素</td>
+</tr>
+<tr>
+<td align="center">$findFirst$</td>
+<td align="center">终端</td>
+<td align="center">$Optional$&lt;$T$&gt;</td>
+<td align="center"></td>
+<td align="center"></td>
+<td align="center">返回当前流中第一个元素</td>
+</tr>
+<tr>
+<td align="center">$reduce$</td>
+<td align="center">终端</td>
+<td align="center">$Optional$&lt;$T$&gt;</td>
+<td align="center">$BinaryOperator$&lt;$T$&gt;</td>
+<td align="center">$(T, T) \rightarrow T$</td>
+<td align="center">对流中元素重复应用方法</td>
+</tr>
+</tbody>
+</table>
+<p>        诸如 $filter$ 或 $Sorted$ 等操作会返回另一个流，这让多个操作可以连接起来形成一个查询，这种操作称为<code>中间操作</code>。除非流水线上触发一个终端操作，否则中间操作不会执行任何处理。<code>终端操作</code>会从流的流水线生成结果，其结果是任何不是流的值，比如 $List$ 、$Integer$ 等。总而言之，流的使用一般包括三件事：一个数据源、一个中间操作链和一个终端操作。<br/>
+        诸如 $map$ 或 $filter$ 等操作会从输入流中获取每一个元素，并在输出流中得到 $0$ 或 $1$ 个结果。这些操作一般都是<code>无状态操作</code>。但诸如 $reduce$ 、$sum$ 、$max$ 等操作需要内部状态来累计结果，这些操作就是<code>有状态操作</code>。但是这些操作的内部状态很小，通常只是一些基本数据类型，不管流中有多少元素需要处理，内部状态都是有界的。而诸如 $sorted$ 或 $distinct$ 等操作，它们的内部状态可能很大，这时就要求无界的存储空间。<br/>
+        $peek$ 是一个特殊的流操作，可以在流的每个元素恢复运行之前，插入执行一个动作。$peek$ 不会恢复流的运行，而是在一个元素上完成操作之后，将操作顺承到流水线中的下一个操作。<br/>
+        <code>Java 8</code>引入了三个原始类型特化流接口 $IntStream$ 、$DoubleStream$ 和 $LongStream$ ，分别将流中的元素特化为 $int$ 、$long$ 和 $double$ ，从而避免了暗含的装箱成本。每个接口都带来了进行常用数值归约的新方法，比如对数值流求和的 $sum$ ，此外还可以在必要时将它们转换回对象流。将流转换为特化版本的常用方法是 $mapToInt$ 、$mapToDouble$ 和 $mapToLong$ 。这些方法和 $map$ 的工作方式一样，但是会返回特化流。如果想要将特化流转换为对象流，可以使用 $boxed$ 方法。类似的，也可以使用 $mapToObj$ 方法生成对象流。<br/>
+        <code>Java 8</code>还引入了两个可以用于 $IntStream$ 和 $LongStream$ 的静态方法，帮助生成数值范围，分别是 $range$ 和 $rangeClosed$ ，前者为开区间，后者为闭区间。<br/>
+        除了调用集合中的 $stream$ 方法之外，还有一些其他的构造流的方式：</p>
+<ul>
+<li>$Stream.of$ ：通过显式值创建一个流；</li>
+<li>$Arrays.stream$ ：从数组创建一个流；</li>
+<li>$Files.lines$ ：由指定文件中的各行构成的字符串流；</li>
+<li>$Stream.iterate$ ：从函数创建一个无限流，接收一个初始值；</li>
+<li>$Stream.generate$ ：接收一个 $Supplier$&lt;$T$&gt; 类型参数，创建一个无限流；</li>
+<li>$Stream.empty$ ：创建一个空流。</li>
+</ul>
+<h2 id="2-optional">2. <code>Optional</code></h2>
+<p>        $Optional$ 是<code>Java 8</code>中引入的一个新类。当变量存在时，$Optional$ 只是对类的简单封装。变量不存在时，缺失的值会被建模成一个空的 $Optional$ 对象，由方法 $Optional.empty(\ )$ 返回，该方法为一个静态工厂方法，返回 $Optional$ 类的特定单一实例。引入 $Optional$ 的意图并非要消除每一个 $null$ 引用，其目的是帮助设计出一个更加普适的<code>API</code>。$Optional$ 提供了几种可以迫使你显式地检查值是否存在或处理值不存在的情形的方法：</p>
+<ul>
+<li>$isPresent(\ )$ ：包含值时返回 $true$ ；</li>
+<li>$isPresent(Consumer$&lt;$T$&gt; $block)$ ：值存在时执行给定代码块；</li>
+<li>$get(\ )$ ：值存在时返回值，否则抛出 $NoSuchElement$ 异常；</li>
+<li>$orElse(T\ other)$ ：值存在时返回值，否则返回默认值；</li>
+<li>$orElsetGet(Supplier$&lt;$?\ extends\ T$&gt; $other)$ ：当值不存在时会调用 $Supplier$ 对象并返回；</li>
+<li>$orElseThrow(Supplier$&lt;$?\ extends\ X$&gt; $exceptionSupplier)$ ：当值不存在时会抛出 $Supplier$ 指定的异常类型；</li>
+<li>$ifPresent(Consumer$&lt;$?\ super\ T$&gt;$)$ ：能在变量值存在时执行一个作为参数传入的方法，否则不进行任何操作。</li>
+</ul>
+<p>        创建 $Optional$ 对象的方式很简单，可以通过 $Optional.empty(\ )$ 声明一个空的 $Optional$ 对象，也可以通过 $Optional.of(\ )$ 方法通过一个非空值创建对象。如果不知道传入的对象是否为空值，可以使用 $Optional.ofNullable(\ )$ 方法，使用该方法构造的对象如果参数为 $null$ ，那么会返回一个空的 $Optional$ 对象。<br/>
+        一般情况下，当我们访问一个可以为空的对象值前，需要先判断其是否为空。$Optional.map(\ )$ 方法会将提供的函数应用于当前值，如果当前 $Optional$ 非空，那么将该值作为参数传递给 $map$ ，反之则什么也不做。如果在一个对象上连续多次调用 $map$ 方法，可能会出现嵌套式的 $Optional$ 对象，此时我们可以使用 $Optional.flatMap(\ )$ 方法。类似于流，该方法将嵌套式的 $Optional$ 对象合并为一个。<br/>
+        当需要调用某个对象的方法，查看某些属性时，可以使用 $filter$ 方法。该方法接受一个谓词作为参数，如果对象值存在并且符合谓词条件，$filter$ 就不做任何改变，否则就返回一个空的 $Optional$ 对象。<br/>
+        与 $Stream$ 一样，$Optional$ 也提供了类似的基础类型 $OptionalInt$ 、$OptionalLong$ 以及 $OptionalDouble$ 。对于 $Stream$ 而言，因为其中可能包含大量的元素，出于性能考虑，我们最好使用基础类型。但对于只有单个元素的 $Optional$ ，这个理由就不成立了。基础类型的 $Optional$ 并不支持 $map$ 、$flatMap$ 以及 $filter$ 方法，同时也不能作为方法引用传递给另一个 $flatMap$ 方法，所以并不推荐使用。</p>
+<h2 id="3-collector">3. <code>Collector</code></h2>
+<p>        $Collector$ 用于定义 $collect$ 方法用来生成结果集合的标准。更具体地说，对流调用 $collect$ 方法将对流中的元素触发一个归约操作。一般来说，$Collector$ 会对元素应用一个转换函数，并将结果累积在一个数据结构中。$Collector$ 接口中方法的实现决定了如何对流执行归约操作， 而 $Collectors$ 实用类中提供了很多静态工厂方法，可以方便地创建常见收集器的实例：</p>
+<ul>
+<li>$toList$ ：把流中的所有项目收集到一个 $List$ ；</li>
+<li>$toSet$ ：把流中的所有项目收集到一个 $Set$ ，删除重复项；</li>
+<li>$toCollection$ ：把流中所有项目收集到给定的供应源创建的集合，需要额外指定一个集合创建方法；</li>
+<li>$counting$ ：返回流中元素个数，更直接地，也可以使用 $Stream.count$ 方法；</li>
+<li>$maxBy$ ：接收一个 $Comparator$ ，返回流中最大值；</li>
+<li>$minBy$ ：接收一个 $Comparator$ ，返回流中最小值；</li>
+<li>$summingInt$ / $summingLong$ / $summingDouble$ ：接收一个把对象映射为 $int$ / $long$ / $double$ 的函数，并返回总和；</li>
+<li>$averagingInt$ / $averagingLong$ / $averagingDouble$ ：接收一个把对象映射为 $int$ / $long$ / $double$ 的函数，并返回平均值；</li>
+<li>$summarizingInt$ / $summarizingLong$ / $summarizingDouble$ ：接收一个把对象映射为 $int$ / $long$ / $double$ 的函数，并返回一个 $IntSummaryStatistics$ / $LongSummaryStatistics$ / $DoubleSummaryStatistics$ 对象，包含流中元素个数、最大值、最小值、总和和平均值信息；</li>
+<li>$joining$ ：对流中的每一个对象应用 $toString$ 方法，并将结果串连成一个字符串，允许接收一个分界符；</li>
+<li>$groupingBy$ ：接收两个函数，前者为键值分类函数，后者为收集器类型的收集函数，并返回一个 $Map$ ，其中第二个参数可以省略，默认为 $groupingBy(f,\ toList(\ ))$ ；</li>
+<li>$partitionBy$ ：接收一个 $Predicate$&lt;$T$&gt; 类型参数和一个转换函数，返回一个键值为 $Boolean$ 的 $Map$ ，其中第二个参数可以省略，默认为 $partitionBy(f,\ toList(\ ))$ ；</li>
+</ul>
+<p>        $reducing$ 方法允许定义一个更一般化的归约过程，它接收三个参数：初始值、转换函数和一个 $BinaryOperator$ ，用于将两个项目累积成一个同类型的值。此外还有一个单参数类型的重载版本，只接收一个 $BinaryOperator$ ，以第一个项目作为起点，把恒等函数作为转换函数。<br/>
+        在收集的时候，由于调用的方法的原因，可能会返回 $Optional$ 类型的参数，而这往往不是我们想要的，这时候就可以使用 $collectingAndThen$ 方法，可以额外接收一个转换函数，将 $Optional$ 类型进行转换。<br/>
+        如果要自定义收集器，需要使用 $Collector$ 接口：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">Collector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">,</span> <span class="n">A</span><span class="o">,</span> <span class="n">R</span><span class="o">&gt;</span> <span class="o">{</span>
+    <span class="n">Supplier</span><span class="o">&lt;</span><span class="n">A</span><span class="o">&gt;</span> <span class="nf">supplier</span><span class="o">();</span>
+    <span class="n">BiConsumer</span><span class="o">&lt;</span><span class="n">A</span><span class="o">,</span> <span class="n">T</span><span class="o">&gt;</span> <span class="nf">accumulator</span><span class="o">();</span>
+    <span class="n">Function</span><span class="o">&lt;</span><span class="n">A</span><span class="o">,</span> <span class="n">R</span><span class="o">&gt;</span> <span class="nf">finisher</span><span class="o">();</span>
+    <span class="n">BinaryOperator</span><span class="o">&lt;</span><span class="n">A</span><span class="o">&gt;</span> <span class="nf">combiner</span><span class="o">();</span>
+    <span class="n">Set</span><span class="o">&lt;</span><span class="n">Characteristics</span><span class="o">&gt;</span> <span class="nf">characteristics</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div><p>        其中 $T$ 是流要收集的项目的泛型，$A$ 是累加器的类型，$R$ 是收集操作得到的对象的类型。$supplier$ 方法返回一个结果为空的 $Supplier$ ，创建一个空的累加器实例；$accumulator$ 方法返回执行归约操作的函数；$finisher$ 方法返回在累积过程的最后调用的函数，以便将累加器对象转换为整个集合操作的最终结果；$combiner$ 方法返回一个供归约操作使用的函数，定义了对流的各个子部分进行并行处理时如何合并累加器结果；$characteristics$ 方法会返回一个不可变的 $Characteristics$ 集合，定义了收集器的行为，是一个包含了三个项目的枚举：$UNORDERED$ ( 结果不受流中项目的遍历和累计顺序的影响 )、$CONCURRENT$ ( $accumulator$ 可以多线程调用 )、$IDENTITY_-FINISH$ ( $finisher$ 返回恒等函数，可以跳过 )。以下为 $ToListCollector$ 类型实例，它将流转换为 $List$ ：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">ToListCollector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="kd">implements</span> <span class="n">Collector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="o">{</span>
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="n">Supplier</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="nf">supplier</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">ArrayList</span><span class="o">::</span><span class="k">new</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="n">BiConsumer</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;,</span> <span class="n">T</span><span class="o">&gt;</span> <span class="nf">accumulator</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">List</span><span class="o">::</span><span class="n">add</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="n">Function</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="nf">finisher</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">Function</span><span class="o">.</span><span class="na">identity</span><span class="o">();</span> <span class="c1">// 恒等函数
+</span><span class="c1"></span>    <span class="o">}</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="n">BinaryOperator</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="nf">combiner</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="o">(</span><span class="n">list1</span><span class="o">,</span> <span class="n">list2</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="o">{</span>
+            <span class="n">list1</span><span class="o">.</span><span class="na">addAll</span><span class="o">(</span><span class="n">list2</span><span class="o">);</span>
+            <span class="k">return</span> <span class="n">list1</span><span class="o">;</span>
+        <span class="o">};</span>
+    <span class="o">}</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="n">Set</span><span class="o">&lt;</span><span class="n">Characteristics</span><span class="o">&gt;</span> <span class="nf">characteristics</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">Collections</span><span class="o">.</span><span class="na">unmodifiableSet</span><span class="o">(</span>
+            <span class="n">EnumSet</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">Characteristics</span><span class="o">.</span><span class="na">IDENTITY_FINISH</span><span class="o">,</span> <span class="n">Characteristics</span><span class="o">.</span><span class="na">CONCURRENT</span><span class="o">));</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div><p>        除了实现 $Collector$ 之外，自定义收集操作也可以通过调用一个重载版本的 $collect$ 方法完成。该方法接收 $supplier$ 、$accumulator$ 和 $combiner$ 三个函数，并且永远都是一个 $IDENTITY_-FINISH$ 和 $CONCURRENT$ 但非 $UNORDERED$ 的收集器。</p>
+<h2 id="4-并行流">4. 并行流</h2>
+<p>        <code>并行流</code>就是一个把内容分成多个数据块，并用不同的线程分别处理每个数据块的流。通过对收集源调用 $parallelStream$ 方法，可以把集合转换为并行流。也可以通过在顺序流上调用 $parallel$ 方法来转换为并行流，调用该方法后流本身并不会有任何实际的变化，在内部实际上只设置了一个 $boolean$ 标志位。类似的，也可以在并行流上调用 $sequential$ 方法来将它转换为顺序流。<br/>
+        并行化的过程本身需要对流做递归划分，把每个子流的归纳操作分配到不同的线程，然后把这些操作的结果合并成一个值。但在多个内核之间移动数据的代价也可能很大，所以很重要的一点是要保证在内核中并行执行工作的时间比在内核之间传输数据的时间长。总而言之，很多情况下不可能或不方便并行化。一般而言，想给出任何关于什么时候该用并行流的定量建议都是不可能也毫无意义的。</p>
+<ul>
+<li>在将顺序流转换为并行流时，对于存在疑问的转换，可以先测试；</li>
+<li>自动装箱和拆箱操作会大大降低性能，对于存在大量这种操作的流，应该尽可能地使用原始类型特化流；</li>
+<li>有些操作例如 $limit$ 和 $findFirst$ 等依赖于元素顺序的操作，在并行流上的性能就比顺序流差；</li>
+<li>对于处理成本较高的操作，使用并行流时性能更好的可能性较大；</li>
+<li>避免使用并行流处理数据量较小的集合；</li>
+<li>考虑流背后的数据结构是否易于分解，例如 $ArrayList$ 、$range$ 、$HashSet$ 的拆分效率较好，而 $LinkedList$ 、$iterate$ 的拆分效率则很差；</li>
+<li>考虑流自身的特点和流水线中间操作修改流的方式，例如筛选操作丢弃的元素个数无法预测，因而难以将流划分为大小近似的部分；</li>
+<li>考虑终端操作中合并代价，避免合并代价大于使用并行流带来的性能提升。</li>
+</ul>
+<p>        并行流的背后使用的是<code>Java 7</code>中引入的<code>分支/合并框架</code>，目的是以递归方式将可以并行的任务拆分成更小的任务，然后把每个子任务的结果合并起来生成整体结果。它是 $ExecutorService$ 接口的一个实现，它把子任务分配给线程池 ( 称为 $ForJoinPool$ ) 中的工作线程。<br/>
+        要把任务提交到该线程池，必须创建 $RecursiveTask$&lt;$R$&gt;的一个子类，其中 $R$ 是并行化任务产生的结果，如果任务不返回结果，则是 $RecursiveTask$ 类型。要定义 $RecursiveTask$ ，只需要实现它唯一的抽象方法 $compute$ 。$compute$ 方法定义了将任务拆分为子任务的逻辑，以及无法再拆分或不方便再拆分时生成单个子任务结果的逻辑。一般来说并没有确切的标准决定一个任务是否应该再拆分。分支/合并框架中使用了<code>工作窃取</code> ( $work\ stealing$ ) 技术，每个线程都为分配给它的任务保存一个双向链式队列，每完成一个任务，就会从队列中取出下一个任务，提前完成了队列中的所有任务，则会随机选择一个其他线程的队列，从中获取任务。由于工作窃取，因此将原任务分为大量的小任务一般来说都是一个好的选择。<br/>
+        $Spliterator$ 是 <code>Java 8</code>中加入的另一个新接口，用于并行遍历数据源中的元素。同时<code>Java 8</code>为集合框架中包含的所有数据结构提供了一个默认的 $Spliterator$ 实现。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">Spliterator</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
+    <span class="kt">boolean</span> <span class="nf">tryAdvance</span><span class="o">(</span><span class="n">Consumer</span><span class="o">&lt;?</span> <span class="kd">super</span> <span class="n">T</span><span class="o">&gt;</span> <span class="n">action</span><span class="o">);</span>
+    <span class="n">Spliterator</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="nf">trySplit</span><span class="o">();</span>
+    <span class="kt">long</span> <span class="nf">estimateSize</span><span class="o">();</span>
+    <span class="kt">int</span> <span class="nf">characteristics</span><span class="o">();</span>
+<span class="o">}</span>
+</code></pre></div><p>        $tryAdvance$ 的行为类似于普通的 $Iterator$ ，它会按顺序依次遍历使用 $Spliterator$ 的元素，并且如果还有其他元素需要遍历则返回 $true$ 。$trySplit$ 可以将一些元素划分给另一个 $Spliterator$ ，让它们两并行处理，将 $Stream$ 拆分为多个部分的算法是一个递归过程，即不断地调用 $trySplit$ 方法直到不可划分。$estimateSize$ 方法用于估计剩余的需要遍历的元素个数，对于已知大小的源，这个数字是准确的。<br/></p>
+
+            </div>
+            <div class="meta post-footer"> <span>2021 Feb 17 18:00</span> <a href="/post/java-8%E5%AE%9E%E6%88%98%E6%B5%81%E5%A4%84%E7%90%86/"><i
+                        class="fas fa-link"></i> link</a></div>
+        </div>
         
         <div class="post">
             
@@ -437,75 +704,6 @@
 
             </div>
             <div class="meta post-footer"> <span>2021 Jan 9 20:58</span> <a href="/post/jvm8%E5%90%8E%E7%AB%AF%E7%BC%96%E8%AF%91%E4%B8%8E%E4%BC%98%E5%8C%96/"><i
-                        class="fas fa-link"></i> link</a></div>
-        </div>
-        
-        <div class="post">
-            
-            <center>
-                <h1><a href="/post/jvm7%E5%89%8D%E7%AB%AF%E7%BC%96%E8%AF%91%E4%B8%8E%E4%BC%98%E5%8C%96/">JVM（7）：前端编译与优化</a></h1>
-            </center>
-            <div class="post-content">
-                <h2 id="1-javac编译器">1. <code>Javac</code>编译器</h2>
-<p>        <code>Javac</code>是一个由<code>Java</code>语言编写的程序，从其代码总体结构来看，可以将编译过程大致分为 $1$ 个准备过程和 $3$ 个处理过程：</p>
-<ol>
-<li>准备过程：初始化插入式注解处理器</li>
-<li>解析与填充符号表过程，包括词法分析、语法分析和符号表创建</li>
-<li>插入式注解处理器的注解处理过程</li>
-<li>分析与字节码生成过程，包括标注检查、数据流及控制流分析、解语法糖和字节码生成</li>
-</ol>
-<p>        在上述处理过程中，执行插入式注解时可能又会产生新的符号。如果产生新的符号，就必须对它们进行解析，因此又回到了步骤 $2$ 。<code>Javac</code>编译动作得入口是 $com.sun.tools.javac.main.JavaCompiler$ 类，上述 $3$ 个过程的代码逻辑集中在这个类的 $compiler(\ )$ 和 $compiler2(\ )$ 方法。</p>
-<h3 id="11-解析与填充符号表">1.1 解析与填充符号表</h3>
-<p>        解析过程通过 $JavaCompiler.parseFiles(\ )$ 方法发起。</p>
-<h4 id="111-词法语法分析">1.1.1 词法、语法分析</h4>
-<p>        词法分析过程由 $com.sun.tools.javac.parser.Scanner$ 类完成。语法分析过程由 $com.sun.tools.javac.parser.Parser$ 类完成，产出的抽象语法树以 $com.sun.tools.javac.tree.JCTree$ 类表示。在完成词法、语法分析之后，编译器后续的操作都建立在抽象语法树的基础上，不会再对源码进行操作了。</p>
-<h4 id="112-填充符号表">1.1.2 填充符号表</h4>
-<p>        填充符号表过程通过 $JavaCompiler.enterTrees(\ )$ 方法发起，由 $com.sun.tools.javac.comp.Enter$ 类完成，产出一个待处理列表，其中包含了每一个编译单元的抽象语法树的顶级结点。</p>
-<h3 id="12-注解处理器">1.2 注解处理器</h3>
-<p>        在<code>JDK 5</code>时，注解只会在程序运行期间发挥作用。<code>JDK 6</code>中提供了一组称为“插入式注解处理器”的标准<code>API</code>，使得特定注解的处理可以提前至编译期进行。插入式注解处理器可以读取、修改和添加抽象语法树的元素。如果在这个过程中发生了修改操作，那么编译器需要返回解析与填充符号表过程重新处理。</p>
-<h3 id="13-语义分析与字节码生成">1.3 语义分析与字节码生成</h3>
-<p>        抽象语法树能够表示一个结构正确的源程序，但无法保证源程序的语义符合逻辑，因此需要进行语义分析对源程序进行上下文相关性质的检查，譬如类型检查、控制流检查、数据流检查等。</p>
-<h4 id="131-标注检查">1.3.1 标注检查</h4>
-<p>        标注检查由 $JavaCompiler.attribute(\ )$ 方法发起。标注检查步骤要检查的内容包括变量使用前是否已声明、变量与赋值之间的数据类型是否匹配等。此外还会进行常量折叠 ( $Constant\ \ Folding$ ) 。</p>
-<h4 id="132-数据及控制流分析">1.3.2 数据及控制流分析</h4>
-<p>        数据及控制流分析是对程序上下文逻辑的更进一步验证，可以检查出诸如程序局部变量在使用前是否有赋值、方法的每条路径是否都有返回值、是否所有受查异常都被正确处理等。编译期的数据及控制流分析与类加载时的数据及控制流分析的目的基本上可以看作是一致的，但有一些校验项只有在编译期或者运行期才能进行。数据及控制流分析由 $JavaCompiler.flow(\ )$ 方法发起，由 $com.sun.tools.javac.comp.Flow$ 类完成。</p>
-<h4 id="133-解语法糖">1.3.3 解语法糖</h4>
-<p>        <code>Java</code>中最常见的语法糖包括泛型、变长参数、自动装箱拆箱等。<code>JVM</code>并不支持这些语法，它们会在编译期还原为基础语法结构，这个过程称为解语法糖。解语法糖过程由 $JavaCompiler.desugar(\ )$ 方法发起，由 $com.sun.tools.javac.comp.TransTypes$ 类和 $com.sun.tools.javac.comp.Lower$ 类完成。</p>
-<h4 id="134-字节码生成">1.3.4 字节码生成</h4>
-<p>        字节码生成过程由 $com.sun.tools.javac.jvm.Gen$ 类完成，除了把之前步骤生成的信息（语法树、符号表）转化成字节码指令之外，还进行少量的代码添加和转换工作。例如实例构造器 &lt;$init$&gt;$(\ )$ 和类构造器 &lt;$clinit$&gt;$(\ )$ 就是在这个阶段被添加到语法树中的。要注意的是这里的构造器并非默认构造器，默认构造器的产生是在填充符号表的过程中执行的。除了生成构造器外，还有一些其他的代码替换工作比如将字符串连接替换为 $StringBuffer$ 或者 $StringBuilder$ 的 $append(\ )$ 等。在完成上述步骤后，$com.sun.tools.javac.jvm.ClassWriter.writeClass(\ )$ 方法将会输出<code>Class</code>文件，代表编译完成。</p>
-<h2 id="2-语法糖">2. 语法糖</h2>
-<h3 id="21-泛型">2.1 泛型</h3>
-<p>        泛型的本质是参数化类型 ( $Parameterized\ \ Type$ ) 或者参数化多态 ( $Parametric\ \ Polymorphism$ ) 的应用。<code>Java</code>选择的泛型实现方式称为“类型擦除式泛型” ( $Type\ \ Erasure\ \ Generics$ ) ，即泛型只在源码中存在，在字节码文件中被替换为裸类型 ( $Raw\ \ Type$ )，并且在相应的地方插入了强制转型代码。裸类型可以视为所有该类型泛型化实例的父类，因而可以将泛型化实例赋值给裸类型实例。<code>Java</code>在编译时会将泛型化实例，如 $ArrayList$&lt;$Integer$&gt;还原为裸类型实例，如 $ArrayList$ ，并在元素访问和修改时插入一些强制类型转换和类型检查指令。因为不能将原生类型转换为 $Object$ ，因此<code>Java</code>不支持原生类型的泛型，同时也增加了对原生类型的装箱拆箱工作。</p>
-<h3 id="22-自动装箱拆箱与遍历循环">2.2 自动装箱、拆箱与遍历循环</h3>
-<p>        自动装箱、拆箱与遍历循环是<code>Java</code>语言中使用的最多的语法糖。使用语法糖的示例如下：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
-    <span class="n">List</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span> <span class="n">list</span> <span class="o">=</span> <span class="n">Arrays</span><span class="o">.</span><span class="na">asList</span><span class="o">(</span><span class="n">1</span><span class="o">,</span> <span class="n">2</span><span class="o">,</span> <span class="n">3</span><span class="o">,</span> <span class="n">4</span><span class="o">);</span>
-    <span class="kt">int</span> <span class="n">sum</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span>
-    <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">:</span> <span class="n">list</span><span class="o">)</span> <span class="n">sum</span> <span class="o">+=</span> <span class="n">i</span><span class="o">;</span>
-    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">sum</span><span class="o">);</span>
-<span class="o">}</span>
-</code></pre></div><p>对上述代码进行编译和反编译后得到的结果为：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
-    <span class="n">List</span> <span class="n">list</span> <span class="o">=</span> <span class="n">Arrays</span><span class="o">.</span><span class="na">asList</span><span class="o">(</span><span class="k">new</span> <span class="n">Integer</span><span class="o">[]</span> <span class="o">{</span>
-        <span class="n">Integer</span><span class="o">.</span><span class="na">valueOf</span><span class="o">(</span><span class="n">1</span><span class="o">),</span>
-        <span class="n">Integer</span><span class="o">.</span><span class="na">valueOf</span><span class="o">(</span><span class="n">2</span><span class="o">),</span>
-        <span class="n">Integer</span><span class="o">.</span><span class="na">valueOf</span><span class="o">(</span><span class="n">3</span><span class="o">),</span>
-        <span class="n">Integer</span><span class="o">.</span><span class="na">valueOf</span><span class="o">(</span><span class="n">4</span><span class="o">)</span>
-    <span class="o">});</span>
-    <span class="kt">int</span> <span class="n">sum</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span>
-    <span class="k">for</span> <span class="o">(</span><span class="n">Iterator</span> <span class="n">localIterator</span> <span class="o">=</span> <span class="n">list</span><span class="o">.</span><span class="na">iterator</span><span class="o">();</span> <span class="n">localIterator</span><span class="o">.</span><span class="na">hasNext</span><span class="o">();)</span> <span class="o">{</span>
-        <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="o">((</span><span class="n">Integer</span><span class="o">)</span><span class="n">localIterator</span><span class="o">.</span><span class="na">next</span><span class="o">()).</span><span class="na">intValue</span><span class="o">();</span>
-        <span class="n">sum</span> <span class="o">+=</span> <span class="n">i</span><span class="o">;</span>
-    <span class="o">}</span>
-    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">sum</span><span class="o">);</span>
-<span class="o">}</span>
-</code></pre></div><p>        类似的还有变长参数，它通过在编译时转换为一个数组类型的参数实现。</p>
-<h3 id="23-条件编译">2.3 条件编译</h3>
-<p>        在<code>C/C++</code>中，我们可以通过预处理器实现条件编译。虽然<code>Java</code>中并没有预处理器，但是也可以实现条件编译，即通过条件为常量的 $if$ 语句。在编译的过程中，编译器会删去分支中无法到达的代码，这一工作也属于解语法糖的范畴。</p>
-<p>        除了上述所提到的以外，内部类、枚举类、断言、数值字面量、对枚举的 $switch$ 支持、$try-with-resources$ 、$Lambda$ 表达式（虽然不能算单纯的语法糖，但也在前端编译器中做了大量的转换工作）等都属于语法糖。</p>
-
-            </div>
-            <div class="meta post-footer"> <span>2021 Jan 8 20:09</span> <a href="/post/jvm7%E5%89%8D%E7%AB%AF%E7%BC%96%E8%AF%91%E4%B8%8E%E4%BC%98%E5%8C%96/"><i
                         class="fas fa-link"></i> link</a></div>
         </div>
         

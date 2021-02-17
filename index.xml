@@ -7,10 +7,20 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved.</copyright>
-    <lastBuildDate>Wed, 13 Jan 2021 21:17:10 +0800</lastBuildDate>
+    <lastBuildDate>Wed, 17 Feb 2021 18:00:13 +0800</lastBuildDate>
     
 	<atom:link href="https://z217blog.cn/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Java 8实战：流处理</title>
+      <link>https://z217blog.cn/post/java-8%E5%AE%9E%E6%88%98%E6%B5%81%E5%A4%84%E7%90%86/</link>
+      <pubDate>Wed, 17 Feb 2021 18:00:13 +0800</pubDate>
+      
+      <guid>https://z217blog.cn/post/java-8%E5%AE%9E%E6%88%98%E6%B5%81%E5%A4%84%E7%90%86/</guid>
+      <description>流是一系列数据项，一次只生成一项。程序可以从输入流中一个一个读取数据项，然后以同样的方式将数据项写入输出流。一个程序的输出流很可能是另一个程序的输入流。基于流的思想，Java 8在 $java.util.stream$ 中添加了一个Stream API。 $Stream$&amp;lt;$T$&amp;gt; 就是一系列 $T$ 类型的项目。 和Collection API相比，Stream API处理数据的方式非常不同。用集合的话，需要使用 $for$ 循环迭代并处理元素，我们称之为外部迭代。相反，Stream API的数据处理完全是在库内部进行的，我们称之为内部迭代。虽然都能访问数据项目的序列，但是相比之下，Collection API主要是为了存储和访问数据，而Stream API主要用于描述对数据的计算。这里的关键点在于，Stream API允许并行处理一个 $Stream$ 中的元素。筛选一个 $Collection$ 最快的方式通常是将其转换为 $Stream$ ，进行并行处理，再转换回 $List$ 。粗略地说，流与集合之间的差异就在于什么时候进行计算。集合是一个内存中的数据结构，包含数据结构中目前所有的值，集合中的元素只有经过计算后才能添加；相比之下，流是在概念上固定的数据结构，不能通过流添加或删除元素，流中的元素是按需计算的，即只从流中提取出需要的值。与迭代器类似，流只能遍历一次。遍历完之后，我们就说这个流已经被消费掉了。要想重新遍历，可以从原始数据源中重新获取一个新的流。尝试再次遍历一个已经消费的流会抛出 $IllegalStateException$ 异常。流与集合的另一个关键区别在于遍历数据的方式，正如之前所说，使用 $Collection$ 接口需要用户进行外部迭代，而 $Steams$ 库使用的是内部迭代，即库自动完成迭代，并将流值存放在某个地方。相较于显式的外部迭代，内部迭代下项目可以透明地并行处理，或者用更优化的顺序进行处理，例如同时处理多个数据，或者优先处理某些数据等。
+1. 流操作    操作 类型 返回类型 操作参数 函数描述符 目的     $filter$ 中间 $Stream$&amp;lt;$T$&amp;gt; $Predicate$&amp;lt;$T$&amp;gt; $T \rightarrow boolean$ 返回一个包含所有符合谓词的元素的流   $distinct$ 中间 $Stream$&amp;lt;$T$&amp;gt;   返回一个元素各异的流   $map$ 中间 $Stream$&amp;lt;$R$&amp;gt; $Function$&amp;lt;$T, R$&amp;gt; $T \rightarrow R$ 将函数应用到每个元素上，并映射成一个新元素   $flatMap$ 中间 $Stream$&amp;lt;$R$&amp;gt; $Function$&amp;lt;$T,R$&amp;gt; $T \rightarrow R$ 将多个生成流扁平化为单个流   $limit$ 中间 $Stream$&amp;lt;$T$&amp;gt;   返回一个不超过给定长度的流   $skip$ 中间 $Stream$&amp;lt;$T$&amp;gt;   返回一个跳过给定数量元素的流   $sorted$ 中间 $Stream$&amp;lt;$T$&amp;gt; $Comparator$&amp;lt;$T$&amp;gt; $(T, T) \rightarrow int$ 返回一个经过排序的流   $forEach$ 终端 $void$ $Consumer$&amp;lt;$T$&amp;gt; $T \rightarrow void$ 消费流中的每一个元素并对其应用Lambda，返回类型为 $void$   $count$ 终端 $long$   返回流中元素的个数，返回类型为 $long$   $collect$ 终端 $R$ $Collector$&amp;lt;$T, A, R$&amp;gt;  把流归约成一个集合并返回   $anyMatch$ 终端 $boolean$ $Predicate$&amp;lt;$T$&amp;gt; $T \rightarrow boolean$ 流中是否含有一个元素能匹配给定的谓词   $allMatch$ 终端 $boolean$ $Predicate$&amp;lt;$T$&amp;gt; $T \rightarrow boolean$ 流中的元素是否都能匹配给定的谓词   $noneMatch$ 终端 $boolean$ $Predicate$&amp;lt;$T$&amp;gt; $T \rightarrow boolean$ 流中是否没有元素与给定的谓词匹配   $findAny$ 终端 $Optional$&amp;lt;$T$&amp;gt;   返回当前流中的任意元素   $findFirst$ 终端 $Optional$&amp;lt;$T$&amp;gt;   返回当前流中第一个元素   $reduce$ 终端 $Optional$&amp;lt;$T$&amp;gt; $BinaryOperator$&amp;lt;$T$&amp;gt; $(T, T) \rightarrow T$ 对流中元素重复应用方法     诸如 $filter$ 或 $Sorted$ 等操作会返回另一个流，这让多个操作可以连接起来形成一个查询，这种操作称为中间操作。除非流水线上触发一个终端操作，否则中间操作不会执行任何处理。终端操作会从流的流水线生成结果，其结果是任何不是流的值，比如 $List$ 、$Integer$ 等。总而言之，流的使用一般包括三件事：一个数据源、一个中间操作链和一个终端操作。 诸如 $map$ 或 $filter$ 等操作会从输入流中获取每一个元素，并在输出流中得到 $0$ 或 $1$ 个结果。这些操作一般都是无状态操作。但诸如 $reduce$ 、$sum$ 、$max$ 等操作需要内部状态来累计结果，这些操作就是有状态操作。但是这些操作的内部状态很小，通常只是一些基本数据类型，不管流中有多少元素需要处理，内部状态都是有界的。而诸如 $sorted$ 或 $distinct$ 等操作，它们的内部状态可能很大，这时就要求无界的存储空间。 $peek$ 是一个特殊的流操作，可以在流的每个元素恢复运行之前，插入执行一个动作。$peek$ 不会恢复流的运行，而是在一个元素上完成操作之后，将操作顺承到流水线中的下一个操作。 Java 8引入了三个原始类型特化流接口 $IntStream$ 、$DoubleStream$ 和 $LongStream$ ，分别将流中的元素特化为 $int$ 、$long$ 和 $double$ ，从而避免了暗含的装箱成本。每个接口都带来了进行常用数值归约的新方法，比如对数值流求和的 $sum$ ，此外还可以在必要时将它们转换回对象流。将流转换为特化版本的常用方法是 $mapToInt$ 、$mapToDouble$ 和 $mapToLong$ 。这些方法和 $map$ 的工作方式一样，但是会返回特化流。如果想要将特化流转换为对象流，可以使用 $boxed$ 方法。类似的，也可以使用 $mapToObj$ 方法生成对象流。 Java 8还引入了两个可以用于 $IntStream$ 和 $LongStream$ 的静态方法，帮助生成数值范围，分别是 $range$ 和 $rangeClosed$ ，前者为开区间，后者为闭区间。 除了调用集合中的 $stream$ 方法之外，还有一些其他的构造流的方式：</description>
+    </item>
     
     <item>
       <title>JVM（10）：线程安全与锁优化</title>
