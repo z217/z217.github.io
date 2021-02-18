@@ -92,6 +92,24 @@
     
     
     <div class="list-item">
+        <a class="entry-title" href="/post/java-8%E5%AE%9E%E6%88%98%E6%97%A5%E6%9C%9F%E5%92%8C%E6%97%B6%E9%97%B4api/">Java 8实战：日期和时间API</a>
+        
+        
+        <p>Java 8日期和时间API简介</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2021 Feb 18 18:39
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: Java
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
         <a class="entry-title" href="/post/java-8%E5%AE%9E%E6%88%98%E6%B5%81%E5%A4%84%E7%90%86/">Java 8实战：流处理</a>
         
         
@@ -163,24 +181,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="/post/jvm7%E5%89%8D%E7%AB%AF%E7%BC%96%E8%AF%91%E4%B8%8E%E4%BC%98%E5%8C%96/">JVM（7）：前端编译与优化</a>
-        
-        
-        <p>深入理解Java虚拟机（7）</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2021 Jan 08 20:09
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: JVM
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -189,6 +189,347 @@
     <div class="section-title">μblog</div>
     <div class="posts">
         
+        
+        <div class="post">
+            
+            <center>
+                <h1><a href="/post/java-8%E5%AE%9E%E6%88%98%E6%97%A5%E6%9C%9F%E5%92%8C%E6%97%B6%E9%97%B4api/">Java 8实战：日期和时间API</a></h1>
+            </center>
+            <div class="post-content">
+                <p>        在<code>Java 1.0</code>中，对日期和时间的支持只能依赖 $java.util.Date$ 类。这个类无法表示日期，只能以毫秒的精度表示时间。而且由于某些原因未知的设计决策，这个类的易用性也不高。例如一个表示 $2014$ 年 $3$ 月 $18$ 日的 $Date$ 需要用以下方式创建：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">Date</span> <span class="n">date</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Date</span><span class="o">(</span><span class="n">114</span><span class="o">,</span> <span class="n">2</span><span class="o">,</span> <span class="n">18</span><span class="o">);</span>
+</code></pre></div><p>        此外，$Date.toString$ 方法的返回值中虽然包含时区，但 $Date$ 并不支持时区。所以，在<code>Java 1.1</code>中，$Date$ 的许多方法被废弃，取而代之的是 $java.util.Calendar$ 类，但是这个类同样也存在着很多问题。比如月份依旧是从 $0$ 开始，而且没有提供 $DateFormat$ 方法。如果使用 $DateFormat$ 方法，那么又会带来并发问题，因为它不是线程安全的。为了解决上述问题，<code>Java 8</code>中新增的 $java.time$ 包中添加了新的日期和时间<code>API</code>。<br/>
+        $java.time$ 包中提供了一些新类：$LocalDate$ 、$LocalTime$ 、$Instant$ 、$Duration$ 和 $Period$ 。<br/></p>
+<h2 id="1-localdatelocaltimelocaldatetime">1. <code>LocalDate</code>/<code>LocalTime</code>/<code>LocalDateTime</code></h2>
+<p>        $LocalDate$ 的实例是一个不可变对象，它只提供了简单的日期，并不包含当天的时间信息。另外，它也不附带任何与时区相关的信息。可以通过静态工厂方法 $of$ 创建一个 $LocalDate$ 实例，或者通过 $now$ 方法从系统时钟中获取当前日期，并通过 $getYear$ 、$getMonth$ 、$getDayOfMonth$ 等方法读取常用值。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">LocalDate</span> <span class="n">date</span> <span class="o">=</span> <span class="n">LocalDate</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">2014</span><span class="o">,</span> <span class="n">3</span><span class="o">,</span> <span class="n">18</span><span class="o">);</span> <span class="c1">// 2014-03-18
+</span><span class="c1"></span><span class="kt">int</span> <span class="n">year</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="na">getYear</span><span class="o">();</span> <span class="c1">// 2014
+</span><span class="c1"></span><span class="n">Month</span> <span class="n">month</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="na">getMonth</span><span class="o">();</span> <span class="c1">// MARCH
+</span><span class="c1"></span><span class="kt">int</span> <span class="n">day</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="na">getDayOfMonth</span><span class="o">();</span> <span class="c1">// 18
+</span><span class="c1"></span><span class="n">DayOfWeek</span> <span class="n">dow</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="na">getDayOfWeek</span><span class="o">();</span> <span class="c1">// TUESDAY
+</span><span class="c1"></span><span class="kt">int</span> <span class="n">len</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="na">lengthOfMonth</span><span class="o">();</span> <span class="c1">// 31
+</span><span class="c1"></span><span class="kt">boolean</span> <span class="n">leap</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="na">isLeapYear</span><span class="o">();</span> <span class="c1">// false
+</span><span class="c1"></span><span class="n">LocalDate</span> <span class="n">today</span> <span class="o">=</span> <span class="n">LocalDate</span><span class="o">.</span><span class="na">now</span><span class="o">();</span>
+</code></pre></div><p>        $TemporalField$ 是一个接口，定义了如何访问 $temporal$ 对象某个字段的值。$ChronoField$ 枚举实现了这一接口，通过 $get$ 方法可以获取对应字段的值。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kt">int</span> <span class="n">year</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">ChronoField</span><span class="o">.</span><span class="na">YEAR</span><span class="o">);</span>
+<span class="kt">int</span> <span class="n">month</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">ChronoField</span><span class="o">.</span><span class="na">MONTH_OF_YEAR</span><span class="o">);</span>
+<span class="kt">int</span> <span class="n">day</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">ChronoField</span><span class="o">.</span><span class="na">DAY_OF_MONTH</span><span class="o">);</span>
+</code></pre></div><p>        类似的，一天中的时间可以使用 $LocalTime$ 表示。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">LocalTime</span> <span class="n">time</span> <span class="o">=</span> <span class="n">LocalTime</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">13</span><span class="o">,</span> <span class="n">45</span><span class="o">,</span> <span class="n">20</span><span class="o">);</span> <span class="c1">// 13:45:20
+</span><span class="c1"></span><span class="kt">int</span> <span class="n">hour</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="na">getHour</span><span class="o">();</span> <span class="c1">// 13
+</span><span class="c1"></span><span class="kt">int</span> <span class="n">minute</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="na">getMinute</span><span class="o">();</span> <span class="c1">// 45
+</span><span class="c1"></span><span class="kt">int</span> <span class="n">second</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="na">getSecond</span><span class="o">();</span> <span class="c1">// 20
+</span></code></pre></div><p>        $LocalDate$ 和 $LocalTime$ 都可以通过解析字符串的形式创建。一旦传递的字符串参数无法被解析为合法的对象时就会抛出一个 $DateTimeParseException$ 异常。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">LocalDate</span> <span class="n">date</span> <span class="o">=</span> <span class="n">LocalDate</span><span class="o">.</span><span class="na">parse</span><span class="o">(</span><span class="s">&#34;2014-03-18&#34;</span><span class="o">);</span>
+<span class="n">LocalTime</span> <span class="n">time</span> <span class="o">=</span> <span class="n">LocalTime</span><span class="o">.</span><span class="na">parse</span><span class="o">(</span><span class="s">&#34;13:45:20&#34;</span><span class="o">);</span>
+</code></pre></div><p>        $LocalDateTime$ 是 $LocalDate$ 和 $LocalTime$ 的复合体，既可以表示日期，也可以表示时间，但不带有时区信息。通过 $atTime$ 或者 $atDate$ 方法传递一个时间或者日期对象，可以创建一个 $LocalDateTime$ 。此外，也可以通过 $toLocalDate$ 和 $toLocalTime$ 方法，从 $LocalDateTime$ 中创建 $LocalDate$ 和 $LocalTime$ 。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">LocalDateTime</span> <span class="n">dt1</span> <span class="o">=</span> <span class="n">LocalDateTime</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">2014</span><span class="o">,</span> <span class="n">Month</span><span class="o">.</span><span class="na">MARCH</span><span class="o">,</span> <span class="n">18</span><span class="o">,</span> <span class="n">13</span><span class="o">,</span> <span class="n">45</span><span class="o">,</span> <span class="n">20</span><span class="o">);</span>
+<span class="n">LocalDateTime</span> <span class="n">dt2</span> <span class="o">=</span> <span class="n">LocalDateTime</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">date</span><span class="o">,</span> <span class="n">time</span><span class="o">);</span>
+<span class="n">LocalDateTime</span> <span class="n">dt3</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="na">atTime</span><span class="o">(</span><span class="n">13</span><span class="o">,</span> <span class="n">45</span><span class="o">,</span> <span class="n">20</span><span class="o">);</span>
+<span class="n">LocalDateTime</span> <span class="n">dt4</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="na">atTime</span><span class="o">(</span><span class="n">time</span><span class="o">);</span>
+<span class="n">LocalDateTime</span> <span class="n">dt5</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="na">atDate</span><span class="o">(</span><span class="n">date</span><span class="o">);</span>
+
+<span class="n">LocalDate</span> <span class="n">date1</span> <span class="o">=</span> <span class="n">dt1</span><span class="o">.</span><span class="na">toLocalDate</span><span class="o">();</span>
+<span class="n">LocalTime</span> <span class="n">time1</span> <span class="o">=</span> <span class="n">dt1</span><span class="o">.</span><span class="na">toLocalTime</span><span class="o">();</span>
+</code></pre></div><h2 id="2-instant">2. <code>Instant</code></h2>
+<p>        从计算机的角度来看，建模时间最自然的格式是表示一个持续时间段某个点的单一大整形数，这也是 $Instant$ 类对时间建模的方式，基本上它是以<code>Unix</code>元年时间（传统的设定为<code>UTC</code>时区 $1970$ 年 $1$ 月 $1$ 日午夜时分）开始所经历的秒数进行计算。<br/>
+        静态工厂方法 $ofEpochSecond$ 接收秒数，创建 $Instant$ 实例。此外，它还提供了一个重载版本，额外接收一个纳秒。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">Instant</span><span class="o">.</span><span class="na">ofEpochSecond</span><span class="o">(</span><span class="n">3</span><span class="o">);</span>
+<span class="n">Instant</span><span class="o">.</span><span class="na">ofEpochSecond</span><span class="o">(</span><span class="n">2</span><span class="o">,</span> <span class="n">1_000_000_000</span><span class="o">);</span>
+<span class="n">Instant</span><span class="o">.</span><span class="na">ofEpochSecond</span><span class="o">(</span><span class="n">2</span><span class="o">,</span> <span class="o">-</span><span class="n">1_000_000_000</span><span class="o">);</span>
+<span class="n">Instant</span><span class="o">.</span><span class="na">now</span><span class="o">();</span>
+</code></pre></div><p>        虽然 $Instant$ 也支持 $now$ 方法，但是它包含的是由秒及纳秒所构成的数字，目的是方便机器使用，所以无法处理一些时间单位。但是我们可以通过 $Duration$ 和 $Period$ 类使用 $Instant$ 。<br/></p>
+<h2 id="3-durationperiod">3. <code>Duration</code>/<code>Period</code></h2>
+<p>        到目前为止的所有类都实现了 $Temporal$ 接口，该接口定义了如何读取和操纵为时间建模的对象的值。$Duration$ 类表示两个 $Temporal$ 对象之间的时间，提供了一个静态工厂方法 $between$ 用于创建该类型实例。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">Duration</span> <span class="n">d1</span> <span class="o">=</span> <span class="n">Duration</span><span class="o">.</span><span class="na">between</span><span class="o">(</span><span class="n">time1</span><span class="o">,</span> <span class="n">time2</span><span class="o">);</span>
+<span class="n">Duration</span> <span class="n">d2</span> <span class="o">=</span> <span class="n">Duration</span><span class="o">.</span><span class="na">between</span><span class="o">(</span><span class="n">dateTime1</span><span class="o">,</span> <span class="n">dateTime2</span><span class="o">);</span>
+<span class="n">Duration</span> <span class="n">d3</span> <span class="o">=</span> <span class="n">Duration</span><span class="o">.</span><span class="na">between</span><span class="o">(</span><span class="n">instant1</span><span class="o">,</span> <span class="n">instant2</span><span class="o">);</span>
+</code></pre></div><p>        由于 $Duration$ 类主要用于以秒和纳秒衡量时间的长短，所以不能只接收 $LocalDate$ 作为参数。而且由于 $LocalDateTime$ 和 $Instant$ 是为不同的目的而设计的，所以也不能将二者同时作为参数传入，否则会抛出 $DateTimeException$ 异常。<br/>
+        $Period$ 类与 $Duration$ 类相对，接收两个 $LocalDate$ ，表示它们之间的时长。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">Period</span> <span class="n">tenDays</span> <span class="o">=</span> <span class="n">Period</span><span class="o">.</span><span class="na">between</span><span class="o">(</span><span class="n">LocalDate</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">2014</span><span class="o">,</span> <span class="n">3</span><span class="o">,</span> <span class="n">8</span><span class="o">),</span>
+                                <span class="n">LocalDate</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">2014</span><span class="o">,</span> <span class="n">3</span><span class="o">,</span> <span class="n">18</span><span class="o">));</span>
+</code></pre></div><p>        除了 $between$ 之外，$Duration$ 和 $Period$ 也提供了很多方便的工厂类，用于直接创建实例。</p>
+<table>
+<thead>
+<tr>
+<th align="center">方法名</th>
+<th align="center">是否为静态方法</th>
+<th align="center">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$between$</td>
+<td align="center">是</td>
+<td align="center">创建两个时间点之间的间隔</td>
+</tr>
+<tr>
+<td align="center">$from$</td>
+<td align="center">是</td>
+<td align="center">由一个临时时间点创建间隔</td>
+</tr>
+<tr>
+<td align="center">$of$</td>
+<td align="center">是</td>
+<td align="center">由它的组成部分创建间隔</td>
+</tr>
+<tr>
+<td align="center">$parse$</td>
+<td align="center">是</td>
+<td align="center">由字符串创建间隔</td>
+</tr>
+<tr>
+<td align="center">$addTo$</td>
+<td align="center">否</td>
+<td align="center">创建间隔副本并叠加到指定对象上</td>
+</tr>
+<tr>
+<td align="center">$get$</td>
+<td align="center">否</td>
+<td align="center">读取间隔</td>
+</tr>
+<tr>
+<td align="center">$isNegative$</td>
+<td align="center">否</td>
+<td align="center">检查间隔是否为负值</td>
+</tr>
+<tr>
+<td align="center">$isZero$</td>
+<td align="center">否</td>
+<td align="center">检查间隔是否为零</td>
+</tr>
+<tr>
+<td align="center">$minus$</td>
+<td align="center">否</td>
+<td align="center">减去一定时间创建间隔副本</td>
+</tr>
+<tr>
+<td align="center">$multipliedBy$</td>
+<td align="center">否</td>
+<td align="center">将间隔值乘以某个标量创建副本</td>
+</tr>
+<tr>
+<td align="center">$negated$</td>
+<td align="center">否</td>
+<td align="center">忽略某个时长的方式创建间隔副本</td>
+</tr>
+<tr>
+<td align="center">$plus$</td>
+<td align="center">否</td>
+<td align="center">增加某个时长的方式创建间隔副本</td>
+</tr>
+<tr>
+<td align="center">$subtractFrom$</td>
+<td align="center">否</td>
+<td align="center">从指定对象中减去间隔</td>
+</tr>
+</tbody>
+</table>
+<h2 id="4-操作日期">4. 操作日期</h2>
+<p>        $with$ 方法允许我们创建对象的副本，并按照需要修改它的属性。此外，也可以使用类似于四则运算的方法来创建对象副本。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">LocalDate</span> <span class="n">date1</span> <span class="o">=</span> <span class="n">LocalDate</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">2014</span><span class="o">,</span> <span class="n">3</span><span class="o">,</span> <span class="n">18</span><span class="o">);</span> <span class="c1">// 2014-03-18
+</span><span class="c1"></span><span class="n">LocalDate</span> <span class="n">date2</span> <span class="o">=</span> <span class="n">date1</span><span class="o">.</span><span class="na">withYear</span><span class="o">(</span><span class="n">2011</span><span class="o">);</span> <span class="c1">// 2011-03-18
+</span><span class="c1"></span><span class="n">LocalDate</span> <span class="n">date3</span> <span class="o">=</span> <span class="n">date2</span><span class="o">.</span><span class="na">withDayOfMonth</span><span class="o">(</span><span class="n">25</span><span class="o">);</span> <span class="c1">// 2011-03-25
+</span><span class="c1"></span><span class="n">LocalDate</span> <span class="n">date4</span> <span class="o">=</span> <span class="n">date3</span><span class="o">.</span><span class="na">with</span><span class="o">(</span><span class="n">ChronoField</span><span class="o">.</span><span class="na">MONTH_OF_YEAR</span><span class="o">,</span> <span class="n">9</span><span class="o">);</span> <span class="c1">// 2011-09-25
+</span><span class="c1"></span><span class="n">LocalDate</span> <span class="n">date5</span> <span class="o">=</span> <span class="n">date1</span><span class="o">.</span><span class="na">plusWeeks</span><span class="o">(</span><span class="n">1</span><span class="o">);</span> <span class="c1">// 2014-03-25;
+</span><span class="c1"></span><span class="n">LocalDate</span> <span class="n">date6</span> <span class="o">=</span> <span class="n">date5</span><span class="o">.</span><span class="na">minusYear</span><span class="o">(</span><span class="n">3</span><span class="o">);</span> <span class="c1">// 2011-03-25
+</span><span class="c1"></span><span class="n">LocalDate</span> <span class="n">date7</span> <span class="o">=</span> <span class="n">date6</span><span class="o">.</span><span class="na">plus</span><span class="o">(</span><span class="n">6</span><span class="o">,</span> <span class="n">ChronoField</span><span class="o">.</span><span class="na">MONTHS</span><span class="o">);</span> <span class="c1">// 2011-09-25
+</span></code></pre></div><p>        此外，$LocalDate$ 、$LocalTime$ 、$LocalDateTime$ 以及 $Instant$ 中都提供了大量通用方法。</p>
+<table>
+<thead>
+<tr>
+<th align="center">方法名</th>
+<th align="center">是否为静态方法</th>
+<th align="center">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$from$</td>
+<td align="center">是</td>
+<td align="center">根据对象创建实例</td>
+</tr>
+<tr>
+<td align="center">$now$</td>
+<td align="center">是</td>
+<td align="center">根据系统时钟创建实例</td>
+</tr>
+<tr>
+<td align="center">$of$</td>
+<td align="center">是</td>
+<td align="center">根据对象的某部分创建实例</td>
+</tr>
+<tr>
+<td align="center">$parse$</td>
+<td align="center">是</td>
+<td align="center">根据字符串创建实例</td>
+</tr>
+<tr>
+<td align="center">$atOffset$</td>
+<td align="center">否</td>
+<td align="center">将对象和某个时区偏移结合</td>
+</tr>
+<tr>
+<td align="center">$atZone$</td>
+<td align="center">否</td>
+<td align="center">将对象和某个时区结合</td>
+</tr>
+<tr>
+<td align="center">$format$</td>
+<td align="center">否</td>
+<td align="center">使用某个格式器将对象转换为字符串（$Instant$ 类不支持）</td>
+</tr>
+<tr>
+<td align="center">$get$</td>
+<td align="center">否</td>
+<td align="center">读取对象某部分值</td>
+</tr>
+<tr>
+<td align="center">$minus$</td>
+<td align="center">否</td>
+<td align="center">将对象减去一定时长创建副本</td>
+</tr>
+<tr>
+<td align="center">$plus$</td>
+<td align="center">否</td>
+<td align="center">将对象加上一定时长创建副本</td>
+</tr>
+<tr>
+<td align="center">$with$</td>
+<td align="center">否</td>
+<td align="center">对对象某些部分进行修改创建副本</td>
+</tr>
+</tbody>
+</table>
+<h2 id="5-temporaladjuster">5. <code>TemporalAdjuster</code></h2>
+<p>        $with$ 方法可以接收一个 $TemporalAdjuster$ 对象，允许我们更加灵活地处理日期。对于一些常见的用例，日期和时间<code>API</code>已经提供了大量预定义的 $TemporalAdjuster$ 。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">LocalDate</span> <span class="n">date1</span> <span class="o">=</span> <span class="n">LocalDate</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">2014</span><span class="o">,</span> <span class="n">3</span><span class="o">,</span> <span class="n">18</span><span class="o">);</span> <span class="c1">// 2014-03-18
+</span><span class="c1"></span><span class="n">LocalDate</span> <span class="n">date2</span> <span class="o">=</span> <span class="n">date1</span><span class="o">.</span><span class="na">with</span><span class="o">(</span><span class="n">TemporalAdjusters</span><span class="o">.</span><span class="na">nextOrSame</span><span class="o">(</span><span class="n">DayOfWeek</span><span class="o">.</span><span class="na">SUNDAY</span><span class="o">));</span> <span class="c1">// 2014-03-23
+</span><span class="c1"></span><span class="n">LocalDate</span> <span class="n">date3</span> <span class="o">=</span> <span class="n">date2</span><span class="o">.</span><span class="na">with</span><span class="o">(</span><span class="n">TemporalAdjusters</span><span class="o">.</span><span class="na">lastDayOfMonth</span><span class="o">());</span> <span class="c1">// 2014-03-31
+</span></code></pre></div><table>
+<thead>
+<tr>
+<th align="center">方法名</th>
+<th align="center">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">$dayOfWeekInMonth$</td>
+<td align="center">同月份同星期中每周第几天</td>
+</tr>
+<tr>
+<td align="center">$firstDayOfMonth$</td>
+<td align="center">当月第一天</td>
+</tr>
+<tr>
+<td align="center">$firstDayOfNextMonth$</td>
+<td align="center">下月第一天</td>
+</tr>
+<tr>
+<td align="center">$firstDayOfNextYear$</td>
+<td align="center">下年第一天</td>
+</tr>
+<tr>
+<td align="center">$firstDayInMonth$</td>
+<td align="center">同月份第一个星期几</td>
+</tr>
+<tr>
+<td align="center">$lastDayOfMonth$</td>
+<td align="center">当月最后一天</td>
+</tr>
+<tr>
+<td align="center">$lastDayOfNextMonth$</td>
+<td align="center">下月最后一天</td>
+</tr>
+<tr>
+<td align="center">$lastDayOfNextYear$</td>
+<td align="center">下年最后一天</td>
+</tr>
+<tr>
+<td align="center">$lastDayOfYear$</td>
+<td align="center">今年最后一天</td>
+</tr>
+<tr>
+<td align="center">$lastInMonth$</td>
+<td align="center">同月份最后一个星期几</td>
+</tr>
+<tr>
+<td align="center">$next$ / $previous$</td>
+<td align="center">之前或之后第一个星期几</td>
+</tr>
+<tr>
+<td align="center">$nextOrSame$ / $previousOrSame$</td>
+<td align="center">之前或之后第一个星期几，包括当前日期</td>
+</tr>
+</tbody>
+</table>
+<p>        如果预定义的 $TemporalAdjuster$ 不能满足需求，我们可以定义更加复杂的操作，即创建自定义的 $TemporalAdjuster$ 。实际上，$TemporalAdjuster$ 接收是一个函数式接口，只声明了一个方法。我们可以将其视为 $UnaryOperator$&lt;$Temporal$&gt; 。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="nd">@FunctionalInterface</span>
+<span class="kd">public</span> <span class="kd">interface</span> <span class="nc">TemporalAdjuster</span> <span class="o">{</span>
+    <span class="n">Temporal</span> <span class="nf">adjustInto</span><span class="o">(</span><span class="n">Temporal</span> <span class="n">temporal</span><span class="o">);</span>
+<span class="o">}</span>
+</code></pre></div><p>        由于该接口为函数式接口，所以我们可以通过<code>Lambda</code>表达式进行传递。实现一个计算下一个工作日的 $TemporalAdjuster$ 的例子如下：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">date</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="na">with</span><span class="o">(</span><span class="n">temporal</span> <span class="o">-&gt;</span> <span class="o">{</span>
+    <span class="n">DayOfWeek</span> <span class="n">dow</span> <span class="o">=</span> <span class="n">DayOfWeek</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">temporal</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">ChronoField</span><span class="o">.</span><span class="na">DAY_OF_WEEK</span><span class="o">));</span>
+    <span class="kt">int</span> <span class="n">dayToAdd</span> <span class="o">=</span> <span class="n">1</span><span class="o">;</span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">dow</span> <span class="o">==</span> <span class="n">DayOfWeek</span><span class="o">.</span><span class="na">FRIDAY</span><span class="o">)</span> <span class="n">dayToAdd</span> <span class="o">=</span> <span class="n">3</span><span class="o">;</span>
+    <span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">dow</span> <span class="o">==</span> <span class="n">DayOfWeek</span><span class="o">.</span><span class="na">SATURDAY</span><span class="o">)</span> <span class="n">dayToAdd</span> <span class="o">=</span> <span class="n">2</span><span class="o">;</span>
+    <span class="k">return</span> <span class="n">temporal</span><span class="o">.</span><span class="na">plus</span><span class="o">(</span><span class="n">dayToAdd</span><span class="o">,</span> <span class="n">ChronoField</span><span class="o">.</span><span class="na">DAYS</span><span class="o">);</span>
+<span class="o">});</span>
+</code></pre></div><p>        $TemporalAdjusters.ofDateAdjuster$ 方法接收一个 $UnaryOperator$&lt;$LocalDate$&gt; 类型的参数，返回一个 $TemporalAdjuster$ 。我们也可以使用该方法利用<code>Lambda</code>表达式创建 $TemporalAdjuster$ 。</p>
+<h2 id="6-datetimeformatter">6. <code>DateTimeFormatter</code></h2>
+<p>        $java.time.format$ 专门用于格式化以及解析日期-时间对象，而 $DateTimeFormatter$ 类是其中最重要的类。所有的 $DateTimeFormatter$ 实例都能用于以一定的格式创建代表特定日期或时间的字符串。此外，在解析过程中也可以通过指定格式的形式使用不同的字符串创建日期。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">LocalDate</span> <span class="n">date</span> <span class="o">=</span> <span class="n">LocalDate</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">2014</span><span class="o">,</span> <span class="n">3</span><span class="o">,</span> <span class="n">18</span><span class="o">);</span>
+<span class="n">String</span> <span class="n">s1</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="na">format</span><span class="o">(</span><span class="n">DateTimeFormatter</span><span class="o">.</span><span class="na">BASIC_ISO_DATE</span><span class="o">);</span> <span class="c1">// 20140318
+</span><span class="c1"></span><span class="n">String</span> <span class="n">s2</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="na">format</span><span class="o">(</span><span class="n">DateTimeFormatter</span><span class="o">.</span><span class="na">ISO_LOCAL_DATE</span><span class="o">);</span> <span class="c1">// 2014-03-18
+</span><span class="c1"></span>
+<span class="n">LocalDate</span> <span class="n">date1</span> <span class="o">=</span> <span class="n">LocalDate</span><span class="o">.</span><span class="na">parse</span><span class="o">(</span><span class="s">&#34;20140318&#34;</span><span class="o">,</span> <span class="n">DateTimeFormatter</span><span class="o">.</span><span class="na">BASIC_ISO_DATE</span><span class="o">);</span>
+<span class="n">LocalDate</span> <span class="n">date2</span> <span class="o">=</span> <span class="n">LocalDate</span><span class="o">.</span><span class="na">parse</span><span class="o">(</span><span class="s">&#34;2014-03-18&#34;</span><span class="o">,</span> <span class="n">DateTimeFormatter</span><span class="o">.</span><span class="na">ISO_LOCAL_DATE</span><span class="o">);</span>
+</code></pre></div><p>        除了使用已经定义好的格式外，通过 $ofPattern$ 方法，我们也可以自定义格式。$ofPattern$ 还提供了一个重载版本，允许我们创建某个 $Locale$ 的格式器。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">DateTimeFormatter</span> <span class="n">formatter</span> <span class="o">=</span> <span class="n">DateTimeFormatter</span><span class="o">.</span><span class="na">ofPattern</span><span class="o">(</span><span class="s">&#34;dd/MM/yyyy&#34;</span><span class="o">);</span>
+<span class="n">DateTimeFormatter</span> <span class="n">italianFormatter</span> <span class="o">=</span> <span class="n">DateTimeFormatter</span><span class="o">.</span><span class="na">ofPattern</span><span class="o">(</span><span class="s">&#34;d. MMMM yyyy&#34;</span><span class="o">,</span> <span class="n">Locale</span><span class="o">.</span><span class="na">ITALIAN</span><span class="o">);</span>
+</code></pre></div><p>        如果需要更加细粒度的控制，$DateTimeFormatter$ 还提供了更复杂的格式器。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">DateTimeFormatter</span> <span class="n">italianFormatter</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DateTimeFormatterBuilder</span><span class="o">()</span>
+                                        <span class="o">.</span><span class="na">appendText</span><span class="o">(</span><span class="n">ChronoField</span><span class="o">.</span><span class="na">DAY_OF_MONTH</span><span class="o">)</span>
+                                        <span class="o">.</span><span class="na">appendLiteral</span><span class="o">(</span><span class="s">&#34;. &#34;</span><span class="o">)</span>
+                                        <span class="o">.</span><span class="na">appendText</span><span class="o">(</span><span class="n">ChronoField</span><span class="o">.</span><span class="na">MONTH_OF_YEAR</span><span class="o">)</span>
+                                        <span class="o">.</span><span class="na">appendLiteral</span><span class="o">(</span><span class="s">&#34; &#34;</span><span class="o">)</span>
+                                        <span class="o">.</span><span class="na">appendText</span><span class="o">(</span><span class="n">ChronoField</span><span class="o">.</span><span class="na">YEAR</span><span class="o">)</span>
+                                        <span class="o">.</span><span class="na">parseCaseInsensitive</span><span class="o">()</span>
+                                        <span class="o">.</span><span class="na">toFormatter</span><span class="o">(</span><span class="n">Locale</span><span class="o">.</span><span class="na">ITALIAN</span><span class="o">);</span>
+</code></pre></div><p>        相较于 $java.util.DateFormat$ ，所有的 $DateTimeFormatter$ 都是线程安全的，所以可以以单例模式创建格式器实例，并在多个线程之间共享。</p>
+<h2 id="7-时区和历法">7. 时区和历法</h2>
+<p>        $java.time.ZoneId$ 类是老版的 $java.util.TimeZone$ 的替代品，与其他日期和时间类一样，它也是无法修改的。$ZoneRules$ 类中包含了 $40$ 个实例，可以通过 $ZoneId.getRules(\ )$ 可以获取指定时区的规则。每个特定的 $ZoneId$ 对象都由一个<code>ID</code>标识。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">ZoneId</span> <span class="n">romeZone</span> <span class="o">=</span> <span class="n">ZoneId</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="s">&#34;Europe/Rome&#34;</span><span class="o">);</span>
+</code></pre></div><p>        <code>Java 8</code>中为 $TimeZone$ 提供了一个新方法 $toZoneId$ ，通过该方法，我们可以将一个老时区对象转换为 $ZoneId$ 。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">ZoneId</span> <span class="n">zoneId</span> <span class="o">=</span> <span class="n">TimeZone</span><span class="o">.</span><span class="na">getDefault</span><span class="o">().</span><span class="na">toZoneId</span><span class="o">();</span>
+</code></pre></div><p>        一旦得到 $ZoneId$ ，我们就可以将其与 $LocalDate$ 、$LocalDateTime$ 或者是 $Instant$ 结合，构造为一个 $ZonedDateTime$ 实例。通过 $ZoneId$ ，我们还可以实现 $LocalDateTime$ 和 $Instant$ 之间的互相转换。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">LocalDate</span> <span class="n">date</span> <span class="o">=</span> <span class="n">LocalDate</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">2014</span><span class="o">,</span> <span class="n">Month</span><span class="o">.</span><span class="na">MARCH</span><span class="o">,</span> <span class="n">18</span><span class="o">);</span>
+<span class="n">ZonedDateTime</span> <span class="n">zdt1</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="na">atStartOfDay</span><span class="o">(</span><span class="n">romeZone</span><span class="o">);</span>
+
+<span class="n">LocalDateTime</span> <span class="n">dateTime</span> <span class="o">=</span> <span class="n">LocalDateTime</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">2014</span><span class="o">,</span> <span class="n">Month</span><span class="o">.</span><span class="na">MARCH</span><span class="o">,</span> <span class="n">18</span><span class="o">,</span> <span class="n">13</span><span class="o">,</span> <span class="n">45</span><span class="o">);</span>
+<span class="n">ZonedDateTime</span> <span class="n">zdt2</span> <span class="o">=</span> <span class="n">dateTime</span><span class="o">.</span><span class="na">atZone</span><span class="o">(</span><span class="n">romeZone</span><span class="o">);</span>
+
+<span class="n">Instant</span> <span class="n">instant</span> <span class="o">=</span> <span class="n">Instant</span><span class="o">.</span><span class="na">now</span><span class="o">();</span>
+<span class="n">ZonedDateTime</span> <span class="n">zdt3</span> <span class="o">=</span> <span class="n">instant</span><span class="o">.</span><span class="na">atZone</span><span class="o">(</span><span class="n">romeZone</span><span class="o">);</span>
+
+<span class="n">Instant</span> <span class="n">instantFromDateTime</span> <span class="o">=</span> <span class="n">dateTime</span><span class="o">.</span><span class="na">toInstant</span><span class="o">(</span><span class="n">romeZone</span><span class="o">);</span>
+<span class="n">LocalDateTime</span> <span class="n">timeFromInstant</span> <span class="o">=</span> <span class="n">LocalDateTime</span><span class="o">.</span><span class="na">ofInstant</span><span class="o">(</span><span class="n">instant</span><span class="o">,</span> <span class="n">romeZone</span><span class="o">);</span>
+</code></pre></div><p>        另一种比较通用的表示时区的方式是利用当前时区和<code>UTC</code>/格林尼治的固定偏差，我们可以通过 $of$ 方式创建。要注意，使用这种方式定义的 $ZoneOffset$ 并未考虑任何日光时的影响，所以在大部分情况下不推荐使用。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">ZoneOffset</span> <span class="n">newYorkOffset</span> <span class="o">=</span> <span class="n">ZoneOffset</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="s">&#34;-05:00&#34;</span><span class="o">);</span>
+</code></pre></div><p>        虽然<code>ISO-8601</code>日历系统是世界文明日历系统的事实标准。但是<code>Java 8</code>中另外还提供了 $4$ 种其他的日历系统，这些日历系统中的每一个都有一个对应的日志类，分别是 $ThaiBuddhistDate$ 、$MinguoDate$ 、$JapaneseDate$ 以及 $HijrahDate$ 。所有这些类以及 $LocalDate$ 都实现了 $ChronoLocalDate$ 接口，能够对公历的日期进行建模。我们可以通过 $from$ 方法从 $LocalDate$ 中创建，或者先创建一个日历系统，接着再创建该日期实例。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">LocalDate</span> <span class="n">date</span> <span class="o">=</span> <span class="n">LocalDate</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">2014</span><span class="o">,</span> <span class="n">Month</span><span class="o">.</span><span class="na">MARCH</span><span class="o">,</span> <span class="n">18</span><span class="o">);</span>
+<span class="n">JapaneseDate</span> <span class="n">japaneseDate</span> <span class="o">=</span> <span class="n">JapaneseDate</span><span class="o">.</span><span class="na">from</span><span class="o">(</span><span class="n">date</span><span class="o">);</span>
+
+<span class="n">Chronology</span> <span class="n">japaneseChronology</span> <span class="o">=</span> <span class="n">Chronology</span><span class="o">.</span><span class="na">ofLocale</span><span class="o">(</span><span class="n">Locale</span><span class="o">.</span><span class="na">JAPAN</span><span class="o">);</span>
+<span class="n">ChronoLocalDate</span> <span class="n">now</span> <span class="o">=</span> <span class="n">japaneseChronology</span><span class="o">.</span><span class="na">dateNow</span><span class="o">();</span>
+</code></pre></div><p>        日期及时间<code>API</code>的设计者建议使用第一种方式进行创建，因为开发者在代码中可能会进行一些假设，但这些假设在不同的日历系统中有可能不成立，比如一个月最多有 $31$ 天，一年有 $12$ 个月等。除非需要将程序的输入或者输出本地化，否则不要使用 $ChronoLocalDate$ 类。</p>
+
+            </div>
+            <div class="meta post-footer"> <span>2021 Feb 18 18:39</span> <a href="/post/java-8%E5%AE%9E%E6%88%98%E6%97%A5%E6%9C%9F%E5%92%8C%E6%97%B6%E9%97%B4api/"><i
+                        class="fas fa-link"></i> link</a></div>
+        </div>
         
         <div class="post">
             
@@ -631,79 +972,6 @@
 
             </div>
             <div class="meta post-footer"> <span>2021 Jan 12 21:13</span> <a href="/post/jvm9%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%E4%B8%8E%E7%BA%BF%E7%A8%8B/"><i
-                        class="fas fa-link"></i> link</a></div>
-        </div>
-        
-        <div class="post">
-            
-            <center>
-                <h1><a href="/post/jvm8%E5%90%8E%E7%AB%AF%E7%BC%96%E8%AF%91%E4%B8%8E%E4%BC%98%E5%8C%96/">JVM（8）：后端编译与优化</a></h1>
-            </center>
-            <div class="post-content">
-                <h2 id="1-即时编译器">1. 即时编译器</h2>
-<p>        目前主流的两款商用<code>Java</code>虚拟机里，<code>Java</code>程序最初都是通过解释器执行的。当虚拟机发现某个方法或者代码块运行频繁，就会把代码认为是热点代码 ( $Hot\ \ Spot\ \ Code$ )，并将这些代码编译为本地机器码，同时进行代码优化。完成这个任务的后端编译器就称为即时编译器。</p>
-<h3 id="11-解释器与编译器">1.1 解释器与编译器</h3>
-<p>        当程序需要迅速启动和执行时，解释器可以省去编译时间立即运行；当程序启动后，越来越多的代码会被编译成本地代码，从而减少解释器带来的中间损耗，获得更快的执行速度。如果程序运行环境中内存限制过大，可以使用解释执行从而节约内存，反之可以使用编译执行提升效率。当编译器采取的优化手段出现罕见陷阱 ( $Uncommon\ \ Trap$ ) 时，可以通过逆优化 ( $Deoptimization$ ) 退回到解释状态执行。<br/>
-        <code>HotSpot</code>虚拟机中内置了两个（或三个）即时编译器，其中两个存在已久的编译器分别称为客户端编译器 ( $Client\ \ Compiler$ ) 和服务端编译器 ( $Server\ \ Compiler$ )，简称为 $C1$ 编译器和 $C2$ 编译器。第三个编译器是<code>JDK 10</code>时出现的，目标是替代 $C2$ 的 $Graal$ 编译器。<br/>
-        在分层编译 ( $Tiered\ \ Compilation$ ) 的工作模式出现前，通常采用解释器与一个编译器直接搭配的方式工作，这时用户也可以通过 $-client$ 和 $-server$ 参数直接运行模式。解释器与编译器搭配使用的方式称为混合模式 ( $Mixed\ \ Mode$ )，也可以通过 $-Xint$ 或者 $-Xcomp$ 强制运行解释模式或者编译模式。<br/>
-        即时编译需要占用程序运行时间，而且编译过程中还需要进行优化。要想达到好的优化效果，解释器需要替编译器收集性能监控信息。当然，这也会影响解释执行的速度。为了寻求启动响应速度与运行效率之间的平衡，<code>HotSpot</code>虚拟机在编译子系统中加入了分层编译，包括：</p>
-<ol>
-<li>第 $0$ 层，程序解释执行，不开启性能监控；</li>
-<li>第 $1$ 层，使用客户端编译器，进行简单优化，不开启性能监控；</li>
-<li>第 $2$ 层，使用客户端编译器，开启方法和回边次数统计等监控；</li>
-<li>第 $3$ 层，使用客户端编译器，开启全部性能监控，除了第 $2$ 层的统计信息外，还会收集分支跳转、虚方法等统计信息；</li>
-<li>第 $4$ 层，使用服务端编译器将字节码编译为本地代码，需要更多的优化，还可能采取一些不可靠的激进优化。</li>
-</ol>
-<p>        实施分层编译后，解释器、客户端编译器、服务端编译器就会同时工作，热点代码可能会被多次编译。使用客户端编译器编译可以获得更高的编译速度，使用服务端编译器可以获得更好的编译质量。</p>
-<h3 id="12-编译对象与触发条件">1.2 编译对象与触发条件</h3>
-<p>        即时编译器的编译目标是热点代码，在这里热点代码主要有两类：</p>
-<ul>
-<li>多次调用的方法</li>
-<li>多次执行的循环体</li>
-</ul>
-<p>        后者主要是解决少次调用方法内存在循环次数较多的循环体的问题，因此这两类热点代码的编译对象都是整个方法体，不同之处在于执行入口点字节码序号 ( $Byte\ \ Code\ \ Index$, $BCI$ )，因为后者的编译发生在方法执行过程中，所以栈中的方法会在执行的过程中被替换，称为栈上替换 ( $On\ \ Stack\ \ Replacement$, $OSR$ )。<br/>
-        判断一段代码是不是热点代码的行为称为热点探测 ( $Hot\ \ Spot\ \ Code\ \ Detection$ )。主流的热点探测方式有两种：</p>
-<ul>
-<li>基于采样 ( $Sample\ \ Based$ ) 的热点探测：通过周期性地检查调用栈顶发现热点代码</li>
-<li>基于计数器 ( $Counter\ \ Based$ ) 的热点探测：为每个方法建立计数器，统计执行次数</li>
-</ul>
-<p>        <code>HotSpot</code>虚拟机中采用的是第二种方法，每个方法有两个计数器：方法调用计数器 ( $Invocation\ \ Counter$ ) 和回边（在循环边界往回跳转）计数器 ( $Back\ \ Edge\ \ Counter$ )。这两个计数器都存在一个阈值，只要超过这个阈值，就认为方法为热点代码。<br/>
-        对于方法调用计数器，在方法被调用时，虚拟机会先检查方法是否已被即时编译，如果没有则递增计数器，超过阈值便提交编译请求。在客户端编译器中，阈值为 $1500$ ；在服务端编译器中，阈值为 $10000$ 。可以通过 $-XX:CompileThreshold$ 设定。默认情况下执行引擎不会等待编译请求完成，而是会继续解释执行字节码，直到编译完成。方法调用计数器存储的并不是方法被调用的次数，而是一个相对频率。如果在一定时间内方法调用次数没有超过阈值，那么计数器数值就会减半，称为热度衰减 ( $Counter\ \ Decay$ )，衰减的周期称为半衰周期 ( $Counter\ \ Half\ \ Life\ \ Time$ )。虚拟机会在垃圾收集的过程中顺便执行热度衰减操作，可以通过 $-XX:-UserCounterDecay$ 来关闭热度衰减，或者通过 $-XX:CounterHalfLifeTime$ 设置半衰周期，单位是秒。<br/>
-        对于回边计数器，在遇到字节码的控制流向后跳转指令时就递增，同样在默认情况下不会同步编译请求。回边计数器不存在热度衰减的过程，也就是说统计的是方法循环执行的绝对次数。当回边计数器溢出时，还会将方法调用计数器的值也调整为溢出，从而使得下次进入该方法时执行标准编译过程。虽然<code>HotSpot</code>虚拟机中提供了 $-XX:BackEdgeThreshold$ 参数，但是实际上并没有作用。我们通过另一个参数 $-XX:OnStackReplacePercentage$ ( $OSR$ 比率 ) 间接调整回边计数器阈值，计算公式有两种：</p>
-<ul>
-<li>客户端模式下：方法调用计数器阈值 $\times\ \ OSR$ 比率 $/\ \ 100$ ，在客户端模式下 $OSR$ 比率默认为 $933$ ，默认情况下回边计数器阈值为 $13995$ ；</li>
-<li>服务端模式下：方法调用计数器阈值 $\times\ \ (OSR$ 比率 $-$ 解释器监控比率 ( $-XX:InterpreterProfilePercentage$ ) $)\ \ /\ \ 100$ ，在服务端模式下 $OSR$ 比率默认为 $140$ ，解释器监控比率默认为 $33$ ，默认情况下回边计数器阈值为 $10700$ 。</li>
-</ul>
-<h3 id="13-编译过程">1.3 编译过程</h3>
-<p>        默认情况下，解释器不会同步编译请求，用户可以通过 $-XX:-BackgroundCompilation$ 禁止。对于客户端编译器来说，后台编译是一个三段式的编译过程：</p>
-<ul>
-<li>第一阶段，前端将字节码构造成高级中间代码 ( $High-Level\ \ Intermediate\ \ Representation$, $HIR$ ) ，中间代码使用静态单分配 ( $Static\ \ Single\ \ Assignment$, $SSA$ ) 的形式代表代码值，这个过程会进行一些基础优化如方法内联、常量传播等；</li>
-<li>第二阶段，完成另一些优化如消除空值检查和范围检查等，之后后端会从 $HIR$ 中产生低级中间代码 ( $Low-Level\ \ Intermediate\ \ Representation$, $LIR$ )；</li>
-<li>第三阶段，使用线性扫描算法 ( $Linear\ \ Scan\ \ Register\ \ Allocation$ ) 在 $LIR$ 上分配寄存器，这个过程会进行窥孔 ( $Peephole$ ) 优化，最后产生机器码。</li>
-</ul>
-<p>        服务端编译使用的是经过针对性调整后的可以容忍很高优化复杂度的高级编译器，执行大部分优化动作如无用代码消除、循环展开、循环外提、消除公共表达式、常量传播、基本块重排等，以及一些与<code>Java</code>相关的优化技术如消除范围检查和空值检查等，此外还有可能根据性能监控信息进行一些激进优化，如守护内联、分支频率预测等。服务端编译采用的寄存器分配器是一个全局图着色分配器，可以充分利用某些处理器架构上的大寄存器集合。因此，虽然服务端编译的速度很慢，但是能够产生可以大幅减少执行时间的代码，从而抵消掉编译开销，这也使得一些非服务端应用选择使用服务端模式运行。</p>
-<h2 id="2-提前编译器">2. 提前编译器</h2>
-<p>        提前编译器存在两条分支，一条是在程序运行前将程序代码编译成机器码，另一条是把原本即时编译器在运行时要做的工作提前做好并保存下来。<code>Java</code>的即时编译需要占用程序运行时间和运算资源，而提前编译可以在一定程度上减少即时编译的工作量，这也是提前编译的目的之一。因为不需要考虑执行时间和资源消耗等问题，所以提前编译可以使用重负载的优化手段。但是即时编译相较于提前编译还是存在着天然优势：</p>
-<ul>
-<li>性能分析制导优化 ( $Profile-Guided\ \ Optimization$, $PGO$ )：通过解释器收集性能监控信息，从而动态获取热点代码，这是提前编译无法做到的。在获得热点代码之后，可以对它们进行集中优化，分配更好的资源；</li>
-<li>激进预测性优化 ( $Aggressive\ \ Speculative\ \ Optimization$ )：静态优化必须保证优化后所有程序的外部可见影响与优化前等效，然而即时编译可以利用性能监控信息进行一些激进优化，如果优化失败则进行逆优化；</li>
-<li>链接时优化 ( $Link-Time\ \ Optimization$, $LTO$ )：<code>Java</code>是一门动态链接语言，而提前编译无法解决动态链接库之间的边界隔阂问题，还会产生优化问题。</li>
-</ul>
-<h2 id="3-编译器优化技术">3. 编译器优化技术</h2>
-<h3 id="31-方法内联">3.1 方法内联</h3>
-<p>        方法内联即将方法实现复制到调用方法中，从而避免方法调用。但是<code>JVM</code>中，只有 $invokespecial$ 和 $invokestatic$ 调用的方法才会在编译期进行解析，其他方法都必须在运行时进行多态选择，即<code>Java</code>中默认的实例方法都是虚方法。为了解决虚方法带来的问题，<code>JVM</code>引入了类型继承关系分析 ( $Class\ \ Hierarchy\ \ Analysis$, $CHA$ ) 技术，用于确定目前已加载的类中某个接口是否存在多于一种方式的实现、某个类是否存在子类、子类是否存在方法覆盖等。如果方法只有一个版本，那么就可以假设应用程序的全貌就是现在这样，从而进行内联，这种方式称为守护内联 ( $Guarded\ \ Inlining$ )。当之前的条件假设不成立时，虚拟机加载到令方法接收者的继承关系发生变化的类，也就是守护内联失败时，就必须抛弃已经编译的代码，退回解释状态。如果方法存在多个版本，那么即时编译器会采用内联缓存 ( $Inling\ \ Cache$ ) 的方式减少开销，即记录方法接收者的版本信息，并在之后比较版本信息，如果相同，则为单态内联缓存 ( $Monomorphic\ \ Inline\ \ Cache$ )，比普通方法调用的开销要小一些，因为不需要查询虚方法表；如果不同，则退化为超多态内联缓存 ( $Megamorphic\ \ Inline\ \ Cache$ )，相当于普通调用的方法开销。</p>
-<h3 id="32-逃逸分析">3.2 逃逸分析</h3>
-<p>        逃逸分析 ( $Escape\ \ Analysis$ ) 并不是直接优化代码的手段，而是为其他优化措施提供依据的分析技术。基本原理是：分析对象动态作用域，对象在方法内被定义后又被外部方法引用，称为方法逃逸；被外部线程访问，称为线程逃逸。对象的逃逸程度按从低到高排为不逃逸、方法逃逸和线程逃逸。对于不逃逸或者逃逸程度低的对象，可以进行优化：</p>
-<ul>
-<li>栈上分配 ( $Stack\ \ Allocations$ )：对于非线程逃逸对象，可以分配在栈上；</li>
-<li>标量替换 ( $Scalar\ \ Replacement$ )：将一个聚合量拆为多个原始类型的过程称为标量替换。对于不逃逸对象，可以将它们的创建过程改为创建多个原始类型变量，从而方便后续优化；</li>
-<li>同步消除 ( $Synchronization\ \ Elimination$ )：对于非线程逃逸对象，可以消除其同步措施。</li>
-</ul>
-<h3 id="33-数组边界检查消除">3.3 数组边界检查消除</h3>
-<p>        对于<code>JVM</code>的执行子系统来说，每次数组元素的读写都有一次隐式地边界检查。如果可以在编译期根据数据流分析确定数组长度，并对一些代码进行下标判断，就可以提前发现其是否越界，从而避免了每次执行时的判断，这个过程称为数组边界检查消除。</p>
-
-            </div>
-            <div class="meta post-footer"> <span>2021 Jan 9 20:58</span> <a href="/post/jvm8%E5%90%8E%E7%AB%AF%E7%BC%96%E8%AF%91%E4%B8%8E%E4%BC%98%E5%8C%96/"><i
                         class="fas fa-link"></i> link</a></div>
         </div>
         
