@@ -92,6 +92,42 @@
     
     
     <div class="list-item">
+        <a class="entry-title" href="/post/mysql%E7%B4%A2%E5%BC%95%E4%BB%8B%E7%BB%8D/">MySQL索引介绍</a>
+        
+        
+        <p>MySQL索引简单介绍</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2021 Mar 04 22:16
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: DBS
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
+        <a class="entry-title" href="/post/mysql%E6%9E%B6%E6%9E%84%E4%BB%8B%E7%BB%8D/">MySQL架构介绍</a>
+        
+        
+        <p>MySQL架构简单介绍</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2021 Mar 04 22:16
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: DBS
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
         <a class="entry-title" href="/post/java-8%E5%AE%9E%E6%88%98%E6%97%A5%E6%9C%9F%E5%92%8C%E6%97%B6%E9%97%B4api/">Java 8实战：日期和时间API</a>
         
         
@@ -145,42 +181,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="/post/jvm9%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%E4%B8%8E%E7%BA%BF%E7%A8%8B/">JVM（9）：内存模型与线程</a>
-        
-        
-        <p>深入理解Java虚拟机（9）</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2021 Jan 12 21:13
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: JVM
-            
-        </div>
-    </div>
-    
-    <div class="list-item">
-        <a class="entry-title" href="/post/jvm8%E5%90%8E%E7%AB%AF%E7%BC%96%E8%AF%91%E4%B8%8E%E4%BC%98%E5%8C%96/">JVM（8）：后端编译与优化</a>
-        
-        
-        <p>深入理解Java虚拟机（8）</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2021 Jan 09 20:58
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: JVM
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -189,6 +189,199 @@
     <div class="section-title">μblog</div>
     <div class="posts">
         
+        
+        <div class="post">
+            
+            <center>
+                <h1><a href="/post/mysql%E7%B4%A2%E5%BC%95%E4%BB%8B%E7%BB%8D/">MySQL索引介绍</a></h1>
+            </center>
+            <div class="post-content">
+                <p>        索引 ( 在<code>MySQL</code>中也叫做<strong>键</strong> ( $key$ )) 是存储引擎用于快速找到记录的一种数据结构。索引优化是查询性能优化最有效的手段。</p>
+<h2 id="1-基础">1. 基础</h2>
+<p>        <code>MySQL</code>中，索引引擎首先在索引中找到对应值，然后根据匹配的索引记录找到对应的数据行。索引可以包含一个或多个列的值。如果索引包含多个列，那么列的顺序也十分重要，因为<code>MySQL</code>只能高效地使用索引的最左前缀列。<br/></p>
+<h3 id="11-类型">1.1 类型</h3>
+<p>        索引有很多类型。在<code>MySQL</code>中，索引是在存储引擎层而不是服务层实现的，所以并没有统一的索引标准。</p>
+<h4 id="111-b-tree">1.1.1 <code>B-Tree</code></h4>
+<p>        如果没有特别指明类型，那么通常所说的索引都是<code>B-Tree</code>索引，顾名思义，即使用<code>B-Tree</code>数据结构来存储数据。大多数<code>MySQL</code>引擎都支持这种索引。不过，底层的存储引擎也可能使用不同的存储结构，例如<code>InnoDB</code>使用的是<code>B+Tree</code>。存储引擎以不同的方式使用<code>B-Tree</code>索引，性能也各有不同，各有优劣。例如，<code>MyISAM</code>使用前缀压缩技术使得索引更小，但<code>InnoDB</code>则按照原数据格式进行存储。再如<code>MyISAM</code>索引通过数据的物理位置引用被索引的行，而<code>InnoDB</code>则根据主键引用被索引的行。<br/>
+        <code>B-Tree</code>通常意味着所有的值都是按顺序存储的，并且每一个叶子页到根的距离相同。<code>B-Tree</code>索引能够加快访问数据的速度，因为存储引擎不再需要进行全表扫描来获取需要的数据，取而代之的是从索引的根节点开始进行搜索。叶子节点比较特别，它们的指针指向的是被索引的数据，而不是其他的节点页。<br/>
+        <code>B-Tree</code>索引适用于全键值、键值范围或键值前缀查找。其中键值前缀查找只适用于根据最左前缀的查找。上述的索引对如下类型的查询有效：</p>
+<ul>
+<li>全值匹配</li>
+<li>匹配最左前缀</li>
+<li>匹配列前缀</li>
+<li>匹配范围值</li>
+<li>精确匹配某一列并范围匹配另外一列</li>
+<li>只访问索引的查询</li>
+</ul>
+<p>        因为索引树的节点是有序的，所以除了按值查找外，索引还可以用于查询中的 $ORDER\ \ BY$ 操作。一般来说，如果<code>B-Tree</code>可以按照某种方式查找到值，那么也可以按照这种方式用于排序。</p>
+<h4 id="12-哈希索引">1.2 哈希索引</h4>
+<p>        <strong>哈希索引</strong> ( $hash\ \ index$ ) 基于哈希表实现，只有精确匹配索引所有列的查询才有效。对于每一行数据，存储引擎都会对所有的索引列计算一个哈希码，并存储在索引中，同时在哈希表中保存指向每个数据行的指针。在<code>MySQL</code>中，只有<code>Memory</code>引擎显式支持哈希索引，同时也是默认索引类型。如果多个列的哈希值相同，索引会以链表的方式存放多个记录指针到同一个哈希条目中。<br/>
+        <code>InnoDB</code>引擎有一个特殊的功能叫做<strong>自适应哈希索引</strong> ( $adaptive\ \ hash\ \ index$ )。当<code>InnoDB</code>注意到某些索引值被使用得非常频繁时，它会在内存中基于<code>B-Tree</code>索引之上再创建一个哈希索引。<br/>
+        如果存储引擎不支持哈希索引，可以模拟创建哈希索引，即增加一列，存储哈希值。<code>MySQL</code>提供了 $CRC32$ 函数用于计算哈希值，通过设置触发器，可以在每次插入时自动插入索引。不要使用 $SHA1$ 和 $MD5$ 作为哈希函数，因为这两个函数计算出来的哈希值是非常长的字符串。如果数据表非常大，$CRC32$ 会出现大量哈希冲突，这时也可以考虑自己实现哈希函数。</p>
+<h2 id="2-优点">2. 优点</h2>
+<p>        索引可以让服务器快速地定位到表的指定位置，但并非唯一作用。最常见的<code>B-Tree</code>索引，按照顺序存储数据，可以用于 $ORDER\ \ BY$ 和 $GROUP\ \ BY$ 操作。利用数据有序的特点，索引有如下三个优点：</p>
+<ul>
+<li>减少了服务器需要扫描的数据量；</li>
+<li>帮助服务器避免排序和临时表；</li>
+<li>将随机<code>I/O</code>变为顺序<code>I/O</code>。</li>
+</ul>
+<p>        但是索引并不总是最好的工具。对于非常小的表，大部分情况下简单的全表扫描更加高效。而对于中大型表，索引就非常有效。但对于特大型表，建立和使用索引的代价将随之增长，这时候就需要一种可以直接区分出查询需要的数据的技术，例如分区技术。</p>
+<h2 id="3-索引策略">3. 索引策略</h2>
+<h3 id="31-独立的列">3.1 独立的列</h3>
+<p>        如果查询中的列不是独立的，<code>MySQL</code>就不会使用索引。独立的列是指索引列不能是表达式的一部分，也不能是函数的参数。例如：</p>
+<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="n">actor_id</span> <span class="k">FROM</span> <span class="n">sakila</span><span class="p">.</span><span class="n">actor</span> <span class="k">WHERE</span> <span class="n">actor_id</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span>
+</code></pre></div><h3 id="32-前缀索引和索引选择性">3.2 前缀索引和索引选择性</h3>
+<p>        有时候需要索引很长的字符列，这会让索引变得大且慢。除了之前提到的模拟哈希索引外，也可以索引开始的部分字符，这样可以大大节约索引空间，但是也会降低选择性。选择性指的是不重复的值和记录总数的比值，越高代表查询效率越高。一般情况下某个列前缀的选择性也是足够高的，足以满足查询性能。对于 $BLOB$ 、$TEXT$ 或者很长的 $VARCHAR$ 类型的列，必须使用前缀索引，因为<code>MySQL</code>不允许索引这些列的完整长度。<br/>
+        前缀索引是一种能使索引更小、更快的有效方法，但另一方面也有其缺点：<code>MySQL</code>无法使用前缀索引做 $ORDER\ \ BY$ 和 $GROUP\ \ BY$ ，也无法使用前缀索引做覆盖扫描。<br/>
+        除了前缀索引外，有时候后缀索引也有用途。<code>MySQL</code>原生不支持反向索引，但是可以把字符串反转后存储，并基于此建立前缀索引。</p>
+<h3 id="33-多列索引">3.3 多列索引</h3>
+<p>        在创建索引的过程中一个常见的错误就是，为每个列创建独立的索引，或者按照错误的顺序创建多列索引。在多个列上建立独立的单列索引大部分情况下并不能提高<code>MySQL</code>的查询性能。<code>MySQL 5.0</code>引入了一种叫<strong>索引合并</strong> ( $index\ \ merge$ ) 的策略，一定程度上可以使用表上的多个单列索引来定位指定的行。索引合并策略有时候是一种优化的结果，但实际上更多时候说明了表上的索引建的很糟糕：</p>
+<ul>
+<li>当出现服务器对多个索引做相交操作时，通常意味着需要一个包含所有相关列的多列索引，而不是多个独立的单列索引；</li>
+<li>当服务器需要对多个索引做联合操作时，通常需要耗费大量<code>CPU</code>和内存资源在算法的缓存、排序和合并操作上；</li>
+<li>优化器不会把这些计算到查询成本中，优化器只关心随即页面读取，从而导致查询成本被低估。</li>
+</ul>
+<h3 id="34-索引列顺序">3.4 索引列顺序</h3>
+<p>        索引列的正确顺序依赖于使用该索引的查询，并且同时需要考虑如何更好地满足排序和分组的需要。在一个多列<code>B-Tree</code>索引中，索引列的顺序意味着索引首先按照最左列进行排序，其次是第二列，等等。所以多列索引的列顺序至关重要。当不需要考虑排序和分组时，将选择性最高的列放在前面通常是很好的，这时候索引的作用只是优化 $WHERE$ 条件的查找。</p>
+<h3 id="35-聚簇索引">3.5 聚簇索引</h3>
+<p>        聚簇索引并不是一种单独的索引类型，而是一种数据存储方式。具体的细节依赖于其实现方式，但<code>InnoDB</code>的聚簇索引实际上在同一个结构中保存了<code>B-Tree</code>索引和数据行。当表有聚簇索引时，它的数据行实际上存放在索引的<strong>叶子页</strong> ( $leaf\ \ page$ ) 中。聚簇表示数据行和相邻的键值紧凑地存储在一起。因为无法同时把数据行存放在两个不同的地方，所以一个表只能有一个聚簇索引。因为是存储引擎负责实现索引，因此不是所有的存储引擎都支持聚簇索引。<br/>
+        <code>InnoDB</code>通过主键聚集数据，也就是选择主键列作为聚簇索引。如果没有定义主键，则会选择一个唯一的非空索引替代。如果没有这样的索引，则会隐式定义一个主键作为聚簇索引。<code>InnoDB</code>只聚集在同一个页面中的记录，包含相邻键值的页面可能会相距甚远。<br/>
+        聚集的数据有一些重要的优点：</p>
+<ul>
+<li>可以把相关的数据保存在一起；</li>
+<li>数据访问更快；</li>
+<li>使用覆盖索引扫描的查询可以直接使用页节点中的主键值。</li>
+</ul>
+<p>        同时也带了一些缺点：</p>
+<ul>
+<li>聚簇数据最大限度地提高了<code>I/O</code>密集型应用的性能，但如果数据全部都放在内存中，则访问的顺序就没那么重要了，聚簇索引也就没什么优势了；</li>
+<li>插入速度严重依赖于插入顺序。按照主键的顺序插入是加载数据到<code>InnoDB</code>表中速度最快的方式。但如果不是按照主键顺序加载数据，那么在加载完成后最好使用 $OPTIMIZE\ \ TABLE$ 命令重新组织一下表；</li>
+<li>更新聚簇索引列的代价很高，因为会强制<code>InnoDB</code>将每个被更新的行移动到新的位置；</li>
+<li>基于聚簇索引的表在插入新行，或者主键被更新导致需要移动行的时候，可能面临<strong>页分裂</strong> ( $page\ \ split$ ) 问题。页分裂会导致表占用更多的磁盘空间；</li>
+<li>聚簇索引可能导致全表扫描变慢，尤其是行比较稀疏，或者由于页分裂导致数据存储不连续的时候；</li>
+<li>二级索引 ( 非聚簇索引 ) 可能比想象的要更大，因为在二级索引的叶子节点包含了引用行的主键列；</li>
+<li>二级索引访问需要两次索引查找。因为<code>InnoDB</code>二级索引叶子节点保存的是行的主键值，所以需要再次查找聚簇索引。</li>
+</ul>
+<p>        如果正在使用的<code>InnoDB</code>表没有什么数据需要聚集，那么可以定义一个<strong>代理键</strong> ( $surrogate\ \ key$ ) 作为主键，这种主键的数据应该和应用无关，最简单的方法是使用 $AUTO_-INCREMENT$ 自增列。这样可以保证数据行是按顺序写入，对于根据主键做关联操作的性能也会更好。<br/>
+        最好避免随机的 ( 不连续且值的分布范围非常大 ) 的聚簇索引，特别是对于<code>I/O</code>密集型的应用，例如使用<code>UUID</code>作为聚簇索引会很糟糕，因为它使得索引的插入变得随机。在把随机值插入聚簇索引后，也许还需要做一次 $OPTIMIZE\ \ TABLE$ 来重建表并优化页的填充。</p>
+<h3 id="36-覆盖索引">3.6 覆盖索引</h3>
+<p>        通常都会根据 $WHERE$ 条件来创建合适的索引，不过这只是索引优化的一个方面。<code>MySQL</code>也可以使用索引来直接获取列的数据，这样就不再需要读取数据行。如果一个索引包含 ( 或者说覆盖 ) 所有需要查询的字段的值，我们就称之为”覆盖索引“。并非所有类型的索引都能称为覆盖索引，覆盖索引必须要存储索引列的值，而哈希索引、空间索引和全文索引等都不存储索引列的值。</p>
+<h3 id="37-排序">3.7 排序</h3>
+<p>        <code>MySQL</code>有两种方式可以生成有序的结果：通过排序操作；或者按索引顺序扫描；如果 $EXPLAIN$ 出来的 $type$ 列的值为 $index$ ，说明使用了索引扫描来做排序。如果索引不能覆盖查询所需的全部列，就不得不每扫描一条索引记录就回表查询依次对应的行，这基本上都是随机<code>I/O</code>。所以，如果可能的话，设计索引时应该尽可能地同时满足这两种任务。<br/>
+        只有当索引的列顺序和 $ORDER\ \ BY$ 子句的顺序完全一致，并且所有列的排序方向都一样时，<code>MySQL</code>才能使用索引来对结果做排序。如果查询需要关联多张表，则只有当 $ORDER\ \ BY$ 子句引用的字段全部为第一个表时，才能使用索引做排序。</p>
+<h3 id="38-压缩索引">3.8 压缩索引</h3>
+<p>        <code>MyISAM</code>使用前缀压缩来减少索引的大小，从而让更多的索引可以放入内存中，这在某些情况下能极大地提高性能。默认只压缩字符串，但通过参数设置也可以对整数进行压缩。具体的压缩方法是：先完全保存索引块中的第一个值，然后将其他值和第一个值进行比较得到相同前缀的字节数和剩余的不同后缀部分，把这部分存储起来即可。例如索引块第一个值为 $perform$ ，第二个值为 $performance$ ，那么第二个值得前缀压缩后会被存储为类似于 $7,ance$ 的形式。指针也是采用类似的压缩方式。<br/>
+        压缩快使用更少的空间，代价是某些操作可能更慢，因为压缩值要依赖于之前的值，所以不能简单的使用二分查找等算法。对于<code>CPU</code>密集型应用，因为扫描需要随机查找，压缩索引会使得查找变慢。</p>
+<h3 id="39-冗余和重复索引">3.9 冗余和重复索引</h3>
+<p>        <code>MySQL</code>允许在相同列上创建多个索引，无论是有意的还是无意的。<code>MySQL</code>需要单独维护重复的索引，并且优化器在优化查询的时候也需要逐个地进行考虑，这会影响性能。重复索引是指在相同的列上按照相同的顺序创建的相同类型的索引。应该避免这样的重复索引，发现以后也应该立即移除。冗余索引和重复索引有些不同，例如创建了索引 $(A,B)$ ，再创建索引 $(A)$ 就是冗余索引；但是如果再创建索引 $(B,A)$ ，就不是冗余索引。大多数情况下都不需要冗余索引，应该尽量扩展已有的索引而不是创建新索引。但也有时候出于性能方面的考虑需要冗余索引，因为扩展已有的索引会导致其变得太大，从而影响其他使用该索引的查询的性能。</p>
+<h3 id="310-索引和锁">3.10 索引和锁</h3>
+<p>        索引可以让查询锁定更少的行。如果查询从不访问那些不需要的行，那么就会锁定更少的行。虽然<code>InnoDB</code>的行锁效率很高，内存使用也很少，但是锁定行的时候仍然会带来额外开销；其次，锁定超过需要的行会增加锁竞争并减少并发性。</p>
+
+            </div>
+            <div class="meta post-footer"> <span>2021 Mar 4 22:16</span> <a href="/post/mysql%E7%B4%A2%E5%BC%95%E4%BB%8B%E7%BB%8D/"><i
+                        class="fas fa-link"></i> link</a></div>
+        </div>
+        
+        <div class="post">
+            
+            <center>
+                <h1><a href="/post/mysql%E6%9E%B6%E6%9E%84%E4%BB%8B%E7%BB%8D/">MySQL架构介绍</a></h1>
+            </center>
+            <div class="post-content">
+                <h2 id="1-mysql逻辑架构">1. <code>MySQL</code>逻辑架构</h2>
+<p><img src="/image/2021-03-04-01.png" alt="MySQL服务器逻辑架构图"></p>
+<ul>
+<li>最上层服务并不是<code>MySQL</code>独有，大多数基于网络的客户端/服务器的工具或者服务都有类似的架构，比如连接处理、授权认证、安全等；</li>
+<li>第二层架构是<code>MySQL</code>比较有意思的部分。大多数<code>MySQL</code>的核心服务功能都在这一层，包括查询解析、分析、优化、缓存以及所有的内置函数（例如，日期、时间、数学和加密函数），所有跨存储引擎的功能都在这一层实现：存储过程、触发器、视图等；</li>
+<li>第三层包含了存储引擎。存储引擎负责<code>MySQL</code>中数据的存储和提取。存储引擎多种多样，服务器通过<code>API</code>与存储引擎进行通信。这些接口屏蔽了不同存储引擎之间的差异，使得这些差异对上层的查询过程透明。存储引擎<code>API</code>包含了几十个底层函数，用于执行诸如“开始一个事务”或者“根据主键提取一行记录”等操作。但存储引擎不会去解析<code>SQL</code> ( <code>InnoDB</code>会解析外键定义 ) ，不同存储引擎之间也不会相互通信，而只是简单地响应上层服务器的请求。</li>
+</ul>
+<h3 id="11-连接管理与安全性">1.1 连接管理与安全性</h3>
+<p>        每个客户端连接都会在服务器进程中拥有一个线程，这个连接的查询只会在这个单独的线程中执行，该线程只能轮流在某个<code>CPU</code>核心或者<code>CPU</code>中运行。服务器会负责缓存线程，因此不需要为每一个新建的连接创建或者销毁线程。在连接建立后，服务器会验证客户端是否具有执行某个特定查询的权限。</p>
+<h3 id="12-优化与执行">1.2 优化与执行</h3>
+<p>        <code>MySQL</code>会解析查询，并创建内部数据结构（解析树），然后对其进行各种优化，包括重写查询、决定表的读取顺序，以及选择合适的索引等。用户可以通过特殊的关键字提示优化器，影响它的决策过程。也可以请求优化器解释优化过程的各个因素，使用户可以知道服务器是如何进行优化决策的，并提供一个参考基准。<br/>
+        对于 $SELECT$ 语句，在解析查询之前，服务器会先检查查询缓存 ( $Query\ \ Cache$ )，如果能够在其中找到对应的查询，服务器就不必再执行查询解析、优化和执行的整个过程，而是直接返回查询缓存中的结果集。</p>
+<h2 id="2-并发控制">2. 并发控制</h2>
+<p>        在实际的数据库系统中，每时每刻都在发生锁定，当某个用户在修改某一部分数据时，<code>MySQL</code>会通过锁定防止其他用户读取统一数据。大多数时候，<code>MySQL</code>的内部管理都是透明的。<br/>
+        所谓的锁策略，就是在锁的开销和数据的安全性之间寻求平衡，这种平衡当然也会影响到性能。大多数商业数据库系统没有提供更多的选择，一般都是在表上施加<strong>行级锁</strong> ( $row-level\ \ lock$ )，并以各种复杂的方式来实现，以便在锁比较多的情况下尽可能地提供更好的性能。而<code>MySQL</code>则提供了多种选择。每种<code>MySQL</code>存储引擎都可以实现自己的锁策略和锁粒度。在存储引擎的设计中，锁管理是个非常重要的决定。将锁粒度固定在某个级别，可以为某些特定的应用场景提供更好的性能，但同时却会失去对另外一些应用场景的良好支持。好在<code>MySQL</code>支持多个存储引擎的架构，所以不需要单一的通用解决方案。</p>
+<ul>
+<li><strong>表锁</strong> ( $table\ \ lock$ )：表锁是<code>MySQL</code>中最基本的锁策略，并且是开销最小的策略，它会锁定整张表。一个用户在对表进行写操作（插入、删除、更新等）前，需要先获得写锁，这会阻塞其他用户对该表的所有读写操作。只有没有写锁时，其他的读取的用户才能获得读锁，读锁之间是不相互阻塞的。尽管存储引擎可以管理自己的锁，但<code>MySQL</code>本身还是会使用各种有效的表锁来实现不同的目的。例如，服务器会为诸如 $ALTER\ \ TABLE$ 之类的语句使用表锁，而忽略存储引擎锁机制；</li>
+<li><strong>行级锁</strong> ( $row\ \ lock$ )：行级锁可以最大程度地支持并发处理（同时也带来了最大的锁开销）。众所周知，在<code>InnoDB</code>和<code>XtraDB</code>，以及其他一些存储引擎中实现了行级锁。行级锁只在存储引擎层实现，而<code>MySQL</code>服务器层没有实现。</li>
+</ul>
+<h2 id="3-事务">3. 事务</h2>
+<p>        事务就是一组原子性的<code>SQL</code>查询，或者说一个独立的工作单元。如果数据库引擎能够成功地对数据库应用该组查询的全部语句，那么就执行该组查询。</p>
+<ul>
+<li><strong>原子性</strong> ( $atomicity$ )：一个事务必须被视为一个不可分割的最小工作单元；</li>
+<li><strong>一致性</strong> ( $consistency$ )：数据库总是从一个一致性的状态转换到另外一个一致性的状态；</li>
+<li><strong>隔离性</strong> ( $isolation$ )：一个事务所做的修改在最终提交以前，对其他事务是不可见的；</li>
+<li><strong>持久性</strong> ( $durability$ )：一旦事务提交，其所做的修改就会永久保存到数据库中。</li>
+</ul>
+<p>        一个运行良好的事务处理系统，必须满足<code>ACID</code>特性。但在应用逻辑中，要想实现这一点很困难，甚至可以说是不可能完成的任务。一个兼容<code>ACID</code>的数据库系统，需要做很多复杂但可能用户并没有觉察到的工作。</p>
+<h3 id="31-隔离级别">3.1 隔离级别</h3>
+<ul>
+<li><code>READ UNCOMMITTED</code> ( <strong>未提交读</strong> )：事务中的修改，即使没有提交，对其他事务也都是可见的。事务读取未提交的数据称为<strong>脏读</strong> ( $Dirty\ \ Read$ )；</li>
+<li><code>READ COMMITTED</code> ( <strong>提交读</strong> )：大多数数据库系统的默认隔离级别都是提交读，但<code>MySQL</code>不是。一个事务开始时，只能看到已经提交的事务所做的修改。这个级别有时候也叫做<em><strong>不可重复读</strong></em> ( $nonrepeatable\ \ read$ )，因为两次执行同样的查询，可能会得到不一样的结果；</li>
+<li><code>REPEATABLE READ</code> ( <strong>可重复读</strong> )：该级别解决了脏读问题，保证了在同一个事务中多次读取同样记录的结果是一致的。但是理论上，还是无法解决<strong>幻读</strong> ( $Phantom\ \ Read$ ) 问题。幻读指的是当某个事物在读取某个范围内的记录时，另外一个事务又在该范围内插入了新的记录。可重复读是<code>MySQL</code>的默认事务隔离级别；</li>
+<li><code>SERIALIZABLE</code> ( <strong>可串行化</strong> )：通过强制事务串行执行，可以避免幻读问题。但是由于会在读取的每一行数据上都加锁，所以可能导致大量的超时和锁竞争问题。</li>
+</ul>
+<h3 id="32-死锁">3.2 死锁</h3>
+<p>        为了解决死锁问题，数据库系统实现了各种死锁检测和死锁超时机制。越复杂的系统，比如<code>InnoDB</code>存储引擎，越能检测到死锁的循环依赖，并立即返回一个错误。还有一种解决方式，就是当查询的时间达到等待超时的设定后放弃锁请求，这种方式通常来说不太好。<code>InnoDB</code>目前处理死锁的方法是，将持有最少行级排他锁的事务进行回滚。<br/>
+        锁的行为和顺序是和存储引擎相关的。以同样的顺序执行语句，有些存储引擎会产生死锁，有些则不会。死锁的产生有双重原因：有些是因为真正的数据冲突，这种情况通常很难避免，但有些完全是由于存储引擎的实现方式导致的。</p>
+<h3 id="33-事务日志">3.3 事务日志</h3>
+<p>        使用事务日志，存储引擎在修改表的数据时只需要修改其内存拷贝，再把该修改行为记录到持久在硬盘上的事务日志中，而不用每次都将修改的数据本身持久到硬盘。事务日志采用的是追加的方式，因此写日志的操作是磁盘上一小块区域内的顺序<code>I/O</code>，而不像随机<code>I/O</code>需要在磁盘的多个地方移动磁头，所以采用事务日志的方式相对来说要快得多。事务日志持久后，内存中被修改的数据在后台可以慢慢地刷回到磁盘。目前大多数存储引擎都是这样实现的，我们通常称之为<strong>预写式日志</strong> ( $Write-Ahead\ \ Logging$ )，修改数据需要写两次磁盘。</p>
+<h3 id="34-mysql中的事务">3.4 <code>MySQL</code>中的事务</h3>
+<p>        <code>MySQL</code>提供了两种事务型的存储引擎：<code>InnoDB</code>和<code>NDB Cluster</code>。另外还有一些第三方存储引擎也支持事务，比较知名的包括<code>XtraDB</code>和<code>PBXT</code>。<br/>
+        <code>MySQL</code>默认采用<strong>自动提交</strong> ( $AUTOCOMMIT$ ) 模式，如果不是显式开始一个事务，则每个查询都被当做一个事务执行提交操作。通过$SET\ \ AUTOCOMMIT$ ，可以启用或者禁用自动提交模式。禁用之后，只有显式地执行提交或者回滚操作，当前事务才会结束。但对于非事务型的表，比如<code>MyISAM</code>或者内存表，不会有任何影响。另外还有一些命令，在执行之前会强制执行<code>COMMIT</code>提交当前的活动事务，比如 $ALTER\ \ TABLE$ 。<br/>
+        <code>MySQL</code>可以通过执行 $SET\ \ TRANSACTION\ \ ISOLATION\ \ LEVEL$ 命令来设置隔离级别。新的隔离级别会在下一个事务开始的时候生效。<code>MySQL</code>能够识别所有的 $4$ 个<code>ANSI</code>隔离级别，<code>InnoDB</code>引擎也支持所有的隔离级别。<br/>
+        <code>MySQL</code>服务器层部管理事务，事务是由下层的存储引擎实现的。所以在同一个事务中使用多种存储引擎是不可靠的。在事务中混合使用事务型和非事务型的表，在正常提交的情况下不会有什么问题。但是当事务需要回滚时，非事务型的表上的变更就无法撤销，这会导致数据库处于不一致的状态，这种情况很难修复。<br/>
+        <code>InnoDB</code>采用的是<strong>两阶段锁定协议</strong> ( $two-phase\ \ locking\ \ protocol$ )。在事务执行过程中，随时都可以执行锁定，锁只有在执行<code>COMMIT</code>或者<code>ROLLBACK</code>的时候才会释放，并且所有的锁是在同一时刻被释放。前面描述的锁定都是隐式锁定，<code>InnoDB</code>会根据隔离级别在需要的时候自动加锁。</p>
+<h2 id="4-多版本并发控制">4. 多版本并发控制</h2>
+<p>        <code>MySQL</code>的大多数事务型存储引擎实现的都不是简单的行级锁。基于提升并发性能的考虑，它们一般都同时实现了<strong>多版本并发控制</strong> ( <code>MVCC</code> )。可以认为<code>MVCC</code>是行级锁的一个变种，但是它在很多情况下都避免了加锁操作，因此开销更低。虽然实现机制有所不同，但大都实现了非阻塞的读操作，写操作也只锁定必要的行。<br/>
+        <code>MVCC</code>的实现，是通过保存数据在某个时间点的快照来实现的。也就是说，不管需要执行多长时间，每个事务看到的数据都是一致的。根据事务开始的时间不同，每个事务对同一张表，同一时刻看到的数据可能是不一样的。不同引擎的<code>MVCC</code>实现是不同的，典型的有乐观并发控制和悲观并发控制。<br/>
+        <code>InnoDB</code>的<code>MVCC</code>是通过在每行记录后面保存两个隐藏的列来实现的。这两个列，一个保存了行的创建时间，一个保存行的过期时间。当然存储的不是实际时间，而是系统版本号。每开始一个新事务，系统版本号都会自动递增。在<code>REPEATABLE READ</code>隔离级别下，<code>MVCC</code>的操作方式如下：</p>
+<ul>
+<li>$SELECT$ ：<code>InnoDB</code>会根据以下两个条件检查每行记录：查找版本早于当前事务版本的数据行，并保证行的删除版本要么未定义，要么大于当前事务版本号。只有符合上述条件的记录，才能返回作为查询结果；</li>
+<li>$INSERT$ ：为新插入的每一行保存当前系统版本号作为行版本号；</li>
+<li>$DELETE$ ：为删除的每一行保存当前系统版本号作为行删除标识；</li>
+<li>$UPDATE$ ：插入一行新纪录，为插入的新行保存当前系统版本号作为行版本号，同时保存当前系统版本号到原来的行作为行删除标识。</li>
+</ul>
+<p>        <code>MVCC</code>只在<code>REPEATABLE READ</code>和<code>READ COMMITTED</code>两个隔离级别下工作。</p>
+<h2 id="5-mysql的存储引擎">5. <code>MySQL</code>的存储引擎</h2>
+<p>        在文件系统中，<code>MySQL</code>将每个数据库（也可以称之为<code>schema</code>）保存为数据目录下的一个子目录。创建表时，<code>MySQL</code>会在数据库子目录下创建一个和表同名的 $.frm$ 文件保存表的定义。可以使用 $SHOW\ \ TABLE\ \ STATUS$ 命令显示表的相关信息。</p>
+<h3 id="51-innodb">5.1 <code>InnoDB</code></h3>
+<p>        <code>InnoDB</code>是<code>MySQL</code>的默认事务型引擎，也是最重要、使用最广泛的存储引擎。它被设计用来处理大量的<strong>短期</strong> ( short-lived ) 事务，短期事务大部分情况是正常提交的，很少会被回滚。<code>InnoDB</code>的性能和自动崩溃恢复特性，使得它在非事务型存储的需求中也很流行。除非有非常特别的原因需要使用其他的存储引擎，否则应该优先考虑<code>InnoDB</code>引擎。<br/>
+        <code>InnoDB</code>的数据存储在<strong>表空间</strong> ( $tablespace$ ) 中，表空间是由<code>InnoDB</code>管理的一个黑盒子，由一系列的数据文件组成。在<code>MySQL 4.1</code>以后的版本中，<code>InnoDB</code>可以将每个表的数据和索引存放在单独的文件中。<code>InnoDB</code>也可以使用裸设备作为表空间的存储介质，但现代的文件系统使得裸设备不再是必要的选择。存在如下几种表空间：</p>
+<ul>
+<li><strong>系统表空间</strong>：在安装数据库的时候默认会初始化一个以 $ibdata1$ 命名的系统表空间，存储所有数据的信息以及回滚段信息，默认大小为 $10MB$ ，在高并发情况下会有性能影响，建议调整大小为 $1GB$ ；</li>
+<li><strong>独立表空间</strong>：设置参数 $innodb_-file_-per_-table=1$ ，目前<code>MySQL</code>默认都是独立表空间，即每个表都有自己的表空间文件，存储对应的<code>B+Tree</code>、索引和插入缓冲等信息，其余信息会存储在共享表空间；</li>
+<li><strong>撤销表空间</strong>：包含撤销日志，初始化的时候会创建两个默认的插销表空间；</li>
+<li><strong>通用表空间</strong>：可以存储多个表的数据，相比独立表空间更节约元数据的内存开销；</li>
+<li><strong>临时表空间</strong>：分会话临时表空间和全局临时表空间。会话临时表空间会在第一个请求中从临时表空间分配，当会话断开时，临时表空间将被释放进入临时表空间池中；全局临时表空间用于存储用户创建的临时表的更改数据，用于回滚，在正常关闭或初始化中止时被删除，并在每次启动服务器时重新创建；</li>
+</ul>
+<p>        <code>InnoDB</code>使用<code>MVVC</code>来支持高并发，并且实现了四个标准的隔离级别。其默认级别是<code>REPEATABLE READ</code>，并且通过<strong>间隙锁</strong> ( $next-key\ \ locking$ ) 策略防止幻读的出现。间隙锁使得<code>InnoDB</code>不仅仅锁定查询涉及的行，还会对索引中的间隙进行锁定，以防止幻影行的插入。<br/>
+        <code>InnoDB</code>表是基于聚簇索引建立的，和<code>MySQL</code>的其他存储引擎有很大的不同，对主键查询有很高的性能。不过它的<strong>二级索引</strong> ( $secondary\ \ index$ ，非主键索引 ) 中必须包含主键列，所以如果主键列很大的话，其他的所有索引都会很大。<br/>
+        <code>InnoDB</code>内部做了很多优化，包括从磁盘读取数据时采用的可预测性预读，能够自动在内存中创建<code>hash</code>索引以加速读操作的<strong>自适应哈希索引</strong> ( $adaptive\ \ hash\ \ index$ )，以及能够加速插入操作的<strong>插入缓冲区</strong> ( $insert\ \ buffer$ ) 等。</p>
+<h3 id="52-myisam">5.2 <code>MyISAM</code></h3>
+<p>        在<code>MySQL 5.1</code>及之前的版本，<code>MyISAM</code>是默认的存储引擎，提供了大量的特性，包括全文索引、压缩、空间函数等，但不支持事务和行级锁，以及崩溃后的安全恢复。虽然不支持事务和崩溃后的安全恢复，但对于只读的数据，或者表比较小，可以忍受修复操作，依然可以使用<code>MyISAM</code>。<br/>
+        <code>MyISAM</code>将表存储在两个文件中：数据文件和索引文件，分别以 $.MYD$ 和 $.MYI$ 为扩展名。<code>MyISAM</code>表可以包含动态或者静态（长度固定）行。在<code>MySQL 5.0</code>中，如果是变长行，则默认配置只能处理 $256TB$ 的数据，这个配置可以通过修改指针长度实现。<br/>
+        作为<code>MySQL</code>最早的存储引擎之一，<code>MyISAM</code>有一些已经开发出来很多年的特性：</p>
+<ul>
+<li><em><strong>加锁与并发</strong></em>：读取时对表加共享锁，写入时对表加排他锁。但是在表有读取查询的同时，也可以往表中插入新的记录；</li>
+<li><em><strong>修复</strong></em>：可以手工或者自动执行检查和修复操作，但这里说的修复和事务恢复以及崩溃恢复是不同的概念。执行表的修复可能导致一些数据丢失，而且修复操作是非常慢的；</li>
+<li><em><strong>索引特性</strong></em>：对于<code>MyISAM</code>表，即使是 $BLOB$ 和 $TEXT$ 等长字段，也可以基于前 $500$ 个字符创建索引。<code>MyISAM</code>也支持全文索引，这是一种基于分词创建的索引，可以支持复杂的查询；</li>
+<li><em><strong>延迟更新索引键</strong></em>：创建时如果指定 $DELAY_-KEY_-WRITE$ 选项，在每次修改执行完成时，不会立刻将修改的索引数据写入磁盘，而是会写到内存中的<b>键缓冲区</b> ( $in-memory\ \ key\ \ buffer$ )，只有在清理键缓冲区或者关闭表的时候才会将对应的索引块写入到磁盘。</li>
+</ul>
+<p>        如果表在创建并导入数据后，不会再进行修改操作，那么这样的表或许适合采用<code>MyISAM</code>压缩表，可以使用 $myisampack$ 对<code>MyISAM</code>表进行压缩。压缩表是不能进行修改的，可以极大地减少空间占用，因此也可以减少磁盘<code>I/O</code>，从而提升查询性能。压缩表也支持索引，但索引也是只读。</p>
+<h3 id="53-转换表的引擎">5.3 转换表的引擎</h3>
+<ul>
+<li>$ALTER\ \ TABLE$ ：将表从一个引擎修改为另一个引擎最简单的办法是使用 $ALTER\ \ TABLE\ \ xxx\ \ ENGINE$ 语句，上述语法可以适用任何存储引擎，但是需要执行很长时间，因为需要将表项复制到新表。在复制的过程中，原表上会加读锁；</li>
+<li>导出与导入：可以使用 $mysqldump$ 工具将数据导出到文件，然后修改文件中的 $CREATE\ \ TABLE$ 语句的存储引擎选项，同时修改表名；</li>
+<li>创建与查询：先创建一个新的存储引擎的表，然后利用 $INSERT\ \ \cdots\ \ SELECT$ 语句来导入数据。对于数据量较大的情况，可以考虑做分批处理。</li>
+</ul>
+
+            </div>
+            <div class="meta post-footer"> <span>2021 Mar 4 22:16</span> <a href="/post/mysql%E6%9E%B6%E6%9E%84%E4%BB%8B%E7%BB%8D/"><i
+                        class="fas fa-link"></i> link</a></div>
+        </div>
         
         <div class="post">
             
@@ -795,183 +988,6 @@
 
             </div>
             <div class="meta post-footer"> <span>2021 Feb 17 18:00</span> <a href="/post/java-8%E5%AE%9E%E6%88%98%E6%B5%81%E5%A4%84%E7%90%86/"><i
-                        class="fas fa-link"></i> link</a></div>
-        </div>
-        
-        <div class="post">
-            
-            <center>
-                <h1><a href="/post/jvm10%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8%E4%B8%8E%E9%94%81%E4%BC%98%E5%8C%96/">JVM（10）：线程安全与锁优化</a></h1>
-            </center>
-            <div class="post-content">
-                <h2 id="1-线程安全">1. 线程安全</h2>
-<p>        按照线程安全程度由强到弱，可以将<code>Java</code>语言中各种操作共享的数据分为以下五类：不可变、绝对线程安全、相对线程安全、线程兼容和线程对立。</p>
-<h3 id="11-不可变">1.1 不可变</h3>
-<p>        在<code>Java</code>语言里，不可变 ( $Immutable$ ) 对象一定是线程安全对象，因此不需要进行任何线程安全保障措施。对于基本数据类型，只需要在定义时使用 $final$ 关键字即可保证不可变。而对于对象类型，<code>Java</code>语言目前暂时还没有提供支持，因此只能让对象自行保证行为不会影响状态，其中最简单的一种方式就是把所有带有状态的变量都声明为 $final$ 。</p>
-<h3 id="12-绝对线程安全">1.2 绝对线程安全</h3>
-<p>        绝对线程安全指的是当多个线程同时访问一个对象时，如果不用考虑这些线程在运行时环境下的调度和交替执行，也不需要额外的同步，或者在调用方进行任何其他的协调操作，调用这个对象的行为都可以获得正确的结果。而实际上，要想达到绝对线程安全可能需要付出非常高昂的代价。<code>Java API</code>中标注线程安全的类，大多数都不是绝对线程安全的。例如 $java.util.Vector$ 是一个线程安全的容器，因为它的很多方法被 $synchronized$ 修饰，但是在以下情况下还是线程不安全的：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">private</span> <span class="kd">static</span> <span class="n">Vector</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span> <span class="n">vector</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Vector</span><span class="o">&lt;&gt;();</span>
-
-<span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
-    <span class="k">while</span> <span class="o">(</span><span class="kc">true</span><span class="o">)</span> <span class="o">{</span>
-        <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">10</span><span class="o">;</span> <span class="n">i</span><span class="o">++)</span> <span class="n">vector</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">i</span><span class="o">);</span>
-
-        <span class="n">Thread</span> <span class="n">removeThread</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Thread</span><span class="o">(</span><span class="k">new</span> <span class="n">Runnable</span><span class="o">()</span> <span class="o">{</span>
-            <span class="nd">@Override</span>
-            <span class="kd">public</span> <span class="kt">void</span> <span class="nf">run</span><span class="o">()</span> <span class="o">{</span>
-                <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">vector</span><span class="o">.</span><span class="na">size</span><span class="o">();</span> <span class="n">i</span><span class="o">++)</span> <span class="n">vector</span><span class="o">.</span><span class="na">remove</span><span class="o">(</span><span class="n">i</span><span class="o">);</span>
-            <span class="o">}</span>
-        <span class="o">});</span>
-
-        <span class="n">Thread</span> <span class="n">printThread</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Thread</span><span class="o">(</span><span class="k">new</span> <span class="n">Runnable</span><span class="o">()</span> <span class="o">{</span>
-            <span class="nd">@Override</span>
-            <span class="kd">public</span> <span class="kt">void</span> <span class="nf">run</span><span class="o">()</span> <span class="o">{</span>
-                <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">vector</span><span class="o">.</span><span class="na">size</span><span class="o">();</span> <span class="n">i</span><span class="o">++)</span>
-                    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">vector</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">i</span><span class="o">));</span>
-            <span class="o">}</span>
-        <span class="o">});</span>
-
-        <span class="n">removeThread</span><span class="o">.</span><span class="na">start</span><span class="o">();</span>
-        <span class="n">printThread</span><span class="o">.</span><span class="na">start</span><span class="o">();</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        而要想做到线程安全，需要将上述代码改为如下形式：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">Thread</span> <span class="n">removeThread</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Thread</span><span class="o">(</span><span class="k">new</span> <span class="n">Runnable</span><span class="o">()</span> <span class="o">{</span>
-    <span class="nd">@Override</span>
-    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">run</span><span class="o">()</span> <span class="o">{</span>
-        <span class="kd">synchronized</span> <span class="o">(</span><span class="n">vector</span><span class="o">)</span> <span class="o">{</span>
-            <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">vector</span><span class="o">.</span><span class="na">size</span><span class="o">();</span> <span class="n">i</span><span class="o">++)</span> <span class="n">vector</span><span class="o">.</span><span class="na">remove</span><span class="o">(</span><span class="n">i</span><span class="o">);</span>
-        <span class="o">}</span>
-    <span class="o">}</span>
-<span class="o">});</span>
-
-<span class="n">Thread</span> <span class="n">printThread</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Thread</span><span class="o">(</span><span class="k">new</span> <span class="n">Runnable</span><span class="o">()</span> <span class="o">{</span>
-    <span class="nd">@Override</span>
-    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">run</span><span class="o">()</span> <span class="o">{</span>
-        <span class="kd">synchronized</span> <span class="o">(</span><span class="n">vector</span><span class="o">)</span> <span class="o">{</span>
-            <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">vector</span><span class="o">.</span><span class="na">size</span><span class="o">();</span> <span class="n">i</span><span class="o">++)</span>
-                <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">vector</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">i</span><span class="o">));</span>
-        <span class="o">}</span>
-    <span class="o">}</span>
-<span class="o">});</span>
-</code></pre></div><p>        而 $Vector$ 要想做到绝对线程安全，就需要在内部维护一组一致性的快照访问，在每次对元素进行改动的时候都要产生新的快照，因此需要付出极大的空间成本和时间成本。</p>
-<h3 id="13-相对线程安全">1.3 相对线程安全</h3>
-<p>        相对线程安全是我们通常意义上的线程安全，需要保证对对象单次的操作是线程安全的，即将上述绝对线程安全的定义中的“调用这个对象的行为”改为“单次调用”。<code>Java API</code>中大部分标注线程安全的类都属于相对线程安全，比如上面提到的 $java.util.Vector$ 类。</p>
-<h3 id="14-线程兼容">1.4 线程兼容</h3>
-<p>        线程兼容是指对象本身不是线程安全的，但是可以通过在调用端正确地使用同步手段保证对象在并发环境中安全使用，也就是我们通常所说的线程不安全类。<code>Java API</code>中大部分类都是线程兼容的。</p>
-<h3 id="15-线程对立">1.5 线程对立</h3>
-<p>        线程对立是指不管调用端采取了什么同步措施都不能在多线程中并发使用代码。线程对立的代码极少出现，而且通常都是有害的，应当尽量避免。</p>
-<h2 id="2-线程安全的实现">2. 线程安全的实现</h2>
-<h3 id="21-互斥同步">2.1 互斥同步</h3>
-<p>        互斥同步 ( $Mutal\ \ Exclusion\ \ \And\ \ Synchronization$ ) 是最常见也是最主要的实现手段。同步即保证共享数据在一个时刻只能被一个线程使用，互斥则是实现同步的手段。<code>Java</code>内最基本的互斥同步手段就是 $synchronized$ 关键字，经过<code>Javac</code>编译后生成 $monitorenter$ 和 $monitorexit$ 字节码指令。这两条指令都要指定一个 $reference$ 类型的参数，如果源码中指定的是对象，那么就以对象作为参数；如果没有明确指定，则根据其修饰的方法类型决定是以对象实例作为参数还是以 $Class$ 对象作为参数。执行 $monitorenter$ 时，如果对象没有被锁定，或者已经持有对象锁，就把锁计数器值加一，并在执行 $monitorexit$ 时减一。如果对象锁计数器为零，代表锁被释放。持有的对象锁只能被当前线程所释放，另一个线程无法强制释放，只能被阻塞。<br/>
-        从执行成本的角度来看，持有锁是一个重量级 ( $Heavy-Weight$ ) 操作。在采用操作系统原生内核线程的情况下，阻塞或者唤醒一个线程都需要操作系统完成，因此需要进行用户态和核心态的转换，所以应当只有在必要的情况下才使用 $synchronized$ 。虚拟机也会进行一些优化，比如在阻塞之前加入一段自旋等待过程，从而避免频繁切换到核心态。<br/>
-        除了 $synchronized$ 外，我们也可以使用 $java.util.concurrent$ 包，其中的 $locks.Lock$ 接口允许用户以非块结构完成互斥同步。重入锁 ( $ReentrantLock$ ) 是最常见的一种实现，它与 $synchronized$ 一样是可重入的，而且还增加了一些高级功能：等待可中断（等待线程可以放弃等待）、公平锁（按照申请顺序获得锁，但会导致性能下降）、锁绑定多个条件（一个 $ReentrantLock$ 可以绑定多个 $Condition$ 对象）。</p>
-<h3 id="22-非阻塞同步">2.2 非阻塞同步</h3>
-<p>        互斥同步在线程阻塞和线程唤醒的时候会带来额外开销，因此也被称为阻塞同步 ( $Blocking\ \ Synchronization$ )，从解决方式上来看属于悲观锁。而与之相反的基于冲突检测的乐观并发策略就是允许线程进行操作，如果在操作过程中出现了冲突则进行补偿，最常见的补偿措施是不断重试。这种方式称为非阻塞同步 ( $Non-Blocking\ \ Synchronization$ )，使用这种措施的代码也被称为无锁 ( $Lock-Free$ ) 编程。乐观并发策略要求操作和冲突检测的步骤具备原子性，因此需要依赖一定的硬件指令集。</p>
-<h3 id="23-无同步">2.3 无同步</h3>
-<p>        保证线程安全并不一定需要进行阻塞或者非阻塞同步，同步只是一个保证数据正确的手段。如果能够让一个方法本来就不涉及共享数据，那么就不需要同步。这类型的典型例子是可重入代码 ( $Reentrant\ \ Code$ ) 和线程本地存储 ( $Thread\ \ Local\ \ Storage$ )。<br/>
-        可重入代码是指可以在执行的任何时刻中断，并在控制权返回后也不会出错的代码。我们可以把可重入作为线程安全的一个条件，但并不是所有的线程安全代码都要求可重入。可重入代码具有一些共同特征，如不依赖全局变量，存储在堆上的数据和公用的系统资源、状态量由参数传入、不调用非可重入方法等。如果一个方法的返回结果是可预测的，那么就可以认为是可重入代码。<br/>
-        线程本地存储是指如果一段代码中所需要的数据必须与其他代码共享，并且这些共享数据的代码可以在同一个线程中执行，那么就把共享数据的可见范围限制在同一个线程中。符合线程本地存储的典型例子就是“生产者-消费者模式”。<code>Java</code>语言中并没有方式让一个变量被某个线程独占，但是可以通过 $java.lang.ThreadLocal$ 类实现本地存储。</p>
-<h2 id="3-锁优化">3. 锁优化</h2>
-<h3 id="31-自旋锁与自适应自旋">3.1 自旋锁与自适应自旋</h3>
-<p>        互斥同步在阻塞和唤醒的过程中需要完成用户态和核心态的转换，为了避免频繁转换，可以让线程执行一个忙等待，这就是自旋锁。自旋等待虽然避免了线程切换的开销，但是还是会占用处理器时间。所以如果锁被占用的时间很短，那么自旋等待的效果就会很好，反之会很差。因此可以给自旋等待设置一个时间限度，在限定次数内没有获得锁的线程就使用传统方式挂起，这个值默认是十次，可以通过 $-XX:PreBlockSpin$ 设置。<br/>
-        <code>JDK 6</code>中引入了自适应自旋，这使得自旋等待的时间不再是固定的，而是由前一次在同一个锁上的自旋时间及锁的拥有者的状态决定。如果在同一个锁对象上，自旋等待刚刚成功获得锁，并且持有锁的线程正在运行中，那么虚拟机就认为这次自旋很有可能再次成功，从而允许自旋等待更长时间。</p>
-<h3 id="32-锁消除">3.2 锁消除</h3>
-<p>        锁消除是指虚拟机即时编译器在运行时，对一些代码要求同步，但是对被检测到不可能存在共享数据竞争的锁进行消除，主要判定依据是逃逸分析。<code>Java</code>语言内部存在许多同步代码，锁消除主要是针对<code>Java</code>语言内部的锁。</p>
-<h3 id="33-锁粗化">3.3 锁粗化</h3>
-<p>        大多数情况下，我们应当把同步块的作用范围限制到尽量小，从而减少同步操作。但是如果一系列的连续操作都对同一个对象进行上锁和解锁，那么会带来额外的性能损耗。锁粗化就是针对这种情况，扩展同步块的作用范围，从而避免额外的性能损耗。</p>
-<h3 id="34-轻量级锁">3.4 轻量级锁</h3>
-<p>        轻量级锁是<code>JDK 6</code>中加入的新型锁机制，轻量是相对于使用操作系统实现的传统锁而言的。轻量级锁的目的是在没有多线程竞争的前提下，减少传统的重量级锁使用操作系统互斥量带来的性能损耗。<code>HotSpot</code>虚拟机的对象头分为两部分，一部分用于存储对象自身的运行时数据（如哈希码、分代年龄），另一部分用于存储指向方法区对象类型数据的指针。前者在 $32$ 位和 $64$ 位的虚拟机中分别占用 $32$ 位和 $64$ 位大小，称为 $Mark\ \ Word$ 。$Mark\ \ Word$ 被设计为非固定的动态数据结构，可以根据对象状态复用存储空间，这是轻量级锁实现的关键。在代码即将进入同步块时，如果同步对象没有被锁定，虚拟机会在当前线程的栈帧中建立一个名为锁记录 ( $Lock\ \ Record$ ) 的空间，存储锁对象目前的 $Mark\ \ Word$ 的拷贝。之后虚拟机尝试使用 $CAS$ 操作更新 $Mark Word$ 为指向 $Lock\ \ Record$ 的指针，代表线程拥有对象锁。如果更新失败，代表存在另一个线程与之竞争，虚拟机会检查对象的 $Mark\ \ Word$ ，判断当前的锁情况。如果出现两个以上的线程竞争使用同一个锁，轻量级锁就不再有效，需要改为使用重量级锁。在不存在竞争的情况下，轻量级锁因为避免了使用互斥量的开销，所以性能方面要比重量级锁高；反过来如果存在竞争，性能就会更低。</p>
-<h3 id="35-偏向锁">3.5 偏向锁</h3>
-<p>        偏向锁也是<code>JDK 6</code>中引入的，目的是消除数据在无竞争情况下的同步原语。与轻量级锁的不同之处在于轻量级锁是为了消除同步过程中使用的互斥量，而偏向锁是为了消除整个同步过程。偏向锁会偏向于第一个获得它的线程，并且在接下来的执行过程中，如果锁一直没有被其他线程获取，那么持有偏向锁的线程将永远不需要同步。偏向锁的实现与轻量级锁类似，不同之处在于 $Mark\ \ Word$ 中会记录获得偏向锁的线程<code>ID</code>，并在之后同一个线程进入同步块时不再进行任何同步操作。一旦出现另一个线程尝试获取锁，偏向模式立即结束，根据当前对象的锁定状态决定是否撤销偏向。偏向锁可以提高带有同步但是无竞争的程序性能，同样也并非总是有利，对于大多数总是被多个线程访问的情况，偏向模式就是多余的。<br/>
-        偏向锁的实现需要占用 $Mark\ \ Word$ 中存储哈希码的区域。哈希码依赖于 $Object::hashCode(\ )$ 方法，会在第一次调用后存储在对象头中，从而保证哈希码的一致性。因此如果一个对象计算过一次哈希码之后，就不能再使用偏向锁，一个处于偏向锁状态的对象需要计算哈希码时，它的偏向锁状态会被立即撤销，并膨胀为重量级锁。</p>
-
-            </div>
-            <div class="meta post-footer"> <span>2021 Jan 13 21:17</span> <a href="/post/jvm10%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8%E4%B8%8E%E9%94%81%E4%BC%98%E5%8C%96/"><i
-                        class="fas fa-link"></i> link</a></div>
-        </div>
-        
-        <div class="post">
-            
-            <center>
-                <h1><a href="/post/jvm9%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%E4%B8%8E%E7%BA%BF%E7%A8%8B/">JVM（9）：内存模型与线程</a></h1>
-            </center>
-            <div class="post-content">
-                <h2 id="1-内存模型">1. 内存模型</h2>
-<h3 id="11-主内存与工作内存">1.1 主内存与工作内存</h3>
-<p>        <code>Java</code>内存模型的主要目的是定义程序中各种变量的访问规则，即关注在虚拟机中把变量值存储到内存和从内存中取出变量值这样的底层细节。在这里主要考虑的问题是多线程对同一块内存区域进行的操作，因此并不需要考虑一些线程私有的变量比如局部变量和方法参数。<code>Java</code>内存模型规定了所有变量都存储在主内存 ( $Main\ \ Memory$ ) 中，每条线程允许拥有自己的工作内存 ( $Working\ \ Memory$ )，保存了主内存中要使用的变量的副本。对于引用对象，工作内存中并不会包含整个对象的副本，而是对象引用以及对象中要使用的字段的副本。通过工作内存，线程的所有的对变量的操作都会在工作内存中进行，即通过工作内存间接访问主内存。</p>
-<h3 id="11-内存间交互">1.1 内存间交互</h3>
-<p>        主内存与工作内存之间的交互协议指的是一个变量如何从主内存拷贝到工作内存，并从工作内存同步至主内存的过程。<code>Java</code>内存模型定义了 $8$ 种原子性操作：</p>
-<ol>
-<li>$lock$ ：作用于主内存变量，将变量标识为线程独占状态；</li>
-<li>$unlock$ ：作用于主内存变量，把释放一个处于线程独占状态的变量；</li>
-<li>$read$ ：作用于主内存变量，将一个变量传输到工作内存中；</li>
-<li>$load$ ：作用于工作内存变量，将一个主内存传输的变量载入工作内存的副本中；</li>
-<li>$use$ ：作用于工作内存变量，每当虚拟机遇到一个需要使用变量的字节码指令时，将变量传递给执行引擎；</li>
-<li>$assign$ ：作用于工作内存变量，每当虚拟机遇到一个给变量赋值的字节码指令时，从执行引擎接收值并赋给变量；</li>
-<li>$store$ ：作用于工作内存变量，将一个变量传送到主内存中；</li>
-<li>$write$ ：作用于主内存变量，将一个工作内存传送的变量写入主内存的变量中。</li>
-</ol>
-<p>        如果要把一个变量从主内存拷贝到工作内存中，就需要顺序执行 $read$ 和 $load$ 操作；反过来，如果要把一个变量从工作内存拷贝到主内存中，就需要顺序执行 $store$ 和 $write$ 操作。<code>Java</code>内存模型虽然规定了上述操作要顺序执行，但并没有要求连续执行，也就是说可以读取多个变量后再依次载入，或者存储多个变量后再依次写入。除此之外，还有其他规则：</p>
-<ul>
-<li>不允许 $read$ 和 $load$ 、$store$ 和 $write$ 单独出现；</li>
-<li>不允许线程丢弃 $assign$ 操作；</li>
-<li>不允许线程在没有进行 $assign$ 操作时同步内存；</li>
-<li>不允许在工作内存中直接 $use$ 一个未被初始化的变量；</li>
-<li>一个变量在一个时刻只能被一个线程 $lock$ ，一个线程可以多次执行 $lock$ 操作，后续需要执行相应次数的 $unlock$ 才能解锁；</li>
-<li>对一个变量执行 $lock$ 操作会清除变量值，需要重新执行 $load$ 或者 $assign$ 进行赋值；</li>
-<li>不允许对一个没有被锁定的变量 $unlock$ ，也不允许 $unlock$ 其他线程独占的变量；</li>
-<li>$unlock$ 变量前需要先对其进行 $store$ 和 $write$ 。</li>
-</ul>
-<h3 id="12-volatile">1.2 <code>volatile</code></h3>
-<p>        $volatile$ 具有一些特殊的访问规则。当一个变量被定义为 $volatile$ 之后，它将具有两条性质：一是保证变量是所有线程可见的，即一个线程的修改可以在之后被另一个线程所发现；二是指令重排序优化会被禁止，以保证语句之间的相对执行顺序。虽然可见性使得线程间变量值的传递不再需要经过对主内存的读取和写入，但这并不意味读取到的变量值是正确的。因为 $volatile$ 允许多线程同时对变量进行写操作，这就意味着对于一些非原子性的操作，譬如<code>Java</code>中的运算操作符（需要先将值读取到操作栈之后才能进行运算），$volatile$ 只能保证值被读取的时候是正确的，并不能保证在之后进行运算的过程中值不会发生改变。因此对于第一条性质，要保证运算结果并不依赖变量的当前值，或者只有一个线程会修改变量值。<br/>
-        保证 $volatile$ 可见性的关键在于 $lock$ 操作，它会清空变量值，并在之后对变量进行 $store$ 和 $write$ 操作，从而保证了对变量的修改可以被其他线程发现。同时，$lock$ 操作也充当着内存屏障的功能，即执行 $lock$ 操作代表之前的操作已经执行完毕，从而可以利用 $lock$ 操作保证指令之间的相对执行顺序。也因此，$volatile$ 相比于 $synchronized$ 或者 $java.util.concurrent$ ，读操作速度没有什么差别，但是写操作会慢上一些，因为需要插入许多内存屏障以保证执行顺序，当然总体上来讲还是要快于后两者的。<br/>
-        <code>Java</code>内存模型也对 $volatile$ 变量定义了特殊规则，设 $V$ 和 $W$ 代表两个 $volatile$ 变量，则有：</p>
-<ul>
-<li>只有前一条指令是 $load$ 时才能 $use$ ；只有后一条指令是 $use$ 时才能 $load$ ，即 $load$ 和 $use$ 必须连续一起出现；</li>
-<li>只有前一条指令是 $assign$ 时才能 $store$ ；只有后一条指令是 $store$ 时才能 $assign$ ，即 $assign$ 和 $store$ 必须连续一起出现；</li>
-<li>在一个线程中，如果对 $V$ 执行 $use$ 或者 $assign$ 操作优先于对 $W$ 执行 $use$ 或者 $assign$ 操作，那么对 $V$ 执行的 $read$ 或者 $write$ 操作必须优先于对 $W$ 执行的 $read$ 或者 $write$ 操作。</li>
-</ul>
-<h3 id="13-long和double">1.3 <code>long</code>和<code>double</code></h3>
-<p>        $long$ 和 $double$ 是 $64$ 位的数据类型。对于 $64$ 位的数据类型，<code>Java</code>内存模型定义了一条特殊的规则：允许将其划分为两次 $32$ 位的操作进行，即 “ $long$ 和 $double$ 非原子性协定 ” ( $Non-Atomic\ \ Treatment\ \ of\ \ double\ \ and\ \ long\ \ Variables$ )。如果有多个线程共享一个未声明 $volatile$ 的 $long$ 或者 $double$ 类型的变量，并且同时对它们进行读写操作，那么某些线程可能会读取到一个修改了一半的数值。当然这种情况很罕见，因为常用的 $64$ 位虚拟机中并不会出现非原子性访问行为。</p>
-<h3 id="14-原子性可见性与有序性">1.4 原子性、可见性与有序性</h3>
-<h4 id="141-原子性">1.4.1 原子性</h4>
-<p>        <code>Java</code>内存模型直接保证的原子性变量操作包括：$read$ 、$load$ 、$assign$ 、$use$ 、$store$ 和 $write$ 。如果需要一个更大范围的原子性保证，<code>Java</code>内存模型还提供了 $lock$ 和 $unlock$ 操作，即 $synchronized$ 块之间的操作也具备原子性。</p>
-<h4 id="142-可见性">1.4.2 可见性</h4>
-<p>        <code>Java</code>内存模型通过在变量修改后将新值同步回主内存，并在变量被读取时从主内存刷新变量值的方式实现可见性。除了 $volatile$ 之外，还可以使用 $synchronized$ 和 $final$ 保证可见性。</p>
-<h4 id="143-有序性">1.4.3 有序性</h4>
-<p>        有序性可以总结为一句话：如果在本线程内观察，所有的操作都是有序的；如果在另一个线程中观察，所有的操作都是无序的。</p>
-<h3 id="15-先行发生原则">1.5 先行发生原则</h3>
-<p>        先行发生是<code>Java</code>内存模型中定义的两项操作之间的偏序关系。如果操作 $A$ 先行发生于操作 $B$ ，指的就是操作 $B$ 能够观测到操作 $A$ 产生的影响，影响指的是修改变量值、发送消息、调用方法等。<code>Java</code>内存模型之中存在一些天然的先行发生关系：</p>
-<ul>
-<li><strong>程序次序规则</strong> ( $Program\ \ Order\ \ Rule$ )：线程内按照控制流顺序，书写在前面的操作先行发生于书写在后面的操作；</li>
-<li><strong>管程锁定规则</strong> ( $Monitor\ \ Lock\ \ Rule$ )：$unlock$ 操作先行发生于后续对同一个锁的 $lock$ 操作；</li>
-<li>$volatile$ <strong>变量规则</strong> ( $Volatile\ \ Variable\ \ Rule$ )：对一个 $volatile$ 变量的写操作先行发生于读操作；</li>
-<li><strong>线程启动规则</strong> ( $Thread\ \ Start\ \ Rule$ )：$Thread$ 的 $start(\ )$ 方法先行发生于所有动作；</li>
-<li><strong>线程终止规则</strong> ( $Thread\ \ Termination\ \ Rule$ )：$Thread$ 的所有操作都先行发生于对其的终止检测 ( $join(\ )$ 和 $isAlive(\ )$ 等 )；</li>
-<li><strong>线程中断规则</strong> ( $Thread\ \ Interruption\ \ Rule$ )：$Thread$ 的 $interrupt(\ )$ 方法先行发生于对其的中断事件检测 ( $interrupted(\ )$ )；</li>
-<li><strong>对象终结规则</strong> ( $Finalizer\ \ Rule$ )：对象的初始化先行发生于其 $finalize(\ )$ 方法的开始；</li>
-<li><strong>传递性</strong> ( $Transitivity$ )：如果操作 $A$ 先行发生于操作 $B$ ，操作 $B$ 先行发生于操作 $C$ ，那么操作 $A$ 先行发生于操作 $C$ 。</li>
-</ul>
-<p>        对于没有出现在上述列表里的操作关系，或者不能由上述列表关系推导出来的操作关系，虚拟机可以随意对它们进行重排。</p>
-<h2 id="2-线程">2. 线程</h2>
-<h3 id="21-线程实现">2.1 线程实现</h3>
-<p>        虽然并发并不一定依赖于线程，但在<code>Java</code>中基本都离不开线程。线程允许在共享进程资源的同时又可以分离资源分配和执行调度，是<code>Java</code>里面进行处理器资源调度的最基本单位。</p>
-<h4 id="211-内核线程实现">2.1.1 内核线程实现</h4>
-<p>        内核线程 ( $Kernel-Level\ \ Thread$ ，$KLT$ ) 就是直接由操作系统内核支持的线程，即内核负责线程切换，通过操纵调度器 ( $Scheduler$ ) 对线程进行调度，并将线程处理的任务映射到各个处理器上。每个内核线程可以视为内核的一个分身，支持多线程的内核就称为多线程内核 ( $Multi-Threads\ \ Kernel$ )。程序一般不会直接使用内核线程，而是使用其高级接口轻量级进程 ( $Light\ \ Weight\ \ Process$ ，$LWP$ )，也就是我们通常讲的线程。一个系统能支持的轻量级进程的数量是有限的，取决于内核线程的数量。基于内核线程实现的线程的各种操作都是系统调用，而系统调用需要在用户态和内核态之间不断切换，从而会带来较高的代价。内核线程实现也称为 $1:1$ 实现。</p>
-<h4 id="212-用户线程实现">2.1.2 用户线程实现</h4>
-<p>        广义上来讲，一个线程只要不是内核线程，都可以称为用户线程 ( $User\ \ Thread$ ，$UT$ )。而狭义上的用户线程指的是完全建立在用户空间的线程库上，从而系统内核无法感知到的线程。用户线程的建立、调度和销毁完全可以在用户态下完成，而且如果建立得当，所有操作都可以在用户态下完成，从而拥有更高的效率。但是反过来，缺少了系统内核的支持，线程的创建、销毁、切换和调度就交给了用户，从而带来了一些更加复杂的问题。用户线程实现也称为 $1:N$ 实现。</p>
-<h4 id="213-混合实现">2.1.3 混合实现</h4>
-<p>        混合实现指的是同时使用内核线程和用户线程的方式，也称为 $N:M$ 实现。在这种方式下，用户线程还是建立在用户空间中，而 $LWP$ 充当了用户线程和内核线程之间的桥梁，一个 $LWP$ 可以对应多个用户线程。这样可以使用内核提供的线程调度功能和处理器映射功能，用户线程的系统调用也要通过 $LWP$ 完成，降低了阻塞风险。</p>
-<h4 id="214-java实现">2.1.4 <code>Java</code>实现</h4>
-<p>        从<code>JDK 1.3</code>起，主流<code>JVM</code>的线程模型普遍替换为基于操作系统原生线程模型的方式实现，即 $1:1$ 线程模型。<code>HotSpot</code>虚拟机中，每个<code>Java</code>线程都直接映射到一个操作系统的原生线程上，中间没有额外的间接结构，即把线程调度完全交给操作系统。</p>
-<h3 id="22-线程调度">2.2 线程调度</h3>
-<p>        线程调度主要有两种方式：协同式 ( $Cooperative\ \ Threads-Scheduling$ ) 和抢占式 ( $Preemptive\ \ Threads-Scheduling$ )。在协同式线程调度下，线程的执行时间由线程本身控制，线程在执行完成后会通知另一个线程；在抢占式线程调度下，线程的执行时间和切换由系统决定。虽然<code>Java</code>的线程调度由系统完成，但是可以通过设置线程优先级的方式，建议系统优先执行某些线程。</p>
-<h3 id="23-状态转换">2.3 状态转换</h3>
-<p>        线程具有 $6$ 种状态：新建、运行、无限期等待、限期等待、阻塞和结束。</p>
-
-            </div>
-            <div class="meta post-footer"> <span>2021 Jan 12 21:13</span> <a href="/post/jvm9%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%E4%B8%8E%E7%BA%BF%E7%A8%8B/"><i
                         class="fas fa-link"></i> link</a></div>
         </div>
         

@@ -97,7 +97,7 @@ function tocInit() {
     // 设置定时器
     toc.scrollTimer = toc.setScrollTimer();
     // 小窗口隐藏
-    if (window.innerWidth <= 800) tocClose();
+    if (window.innerWidth <= 1200) toc.tocClose();
     // 初始化事件
     $('#tocbtn').click(toc.tocToggle);
     toc.aArr.hover(aArrHoverIn, aArrHoverOut);
@@ -105,6 +105,11 @@ function tocInit() {
     $(window).on('scroll', () => {
         clearTimeout(toc.scrollTimer);
         toc.setScrollTimer();
+    });
+    $(window).on('resize', () => {
+        for (let i = 0; i < aArr.length; i++)
+            toc.offsetHs[i + 1] = $($(aArr[i]).attr('href')).offset().top - 10;
+        if (window.innerWidth <= 1200) toc.tocClose();
     });
 };
 

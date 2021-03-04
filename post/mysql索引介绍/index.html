@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/jquery-3.4.1.min.js></script>
+<script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="https://www.cnblogs.com/meidaoli/"  target="_blank" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+        
+        <a href="http://123.57.12.189"  target="_blank" >
+            <i class="fas fa-link fa-sm"></i>
+            <span>二站</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">MySQL索引介绍</h1>
+
+
+<p>        索引 ( 在<code>MySQL</code>中也叫做<strong>键</strong> ( $key$ )) 是存储引擎用于快速找到记录的一种数据结构。索引优化是查询性能优化最有效的手段。</p>
+<h2 id="1-基础">1. 基础</h2>
+<p>        <code>MySQL</code>中，索引引擎首先在索引中找到对应值，然后根据匹配的索引记录找到对应的数据行。索引可以包含一个或多个列的值。如果索引包含多个列，那么列的顺序也十分重要，因为<code>MySQL</code>只能高效地使用索引的最左前缀列。<br/></p>
+<h3 id="11-类型">1.1 类型</h3>
+<p>        索引有很多类型。在<code>MySQL</code>中，索引是在存储引擎层而不是服务层实现的，所以并没有统一的索引标准。</p>
+<h4 id="111-b-tree">1.1.1 <code>B-Tree</code></h4>
+<p>        如果没有特别指明类型，那么通常所说的索引都是<code>B-Tree</code>索引，顾名思义，即使用<code>B-Tree</code>数据结构来存储数据。大多数<code>MySQL</code>引擎都支持这种索引。不过，底层的存储引擎也可能使用不同的存储结构，例如<code>InnoDB</code>使用的是<code>B+Tree</code>。存储引擎以不同的方式使用<code>B-Tree</code>索引，性能也各有不同，各有优劣。例如，<code>MyISAM</code>使用前缀压缩技术使得索引更小，但<code>InnoDB</code>则按照原数据格式进行存储。再如<code>MyISAM</code>索引通过数据的物理位置引用被索引的行，而<code>InnoDB</code>则根据主键引用被索引的行。<br/>
+        <code>B-Tree</code>通常意味着所有的值都是按顺序存储的，并且每一个叶子页到根的距离相同。<code>B-Tree</code>索引能够加快访问数据的速度，因为存储引擎不再需要进行全表扫描来获取需要的数据，取而代之的是从索引的根节点开始进行搜索。叶子节点比较特别，它们的指针指向的是被索引的数据，而不是其他的节点页。<br/>
+        <code>B-Tree</code>索引适用于全键值、键值范围或键值前缀查找。其中键值前缀查找只适用于根据最左前缀的查找。上述的索引对如下类型的查询有效：</p>
+<ul>
+<li>全值匹配</li>
+<li>匹配最左前缀</li>
+<li>匹配列前缀</li>
+<li>匹配范围值</li>
+<li>精确匹配某一列并范围匹配另外一列</li>
+<li>只访问索引的查询</li>
+</ul>
+<p>        因为索引树的节点是有序的，所以除了按值查找外，索引还可以用于查询中的 $ORDER\ \ BY$ 操作。一般来说，如果<code>B-Tree</code>可以按照某种方式查找到值，那么也可以按照这种方式用于排序。</p>
+<h4 id="12-哈希索引">1.2 哈希索引</h4>
+<p>        <strong>哈希索引</strong> ( $hash\ \ index$ ) 基于哈希表实现，只有精确匹配索引所有列的查询才有效。对于每一行数据，存储引擎都会对所有的索引列计算一个哈希码，并存储在索引中，同时在哈希表中保存指向每个数据行的指针。在<code>MySQL</code>中，只有<code>Memory</code>引擎显式支持哈希索引，同时也是默认索引类型。如果多个列的哈希值相同，索引会以链表的方式存放多个记录指针到同一个哈希条目中。<br/>
+        <code>InnoDB</code>引擎有一个特殊的功能叫做<strong>自适应哈希索引</strong> ( $adaptive\ \ hash\ \ index$ )。当<code>InnoDB</code>注意到某些索引值被使用得非常频繁时，它会在内存中基于<code>B-Tree</code>索引之上再创建一个哈希索引。<br/>
+        如果存储引擎不支持哈希索引，可以模拟创建哈希索引，即增加一列，存储哈希值。<code>MySQL</code>提供了 $CRC32$ 函数用于计算哈希值，通过设置触发器，可以在每次插入时自动插入索引。不要使用 $SHA1$ 和 $MD5$ 作为哈希函数，因为这两个函数计算出来的哈希值是非常长的字符串。如果数据表非常大，$CRC32$ 会出现大量哈希冲突，这时也可以考虑自己实现哈希函数。</p>
+<h2 id="2-优点">2. 优点</h2>
+<p>        索引可以让服务器快速地定位到表的指定位置，但并非唯一作用。最常见的<code>B-Tree</code>索引，按照顺序存储数据，可以用于 $ORDER\ \ BY$ 和 $GROUP\ \ BY$ 操作。利用数据有序的特点，索引有如下三个优点：</p>
+<ul>
+<li>减少了服务器需要扫描的数据量；</li>
+<li>帮助服务器避免排序和临时表；</li>
+<li>将随机<code>I/O</code>变为顺序<code>I/O</code>。</li>
+</ul>
+<p>        但是索引并不总是最好的工具。对于非常小的表，大部分情况下简单的全表扫描更加高效。而对于中大型表，索引就非常有效。但对于特大型表，建立和使用索引的代价将随之增长，这时候就需要一种可以直接区分出查询需要的数据的技术，例如分区技术。</p>
+<h2 id="3-索引策略">3. 索引策略</h2>
+<h3 id="31-独立的列">3.1 独立的列</h3>
+<p>        如果查询中的列不是独立的，<code>MySQL</code>就不会使用索引。独立的列是指索引列不能是表达式的一部分，也不能是函数的参数。例如：</p>
+<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="n">actor_id</span> <span class="k">FROM</span> <span class="n">sakila</span><span class="p">.</span><span class="n">actor</span> <span class="k">WHERE</span> <span class="n">actor_id</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span>
+</code></pre></div><h3 id="32-前缀索引和索引选择性">3.2 前缀索引和索引选择性</h3>
+<p>        有时候需要索引很长的字符列，这会让索引变得大且慢。除了之前提到的模拟哈希索引外，也可以索引开始的部分字符，这样可以大大节约索引空间，但是也会降低选择性。选择性指的是不重复的值和记录总数的比值，越高代表查询效率越高。一般情况下某个列前缀的选择性也是足够高的，足以满足查询性能。对于 $BLOB$ 、$TEXT$ 或者很长的 $VARCHAR$ 类型的列，必须使用前缀索引，因为<code>MySQL</code>不允许索引这些列的完整长度。<br/>
+        前缀索引是一种能使索引更小、更快的有效方法，但另一方面也有其缺点：<code>MySQL</code>无法使用前缀索引做 $ORDER\ \ BY$ 和 $GROUP\ \ BY$ ，也无法使用前缀索引做覆盖扫描。<br/>
+        除了前缀索引外，有时候后缀索引也有用途。<code>MySQL</code>原生不支持反向索引，但是可以把字符串反转后存储，并基于此建立前缀索引。</p>
+<h3 id="33-多列索引">3.3 多列索引</h3>
+<p>        在创建索引的过程中一个常见的错误就是，为每个列创建独立的索引，或者按照错误的顺序创建多列索引。在多个列上建立独立的单列索引大部分情况下并不能提高<code>MySQL</code>的查询性能。<code>MySQL 5.0</code>引入了一种叫<strong>索引合并</strong> ( $index\ \ merge$ ) 的策略，一定程度上可以使用表上的多个单列索引来定位指定的行。索引合并策略有时候是一种优化的结果，但实际上更多时候说明了表上的索引建的很糟糕：</p>
+<ul>
+<li>当出现服务器对多个索引做相交操作时，通常意味着需要一个包含所有相关列的多列索引，而不是多个独立的单列索引；</li>
+<li>当服务器需要对多个索引做联合操作时，通常需要耗费大量<code>CPU</code>和内存资源在算法的缓存、排序和合并操作上；</li>
+<li>优化器不会把这些计算到查询成本中，优化器只关心随即页面读取，从而导致查询成本被低估。</li>
+</ul>
+<h3 id="34-索引列顺序">3.4 索引列顺序</h3>
+<p>        索引列的正确顺序依赖于使用该索引的查询，并且同时需要考虑如何更好地满足排序和分组的需要。在一个多列<code>B-Tree</code>索引中，索引列的顺序意味着索引首先按照最左列进行排序，其次是第二列，等等。所以多列索引的列顺序至关重要。当不需要考虑排序和分组时，将选择性最高的列放在前面通常是很好的，这时候索引的作用只是优化 $WHERE$ 条件的查找。</p>
+<h3 id="35-聚簇索引">3.5 聚簇索引</h3>
+<p>        聚簇索引并不是一种单独的索引类型，而是一种数据存储方式。具体的细节依赖于其实现方式，但<code>InnoDB</code>的聚簇索引实际上在同一个结构中保存了<code>B-Tree</code>索引和数据行。当表有聚簇索引时，它的数据行实际上存放在索引的<strong>叶子页</strong> ( $leaf\ \ page$ ) 中。聚簇表示数据行和相邻的键值紧凑地存储在一起。因为无法同时把数据行存放在两个不同的地方，所以一个表只能有一个聚簇索引。因为是存储引擎负责实现索引，因此不是所有的存储引擎都支持聚簇索引。<br/>
+        <code>InnoDB</code>通过主键聚集数据，也就是选择主键列作为聚簇索引。如果没有定义主键，则会选择一个唯一的非空索引替代。如果没有这样的索引，则会隐式定义一个主键作为聚簇索引。<code>InnoDB</code>只聚集在同一个页面中的记录，包含相邻键值的页面可能会相距甚远。<br/>
+        聚集的数据有一些重要的优点：</p>
+<ul>
+<li>可以把相关的数据保存在一起；</li>
+<li>数据访问更快；</li>
+<li>使用覆盖索引扫描的查询可以直接使用页节点中的主键值。</li>
+</ul>
+<p>        同时也带了一些缺点：</p>
+<ul>
+<li>聚簇数据最大限度地提高了<code>I/O</code>密集型应用的性能，但如果数据全部都放在内存中，则访问的顺序就没那么重要了，聚簇索引也就没什么优势了；</li>
+<li>插入速度严重依赖于插入顺序。按照主键的顺序插入是加载数据到<code>InnoDB</code>表中速度最快的方式。但如果不是按照主键顺序加载数据，那么在加载完成后最好使用 $OPTIMIZE\ \ TABLE$ 命令重新组织一下表；</li>
+<li>更新聚簇索引列的代价很高，因为会强制<code>InnoDB</code>将每个被更新的行移动到新的位置；</li>
+<li>基于聚簇索引的表在插入新行，或者主键被更新导致需要移动行的时候，可能面临<strong>页分裂</strong> ( $page\ \ split$ ) 问题。页分裂会导致表占用更多的磁盘空间；</li>
+<li>聚簇索引可能导致全表扫描变慢，尤其是行比较稀疏，或者由于页分裂导致数据存储不连续的时候；</li>
+<li>二级索引 ( 非聚簇索引 ) 可能比想象的要更大，因为在二级索引的叶子节点包含了引用行的主键列；</li>
+<li>二级索引访问需要两次索引查找。因为<code>InnoDB</code>二级索引叶子节点保存的是行的主键值，所以需要再次查找聚簇索引。</li>
+</ul>
+<p>        如果正在使用的<code>InnoDB</code>表没有什么数据需要聚集，那么可以定义一个<strong>代理键</strong> ( $surrogate\ \ key$ ) 作为主键，这种主键的数据应该和应用无关，最简单的方法是使用 $AUTO_-INCREMENT$ 自增列。这样可以保证数据行是按顺序写入，对于根据主键做关联操作的性能也会更好。<br/>
+        最好避免随机的 ( 不连续且值的分布范围非常大 ) 的聚簇索引，特别是对于<code>I/O</code>密集型的应用，例如使用<code>UUID</code>作为聚簇索引会很糟糕，因为它使得索引的插入变得随机。在把随机值插入聚簇索引后，也许还需要做一次 $OPTIMIZE\ \ TABLE$ 来重建表并优化页的填充。</p>
+<h3 id="36-覆盖索引">3.6 覆盖索引</h3>
+<p>        通常都会根据 $WHERE$ 条件来创建合适的索引，不过这只是索引优化的一个方面。<code>MySQL</code>也可以使用索引来直接获取列的数据，这样就不再需要读取数据行。如果一个索引包含 ( 或者说覆盖 ) 所有需要查询的字段的值，我们就称之为”覆盖索引“。并非所有类型的索引都能称为覆盖索引，覆盖索引必须要存储索引列的值，而哈希索引、空间索引和全文索引等都不存储索引列的值。</p>
+<h3 id="37-排序">3.7 排序</h3>
+<p>        <code>MySQL</code>有两种方式可以生成有序的结果：通过排序操作；或者按索引顺序扫描；如果 $EXPLAIN$ 出来的 $type$ 列的值为 $index$ ，说明使用了索引扫描来做排序。如果索引不能覆盖查询所需的全部列，就不得不每扫描一条索引记录就回表查询依次对应的行，这基本上都是随机<code>I/O</code>。所以，如果可能的话，设计索引时应该尽可能地同时满足这两种任务。<br/>
+        只有当索引的列顺序和 $ORDER\ \ BY$ 子句的顺序完全一致，并且所有列的排序方向都一样时，<code>MySQL</code>才能使用索引来对结果做排序。如果查询需要关联多张表，则只有当 $ORDER\ \ BY$ 子句引用的字段全部为第一个表时，才能使用索引做排序。</p>
+<h3 id="38-压缩索引">3.8 压缩索引</h3>
+<p>        <code>MyISAM</code>使用前缀压缩来减少索引的大小，从而让更多的索引可以放入内存中，这在某些情况下能极大地提高性能。默认只压缩字符串，但通过参数设置也可以对整数进行压缩。具体的压缩方法是：先完全保存索引块中的第一个值，然后将其他值和第一个值进行比较得到相同前缀的字节数和剩余的不同后缀部分，把这部分存储起来即可。例如索引块第一个值为 $perform$ ，第二个值为 $performance$ ，那么第二个值得前缀压缩后会被存储为类似于 $7,ance$ 的形式。指针也是采用类似的压缩方式。<br/>
+        压缩快使用更少的空间，代价是某些操作可能更慢，因为压缩值要依赖于之前的值，所以不能简单的使用二分查找等算法。对于<code>CPU</code>密集型应用，因为扫描需要随机查找，压缩索引会使得查找变慢。</p>
+<h3 id="39-冗余和重复索引">3.9 冗余和重复索引</h3>
+<p>        <code>MySQL</code>允许在相同列上创建多个索引，无论是有意的还是无意的。<code>MySQL</code>需要单独维护重复的索引，并且优化器在优化查询的时候也需要逐个地进行考虑，这会影响性能。重复索引是指在相同的列上按照相同的顺序创建的相同类型的索引。应该避免这样的重复索引，发现以后也应该立即移除。冗余索引和重复索引有些不同，例如创建了索引 $(A,B)$ ，再创建索引 $(A)$ 就是冗余索引；但是如果再创建索引 $(B,A)$ ，就不是冗余索引。大多数情况下都不需要冗余索引，应该尽量扩展已有的索引而不是创建新索引。但也有时候出于性能方面的考虑需要冗余索引，因为扩展已有的索引会导致其变得太大，从而影响其他使用该索引的查询的性能。</p>
+<h3 id="310-索引和锁">3.10 索引和锁</h3>
+<p>        索引可以让查询锁定更少的行。如果查询从不访问那些不需要的行，那么就会锁定更少的行。虽然<code>InnoDB</code>的行锁效率很高，内存使用也很少，但是锁定行的时候仍然会带来额外开销；其次，锁定超过需要的行会增加锁竞争并减少并发性。</p>
+
+
+<a href="javascript:void(0)" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+<div id="sidetoc">
+    <header>
+        <h4>MySQL索引介绍</h4>
+    </header>
+    
+    <nav id="TableOfContents">
+        <ul></ul>
+    </nav>
+</div>
+<script src=https://z217blog.cn/js/toc.js></script>
+
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/mysql%E6%9E%B6%E6%9E%84%E4%BB%8B%E7%BB%8D/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        
+        
+        
+        var all = MathJax.Hub.getAllJax(),
+            i;
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+        if (tocFlag) tocInit();
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
+</body>
+
+</html>
