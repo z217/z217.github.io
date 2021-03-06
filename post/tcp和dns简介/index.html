@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/jquery-3.4.1.min.js></script>
+<script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="https://www.cnblogs.com/meidaoli/"  target="_blank" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+        
+        <a href="http://123.57.12.189"  target="_blank" >
+            <i class="fas fa-link fa-sm"></i>
+            <span>二站</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">TCP和DNS简介</h1>
+
+
+<h2 id="1-tcp">1. <code>TCP</code></h2>
+<p>        <code>TCP</code>是一种<strong>面向连接的</strong> ( $connection-oriented$ ) 协议，在一个应用进程向另一个应用进程发送数据之前，这两个进程必须先相互握手。<code>TCP</code>建立的连接是一条逻辑链接，其共同状态仅保留在两个通信端系统的<code>TCP</code>程序中。由于<code>TCP</code>协议只在端系统中运行，而不在中间的网络元素（路由器和链路层交换机）中运行，所以中间的网络元素不会维持<code>TCP</code>连接状态。事实上，中间路由器看到的是数据报，而非<code>TCP</code>连接。<br/>
+        一旦建立起一条<code>TCP</code>连接，两个应用进程之间就可以相互发送数据了。<code>TCP</code>接收到数据后，会将数据引导到连接的<strong>发送缓存</strong> ( $send\ \ buffer$ ) 里，发送缓存是发起三次握手期间设置的缓存之一。接下来<code>TCP</code>就会时不时从发送缓存里取出一块数据，并将数据传递到网络层。<code>TCP</code>可从缓存中取出并放入报文段中的数据数量受限于<strong>最大报文段长度</strong> ( $Maximum\ \ Segment\ \ Size$ ，$MSS$ )。<code>MSS</code>通常根据最初确定的由本地发送主机发送的最大链路层帧长度( 即所谓的<strong>最大传输单元</strong> ( $Maximum\ \ Transmission\ \ Unit$ ，$MTU$ )) 来设置。以太网和<code>PPP</code>链路层协议都具有 $1500$ 字节的<code>MTU</code>，再加上<code>TCP/IP</code>首部长度 ( 通常为 $40$ 字节 ) ，因此<code>MSS</code>的典型值为 $1460$ 字节。<br/>
+        <code>TCP</code>为每块客户端数据配上一个<code>TCP</code>首部，从而形成多个<code>TCP</code><strong>报文段</strong> ( $TCP\ \ segment$ )。这些报文段被下传给网络层，网络层将其分别封装在网络层<code>IP</code>数据报中。然后这些<code>IP</code>数据报被发送到网络中。当<code>TCP</code>在另一端接收到一个报文段之后，该报文段的数据就被放入该<code>TCP</code>连接的接收缓存中。</p>
+<p><img src="/image/2021-03-06-01.png" alt="TCP报文段结构"></p>
+<h3 id="11-序号和确认号">1.1 序号和确认号</h3>
+<p>        <code>TCP</code>报文段首部中两个最重要的字段是序号字段和确认号字段。<code>TCP</code>把数据看成一个无结构的、有序的字节流。序号是建立在传送的字节流之上，而不是建立在传送的报文段的序列之上。<strong>一个报文段的序号</strong> ( $sequence\ \ number\ \ for\ \ a\ \ segment$ ) 是该报文段首字节的字节流编号。<br/>
+        <code>TCP</code>是全双工协议，因此主机 $A$ 在向主机 $B$ 发送数据的同时，也许也接收来自主机 $B$ 的数据。从主机 $B$ 到达的每个报文段中都有一个序号用于从 $B$ 流向 $A$ 的数据。主机 $A$ 填充进报文段的确认号是主机 $A$ 期望从主机 $B$ 收到的下一字节的序号。假设主机 $A$ 已收到一个来自主机 $B$ 的包含字节 $0 \sim 535$ 的报文段，以及另一个包含字节 $900 \sim 1000$ 的报文段。由于某种原因，主机 $A$ 还没有收到字节 $536 \sim 899$ 的报文段。在这个例子中，主机 $A$ 为了重新构建主机 $B$ 的数据流，仍在等待字节 $536$ 。因此 $A$ 到 $B$ 的下一个报文段将在确认号字段中包含 $536$ 。因为<code>TCP</code>只确认该流中至第一个丢失字节为止的字节，所以<code>TCP</code>被称为提供<strong>累计确认</strong> ( $cumulative\ \ acknowledge$ )。当主机 $A$ 在收到第二个报文段 ( $536 \sim 899$ ) 之前收到第三个报文段 ( $900 \sim 1000$ )，这时候的处理方式<code>TCP RFC</code>并没有明确规定任何规则，编程人员有两种处理方式：丢弃或者缓存。显然，后一种选择对网络带宽而言更为有效，也是实践中采用的方法。<br/>
+        主机 $A$ 和主机 $B$ 之间数据的确认可以承载在数据的报文段中，而不需要重新发一个独立的确认报文段，这种确认称为<strong>捎带</strong> ( $piggybacked$ )。主机之间也可以发送空报文段，通常用于确认已经收到数据。对于空报文段，虽然没有数据，但仍然需要分配一个序号，因为<code>TCP</code>中存在序号字段，报文段需要填入序号。</p>
+<h3 id="12-可靠数据传输">1.2 可靠数据传输</h3>
+<p>        因特网的网络层服务 ( <code>IP</code>服务是不可靠的 )。对于<code>IP</code>服务，数据报能够溢出路由器缓存而永远不能到达目的地，数据报也可能是乱序到达的，而且数据报中的比特可能损坏。<br/>
+        <code>TCP</code>在<code>IP</code>不可靠的尽力而为服务之上创建了一种<strong>可靠数据传输服务</strong> ( $reliable\ \ data\ \ transfer\ \ service$ )。<code>TCP</code>的可靠数据传输服务确保一个进程从其接收缓存中读出的数据流是无损坏、无间隙、非冗余和按序的数据流。<code>TCP</code>在每次发送报文的时候都会设置一个定时器，当定时器超时时就会重传报文。每当有超时事件发生，<code>TCP</code>会重传具有最小序号的还未被确认的报文段，但是每次重传时都会将下一次的超时间隔设为先前值的两倍。每当重新收到<code>ACK</code>时，超时间隔就又会被重新计算。<br/>
+        超时触发重传存在的问题之一是超时周期可能相对较长，因而增加了端到端时延。发送方通常可在超时事件发生之前通过注意所谓的<strong>冗余</strong><code>ACK</code> ( $duplicate\ \ ACK$ ) 来检测丢包。冗余<code>ACK</code>就是再次确认某个报文段的<code>ACK</code>。因为发送方经常一个接一个地发送大量的报文段，如果一个报文段丢失，就很可能引起许多一个接一个的冗余<code>ACK</code>。如果<code>TCP</code>发送方接收到对相同数据的 $3$ 个冗余<code>ACK</code>，就会执行<strong>快速重传</strong> ( $fast\ \ retransmit$ )，即在该报文段的定时器过期之前重传丢失的报文段。</p>
+<h3 id="13-流量控制">1.3 流量控制</h3>
+<p>        <code>TCP</code>为它的应用程序提供了<strong>流量控制服务</strong> ( $flow-control\ \ service$ ) 以消除发送方使接收方缓存溢出的可能性。流量控制是一个速度匹配服务，即发送方的发送速率与接收方应用程序的读取速率相匹配。<code>TCP</code>发送方也可能因为<code>IP</code>网络的拥塞而被遏制，这种形式的发送方的控制被称为<strong>拥塞控制</strong> ( $congestion\ \ control$ )。<br/>
+        <code>TCP</code>让发送方维护一个<strong>接收窗口</strong> ( $revive\ \ window$ ) 的变量来提供流量控制。通俗地说，接收窗口用于给发送方一个指示——该接收方还有多少可用的缓存空间。为了避免缓存溢出，缓存大小应该不小于应用程序从缓存读出的数据流的最后一个字节的编号与放入缓存中的数据流的最后一个字节编号的差。主机 $A$ 根据主机 $B$ 提供的剩余缓存窗口大小，计算将要发送的数量的大小，如果不大于则发送，否则阻塞。当主机 $B$ 的接收窗口为 $0$ 时，主机 $A$ 会定时发送一个只有一个字节数据的报文段，用于判断主机 $B$ 的剩余窗口大小是否改变。</p>
+<h3 id="14-连接建立和拆除">1.4 连接建立和拆除</h3>
+<p>        连接可以通过以下方式建立：</p>
+<ol>
+<li>客户端<code>TCP</code>首先向服务端<code>TCP</code>发送一个特殊的<code>TCP</code>报文段。报文段首部<code>SYN</code>标志位置 $1$ ，同时客户端会选择一个初始序号 ( $client_-isn$ ) 作为报文段序号；</li>
+<li>服务器接收到报文段，为连接分配缓存和变量，并向该客户<code>TCP</code>发送报文段。报文段的<code>SYN</code>标志位和<code>ACK</code>标志位置 $1$ ，确认号置为 ( $client_-isn + 1$ )，服务器选择自己的初始序号 ( $server_-isn$ ) 作为报文段序号；</li>
+<li>客户端为<code>TCP</code>连接分配缓存和变量，并向服务器发送报文段。最后一个报文段的<code>SYN</code>标志位置 $0$ ，<code>ACK</code>标志位置 $1$ 。</li>
+</ol>
+<p>        完成三次握手之后，每个报文段的<code>SYN</code>标志位都会置 $0$ 。<br/>
+        当主机 $A$ 想要关闭连接时，会先发出一个<code>FIN</code>标志位置 $1$ 的报文段，主机 $B$ 收到之后会发送一个<code>ACK</code>报文段，然后再发送<code>FIN</code>报文段。最后，主机 $A$ 再发送<code>ACK</code>报文段，表示连接释放。</p>
+<h3 id="15-拥塞控制">1.5 拥塞控制</h3>
+<p>        运行在发送方的<code>TCP</code>拥塞控制机制跟踪一个额外的变量，即<strong>拥塞窗口</strong> ( $congestion\ \ window$ )，限制发送方能向网络中发送流量的速率。<br/>
+        当一条<code>TCP</code>连接开始时，拥塞窗口大小通常初始置为一个<code>MSS</code>的较小值。在<strong>慢启动</strong> ( $slow-start$ ) 状态，每当传输的报文段首次被确认就增加一个<code>MSS</code>。在慢启动的过程中，发送方还会维护一个变量称为慢启动阈值，每当发生超时事件 ( 即拥塞 ) 时，这个慢启动阈值就会设为当前拥塞窗口的一半，同时拥塞窗口会重新设为初始值。当拥塞窗口大小增长为慢启动阈值的大小时，<code>TCP</code>不会再使用慢启动，而是每接收到等同于拥塞窗口大小的数据时增加一个<code>MSS</code>，这时<code>TCP</code>进入拥塞避免状态。<br/>
+        另一种结束慢启动的方式是接收到三个冗余<code>ACK</code>的情况，这种情况下会执行快速重传，并进入快速恢复状态。在快速恢复中，拥塞窗口大小和慢启动阈值会设为原拥塞窗口大小的一半，并且对于引起<code>TCP</code>进入快速恢复状态的缺失报文段，每收到一个冗余<code>ACK</code>，就增加一个<code>MSS</code>。最终，当对丢失报文段的一个<code>ACK</code>到达时进入拥塞避免状态。如果出现超时，则会迁移到慢启动状态。</p>
+<h2 id="2-dns">2. <code>DNS</code></h2>
+<p>        主机的一种标识方法是用它的<strong>主机名</strong> ( $hostname$ )，如<a href="https://www.google.com">www.google.com</a>。然而，主机名几乎没有提供关于主机在因特网中的位置的信息。因此，主机也可以使用<code>IP</code>进行标识。<br/>
+        人们通常会记忆主机名，但路由器不能使用主机名，而是使用<code>IP</code>。为了能在主机名和<code>IP</code>之间转换，我们需要<strong>域名系统</strong> ( $Domain\ \ Name\ \ System$ ，$DNS$ ) 的服务。<code>DNS</code>是一个由分层的<code>DNS</code><strong>服务器</strong>实现的分布式数据库，使得主机能够查询分布式数据库的应用层协议。除了进行主机名到<code>IP</code>地址的转换外，<code>DNS</code>还提供了一些重要的服务：<strong>主机别名</strong> ( $host\ \ aliasing$ )、<strong>邮件服务器别名</strong> ( $mail\ \ server\ \ aliasing$ ) 和<strong>负载分配</strong> ( $load\ \ distribution$ )。<br/>
+        <code>DNS</code>采用了分布式的设计方案，全世界范围内存在着大量的<code>DNS</code>服务器。大致来说，有 $3$ 种类型的<code>DNS</code>服务器：<strong>根</strong><code>DNS</code><strong>服务器</strong> ( 提供<code>TLD</code>服务器的<code>IP</code>地址 )、顶级域服务器 ( 对于每个顶级域和所有的国家的顶级域都有的<code>TLD</code>服务器 ) 和<strong>权威</strong><code>DNS</code><strong>服务器</strong> ( 在因特网上具有公共可访问主机的每个组织机构必须提供公共可访问的<code>DNS</code>记录 )。除此之外，还有一种<strong>本地</strong><code>DNS</code><strong>服务器</strong> ( $local\ \ DNS\ \ server$ )，每个<code>ISP</code>都有一台本地<code>DNS</code>服务器。<br/>
+        如果想要知道一个主机名对应的<code>IP</code>地址，主机会先向本地<code>DNS</code>服务器发送一个<code>DNS</code>查询报文，本地<code>DNS</code>服务器会将报文转发到根<code>DNS</code>服务器，根<code>DNS</code>服务器返回负责域名后缀的<code>TLD</code>的<code>IP</code>地址列表。本地<code>DNS</code>服务器会再次向这些<code>TLD</code>服务器之一发送查询报文，<code>TLD</code>会返回权威<code>DNS</code>服务器的<code>IP</code>地址，最后本地<code>DNS</code>服务器直接向权威<code>DNS</code>服务器发送查询报文。权威<code>DNS</code>服务器会返回主机名对应的<code>IP</code>地址。一般情况下，<code>TLD</code>服务器并不知道权威<code>DNS</code>服务器的<code>IP</code>地址，而是中间某个<code>DNS</code>服务器，这时就需要本地<code>DNS</code>服务器再向中间<code>DNS</code>服务器发送查询报文。<br/>
+        上述查询过程中使用了<strong>递归查询</strong> ( $recursive\ \ query$ ) 和<strong>迭代查询</strong> ( $iterative\ \ query$ )。在实践中，通常从请求主机到本地<code>DNS</code>服务器的查询是递归的，而其余的查询是迭代的。<br/>
+        为了改善时延性能并减少在因特网上到处传输的<code>DNS</code>报文数量，<code>DNS</code>广泛使用了缓存技术，缓存包括浏览器缓存、本地 $hosts$ 文件和本地<code>DNS</code>解析器缓存等。本地<code>DNS</code>服务器也能够缓存<code>TLD</code>服务器的<code>IP</code>地址，从而绕过根<code>DNS</code>服务器。事实上，因为缓存，除了少数<code>DNS</code>查询以外，根服务器都会被绕过。</p>
+
+
+<a href="javascript:void(0)" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+<div id="sidetoc">
+    <header>
+        <h4>TCP和DNS简介</h4>
+    </header>
+    
+    <nav id="TableOfContents">
+        <ul></ul>
+    </nav>
+</div>
+<script src=https://z217blog.cn/js/toc.js></script>
+
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/http%E5%8D%8F%E8%AE%AE%E4%BB%8B%E7%BB%8D/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        
+        
+        
+        var all = MathJax.Hub.getAllJax(),
+            i;
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+        if (tocFlag) tocInit();
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
+</body>
+
+</html>
