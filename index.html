@@ -92,10 +92,10 @@
     
     
     <div class="list-item">
-        <a class="entry-title" href="/post/tcp%E5%92%8Cdns%E7%AE%80%E4%BB%8B/">TCP和DNS简介</a>
+        <a class="entry-title" href="/post/tcpudp%E5%92%8Cdns%E7%AE%80%E4%BB%8B/">TCP、UDP和DNS简介</a>
         
         
-        <p>TCP协议和DNS协议简介</p>
+        <p>TCP协议、UDP协议和DNS协议简介</p>
         
         <div class="meta">
             
@@ -193,7 +193,7 @@
         <div class="post">
             
             <center>
-                <h1><a href="/post/tcp%E5%92%8Cdns%E7%AE%80%E4%BB%8B/">TCP和DNS简介</a></h1>
+                <h1><a href="/post/tcpudp%E5%92%8Cdns%E7%AE%80%E4%BB%8B/">TCP、UDP和DNS简介</a></h1>
             </center>
             <div class="post-content">
                 <h2 id="1-tcp">1. <code>TCP</code></h2>
@@ -215,8 +215,8 @@
 <h3 id="14-连接建立和拆除">1.4 连接建立和拆除</h3>
 <p>        连接可以通过以下方式建立：</p>
 <ol>
-<li>客户端<code>TCP</code>首先向服务端<code>TCP</code>发送一个特殊的<code>TCP</code>报文段。报文段首部<code>SYN</code>标志位置 $1$ ，同时客户端会选择一个初始序号 ( $client_-isn$ ) 作为报文段序号；</li>
-<li>服务器接收到报文段，为连接分配缓存和变量，并向该客户<code>TCP</code>发送报文段。报文段的<code>SYN</code>标志位和<code>ACK</code>标志位置 $1$ ，确认号置为 ( $client_-isn + 1$ )，服务器选择自己的初始序号 ( $server_-isn$ ) 作为报文段序号；</li>
+<li>客户端<code>TCP</code>首先向服务端<code>TCP</code>发送一个特殊的<code>TCP</code>报文段。报文段首部<code>SYN</code>标志位置 $1$ ，同时客户端会随机选择一个初始序号 ( $client_-isn$ ) 作为报文段序号；</li>
+<li>服务器接收到报文段，为连接分配缓存和变量，并向该客户<code>TCP</code>发送报文段。报文段的<code>SYN</code>标志位和<code>ACK</code>标志位置 $1$ ，确认号置为 ( $client_-isn + 1$ )，服务器随机选择自己的初始序号 ( $server_-isn$ ) 作为报文段序号；</li>
 <li>客户端为<code>TCP</code>连接分配缓存和变量，并向服务器发送报文段。最后一个报文段的<code>SYN</code>标志位置 $0$ ，<code>ACK</code>标志位置 $1$ 。</li>
 </ol>
 <p>        完成三次握手之后，每个报文段的<code>SYN</code>标志位都会置 $0$ 。<br/>
@@ -225,7 +225,165 @@
 <p>        运行在发送方的<code>TCP</code>拥塞控制机制跟踪一个额外的变量，即<strong>拥塞窗口</strong> ( $congestion\ \ window$ )，限制发送方能向网络中发送流量的速率。<br/>
         当一条<code>TCP</code>连接开始时，拥塞窗口大小通常初始置为一个<code>MSS</code>的较小值。在<strong>慢启动</strong> ( $slow-start$ ) 状态，每当传输的报文段首次被确认就增加一个<code>MSS</code>。在慢启动的过程中，发送方还会维护一个变量称为慢启动阈值，每当发生超时事件 ( 即拥塞 ) 时，这个慢启动阈值就会设为当前拥塞窗口的一半，同时拥塞窗口会重新设为初始值。当拥塞窗口大小增长为慢启动阈值的大小时，<code>TCP</code>不会再使用慢启动，而是每接收到等同于拥塞窗口大小的数据时增加一个<code>MSS</code>，这时<code>TCP</code>进入拥塞避免状态。<br/>
         另一种结束慢启动的方式是接收到三个冗余<code>ACK</code>的情况，这种情况下会执行快速重传，并进入快速恢复状态。在快速恢复中，拥塞窗口大小和慢启动阈值会设为原拥塞窗口大小的一半，并且对于引起<code>TCP</code>进入快速恢复状态的缺失报文段，每收到一个冗余<code>ACK</code>，就增加一个<code>MSS</code>。最终，当对丢失报文段的一个<code>ACK</code>到达时进入拥塞避免状态。如果出现超时，则会迁移到慢启动状态。</p>
-<h2 id="2-dns">2. <code>DNS</code></h2>
+<h3 id="16-状态">1.6 状态</h3>
+<p>        在一个<code>TCP</code>连接的生命周期内，运行在每台主机中的<code>TCP</code>协议在各种<code>TCP</code><strong>状态</strong> ( $TCP\ \ state$ ) 之间变迁。客户<code>TCP</code>开始时处于 $CLOSED$ 状态。</p>
+<p><img src="/image/2021-03-06-02.png" alt="客户TCP经历的典型的TCP状态序列"></p>
+<p>        假设客户应用程序决定要关闭连接，将会发送一个<code>FIN</code>报文段并进入 $FIN_-WAIT_-1$ 状态，收到服务器的<code>ACK</code>报文段后进入 $FIN_-WAIT_-2$ 状态。再次收到服务器的<code>FIN</code>报文段后，客户端会对服务器的报文段进行确认，并进入 $TIME_-WAIT$ 状态。在这个状态中，如果<code>ACK</code>丢失，客户端可以重传。经过一段时间的等待后，连接正式关闭，客户端的所有资源将被释放。<br/>
+        与客户端一样，服务器也有一系列状态：</p>
+<p><img src="/image/2021-03-06-03.png" alt="服务器端TCP经历的典型的TCP状态序列"></p>
+<p>        当服务器正在监听客户发送其<code>SYN</code>报文段端口时，如果其收到的报文段端口号或源<code>IP</code>地址与该主机上进行中的套接字都不匹配的情况下，主机将向源发送一个特殊重置报文段，即<code>RST</code>标志位置 $1$ ( 如果是<code>UDP</code>，将会发送<code>ICMP</code>数据报 ) 。</p>
+<h3 id="17-标志位">1.7 标志位</h3>
+<p>        除了<code>SYN</code>、<code>ACK</code>、<code>FIN</code>这些用于建立和关闭连接的标志位外，<code>TCP</code>还提供了其他标志位：</p>
+<ul>
+<li><code>CWR</code>和<code>ECE</code>：当采用<strong>显式拥塞通知</strong> ( $Explicit\ \ Congestion\ \ Notification$ ，$ECN$ ) 时，<code>CWR</code>和<code>ECE</code>就用作拥塞控制的信号。当<code>TCP</code>接收端收到来自网路的拥塞指示后，就设置<code>ECE</code>给发送端发送 $ECN-Echo$ 信号，提示发送发放慢发送速率。发送端接收到<code>ECE</code>后就会设置<code>CWR</code>，提示接收端已经放慢速率，不必再发送<code>ECE</code>；</li>
+<li><code>URG</code>：如果使用了<strong>紧急指针</strong> ( $Urgent\ \ pointer$ )，则置 $1$ 。紧急指针指向从当前序号开始找到紧急数据的字节偏移量；</li>
+<li><code>ACK</code>：置 $1$ 表示确认号字段有效，如果为 $0$ 表示该段不包含确认信息；</li>
+<li><code>PSH</code>：推送数据，请求接收端接收到数据后应立即将数据递交给应用程序，而非缓存；</li>
+<li><code>RST</code>：用于突然重置一个已经变得混乱的连接，混乱有可能是因为主机崩溃造成的。也可以用来拒收一个无效的段，或者拒绝一个连接请求。如果向主机发送数据包，但没有这样的服务等待监听时，主机将自动拒绝请求，并将<code>RST</code>置 $1$ 。</li>
+</ul>
+<h2 id="2-udp">2. <code>UDP</code></h2>
+<p>        <code>UDP</code>只是做了运输协议能做的最少工作，除了复用/分解功能以及少量的差错检测外，它几乎没有对<code>IP</code>增加别的东西。实际上，如果应用程序开发人员选择<code>UDP</code>而不是<code>TCP</code>，则该应用程序差不多就是直接与<code>IP</code>打交道。在使用<code>UDP</code>发送报文段之前，发送方和接收方的运输层实体之间没有握手，因此，<code>UDP</code>被称为是<strong>无连接的</strong>。<code>DNS</code>是一个通常使用<code>UDP</code>应用层协议的例子，当主机想要进行一次<code>DNS</code>查询时，将会构造一个查询报文并通过<code>UDP</code>发送。<br/>
+        虽然<code>TCP</code>提供了可靠的数据传输服务，但是有些应用更适合<code>UDP</code>，原因如下：</p>
+<ul>
+<li><strong>关于发送什么数据以及何时发送的应用层控制更为精细</strong>：只要应用程序将数据传递给<code>UDP</code>，<code>UDP</code>就会将数据打包并立即传递给网络层。而<code>TCP</code>存在着流量控制和拥塞控制，不一定能立即发送。对于要求最小的发送速率，并且可以容忍一定的数据丢失的应用，<code>UDP</code>是更好的选择；</li>
+<li><strong>无需连接建立</strong>：<code>UDP</code>不需要准备即可进行数据传输，因此不存在建立连接的时延；</li>
+<li><strong>无连接状态</strong>：<code>TCP</code>需要在端系统种维护连接状态，包括接收和发送缓存、拥塞控制参数以及序号和确认号。而<code>UDP</code>不维护这些状态，也不跟踪这些参数；</li>
+<li><strong>分组首部开销小</strong>：每个<code>TCP</code>报文段都有 $20$ 字节的首部开销，而<code>UDP</code>仅有 $8$ 字节的开销。</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th align="center">应用</th>
+<th align="center">应用层协议</th>
+<th align="center">传输层协议</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">电子邮件</td>
+<td align="center"><code>SMTP</code></td>
+<td align="center"><code>TCP</code></td>
+</tr>
+<tr>
+<td align="center">远程终端访问</td>
+<td align="center"><code>Telnet</code></td>
+<td align="center"><code>TCP</code></td>
+</tr>
+<tr>
+<td align="center"><code>Web</code></td>
+<td align="center"><code>HTTP</code></td>
+<td align="center"><code>TCP</code></td>
+</tr>
+<tr>
+<td align="center">文件传输</td>
+<td align="center"><code>FTP</code></td>
+<td align="center"><code>TCP</code></td>
+</tr>
+<tr>
+<td align="center">远程文件服务器</td>
+<td align="center"><code>NFS</code></td>
+<td align="center">通常<code>UDP</code></td>
+</tr>
+<tr>
+<td align="center">流式多媒体</td>
+<td align="center">通常专用</td>
+<td align="center"><code>UDP</code>或<code>TCP</code></td>
+</tr>
+<tr>
+<td align="center">域名服务</td>
+<td align="center"><code>DNS</code></td>
+<td align="center">通常<code>UDP</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="3-java套接字">3. <code>Java</code>套接字</h2>
+<p>        <code>TCP</code>：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Server</span> <span class="o">{</span>
+    <span class="kd">public</span> <span class="nf">Server</span><span class="o">(</span><span class="kt">int</span> <span class="n">port</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+        <span class="n">ServerSocket</span> <span class="n">serverSocket</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ServerSocket</span><span class="o">(</span><span class="n">port</span><span class="o">);</span>
+        <span class="k">while</span> <span class="o">(</span><span class="kc">true</span><span class="o">)</span> <span class="o">{</span>
+            <span class="n">Socket</span> <span class="n">socket</span> <span class="o">=</span> <span class="n">serverSocket</span><span class="o">.</span><span class="na">accept</span><span class="o">();</span>
+            <span class="k">new</span> <span class="n">Thread</span><span class="o">(</span><span class="k">new</span> <span class="n">HandleAClient</span><span class="o">(</span><span class="n">socket</span><span class="o">)).</span><span class="na">start</span><span class="o">();</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">class</span> <span class="nc">HandleAClient</span> <span class="kd">implements</span> <span class="n">Runnable</span> <span class="o">{</span>
+        <span class="kd">private</span> <span class="kd">final</span> <span class="n">Socket</span> <span class="n">socket</span><span class="o">;</span>
+
+        <span class="kd">public</span> <span class="nf">HandleAClient</span><span class="o">(</span><span class="n">Socket</span> <span class="n">socket</span><span class="o">)</span> <span class="o">{</span> <span class="k">this</span><span class="o">.</span><span class="na">socket</span> <span class="o">=</span> <span class="n">socket</span><span class="o">;</span> <span class="o">}</span>
+
+        <span class="nd">@Override</span>
+        <span class="kd">public</span> <span class="kt">void</span> <span class="nf">run</span><span class="o">()</span> <span class="o">{</span>
+            <span class="k">try</span> <span class="o">{</span>
+                <span class="n">DataInputStream</span> <span class="n">in</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DataInputStream</span><span class="o">(</span><span class="n">socket</span><span class="o">.</span><span class="na">getInputStream</span><span class="o">());</span>
+                <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">in</span><span class="o">.</span><span class="na">readDouble</span><span class="o">());</span>
+            <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">IOException</span> <span class="o">|</span> <span class="n">ClassNotFoundException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+                <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div><div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Client</span> <span class="o">{</span>
+    <span class="kd">public</span> <span class="nf">Client</span><span class="o">(</span><span class="n">String</span> <span class="n">host</span><span class="o">,</span> <span class="kt">int</span> <span class="n">port</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+        <span class="n">Socket</span> <span class="n">socket</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Socket</span><span class="o">(</span><span class="n">host</span><span class="o">,</span> <span class="n">port</span><span class="o">);</span>
+        <span class="n">DataOutputStream</span> <span class="n">out</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DataOutputStream</span><span class="o">(</span><span class="n">socket</span><span class="o">.</span><span class="na">getOutputStream</span><span class="o">());</span>
+        <span class="n">Scanner</span> <span class="n">scanner</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Scanner</span><span class="o">(</span><span class="n">System</span><span class="o">.</span><span class="na">in</span><span class="o">);</span>
+        <span class="n">out</span><span class="o">.</span><span class="na">writeDouble</span><span class="o">(</span><span class="n">scanner</span><span class="o">.</span><span class="na">nextDouble</span><span class="o">());</span>
+        <span class="n">socket</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div><p>        <code>UDP</code>：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Server</span> <span class="o">{</span>
+    <span class="kd">public</span> <span class="nf">Server</span><span class="o">(</span><span class="kt">int</span> <span class="n">port</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+        <span class="n">DatagramSocket</span> <span class="n">datagramSocket</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DatagramSocket</span><span class="o">(</span><span class="n">port</span><span class="o">);</span>
+        <span class="k">while</span> <span class="o">(</span><span class="kc">true</span><span class="o">)</span> <span class="o">{</span>
+            <span class="kt">byte</span><span class="o">[]</span> <span class="n">receiveData</span> <span class="o">=</span> <span class="k">new</span> <span class="kt">byte</span><span class="o">[</span><span class="n">1024</span><span class="o">];</span>
+            <span class="n">DatagramPacket</span> <span class="n">packet</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DatagramPacket</span><span class="o">(</span><span class="n">receiveData</span><span class="o">,</span> <span class="n">receiveData</span><span class="o">.</span><span class="na">length</span><span class="o">);</span>
+            <span class="n">datagramSocket</span><span class="o">.</span><span class="na">receive</span><span class="o">(</span><span class="n">packet</span><span class="o">);</span>
+            <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="k">new</span> <span class="n">String</span><span class="o">(</span><span class="n">receiveData</span><span class="o">));</span>
+            <span class="k">new</span> <span class="n">Thread</span><span class="o">(</span><span class="k">new</span> <span class="n">HandleAClient</span><span class="o">(</span><span class="n">packet</span><span class="o">)).</span><span class="na">start</span><span class="o">();</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">class</span> <span class="nc">HandleAClient</span> <span class="kd">implements</span> <span class="n">Runnable</span> <span class="o">{</span>
+        <span class="kd">private</span> <span class="n">DatagramPacket</span> <span class="n">receivePacket</span><span class="o">;</span>
+        <span class="kd">private</span> <span class="n">DatagramSocket</span> <span class="n">socket</span><span class="o">;</span>
+
+        <span class="kd">public</span> <span class="nf">HandleAClient</span><span class="o">(</span><span class="n">DatagramPacket</span> <span class="n">receivePacket</span><span class="o">)</span> <span class="o">{</span>
+            <span class="k">this</span><span class="o">.</span><span class="na">receivePacket</span> <span class="o">=</span> <span class="n">receivePacket</span><span class="o">;</span>
+        <span class="o">}</span>
+
+        <span class="nd">@Override</span>
+        <span class="kd">public</span> <span class="kt">void</span> <span class="nf">run</span><span class="o">()</span> <span class="o">{</span>
+            <span class="k">try</span> <span class="o">{</span>
+                <span class="kt">byte</span><span class="o">[]</span> <span class="n">sendData</span> <span class="o">=</span> <span class="s">&#34;服务端&#34;</span><span class="o">.</span><span class="na">getBytes</span><span class="o">();</span>
+                <span class="n">SocketAddress</span> <span class="n">address</span> <span class="o">=</span> <span class="n">receivePacket</span><span class="o">.</span><span class="na">getSocketAddress</span><span class="o">();</span>
+                <span class="n">DatagramPacket</span> <span class="n">sendPacket</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DatagramPacket</span><span class="o">(</span><span class="n">sendData</span><span class="o">,</span> <span class="n">sendData</span><span class="o">.</span><span class="na">length</span><span class="o">,</span> <span class="n">address</span><span class="o">);</span>
+                <span class="n">socket</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DatagramSocket</span><span class="o">();</span>
+                <span class="n">socket</span><span class="o">.</span><span class="na">send</span><span class="o">(</span><span class="n">sendPacket</span><span class="o">);</span>
+            <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">IOException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+                <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
+            <span class="o">}</span> <span class="k">finally</span> <span class="o">{</span>
+                <span class="k">if</span> <span class="o">(</span><span class="n">socket</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="n">socket</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div><div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Client</span> <span class="o">{</span>
+    <span class="kd">public</span> <span class="nf">Client</span><span class="o">(</span><span class="n">String</span> <span class="n">host</span><span class="o">,</span> <span class="kt">int</span> <span class="n">port</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+        <span class="kt">byte</span><span class="o">[]</span> <span class="n">sendData</span> <span class="o">=</span> <span class="s">&#34;客户端&#34;</span><span class="o">.</span><span class="na">getBytes</span><span class="o">();</span>
+        <span class="n">InetSocketAddress</span> <span class="n">address</span> <span class="o">=</span> <span class="k">new</span> <span class="n">InetSocketAddress</span><span class="o">(</span><span class="n">host</span><span class="o">,</span> <span class="n">port</span><span class="o">);</span>
+        <span class="n">DatagramPacket</span> <span class="n">sendPacket</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DatagramPacket</span><span class="o">(</span><span class="n">sendData</span><span class="o">,</span> <span class="n">sendData</span><span class="o">.</span><span class="na">length</span><span class="o">,</span> <span class="n">address</span><span class="o">);</span>
+        <span class="n">DatagramSocket</span> <span class="n">socket</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DatagramSocket</span><span class="o">;</span>
+        <span class="n">socket</span><span class="o">.</span><span class="na">send</span><span class="o">(</span><span class="n">sendPacket</span><span class="o">);</span>
+        <span class="kt">byte</span><span class="o">[]</span> <span class="n">receiveData</span> <span class="o">=</span> <span class="k">new</span> <span class="kt">byte</span><span class="o">[</span><span class="n">1024</span><span class="o">];</span>
+        <span class="n">DatagramPacket</span> <span class="n">receivePacket</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DatagramPacket</span><span class="o">(</span><span class="n">receiveData</span><span class="o">,</span> <span class="n">receiveData</span><span class="o">.</span><span class="na">length</span><span class="o">);</span>
+        <span class="n">socket</span><span class="o">.</span><span class="na">receive</span><span class="o">(</span><span class="n">receivePacket</span><span class="o">);</span>
+        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="k">new</span> <span class="n">String</span><span class="o">(</span><span class="n">receiveData</span><span class="o">));</span>
+        <span class="n">socket</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div><h2 id="4-dns">4. <code>DNS</code></h2>
 <p>        主机的一种标识方法是用它的<strong>主机名</strong> ( $hostname$ )，如<a href="https://www.google.com">www.google.com</a>。然而，主机名几乎没有提供关于主机在因特网中的位置的信息。因此，主机也可以使用<code>IP</code>进行标识。<br/>
         人们通常会记忆主机名，但路由器不能使用主机名，而是使用<code>IP</code>。为了能在主机名和<code>IP</code>之间转换，我们需要<strong>域名系统</strong> ( $Domain\ \ Name\ \ System$ ，$DNS$ ) 的服务。<code>DNS</code>是一个由分层的<code>DNS</code><strong>服务器</strong>实现的分布式数据库，使得主机能够查询分布式数据库的应用层协议。除了进行主机名到<code>IP</code>地址的转换外，<code>DNS</code>还提供了一些重要的服务：<strong>主机别名</strong> ( $host\ \ aliasing$ )、<strong>邮件服务器别名</strong> ( $mail\ \ server\ \ aliasing$ ) 和<strong>负载分配</strong> ( $load\ \ distribution$ )。<br/>
         <code>DNS</code>采用了分布式的设计方案，全世界范围内存在着大量的<code>DNS</code>服务器。大致来说，有 $3$ 种类型的<code>DNS</code>服务器：<strong>根</strong><code>DNS</code><strong>服务器</strong> ( 提供<code>TLD</code>服务器的<code>IP</code>地址 )、顶级域服务器 ( 对于每个顶级域和所有的国家的顶级域都有的<code>TLD</code>服务器 ) 和<strong>权威</strong><code>DNS</code><strong>服务器</strong> ( 在因特网上具有公共可访问主机的每个组织机构必须提供公共可访问的<code>DNS</code>记录 )。除此之外，还有一种<strong>本地</strong><code>DNS</code><strong>服务器</strong> ( $local\ \ DNS\ \ server$ )，每个<code>ISP</code>都有一台本地<code>DNS</code>服务器。<br/>
@@ -234,7 +392,7 @@
         为了改善时延性能并减少在因特网上到处传输的<code>DNS</code>报文数量，<code>DNS</code>广泛使用了缓存技术，缓存包括浏览器缓存、本地 $hosts$ 文件和本地<code>DNS</code>解析器缓存等。本地<code>DNS</code>服务器也能够缓存<code>TLD</code>服务器的<code>IP</code>地址，从而绕过根<code>DNS</code>服务器。事实上，因为缓存，除了少数<code>DNS</code>查询以外，根服务器都会被绕过。</p>
 
             </div>
-            <div class="meta post-footer"> <span>2021 Mar 6 15:36</span> <a href="/post/tcp%E5%92%8Cdns%E7%AE%80%E4%BB%8B/"><i
+            <div class="meta post-footer"> <span>2021 Mar 6 15:36</span> <a href="/post/tcpudp%E5%92%8Cdns%E7%AE%80%E4%BB%8B/"><i
                         class="fas fa-link"></i> link</a></div>
         </div>
         
