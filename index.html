@@ -529,7 +529,7 @@
 </tr>
 <tr>
 <td align="center">$303\ \ See\ \ Other$</td>
-<td align="center">请求资源存在另一个<code>URI</code>，使用 $GET$ 和 $POST$ 获取</td>
+<td align="center">请求资源存在另一个<code>URI</code>，使用 $GET$ 重新获取</td>
 </tr>
 <tr>
 <td align="center">$304\ \ Not\ \ Modified$</td>
@@ -537,7 +537,7 @@
 </tr>
 <tr>
 <td align="center">$307\ \ Temporary\ \ Redirect$</td>
-<td align="center">临时重定向，但要求 $GET$ 获取</td>
+<td align="center">临时重定向，使用 $GET$ 或 $POST$ 获取</td>
 </tr>
 <tr>
 <td align="center">$400\ \ Bad\ \ Request$</td>
@@ -618,6 +618,25 @@
 <li>服务器通过<code>Session ID</code>标识用户，并进行身份验证。通常会使用<code>Cookie</code>传输<code>Session ID</code>给客户端；</li>
 <li>客户端接收到<code>Session ID</code>后，将其作为<code>Cookie</code>保存在本地。</li>
 </ol>
+<h2 id="4-websocket">4. <code>WebSocket</code></h2>
+<p>        <code>WebSocket</code>是<code>Web</code>浏览器与<code>Web</code>服务器之间的全双工通信标准。一旦<code>Web</code>服务器与客户端之间建立起<code>WebSocket</code>协议的通信连接，之后所有的通信都依靠这个专用协议进行，并且可以互相发送任意格式的数据。由于是建立在<code>HTTP</code>基础上的协议，因此连接的发起方仍是客户端，而一旦建立<code>WebSocket</code>通信连接，不论服务器还是客户端，任意一方都可以直接向对方发送报文。<br/>
+        为了实现<code>WebSocket</code>通信，需要用到<code>HTTP</code>的 $Upgrade$ 首部字段。</p>
+<div class="highlight"><pre class="chroma"><code class="language-http" data-lang="http"><span class="nf">GET</span> <span class="nn">/chat</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+<span class="n">Host</span><span class="o">:</span> <span class="l">server.example.com</span>
+<span class="n">Upgrade</span><span class="o">:</span> <span class="l">websocket</span>
+<span class="n">Connection</span><span class="o">:</span> <span class="l">Upgrade</span>
+<span class="n">Sec-WebSocket-Key</span><span class="o">:</span> <span class="l">dGhlIHNhbXBsZSBub25jZQ==</span>
+<span class="n">Origin</span><span class="o">:</span> <span class="l">http://example.com</span>
+<span class="n">Sec-WebSocket-Protocol</span><span class="o">:</span> <span class="l">chat, superchat</span>
+<span class="n">Sec-WebSocket-Version</span><span class="o">:</span> <span class="l">13</span>
+</code></pre></div><p>        $Sec-WebSocket-Key$ 字段内记录着握手过程中必不可少的键值。$Sec-WebSocket-Protocol$ 字段内记录使用的子协议，在连接分开使用时，定义连接的名称。<br/>
+        对于升级请求，返回 $101\ \ Switching\ \ Protocols$ 响应。</p>
+<div class="highlight"><pre class="chroma"><code class="language-http" data-lang="http"><span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span> <span class="m">101</span> <span class="ne">Switching Protocols</span>
+<span class="n">Upgrade</span><span class="o">:</span> <span class="l">websocket</span>
+<span class="n">Connection</span><span class="o">:</span> <span class="l">Upgrade</span>
+<span class="n">Sec-WebSocket-Accept</span><span class="o">:</span> <span class="l">s3pPLMBiTxaQ9kYGzzhZRbK+xOo=</span>
+<span class="n">Sec-WebSocket-Protocol</span><span class="o">:</span> <span class="l">chat</span>
+</code></pre></div><p>        $Sec-WebSocket-Accept$ 字段值是由握手请求中的 $Sec-WebSocket-Key$ 的字段值生成的。在成功握手确立<code>WebSocket</code>连接后，通信时不再使用<code>HTTP</code>的数据帧，而是使用<code>WebSocket</code>独立的数据帧。</p>
 
             </div>
             <div class="meta post-footer"> <span>2021 Mar 5 22:19</span> <a href="/post/http%E5%8D%8F%E8%AE%AE%E4%BB%8B%E7%BB%8D/"><i
@@ -787,7 +806,7 @@
 <ul>
 <li><strong>系统表空间</strong>：在安装数据库的时候默认会初始化一个以 $ibdata1$ 命名的系统表空间，存储所有数据的信息以及回滚段信息，默认大小为 $10MB$ ，在高并发情况下会有性能影响，建议调整大小为 $1GB$ ；</li>
 <li><strong>独立表空间</strong>：设置参数 $innodb_-file_-per_-table=1$ ，目前<code>MySQL</code>默认都是独立表空间，即每个表都有自己的表空间文件，存储对应的<code>B+Tree</code>、索引和插入缓冲等信息，其余信息会存储在共享表空间；</li>
-<li><strong>撤销表空间</strong>：包含撤销日志，初始化的时候会创建两个默认的插销表空间；</li>
+<li><strong>撤销表空间</strong>：包含撤销日志，初始化的时候会创建两个默认的撤销表空间；</li>
 <li><strong>通用表空间</strong>：可以存储多个表的数据，相比独立表空间更节约元数据的内存开销；</li>
 <li><strong>临时表空间</strong>：分会话临时表空间和全局临时表空间。会话临时表空间会在第一个请求中从临时表空间分配，当会话断开时，临时表空间将被释放进入临时表空间池中；全局临时表空间用于存储用户创建的临时表的更改数据，用于回滚，在正常关闭或初始化中止时被删除，并在每次启动服务器时重新创建；</li>
 </ul>
