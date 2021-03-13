@@ -92,6 +92,24 @@
     
     
     <div class="list-item">
+        <a class="entry-title" href="/post/string.indexof%E6%96%B9%E6%B3%95%E5%92%8Ckmp%E7%AE%97%E6%B3%95%E7%AE%80%E4%BB%8B/">String.indexOf方法和KMP算法简介</a>
+        
+        
+        <p>Java的String.indexOf方法和KMP算法的简单介绍</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2021 Mar 13 21:14
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: Java, Algorithm
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
         <a class="entry-title" href="/post/tcpudp%E5%92%8Cdns%E7%AE%80%E4%BB%8B/">TCP、UDP和DNS简介</a>
         
         
@@ -163,24 +181,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="/post/java-8%E5%AE%9E%E6%88%98%E6%97%A5%E6%9C%9F%E5%92%8C%E6%97%B6%E9%97%B4api/">Java 8实战：日期和时间API</a>
-        
-        
-        <p>Java 8日期和时间API简介</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2021 Feb 18 18:39
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: Java
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -189,6 +189,266 @@
     <div class="section-title">μblog</div>
     <div class="posts">
         
+        
+        <div class="post">
+            
+            <center>
+                <h1><a href="/post/string.indexof%E6%96%B9%E6%B3%95%E5%92%8Ckmp%E7%AE%97%E6%B3%95%E7%AE%80%E4%BB%8B/">String.indexOf方法和KMP算法简介</a></h1>
+            </center>
+            <div class="post-content">
+                <h2 id="1-stringindexof">1. <code>String.indexOf</code></h2>
+<p>        子字符串查找是字符串的一种基本操作：给定一段长度为 $N$ 的文本和一个长度为 $M$ 的<strong>模式</strong> ( $pattern$ ) 字符串，在文本中找到一个和该模式相符的子字符串。对于一般的暴力式方法，在最坏的情况下运行时间与 $MN$ 成正比，但是在处理许多应用程序中的字符串时 ( 除了一些极端情况外 )，它的实际运行时间一般与 $M + N$ 成正比。另外，它很好地利用了大多数计算机系统中标准的结构特性，因此即使是更加巧妙的算法也很难超越它经过优化后的版本的性能。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">static</span> <span class="kt">int</span> <span class="nf">search</span><span class="o">(</span><span class="n">String</span> <span class="n">pat</span><span class="o">,</span> <span class="n">String</span> <span class="n">txt</span><span class="o">)</span> <span class="o">{</span>
+    <span class="kt">int</span> <span class="n">M</span> <span class="o">=</span> <span class="n">pat</span><span class="o">.</span><span class="na">length</span><span class="o">();</span>
+    <span class="kt">int</span> <span class="n">N</span> <span class="o">=</span> <span class="n">txt</span><span class="o">.</span><span class="na">length</span><span class="o">();</span>
+    <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">N</span><span class="o">;</span> <span class="n">i</span><span class="o">++)</span> <span class="o">{</span>
+        <span class="kt">int</span> <span class="n">j</span><span class="o">;</span>
+        <span class="k">for</span> <span class="o">(</span><span class="n">j</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">M</span><span class="o">;</span> <span class="n">j</span><span class="o">++)</span>
+            <span class="k">if</span> <span class="o">(</span><span class="n">txt</span><span class="o">.</span><span class="na">charAt</span><span class="o">(</span><span class="n">i</span> <span class="o">+</span> <span class="n">j</span><span class="o">)</span> <span class="o">!=</span> <span class="n">pat</span><span class="o">.</span><span class="na">charAt</span><span class="o">(</span><span class="n">j</span><span class="o">))</span>
+                <span class="k">break</span><span class="o">;</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">j</span> <span class="o">==</span> <span class="n">M</span><span class="o">)</span> <span class="k">return</span> <span class="n">i</span><span class="o">;</span>
+    <span class="o">}</span>
+    <span class="k">return</span> <span class="n">N</span><span class="o">;</span>
+<span class="o">}</span>
+</code></pre></div><p>        $String.indexOf$ 提供了子字符串查找功能，实现方式也是类似于上面的暴力式方法：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="cm">/**
+</span><span class="cm">* String和StringBuffer共享的搜索方法，源和目标均由由字符数组组成
+</span><span class="cm">*
+</span><span class="cm">* @param source 待搜索的串
+</span><span class="cm">* @param sourceOffset 源串偏移量
+</span><span class="cm">* @param sourceCount 源串长度
+</span><span class="cm">* @param target 模式串
+</span><span class="cm">* @param targetOffset 模式串偏移量
+</span><span class="cm">* @param targetCount 模式串长度
+</span><span class="cm">* @param fromIndex 起始搜索位置
+</span><span class="cm">*/</span>
+<span class="kd">static</span> <span class="kt">int</span> <span class="nf">indexOf</span><span class="o">(</span><span class="kt">char</span><span class="o">[]</span> <span class="n">source</span><span class="o">,</span> <span class="kt">int</span> <span class="n">sourceOffset</span><span class="o">,</span> <span class="kt">int</span> <span class="n">sourceCount</span><span class="o">,</span>
+        <span class="n">chat</span><span class="o">[]</span> <span class="n">target</span><span class="o">,</span> <span class="kt">int</span> <span class="n">targetOffset</span><span class="o">,</span> <span class="kt">int</span> <span class="n">targetCount</span><span class="o">,</span>
+        <span class="kt">int</span> <span class="n">fromIndex</span><span class="o">)</span> <span class="o">{</span>
+    <span class="c1">// 起始位置大于源串长度
+</span><span class="c1"></span>    <span class="k">if</span> <span class="o">(</span><span class="n">fromIndex</span> <span class="o">&gt;=</span> <span class="n">sourceCount</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="o">(</span><span class="n">targetCount</span> <span class="o">==</span> <span class="n">0</span> <span class="o">?</span> <span class="n">sourceCount</span> <span class="o">:</span> <span class="o">-</span><span class="n">1</span><span class="o">);</span>
+    <span class="o">}</span>
+    <span class="c1">// 起始位置小于0，设为0
+</span><span class="c1"></span>    <span class="k">if</span> <span class="o">(</span><span class="n">fromIndex</span> <span class="o">&lt;</span> <span class="n">0</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">fromIndex</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span>
+    <span class="o">}</span>
+    <span class="c1">// 模式串长度为零，返回起始位置
+</span><span class="c1"></span>    <span class="k">if</span> <span class="o">(</span><span class="n">targetCount</span> <span class="o">==</span> <span class="n">0</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">fromIndex</span><span class="o">;</span>
+    <span class="o">}</span>
+    <span class="c1">// 获取模式串第一个字符以及源字符串最大长度
+</span><span class="c1"></span>    <span class="kt">char</span> <span class="n">first</span> <span class="o">=</span> <span class="n">target</span><span class="o">[</span><span class="n">targetOffset</span><span class="o">];</span>
+    <span class="kt">int</span> <span class="n">max</span> <span class="o">=</span> <span class="n">sourceOffset</span> <span class="o">+</span> <span class="o">(</span><span class="n">sourceCount</span> <span class="o">-</span> <span class="n">targetCount</span><span class="o">);</span>
+    <span class="c1">// 从偏移量开始查找
+</span><span class="c1"></span>    <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">sourceOffset</span> <span class="o">+</span> <span class="n">fromIndex</span><span class="o">;</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">max</span><span class="o">;</span> <span class="n">i</span><span class="o">++)</span> <span class="o">{</span>
+        <span class="c1">// 首字符不匹配，查询下一个匹配位置
+</span><span class="c1"></span>        <span class="k">if</span> <span class="o">(</span><span class="n">source</span><span class="o">[</span><span class="n">i</span><span class="o">]</span> <span class="o">!=</span> <span class="n">first</span><span class="o">)</span> <span class="o">{</span>
+            <span class="k">while</span> <span class="o">(++</span><span class="n">i</span> <span class="o">&lt;=</span> <span class="n">max</span> <span class="o">&amp;&amp;</span> <span class="n">source</span><span class="o">[</span><span class="n">i</span><span class="o">]</span> <span class="o">!=</span> <span class="n">first</span><span class="o">);</span>
+        <span class="o">}</span>
+
+        <span class="k">if</span> <span class="o">(</span><span class="n">i</span> <span class="o">&lt;=</span> <span class="n">max</span><span class="o">)</span> <span class="o">{</span>
+            <span class="c1">// 第二个字符位置
+</span><span class="c1"></span>            <span class="kt">int</span> <span class="n">j</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="n">1</span><span class="o">;</span>
+            <span class="c1">// 剩余待匹配长度
+</span><span class="c1"></span>            <span class="kt">int</span> <span class="n">end</span> <span class="o">=</span> <span class="n">j</span> <span class="o">+</span> <span class="n">targetCount</span> <span class="o">-</span> <span class="n">1</span><span class="o">;</span>
+            <span class="c1">// 匹配剩余串
+</span><span class="c1"></span>            <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="n">targetOffset</span> <span class="o">+</span> <span class="n">1</span><span class="o">;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">end</span> <span class="o">&amp;&amp;</span> <span class="n">source</span><span class="o">[</span><span class="n">j</span><span class="o">]</span>
+                    <span class="o">==</span> <span class="n">target</span><span class="o">[</span><span class="n">k</span><span class="o">];</span> <span class="n">j</span><span class="o">++,</span> <span class="n">k</span><span class="o">++);</span>
+            <span class="c1">// 匹配成功，返回起始索引
+</span><span class="c1"></span>            <span class="k">if</span> <span class="o">(</span><span class="n">j</span> <span class="o">==</span> <span class="n">end</span><span class="o">)</span> <span class="o">{</span>
+                <span class="k">return</span> <span class="n">i</span> <span class="o">-</span> <span class="n">sourceOffset</span><span class="o">;</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+    <span class="c1">// 匹配失败，返回-1
+</span><span class="c1"></span>    <span class="k">return</span> <span class="o">-</span><span class="n">1</span><span class="o">;</span>
+<span class="o">}</span>
+</code></pre></div><h2 id="2-kmp">2. <code>KMP</code></h2>
+<p>        <code>KMP</code>算法的基本思想是当出现不匹配时，就能知晓一部分文本的内容 ( 因为在匹配失败之前它们已经和模式相匹配 )。我们可以利用这些信息避免将指针回退到所有这些已知的字符之前。例如对于字符串 $ABCDABD$ ，当我们匹配到倒数第一个字符即 $B$ 的时候，如果发现不匹配，我们没有必要再将模式指针移到开头，而是移到第三个字符即 $C$ ，因为我们已经知道了前面两个字符必定为 $AB$ 。<br/>
+        为了实现上述回退操作，我们需要实现一个 $next[\ ]$ 数组记录回退位置。我们可以将字符串分为前缀和后缀两个部分，每个字符都有对应的前缀和后缀，例如对于 $ABAB$ ，有：</p>
+<table>
+<thead>
+<tr>
+<th align="center">索引</th>
+<th align="center">$0$</th>
+<th align="center">$1$</th>
+<th align="center">$2$</th>
+<th align="center">$3$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">前缀</td>
+<td align="center"></td>
+<td align="center">$A$</td>
+<td align="center">$AB$</td>
+<td align="center">$ABA$</td>
+</tr>
+<tr>
+<td align="center">后缀</td>
+<td align="center">$BAB$</td>
+<td align="center">$AB$</td>
+<td align="center">$B$</td>
+<td align="center"></td>
+</tr>
+</tbody>
+</table>
+<p>        而构造的 $next[\ ]$ 数组记录的就是除当前字符外最长的相同前缀后缀。简单的来讲就是对于每个从 $0$ 开始的子串，寻找其前缀后缀集合中最长的公有元素。再以 $ABAB$ 为例：</p>
+<ul>
+<li>$A$ 的前缀和后缀均为空集，没有公有元素；</li>
+<li>$AB$ 的前缀为 ( $A$ )，后缀为 ( $B$ )，没有公有元素；</li>
+<li>$ABA$ 的前缀为 ( $A$, $AB$ )，后缀为 ( $BA$, $A$ )，最长公有元素为 $A$ ，长度为 $1$ ；</li>
+<li>$ABAB$ 的前缀为 ( $A$, $AB$, $ABA$ )，后缀为 ( $BAB$, $AB$, $B$ )，最长公有元素为 $AB$ ，长度为 $2$ 。</li>
+</ul>
+<p>        获取了最长公有元素长度后，就可以构造 $next[\ ]$ 数组了，构造的时候只需要将首位设为 $-1$ ，然后将求得的数字统一右移一格即可。</p>
+<table>
+<thead>
+<tr>
+<th align="center">模式串</th>
+<th align="center">$A$</th>
+<th align="center">$B$</th>
+<th align="center">$A$</th>
+<th align="center">$B$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">数组</td>
+<td align="center">$-1$</td>
+<td align="center">$0$</td>
+<td align="center">$0$</td>
+<td align="center">$1$</td>
+</tr>
+</tbody>
+</table>
+<p>        但是显然，对于每个 $index[i]$ ，如果每次都要计算前缀和后缀，然后比较统计长度，那么花费的时间可能会比暴力搜索要久。我们可以利用动态规划的思想，利用先前求得的值。例如对于 $ABCDABCE$ ，我们已经计算出前 $7$ 位值如下：</p>
+<table>
+<thead>
+<tr>
+<th align="center">模式串</th>
+<th align="center">$A$</th>
+<th align="center">$B$</th>
+<th align="center">$C$</th>
+<th align="center">$D$</th>
+<th align="center">$A$</th>
+<th align="center">$B$</th>
+<th align="center">$C$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">最长前后缀公有串长度</td>
+<td align="center">$0$</td>
+<td align="center">$0$</td>
+<td align="center">$0$</td>
+<td align="center">$0$</td>
+<td align="center">$1$</td>
+<td align="center">$2$</td>
+<td align="center">$3$</td>
+</tr>
+<tr>
+<td align="center">$next$</td>
+<td align="center">$-1$</td>
+<td align="center">$0$</td>
+<td align="center">$0$</td>
+<td align="center">$0$</td>
+<td align="center">$0$</td>
+<td align="center">$1$</td>
+<td align="center">$2$</td>
+</tr>
+</tbody>
+</table>
+<p>        此时对于第 $j = 8$ 位 $E$ ，可以发现有 $pattern[j - 1] == pattern[next[j - 1]]$ ，也就意味着第 $j - 1$ 个子串的前后缀最长公有元素的长度必定为第 $j - 2$ 个子串的长度加 $1$ ，也即 $index[j] = index[j - 1] + 1$ 。<br/>
+        而对于不相等的情况如 $ABCDABDE$ ，有：</p>
+<table>
+<thead>
+<tr>
+<th align="center">模式串</th>
+<th align="center">$A$</th>
+<th align="center">$B$</th>
+<th align="center">$C$</th>
+<th align="center">$D$</th>
+<th align="center">$A$</th>
+<th align="center">$B$</th>
+<th align="center">$D$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">最长前后缀公有串长度</td>
+<td align="center">$0$</td>
+<td align="center">$0$</td>
+<td align="center">$0$</td>
+<td align="center">$0$</td>
+<td align="center">$1$</td>
+<td align="center">$2$</td>
+<td align="center">$0$</td>
+</tr>
+<tr>
+<td align="center">$next$</td>
+<td align="center">$-1$</td>
+<td align="center">$0$</td>
+<td align="center">$0$</td>
+<td align="center">$0$</td>
+<td align="center">$0$</td>
+<td align="center">$1$</td>
+<td align="center">$2$</td>
+</tr>
+</tbody>
+</table>
+<p>        这时再对第 $j = 8$ 位 $E$ 比较，可以发现 $pattern[j - 1] != pattern[next[j - 1]]$ 。这时就需要递归索引，即令 $k = next[j - 1]$ ，然后再比较 $pattern[j - 1]$ 与 $pattern[next[k]]$ ，直到 $k == -1$ 或者 $pattern[j - 1] == pattern[next[k]]$ ，对于后者，我们就令 $next[j] == next[k] + 1$。因为相同前缀的子串在模式串中可能多次出现，之前的 $next$ 值记录的可能是靠后的前缀子串的位置，所以我们需要递归查找直到所有相同前缀子串遍历完成。<br/>
+        从而<code>KMP</code>算法的实现为：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">KMP</span> <span class="o">{</span>
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">int</span> <span class="nf">search</span><span class="o">(</span><span class="n">String</span> <span class="n">pat</span><span class="o">,</span> <span class="n">String</span> <span class="n">txt</span><span class="o">)</span> <span class="o">{</span>
+        <span class="kt">int</span> <span class="n">M</span> <span class="o">=</span> <span class="n">pat</span><span class="o">.</span><span class="na">length</span><span class="o">();</span>
+        <span class="kt">int</span> <span class="n">N</span> <span class="o">=</span> <span class="n">txt</span><span class="o">.</span><span class="na">length</span><span class="o">();</span>
+        <span class="kt">int</span><span class="o">[]</span> <span class="n">next</span> <span class="o">=</span> <span class="n">getNext</span><span class="o">(</span><span class="n">pat</span><span class="o">,</span> <span class="n">N</span><span class="o">);</span>
+        <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">0</span><span class="o">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span>
+        <span class="k">while</span> <span class="o">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">M</span> <span class="o">&amp;&amp;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">N</span><span class="o">)</span> <span class="o">{</span>
+            <span class="k">if</span> <span class="o">(</span><span class="n">j</span> <span class="o">==</span> <span class="o">-</span><span class="n">1</span> <span class="o">||</span> <span class="n">txt</span><span class="o">.</span><span class="na">charAt</span><span class="o">(</span><span class="n">i</span><span class="o">)</span> <span class="o">==</span> <span class="n">pat</span><span class="o">.</span><span class="na">charAt</span><span class="o">(</span><span class="n">j</span><span class="o">))</span> <span class="o">{</span>
+                <span class="n">i</span><span class="o">++;</span>
+                <span class="n">j</span><span class="o">++;</span>
+            <span class="o">}</span> <span class="k">else</span> <span class="n">j</span> <span class="o">=</span> <span class="n">next</span><span class="o">[</span><span class="n">j</span><span class="o">];</span>
+        <span class="o">}</span>
+        <span class="k">return</span> <span class="n">j</span> <span class="o">==</span> <span class="n">N</span> <span class="o">?</span> <span class="n">i</span> <span class="o">-</span> <span class="n">j</span> <span class="o">:</span> <span class="o">-</span><span class="n">1</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kt">int</span><span class="o">[]</span> <span class="nf">getNext</span><span class="o">(</span><span class="n">String</span> <span class="n">pat</span><span class="o">,</span> <span class="kt">int</span> <span class="n">N</span><span class="o">)</span> <span class="o">{</span>
+        <span class="kt">int</span><span class="o">[]</span> <span class="n">next</span> <span class="o">=</span> <span class="k">new</span> <span class="kt">int</span><span class="o">[</span><span class="n">N</span><span class="o">];</span>
+        <span class="n">next</span><span class="o">[</span><span class="n">0</span><span class="o">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">1</span><span class="o">;</span>
+        <span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="o">-</span><span class="n">1</span><span class="o">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span>
+        <span class="k">while</span> <span class="o">(</span><span class="n">j</span> <span class="o">&lt;</span> <span class="n">N</span> <span class="o">-</span> <span class="n">1</span><span class="o">)</span> <span class="o">{</span>
+            <span class="k">if</span> <span class="o">(</span><span class="n">k</span> <span class="o">==</span> <span class="o">-</span><span class="n">1</span> <span class="o">||</span> <span class="n">pat</span><span class="o">.</span><span class="na">charAt</span><span class="o">(</span><span class="n">j</span><span class="o">)</span> <span class="o">==</span> <span class="n">pat</span><span class="o">.</span><span class="na">charAt</span><span class="o">(</span><span class="n">k</span><span class="o">))</span> <span class="o">{</span>
+                <span class="n">k</span><span class="o">++;</span>
+                <span class="n">j</span><span class="o">++;</span>
+                <span class="n">next</span><span class="o">[</span><span class="n">j</span><span class="o">]</span> <span class="o">=</span> <span class="n">k</span><span class="o">;</span>
+            <span class="o">}</span> <span class="k">else</span> <span class="n">k</span> <span class="o">=</span> <span class="n">next</span><span class="o">[</span><span class="n">k</span><span class="o">];</span>
+        <span class="o">}</span>
+        <span class="k">return</span> <span class="n">next</span><span class="o">;</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div><p>        至此已经完成了<code>KMP</code>算法，但是还存在着一个问题，举个例子，对于字符串 $ABACABABC$ 和模式串 $ABAB$ ，可以得出 $next[\ ] = \{-1, 0, 0, 1\}$ 。然后进行匹配，直到第 $4$ 个字符，此时 $txt[3] = &ldquo;C&quot;$ ，$pat[3] = &ldquo;B&quot;$ ，于是 $txt[3] != pat[3]$ ，查找得出 $j = next[3] = 1$ ，于是又重新比对 $txt[3]$ 和 $pat[1]$ 。显然最后一步是没有必要的，因为我们已经知道 $txt[3] != &ldquo;B&quot;$ 了。所以我们可以对原来的 $next[\ ]$ 数组进行优化：</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">static</span> <span class="kt">int</span><span class="o">[]</span> <span class="nf">getNextVal</span><span class="o">(</span><span class="n">String</span> <span class="n">pat</span><span class="o">,</span> <span class="kt">int</span> <span class="n">N</span><span class="o">)</span> <span class="o">{</span>
+    <span class="kt">int</span><span class="o">[]</span> <span class="n">nextVal</span> <span class="o">=</span> <span class="k">new</span> <span class="kt">int</span><span class="o">[</span><span class="n">N</span><span class="o">];</span>
+    <span class="n">nextVal</span><span class="o">[</span><span class="n">0</span><span class="o">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">1</span><span class="o">;</span>
+    <span class="kt">int</span> <span class="n">k</span> <span class="o">=</span> <span class="o">-</span><span class="n">1</span><span class="o">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span>
+    <span class="k">while</span> <span class="o">(</span><span class="n">j</span> <span class="o">&lt;</span> <span class="n">N</span> <span class="o">-</span> <span class="n">1</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">k</span> <span class="o">==</span> <span class="o">-</span><span class="n">1</span> <span class="o">||</span> <span class="n">pat</span><span class="o">.</span><span class="na">charAt</span><span class="o">(</span><span class="n">j</span><span class="o">)</span> <span class="o">==</span> <span class="n">pat</span><span class="o">.</span><span class="na">chatAt</span><span class="o">(</span><span class="n">k</span><span class="o">))</span> <span class="o">{</span>
+            <span class="n">j</span><span class="o">++;</span>
+            <span class="n">k</span><span class="o">++;</span>
+            <span class="k">if</span> <span class="o">(</span><span class="n">pat</span><span class="o">.</span><span class="na">charAt</span><span class="o">(</span><span class="n">j</span><span class="o">)</span> <span class="o">!=</span> <span class="n">pat</span><span class="o">.</span><span class="na">charAt</span><span class="o">(</span><span class="n">k</span><span class="o">))</span> <span class="n">nextVal</span><span class="o">[</span><span class="n">j</span><span class="o">]</span> <span class="o">=</span> <span class="n">k</span><span class="o">;</span>
+            <span class="k">else</span> <span class="n">nextVal</span><span class="o">[</span><span class="n">j</span><span class="o">]</span> <span class="o">=</span> <span class="n">nextVal</span><span class="o">[</span><span class="n">k</span><span class="o">];</span>
+        <span class="o">}</span> <span class="k">else</span> <span class="n">k</span> <span class="o">=</span> <span class="n">nextVal</span><span class="o">[</span><span class="n">k</span><span class="o">];</span>
+    <span class="o">}</span>
+    <span class="k">return</span> <span class="n">nextVal</span><span class="o">;</span>
+<span class="o">}</span>
+</code></pre></div><p>        实现思路很简单，就是在每次递增后判断当前字符是否与 $next$ 值相等，如果相等，就递归 $next$ 值。</p>
+
+            </div>
+            <div class="meta post-footer"> <span>2021 Mar 13 21:14</span> <a href="/post/string.indexof%E6%96%B9%E6%B3%95%E5%92%8Ckmp%E7%AE%97%E6%B3%95%E7%AE%80%E4%BB%8B/"><i
+                        class="fas fa-link"></i> link</a></div>
+        </div>
         
         <div class="post">
             
@@ -732,107 +992,6 @@
 
             </div>
             <div class="meta post-footer"> <span>2021 Mar 4 22:16</span> <a href="/post/mysql%E7%B4%A2%E5%BC%95%E4%BB%8B%E7%BB%8D/"><i
-                        class="fas fa-link"></i> link</a></div>
-        </div>
-        
-        <div class="post">
-            
-            <center>
-                <h1><a href="/post/mysql%E6%9E%B6%E6%9E%84%E4%BB%8B%E7%BB%8D/">MySQL架构介绍</a></h1>
-            </center>
-            <div class="post-content">
-                <h2 id="1-mysql逻辑架构">1. <code>MySQL</code>逻辑架构</h2>
-<p><img src="/image/2021-03-04-01.png" alt="MySQL服务器逻辑架构图"></p>
-<ul>
-<li>最上层服务并不是<code>MySQL</code>独有，大多数基于网络的客户端/服务器的工具或者服务都有类似的架构，比如连接处理、授权认证、安全等；</li>
-<li>第二层架构是<code>MySQL</code>比较有意思的部分。大多数<code>MySQL</code>的核心服务功能都在这一层，包括查询解析、分析、优化、缓存以及所有的内置函数（例如，日期、时间、数学和加密函数），所有跨存储引擎的功能都在这一层实现：存储过程、触发器、视图等；</li>
-<li>第三层包含了存储引擎。存储引擎负责<code>MySQL</code>中数据的存储和提取。存储引擎多种多样，服务器通过<code>API</code>与存储引擎进行通信。这些接口屏蔽了不同存储引擎之间的差异，使得这些差异对上层的查询过程透明。存储引擎<code>API</code>包含了几十个底层函数，用于执行诸如“开始一个事务”或者“根据主键提取一行记录”等操作。但存储引擎不会去解析<code>SQL</code> ( <code>InnoDB</code>会解析外键定义 ) ，不同存储引擎之间也不会相互通信，而只是简单地响应上层服务器的请求。</li>
-</ul>
-<h3 id="11-连接管理与安全性">1.1 连接管理与安全性</h3>
-<p>        每个客户端连接都会在服务器进程中拥有一个线程，这个连接的查询只会在这个单独的线程中执行，该线程只能轮流在某个<code>CPU</code>核心或者<code>CPU</code>中运行。服务器会负责缓存线程，因此不需要为每一个新建的连接创建或者销毁线程。在连接建立后，服务器会验证客户端是否具有执行某个特定查询的权限。</p>
-<h3 id="12-优化与执行">1.2 优化与执行</h3>
-<p>        <code>MySQL</code>会解析查询，并创建内部数据结构（解析树），然后对其进行各种优化，包括重写查询、决定表的读取顺序，以及选择合适的索引等。用户可以通过特殊的关键字提示优化器，影响它的决策过程。也可以请求优化器解释优化过程的各个因素，使用户可以知道服务器是如何进行优化决策的，并提供一个参考基准。<br/>
-        对于 $SELECT$ 语句，在解析查询之前，服务器会先检查查询缓存 ( $Query\ \ Cache$ )，如果能够在其中找到对应的查询，服务器就不必再执行查询解析、优化和执行的整个过程，而是直接返回查询缓存中的结果集。</p>
-<h2 id="2-并发控制">2. 并发控制</h2>
-<p>        在实际的数据库系统中，每时每刻都在发生锁定，当某个用户在修改某一部分数据时，<code>MySQL</code>会通过锁定防止其他用户读取统一数据。大多数时候，<code>MySQL</code>的内部管理都是透明的。<br/>
-        所谓的锁策略，就是在锁的开销和数据的安全性之间寻求平衡，这种平衡当然也会影响到性能。大多数商业数据库系统没有提供更多的选择，一般都是在表上施加<strong>行级锁</strong> ( $row-level\ \ lock$ )，并以各种复杂的方式来实现，以便在锁比较多的情况下尽可能地提供更好的性能。而<code>MySQL</code>则提供了多种选择。每种<code>MySQL</code>存储引擎都可以实现自己的锁策略和锁粒度。在存储引擎的设计中，锁管理是个非常重要的决定。将锁粒度固定在某个级别，可以为某些特定的应用场景提供更好的性能，但同时却会失去对另外一些应用场景的良好支持。好在<code>MySQL</code>支持多个存储引擎的架构，所以不需要单一的通用解决方案。</p>
-<ul>
-<li><strong>表锁</strong> ( $table\ \ lock$ )：表锁是<code>MySQL</code>中最基本的锁策略，并且是开销最小的策略，它会锁定整张表。一个用户在对表进行写操作（插入、删除、更新等）前，需要先获得写锁，这会阻塞其他用户对该表的所有读写操作。只有没有写锁时，其他的读取的用户才能获得读锁，读锁之间是不相互阻塞的。尽管存储引擎可以管理自己的锁，但<code>MySQL</code>本身还是会使用各种有效的表锁来实现不同的目的。例如，服务器会为诸如 $ALTER\ \ TABLE$ 之类的语句使用表锁，而忽略存储引擎锁机制；</li>
-<li><strong>行级锁</strong> ( $row\ \ lock$ )：行级锁可以最大程度地支持并发处理（同时也带来了最大的锁开销）。众所周知，在<code>InnoDB</code>和<code>XtraDB</code>，以及其他一些存储引擎中实现了行级锁。行级锁只在存储引擎层实现，而<code>MySQL</code>服务器层没有实现。</li>
-</ul>
-<h2 id="3-事务">3. 事务</h2>
-<p>        事务就是一组原子性的<code>SQL</code>查询，或者说一个独立的工作单元。如果数据库引擎能够成功地对数据库应用该组查询的全部语句，那么就执行该组查询。</p>
-<ul>
-<li><strong>原子性</strong> ( $atomicity$ )：一个事务必须被视为一个不可分割的最小工作单元；</li>
-<li><strong>一致性</strong> ( $consistency$ )：数据库总是从一个一致性的状态转换到另外一个一致性的状态；</li>
-<li><strong>隔离性</strong> ( $isolation$ )：一个事务所做的修改在最终提交以前，对其他事务是不可见的；</li>
-<li><strong>持久性</strong> ( $durability$ )：一旦事务提交，其所做的修改就会永久保存到数据库中。</li>
-</ul>
-<p>        一个运行良好的事务处理系统，必须满足<code>ACID</code>特性。但在应用逻辑中，要想实现这一点很困难，甚至可以说是不可能完成的任务。一个兼容<code>ACID</code>的数据库系统，需要做很多复杂但可能用户并没有觉察到的工作。</p>
-<h3 id="31-隔离级别">3.1 隔离级别</h3>
-<ul>
-<li><code>READ UNCOMMITTED</code> ( <strong>未提交读</strong> )：事务中的修改，即使没有提交，对其他事务也都是可见的。事务读取未提交的数据称为<strong>脏读</strong> ( $Dirty\ \ Read$ )；</li>
-<li><code>READ COMMITTED</code> ( <strong>提交读</strong> )：大多数数据库系统的默认隔离级别都是提交读，但<code>MySQL</code>不是。一个事务开始时，只能看到已经提交的事务所做的修改。这个级别有时候也叫做<em><strong>不可重复读</strong></em> ( $nonrepeatable\ \ read$ )，因为两次执行同样的查询，可能会得到不一样的结果；</li>
-<li><code>REPEATABLE READ</code> ( <strong>可重复读</strong> )：该级别解决了脏读问题，保证了在同一个事务中多次读取同样记录的结果是一致的。但是理论上，还是无法解决<strong>幻读</strong> ( $Phantom\ \ Read$ ) 问题。幻读指的是当某个事物在读取某个范围内的记录时，另外一个事务又在该范围内插入了新的记录。可重复读是<code>MySQL</code>的默认事务隔离级别；</li>
-<li><code>SERIALIZABLE</code> ( <strong>可串行化</strong> )：通过强制事务串行执行，可以避免幻读问题。但是由于会在读取的每一行数据上都加锁，所以可能导致大量的超时和锁竞争问题。</li>
-</ul>
-<h3 id="32-死锁">3.2 死锁</h3>
-<p>        为了解决死锁问题，数据库系统实现了各种死锁检测和死锁超时机制。越复杂的系统，比如<code>InnoDB</code>存储引擎，越能检测到死锁的循环依赖，并立即返回一个错误。还有一种解决方式，就是当查询的时间达到等待超时的设定后放弃锁请求，这种方式通常来说不太好。<code>InnoDB</code>目前处理死锁的方法是，将持有最少行级排他锁的事务进行回滚。<br/>
-        锁的行为和顺序是和存储引擎相关的。以同样的顺序执行语句，有些存储引擎会产生死锁，有些则不会。死锁的产生有双重原因：有些是因为真正的数据冲突，这种情况通常很难避免，但有些完全是由于存储引擎的实现方式导致的。</p>
-<h3 id="33-事务日志">3.3 事务日志</h3>
-<p>        使用事务日志，存储引擎在修改表的数据时只需要修改其内存拷贝，再把该修改行为记录到持久在硬盘上的事务日志中，而不用每次都将修改的数据本身持久到硬盘。事务日志采用的是追加的方式，因此写日志的操作是磁盘上一小块区域内的顺序<code>I/O</code>，而不像随机<code>I/O</code>需要在磁盘的多个地方移动磁头，所以采用事务日志的方式相对来说要快得多。事务日志持久后，内存中被修改的数据在后台可以慢慢地刷回到磁盘。目前大多数存储引擎都是这样实现的，我们通常称之为<strong>预写式日志</strong> ( $Write-Ahead\ \ Logging$ )，修改数据需要写两次磁盘。</p>
-<h3 id="34-mysql中的事务">3.4 <code>MySQL</code>中的事务</h3>
-<p>        <code>MySQL</code>提供了两种事务型的存储引擎：<code>InnoDB</code>和<code>NDB Cluster</code>。另外还有一些第三方存储引擎也支持事务，比较知名的包括<code>XtraDB</code>和<code>PBXT</code>。<br/>
-        <code>MySQL</code>默认采用<strong>自动提交</strong> ( $AUTOCOMMIT$ ) 模式，如果不是显式开始一个事务，则每个查询都被当做一个事务执行提交操作。通过$SET\ \ AUTOCOMMIT$ ，可以启用或者禁用自动提交模式。禁用之后，只有显式地执行提交或者回滚操作，当前事务才会结束。但对于非事务型的表，比如<code>MyISAM</code>或者内存表，不会有任何影响。另外还有一些命令，在执行之前会强制执行<code>COMMIT</code>提交当前的活动事务，比如 $ALTER\ \ TABLE$ 。<br/>
-        <code>MySQL</code>可以通过执行 $SET\ \ TRANSACTION\ \ ISOLATION\ \ LEVEL$ 命令来设置隔离级别。新的隔离级别会在下一个事务开始的时候生效。<code>MySQL</code>能够识别所有的 $4$ 个<code>ANSI</code>隔离级别，<code>InnoDB</code>引擎也支持所有的隔离级别。<br/>
-        <code>MySQL</code>服务器层部管理事务，事务是由下层的存储引擎实现的。所以在同一个事务中使用多种存储引擎是不可靠的。在事务中混合使用事务型和非事务型的表，在正常提交的情况下不会有什么问题。但是当事务需要回滚时，非事务型的表上的变更就无法撤销，这会导致数据库处于不一致的状态，这种情况很难修复。<br/>
-        <code>InnoDB</code>采用的是<strong>两阶段锁定协议</strong> ( $two-phase\ \ locking\ \ protocol$ )。在事务执行过程中，随时都可以执行锁定，锁只有在执行<code>COMMIT</code>或者<code>ROLLBACK</code>的时候才会释放，并且所有的锁是在同一时刻被释放。前面描述的锁定都是隐式锁定，<code>InnoDB</code>会根据隔离级别在需要的时候自动加锁。</p>
-<h2 id="4-多版本并发控制">4. 多版本并发控制</h2>
-<p>        <code>MySQL</code>的大多数事务型存储引擎实现的都不是简单的行级锁。基于提升并发性能的考虑，它们一般都同时实现了<strong>多版本并发控制</strong> ( <code>MVCC</code> )。可以认为<code>MVCC</code>是行级锁的一个变种，但是它在很多情况下都避免了加锁操作，因此开销更低。虽然实现机制有所不同，但大都实现了非阻塞的读操作，写操作也只锁定必要的行。<br/>
-        <code>MVCC</code>的实现，是通过保存数据在某个时间点的快照来实现的。也就是说，不管需要执行多长时间，每个事务看到的数据都是一致的。根据事务开始的时间不同，每个事务对同一张表，同一时刻看到的数据可能是不一样的。不同引擎的<code>MVCC</code>实现是不同的，典型的有乐观并发控制和悲观并发控制。<br/>
-        <code>InnoDB</code>的<code>MVCC</code>是通过在每行记录后面保存两个隐藏的列来实现的。这两个列，一个保存了行的创建时间，一个保存行的过期时间。当然存储的不是实际时间，而是系统版本号。每开始一个新事务，系统版本号都会自动递增。在<code>REPEATABLE READ</code>隔离级别下，<code>MVCC</code>的操作方式如下：</p>
-<ul>
-<li>$SELECT$ ：<code>InnoDB</code>会根据以下两个条件检查每行记录：查找版本早于当前事务版本的数据行，并保证行的删除版本要么未定义，要么大于当前事务版本号。只有符合上述条件的记录，才能返回作为查询结果；</li>
-<li>$INSERT$ ：为新插入的每一行保存当前系统版本号作为行版本号；</li>
-<li>$DELETE$ ：为删除的每一行保存当前系统版本号作为行删除标识；</li>
-<li>$UPDATE$ ：插入一行新纪录，为插入的新行保存当前系统版本号作为行版本号，同时保存当前系统版本号到原来的行作为行删除标识。</li>
-</ul>
-<p>        <code>MVCC</code>只在<code>REPEATABLE READ</code>和<code>READ COMMITTED</code>两个隔离级别下工作。</p>
-<h2 id="5-mysql的存储引擎">5. <code>MySQL</code>的存储引擎</h2>
-<p>        在文件系统中，<code>MySQL</code>将每个数据库（也可以称之为<code>schema</code>）保存为数据目录下的一个子目录。创建表时，<code>MySQL</code>会在数据库子目录下创建一个和表同名的 $.frm$ 文件保存表的定义。可以使用 $SHOW\ \ TABLE\ \ STATUS$ 命令显示表的相关信息。</p>
-<h3 id="51-innodb">5.1 <code>InnoDB</code></h3>
-<p>        <code>InnoDB</code>是<code>MySQL</code>的默认事务型引擎，也是最重要、使用最广泛的存储引擎。它被设计用来处理大量的<strong>短期</strong> ( $short-lived$ ) 事务，短期事务大部分情况是正常提交的，很少会被回滚。<code>InnoDB</code>的性能和自动崩溃恢复特性，使得它在非事务型存储的需求中也很流行。除非有非常特别的原因需要使用其他的存储引擎，否则应该优先考虑<code>InnoDB</code>引擎。<br/>
-        <code>InnoDB</code>的数据存储在<strong>表空间</strong> ( $tablespace$ ) 中，表空间是由<code>InnoDB</code>管理的一个黑盒子，由一系列的数据文件组成。在<code>MySQL 4.1</code>以后的版本中，<code>InnoDB</code>可以将每个表的数据和索引存放在单独的文件中。<code>InnoDB</code>也可以使用裸设备作为表空间的存储介质，但现代的文件系统使得裸设备不再是必要的选择。存在如下几种表空间：</p>
-<ul>
-<li><strong>系统表空间</strong>：在安装数据库的时候默认会初始化一个以 $ibdata1$ 命名的系统表空间，存储所有数据的信息以及回滚段信息，默认大小为 $10MB$ ，在高并发情况下会有性能影响，建议调整大小为 $1GB$ ；</li>
-<li><strong>独立表空间</strong>：设置参数 $innodb_-file_-per_-table=1$ ，目前<code>MySQL</code>默认都是独立表空间，即每个表都有自己的表空间文件，存储对应的<code>B+Tree</code>、索引和插入缓冲等信息，其余信息会存储在共享表空间；</li>
-<li><strong>撤销表空间</strong>：包含撤销日志，初始化的时候会创建两个默认的撤销表空间；</li>
-<li><strong>通用表空间</strong>：可以存储多个表的数据，相比独立表空间更节约元数据的内存开销；</li>
-<li><strong>临时表空间</strong>：分会话临时表空间和全局临时表空间。会话临时表空间会在第一个请求中从临时表空间分配，当会话断开时，临时表空间将被释放进入临时表空间池中；全局临时表空间用于存储用户创建的临时表的更改数据，用于回滚，在正常关闭或初始化中止时被删除，并在每次启动服务器时重新创建；</li>
-</ul>
-<p>        <code>InnoDB</code>使用<code>MVVC</code>来支持高并发，并且实现了四个标准的隔离级别。其默认级别是<code>REPEATABLE READ</code>，并且通过<strong>间隙锁</strong> ( $next-key\ \ locking$ ) 策略防止幻读的出现。间隙锁使得<code>InnoDB</code>不仅仅锁定查询涉及的行，还会对索引中的间隙进行锁定，以防止幻影行的插入。<br/>
-        <code>InnoDB</code>表是基于聚簇索引建立的，和<code>MySQL</code>的其他存储引擎有很大的不同，对主键查询有很高的性能。不过它的<strong>二级索引</strong> ( $secondary\ \ index$ ，非主键索引 ) 中必须包含主键列，所以如果主键列很大的话，其他的所有索引都会很大。<br/>
-        <code>InnoDB</code>内部做了很多优化，包括从磁盘读取数据时采用的可预测性预读，能够自动在内存中创建<code>hash</code>索引以加速读操作的<strong>自适应哈希索引</strong> ( $adaptive\ \ hash\ \ index$ )，以及能够加速插入操作的<strong>插入缓冲区</strong> ( $insert\ \ buffer$ ) 等。</p>
-<h3 id="52-myisam">5.2 <code>MyISAM</code></h3>
-<p>        在<code>MySQL 5.1</code>及之前的版本，<code>MyISAM</code>是默认的存储引擎，提供了大量的特性，包括全文索引、压缩、空间函数等，但不支持事务和行级锁，以及崩溃后的安全恢复。虽然不支持事务和崩溃后的安全恢复，但对于只读的数据，或者表比较小，可以忍受修复操作，依然可以使用<code>MyISAM</code>。<br/>
-        <code>MyISAM</code>将表存储在两个文件中：数据文件和索引文件，分别以 $.MYD$ 和 $.MYI$ 为扩展名。<code>MyISAM</code>表可以包含动态或者静态（长度固定）行。在<code>MySQL 5.0</code>中，如果是变长行，则默认配置只能处理 $256TB$ 的数据，这个配置可以通过修改指针长度实现。<br/>
-        作为<code>MySQL</code>最早的存储引擎之一，<code>MyISAM</code>有一些已经开发出来很多年的特性：</p>
-<ul>
-<li><em><strong>加锁与并发</strong></em>：读取时对表加共享锁，写入时对表加排他锁。但是在表有读取查询的同时，也可以往表中插入新的记录；</li>
-<li><em><strong>修复</strong></em>：可以手工或者自动执行检查和修复操作，但这里说的修复和事务恢复以及崩溃恢复是不同的概念。执行表的修复可能导致一些数据丢失，而且修复操作是非常慢的；</li>
-<li><em><strong>索引特性</strong></em>：对于<code>MyISAM</code>表，即使是 $BLOB$ 和 $TEXT$ 等长字段，也可以基于前 $500$ 个字符创建索引。<code>MyISAM</code>也支持全文索引，这是一种基于分词创建的索引，可以支持复杂的查询；</li>
-<li><em><strong>延迟更新索引键</strong></em>：创建时如果指定 $DELAY_-KEY_-WRITE$ 选项，在每次修改执行完成时，不会立刻将修改的索引数据写入磁盘，而是会写到内存中的<b>键缓冲区</b> ( $in-memory\ \ key\ \ buffer$ )，只有在清理键缓冲区或者关闭表的时候才会将对应的索引块写入到磁盘。</li>
-</ul>
-<p>        如果表在创建并导入数据后，不会再进行修改操作，那么这样的表或许适合采用<code>MyISAM</code>压缩表，可以使用 $myisampack$ 对<code>MyISAM</code>表进行压缩。压缩表是不能进行修改的，可以极大地减少空间占用，因此也可以减少磁盘<code>I/O</code>，从而提升查询性能。压缩表也支持索引，但索引也是只读。</p>
-<h3 id="53-转换表的引擎">5.3 转换表的引擎</h3>
-<ul>
-<li>$ALTER\ \ TABLE$ ：将表从一个引擎修改为另一个引擎最简单的办法是使用 $ALTER\ \ TABLE\ \ xxx\ \ ENGINE$ 语句，上述语法可以适用任何存储引擎，但是需要执行很长时间，因为需要将表项复制到新表。在复制的过程中，原表上会加读锁；</li>
-<li>导出与导入：可以使用 $mysqldump$ 工具将数据导出到文件，然后修改文件中的 $CREATE\ \ TABLE$ 语句的存储引擎选项，同时修改表名；</li>
-<li>创建与查询：先创建一个新的存储引擎的表，然后利用 $INSERT\ \ \cdots\ \ SELECT$ 语句来导入数据。对于数据量较大的情况，可以考虑做分批处理。</li>
-</ul>
-
-            </div>
-            <div class="meta post-footer"> <span>2021 Mar 4 22:16</span> <a href="/post/mysql%E6%9E%B6%E6%9E%84%E4%BB%8B%E7%BB%8D/"><i
                         class="fas fa-link"></i> link</a></div>
         </div>
         
