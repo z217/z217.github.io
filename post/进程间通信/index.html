@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/jquery-3.4.1.min.js></script>
+<script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="https://www.cnblogs.com/meidaoli/"  target="_blank" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+        
+        <a href="http://123.57.12.189"  target="_blank" >
+            <i class="fas fa-link fa-sm"></i>
+            <span>二站</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">进程间通信</h1>
+
+
+<p>        进程经常需要与其他进程通信。<strong>进程间通信</strong> ( $Inter\ \ Process\ \ Communication$, $IPC$ ) 最好使用一种结构良好的方式并且不要使用中断。进程间通信存在三个问题：一个进程如何把信息传递给另一个，如何确保两个或更多的进程在关键活动中不会出现交叉，以及进程之间执行顺序的正确性。<br/>
+        在一些操作系统中，协作的进程可能共享一些彼此都能读写的公用存储区，可能是一块内存，也可能是一个共享文件。当两个或多个进程读写某些共享数据，而最后的结果取决于进程运行的精确时序，就称为<strong>竞争条件</strong> ( $race\ \ condition$ )。包含有竞争条件的程序在大多数情况下都不会出错，但在极少数情况下会产生一些奇怪的现象，尤其是在多核环境中更为明显。而要避免竞争条件带来的错误，关键是要找出某种途径来阻止多个进程同时读写共享数据。换言之，我们需要的是<strong>互斥</strong> ( $mutual\ \ exclusion$ )，即以某种手段确保当一个进程在使用一个共享变量或文件时，其他进程不能做同样的操作。<br/>
+        避免竞争条件的问题也可以用一种抽象的方式进行描述。一个进程的一部分时间做内部计算或另外一些不会引发竞争条件的操作。在某些时候进程可能需要访问共享内存或共享文件，或执行另外一些会导致竞争的操作。我们把对共享内存进行访问的程序片段称作<strong>临界区域</strong> ( $critical\ \ region$ ) 或<strong>临界区</strong> ( $critical\ \ section$ )。如果我们能适当地安排，使得两个进程不可能同时处于临界区中，就能避免竞争条件。<br/>
+        尽管这样的要求避免了竞争条件，但它还不能保证使用共享数据的并发进程能够正确和高效地进行协作。对于一个好的解决方案，需要满足以下 $4$ 个条件：</p>
+<ol>
+<li>任何两个进程不能同时处于临界区；</li>
+<li>不应对<code>CPU</code>的速度和数量做任何假设；</li>
+<li>临界区外运行的进程不得阻塞其他进程；</li>
+<li>不得使进程无限期等待进入临界区。</li>
+</ol>
+<h2 id="1-互斥">1. 互斥</h2>
+<h3 id="11-屏蔽中断">1.1 屏蔽中断</h3>
+<p>        在单处理器系统中，最简单的方法是使每个进程在刚刚进入临界区后立即屏蔽所有中断，并在就要离开之前再打开中断。屏蔽中断后，时钟中断也被屏蔽。<code>CPU</code>只有发生时钟中断或其他中断时才会进行进程切换，这样，在屏蔽中断后<code>CPU</code>将不会被切换到其他进程。于是，一旦某个进程屏蔽中断后，它就可以检查和修改共享内存，而不必担心其他进程介入。<br/>
+        但是这个方案并不好，因为屏蔽中断的权力交给了用户进程。而且对于多处理器系统，屏蔽中断指令仅仅对执行 $disable$ 指令的那个<code>CPU</code>有效，其他<code>CPU</code>仍然可以运行。另一方面，对于内核来说，屏蔽中断指令是非常方便的。所以屏蔽中断对于操作系统本身而言是一项很有用的技术，但对于用户进程则不是一种合适的通用互斥机制。</p>
+<h3 id="12-锁变量">1.2 锁变量</h3>
+<p>        设想有一个共享锁变量，其初始值为 $0$ 。当一个进程想进入临界区时，会首先测试锁。如果锁的值为 $0$ ，则进程将其设置为 $1$ 并进入临界区。否则，进程等待直到值变为 $0$ 。虽然实现简单，但是却存在着多个进程同时读到 $0$ 的可能。</p>
+<h3 id="13-严格轮换法">1.3 严格轮换法</h3>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="c1">// 进程a
+</span><span class="c1"></span><span class="k">while</span> <span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">while</span> <span class="p">(</span><span class="n">turn</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">);</span>
+    <span class="n">critical_region</span><span class="p">();</span>
+    <span class="n">turn</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="n">noncritical_region</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div><div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="c1">// 进程b
+</span><span class="c1"></span><span class="k">while</span> <span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">while</span> <span class="p">(</span><span class="n">turn</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="n">critical_region</span><span class="p">();</span>
+    <span class="n">turn</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">noncritical_region</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div><p>        通过连续检查一个变量来决定哪个进程进入临界区。连续测试一个变量直到某个值出现为止，称为<strong>忙等待</strong> ( $busy\ \ waiting$ )。由于这种方式浪费<code>CPU</code>时间，所以通常应该避免。只有在有理由认为等待时间是非常短的情况下，才使用忙等待。用于忙等待的锁，称为<strong>自旋锁</strong> ( $spin\ \ lock$ )。</p>
+<h3 id="14-peterson解法">1.4 <code>Peterson</code>解法</h3>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="cp">#define FALSE 0
+</span><span class="cp">#define TRUE 1
+</span><span class="cp">#define N 2    </span><span class="c1">// 进程数
+</span><span class="c1"></span>
+<span class="kt">int</span> <span class="n">turn</span><span class="p">;</span>
+<span class="kt">int</span> <span class="n">interested</span><span class="p">[</span><span class="n">N</span><span class="p">];</span>    <span class="c1">// 初始值为0 (FALSE)
+</span><span class="c1"></span>
+<span class="kt">void</span> <span class="nf">enter_region</span><span class="p">(</span><span class="kt">int</span> <span class="n">process</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">int</span> <span class="n">other</span><span class="p">;</span>
+
+    <span class="n">other</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">process</span><span class="p">;</span>    <span class="c1">// 另一个进程号
+</span><span class="c1"></span>    <span class="n">interested</span><span class="p">[</span><span class="n">process</span><span class="p">]</span> <span class="o">=</span> <span class="n">TRUE</span><span class="p">;</span>    <span class="c1">// 设置感兴趣
+</span><span class="c1"></span>    <span class="n">turn</span> <span class="o">=</span> <span class="n">process</span><span class="p">;</span>    <span class="c1">// 设置标志
+</span><span class="c1"></span>    <span class="k">while</span> <span class="p">(</span><span class="n">turn</span> <span class="o">==</span> <span class="n">process</span> <span class="o">&amp;&amp;</span> <span class="n">interested</span><span class="p">[</span><span class="n">other</span><span class="p">]</span> <span class="o">==</span> <span class="n">TRUE</span><span class="p">);</span>    <span class="c1">// 其他进程感兴趣则挂起
+</span><span class="c1"></span><span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">leave_region</span><span class="p">(</span><span class="kt">int</span> <span class="n">process</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">interested</span><span class="p">[</span><span class="n">process</span><span class="p">]</span> <span class="o">=</span> <span class="n">FALSE</span><span class="p">;</span>    <span class="c1">// 表示离开临界区
+</span><span class="c1"></span><span class="p">}</span>
+</code></pre></div><p>        在进入临界区之前，各个进程使用其进程号作为参数来调用 $enter_-region$ 。该调用在需要时将使进程等待，直到能安全地进入临界区。在完成对共享变量的操作之后，进程将调用 $leave_-region$ ，表示操作已完成。</p>
+<h3 id="15-tsl指令">1.5 <code>TSL</code>指令</h3>
+<p>        在某些计算机中，特别是那些设计为多处理器的计算机，都有下面一条指令：</p>
+<pre><code>TSL RX, LOCK
+</code></pre><p>        称为<strong>测试并加锁</strong> ( $test\ \ and\ \ set\ \ lock$ )，它将一个内存字读到寄存器 $RX$ 中，然后在该内存地址上存一个非零值。读字和写字操作保证是不可分割的，即该指令结束之前其他处理器均不允许访问该内存字。执行<code>TSL</code>指令的<code>CPU</code>将锁住内存总线，以禁止其他<code>CPU</code>在本指令结束之前访问内存。为了使用<code>TSL</code>指令，需要使用一个共享变量 $lock$ 来协调对共享内存的访问。当 $lock$ 为 $0$ 时，任何进程都可以使用<code>TSL</code>指令将其设置为 $1$ 并读写共享内存。当操作结束时，进程用一条普通的<code>MOV</code>指令将 $lock$ 的值重新设置为 $0$ 。</p>
+<h2 id="2-睡眠与唤醒">2. 睡眠与唤醒</h2>
+<p>        <code>Peterson</code>解法和<code>TSL</code>解法都是我们想要的正确的解法，但是都存在忙等待的缺点。这些解法的本质是：当一个进程想进入临界区时，先检查是否允许进入，若不允许，则该进程将原地等待，直到允许为止。如果进程之间存在优先级，甚至还可能带来<strong>优先级反转问题</strong> ( $priority\ \ inversion\ \ problem$ )，即高优先级进程就绪时，低优先级进程仍处于临界区并且永远不会被调度的问题。<br/>
+        $sleep$ 原语将引起调用进程阻塞的系统调用，即被挂起，直到另外一个进程将其唤醒。$wakeup$ 调用有一个参数，即将要被唤醒的进程。另一种方法是让 $sleep$ 和 $wakeup$ 各有一个参数，即有一个用于匹配 $sleep$ 和 $wakeup$ 的内存地址。<br/>
+        <strong>生产者-消费者</strong> ( $producer-consumer$ ) 问题，也称为<strong>有界缓冲区</strong> ( $bounded-buffer$ ) 问题。两个进程共享一个公共的固定大小的缓冲区，其中一个是生产者，将信息放入缓冲区；另一个是消费者，从缓冲区中取出信息。问题在于当缓冲区已满，而此时生产者还想向其中放入一个新的数据项的情况，解决办法是让生产者睡眠，待消费者从缓冲区中取出一个或多个数据项时再唤醒。同样地，当消费者试图从缓冲区中取出数据而发现缓冲区为空时，消费者就睡眠，直到生产者向其中放入一些数据时再将其唤醒。</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="cp">#define N 100    </span><span class="c1">// 缓冲区中的槽数目
+</span><span class="c1"></span><span class="kt">int</span> <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>    <span class="c1">// 缓冲区中的数据项数目
+</span><span class="c1"></span>
+<span class="kt">void</span> <span class="nf">producer</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">int</span> <span class="n">item</span><span class="p">;</span>
+
+    <span class="k">while</span> <span class="p">(</span><span class="n">TRUE</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">item</span> <span class="o">=</span> <span class="n">produce_item</span><span class="p">();</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">count</span> <span class="o">==</span> <span class="n">N</span><span class="p">)</span> <span class="n">sleep</span><span class="p">();</span>
+        <span class="n">insert_item</span><span class="p">(</span><span class="n">item</span><span class="p">);</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="n">count</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">count</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="n">wakeup</span><span class="p">(</span><span class="n">consumer</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">consumer</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">int</span> <span class="n">item</span><span class="p">;</span>
+
+    <span class="k">while</span> <span class="p">(</span><span class="n">TRUE</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="n">sleep</span><span class="p">();</span>
+        <span class="n">item</span> <span class="o">=</span> <span class="n">remove_item</span><span class="p">();</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="n">count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">count</span> <span class="o">==</span> <span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="n">wakeup</span><span class="p">(</span><span class="n">producer</span><span class="p">);</span>
+        <span class="n">consume_item</span><span class="p">(</span><span class="n">item</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><p>        上述的实现有可能会出现竞争条件，因为对 $count$ 的访问未加限制。有可能出现以下情况：缓冲区为空，消费者读取 $count$ 发现为 $0$ ，于是准备暂停消费者并启动生产者。生产者在添加数据项之后，$count$ 加 $1$ ，并认为消费者一定在睡眠，于是调用 $wakeup$ 唤醒消费者。但是消费者此时在逻辑上并未睡眠，所以 $wakeup$ 信号丢失。而当生产者填满缓冲区时，也会进入睡眠，从而使得两个进程都进入睡眠。解决这个问题的关键在于丢失的 $wakeup$ 信号，一种弥补方法是修改规则，添加一个<strong>唤醒等待位</strong>。当一个 $wakeup$ 信号发送给一个清醒的进程信号时，该位置 $1$ 。在进程睡眠时，如果标志位为 $1$ ，则会清除标志位并唤醒。</p>
+<h2 id="3-信号量">3. 信号量</h2>
+<p>        <strong>信号量</strong> ( $semaphore$ ) 方法使用一个整形变量来累计唤醒次数，供以后使用。一个信号量的取值可以为 $0$ ( 表示没有保存下来的唤醒操作 ) 或者为正值 ( 表示有一个或多个唤醒操作 )。对一个信号量执行 $down$ 操作，会检查其值是否大于 $0$ ，如果是则减 $1$ ，否则进程进入睡眠状态。检查数值、修改变量值以及可能发生的睡眠操作均作为一个单一的、不可分割的原子操作完成，从而保证一旦一个信号量操作开始，则在操作完成或阻塞之前其他进程均无法访问信号量。对一个信号量执行 $up$ 操作会将其值加 $1$ 。对一个有进程在其上睡眠的信号量执行一次 $up$ 操作之后，该信号量的值仍旧是 $0$ ，但在其上睡眠的进程却少了一个。同样的，信号量的值加 $1$ 和唤醒一个进程的操作也是不可分割的。<br/>
+        为了确保信号量能正确工作，最重要的是采用一种不可分割的方式实现它，通常是将 $up$ 和 $down$ 作为系统调用实现。我们可以使用信号解决 $wakeup$ 丢失的问题：</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="cp">#define N 100    </span><span class="c1">// 缓冲区中的槽数目
+</span><span class="c1"></span><span class="k">typedef</span> <span class="kt">int</span> <span class="n">semaphore</span><span class="p">;</span>    <span class="c1">// 信号量是一种特殊的整型
+</span><span class="c1"></span><span class="n">semaphore</span> <span class="n">mutex</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>    <span class="c1">// 控制对临界区的访问
+</span><span class="c1"></span><span class="n">semaphore</span> <span class="n">empty</span> <span class="o">=</span> <span class="n">N</span><span class="p">;</span>    <span class="c1">// 计数缓冲区的空槽数目
+</span><span class="c1"></span><span class="n">semaphore</span> <span class="n">full</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>    <span class="c1">// 计数缓冲区的满槽数目
+</span><span class="c1"></span>
+<span class="kt">void</span> <span class="nf">producer</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">int</span> <span class="n">item</span><span class="p">;</span>
+
+    <span class="k">while</span> <span class="p">(</span><span class="n">TRUE</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">item</span> <span class="o">=</span> <span class="n">produce_item</span><span class="p">();</span>
+        <span class="n">down</span><span class="p">(</span><span class="o">&amp;</span><span class="n">empty</span><span class="p">);</span>    <span class="c1">// 将空槽数目减1
+</span><span class="c1"></span>        <span class="n">down</span><span class="p">(</span><span class="o">&amp;</span><span class="n">mutex</span><span class="p">);</span>    <span class="c1">// 进入临界区
+</span><span class="c1"></span>        <span class="n">insert_item</span><span class="p">(</span><span class="n">item</span><span class="p">);</span>
+        <span class="n">up</span><span class="p">(</span><span class="o">&amp;</span><span class="n">mutex</span><span class="p">);</span>    <span class="c1">// 离开临界区
+</span><span class="c1"></span>        <span class="n">up</span><span class="p">(</span><span class="o">&amp;</span><span class="n">full</span><span class="p">);</span>    <span class="c1">// 将满槽数目加1
+</span><span class="c1"></span>    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">consumer</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">int</span> <span class="n">item</span><span class="p">;</span>
+
+    <span class="k">while</span> <span class="p">(</span><span class="n">TRUE</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">down</span><span class="p">(</span><span class="o">&amp;</span><span class="n">full</span><span class="p">);</span>    <span class="c1">// 将满槽数目减1
+</span><span class="c1"></span>        <span class="n">down</span><span class="p">(</span><span class="o">&amp;</span><span class="n">mutex</span><span class="p">);</span>    <span class="c1">// 进入临界区
+</span><span class="c1"></span>        <span class="n">item</span> <span class="o">=</span> <span class="n">remove_item</span><span class="p">();</span>
+        <span class="n">up</span><span class="p">(</span><span class="o">&amp;</span><span class="n">mutex</span><span class="p">);</span>    <span class="c1">// 离开临界区
+</span><span class="c1"></span>        <span class="n">up</span><span class="p">(</span><span class="o">&amp;</span><span class="n">empty</span><span class="p">);</span>    <span class="c1">// 将空槽数目加1
+</span><span class="c1"></span>        <span class="n">consume_item</span><span class="p">(</span><span class="n">item</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><p>        信号量的另一种用途是用于实现<strong>同步</strong> ( $synchronization$ )。信号量 $full$ 和 $empty$ 用来保证某种事件的顺序发生或不发生。</p>
+<h3 id="31-互斥量">3.1 互斥量</h3>
+<p>        如果不需要信号量的计数能力，有时可以使用信号量的一个简化版本，称为<strong>互斥量</strong> ( $mutex$ )。互斥量仅仅适用于管理共享资源或一小段代码，是一个可以处于两态之一的变量：解锁和加锁。这样，只需要一个二进制位即可表示，不过实际上常常使用一个整型。<br/></p>
+<h2 id="4-管程">4. 管程</h2>
+<p>        信号量和互斥量虽然方便了进程间通信的进行，但也会带来<strong>死锁</strong> ( $dead\ \ lock$ ) 问题。为了更易于编写正确的程序，<strong>管程</strong> ( $monitor$ ) 就被提出了。一个管程是一个由过程、变量及数据结构等组成的一个集合，它们组成一个特殊的模块或软件包。进程可在任何需要的时候调用管程中的过程，但它们不能在管程之外声明的过程中直接访问管程内的数据结构。管程是一种语言概念，<code>C</code>语言并不支持管程。<br/>
+        管程有一个很重要的特性，即任一时刻管程中只能有一个活跃进程，这一特性使管程能有效地完成互斥。管程是编程语言的组成部分，编译器直到它们的特殊性，因此可以采用与其他过程调用不同的方法来处理对管程的调用。进入管程的互斥由编译器负责，但通常的做法是用一个互斥量或二元信号量。为了使进程在无法继续运行时被阻塞，管程引入了两个<strong>条件变量</strong> ( $condition\ \ variables$ ) 以及相关的两个操作：$wait$ 和 $signal$ 。当一个管程过程发现它无法继续运行时，会在某个条件变量上执行 $wait$ 操作。该操作将导致调用进程自身阻塞，并且还将另一个以前等在管程之外的进程调入管程。如果在一个条件变量上有若干个进程正在等待，则在对该条件变量执行 $signal$ 操作后，系统调度程序只能在其中选择一个使其恢复运行。</p>
+
+
+<a href="javascript:void(0)" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+<div id="sidetoc">
+    <header>
+        <h4>进程间通信</h4>
+    </header>
+    
+    <nav id="TableOfContents">
+        <ul></ul>
+    </nav>
+</div>
+<script src=https://z217blog.cn/js/toc.js></script>
+
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/leetcode%E9%A2%98%E8%A7%A35lru%E4%B8%8Elinkedhashmap/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        
+        
+        
+        var all = MathJax.Hub.getAllJax(),
+            i;
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+        if (tocFlag) tocInit();
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
+</body>
+
+</html>
