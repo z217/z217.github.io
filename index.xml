@@ -7,10 +7,20 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved.</copyright>
-    <lastBuildDate>Thu, 18 Mar 2021 19:44:57 +0800</lastBuildDate>
+    <lastBuildDate>Fri, 19 Mar 2021 20:14:24 +0800</lastBuildDate>
     
 	<atom:link href="https://z217blog.cn/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>AQS源码解读</title>
+      <link>https://z217blog.cn/post/aqs%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB/</link>
+      <pubDate>Fri, 19 Mar 2021 20:14:24 +0800</pubDate>
+      
+      <guid>https://z217blog.cn/post/aqs%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB/</guid>
+      <description>AQS提供了一个实现阻塞锁和相关的基于FIFO队列的同步器的框架。该类作为大部分依赖于一个状态字段的同步器的基础。子类必须定义 $protected$ 方法来改变状态，其他方法用于管理队列和实现阻塞机制。子类也可以包含其他状态字段，但必须通过原子性操作维护状态。
+1. 成员变量 // 等待队列的头节点，懒加载，只能通过setHead方法修改 private transient volatile Node head; // 等待队列的尾部，懒加载，只能通过enq方法添加新节点 private transient volatile Node tail; // 同步状态 private volatile int state; // 如果超时时间大于该值，中断，单位为纳秒 static final long spinForTimeoutThreshold = 1000L; 2. 内部类Node static final class Node { // 节点在共享模式等待的标志  static final Node SHARED = new Node(); // 节点在独占模式等待的标志  static final Node EXCLUSIVE = null; // 表示线程被取消  static final int CANCELLED = 1; // 表示线程在释放资源后需要唤醒后继节点  static final int SIGNAL = -1; // 表示线程在等待condition  static final int CONDITION = -2; // 共享模式下表示无条件传播  static final int PROPAGATE = -3; // 等待状态  volatile int waitStatus; // 前驱节点  volatile Node prev; // 后继节点  volatile Node next; // 节点对应的线程  volatile Thread thread; // 下一个在condition上等待的节点，或者表示共享模式  Node nextWaiter; final boolean isShared() { return nextWaiter == SHARED; } final Node predecessor() throws NullPointerException { Node p = prev; if (p == null) throw new NullPointerException(); else return p; } Node() {} // 用于创建头节点或者共享标记  Node(Thread thread, Node mode) { this.</description>
+    </item>
     
     <item>
       <title>进程间通信</title>
