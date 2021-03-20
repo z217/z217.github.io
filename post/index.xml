@@ -7,10 +7,20 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved.</copyright>
-    <lastBuildDate>Fri, 19 Mar 2021 20:14:24 +0800</lastBuildDate>
+    <lastBuildDate>Sat, 20 Mar 2021 22:27:10 +0800</lastBuildDate>
     
 	<atom:link href="https://z217blog.cn/post/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>ReentranLock源码解读</title>
+      <link>https://z217blog.cn/post/reentranlock%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB/</link>
+      <pubDate>Sat, 20 Mar 2021 22:27:10 +0800</pubDate>
+      
+      <guid>https://z217blog.cn/post/reentranlock%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB/</guid>
+      <description>$ReentrantLock$ 是一个可重入的独占锁，与 $synchronized$ 行为类似，但提供了额外的功能。
+1. 构造函数 // 默认为非公平锁 public ReentrantLock() { sync = new NonfairSync(); } public ReentrantLock(boolean fair) { sync = fair ? new FairSync() : new NonfairSync(); } 2. 内部类 abstract static class Sync extends AbstractQueuedSynchronizer { private static final long serialVersionUID = -5179523762034025860L; abstract void lock(); // 非公平上锁, tryAcquire方法在子类中实现  final boolean nonfairTryAcquire(int acquires) { final Thread current = Thread.currentThread(); int c = getState(); if (c == 0) { // 锁未被占有  if (compareAndSetState(0, acquires)) { // 尝试获取锁  setExclusiveOwnerThread(current); // 设置独占线程  return true; } } else if (current == getExclusiveOwnerThread()) { // 当前线程已经占有锁  int nextc = c + acquires; if (nextc &amp;lt; 0) throw new Error(&amp;#34;Maximum lock count exceeded&amp;#34;); setState(nextc); // 添加上锁次数  return true; } return false; } protected final boolean tryRelease(int releases) { int c = getState() - releases; if (Thread.</description>
+    </item>
     
     <item>
       <title>AQS源码解读</title>
