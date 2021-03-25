@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/jquery-3.4.1.min.js></script>
+<script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="https://www.cnblogs.com/meidaoli/"  target="_blank" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+        
+        <a href="http://123.57.12.189"  target="_blank" >
+            <i class="fas fa-link fa-sm"></i>
+            <span>二站</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">Redis底层数据结构实现</h1>
+
+
+<h2 id="1-对象">1. 对象</h2>
+<p>        <code>Redis</code>中的每个键值对都是由两个对象结构表示，定义在 $server.h$ 文件中。</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="c1">// 对象类型
+</span><span class="c1"></span><span class="cp">#define OBJ_STRING 0
+</span><span class="cp">#define OBJ_LIST 1
+</span><span class="cp">#define OBJ_SET 2
+</span><span class="cp">#define OBJ_ZSET 3
+</span><span class="cp">#define OBJ_HASH 4
+</span><span class="cp">#define OBJ_MODULE 5
+</span><span class="cp">#define OBJ_STREAM 6
+</span><span class="cp"></span><span class="c1">// 对象编码
+</span><span class="c1"></span><span class="cp">#define OBJ_ENCODING_RAW 0 </span><span class="c1">// SDS
+</span><span class="c1"></span><span class="cp">#define OBJ_ENCODING_INT 1 </span><span class="c1">// 长整型
+</span><span class="c1"></span><span class="cp">#define OBJ_ENCODING_HT 2 </span><span class="c1">// 字典
+</span><span class="c1"></span><span class="cp">#define OBJ_ENCODING_ZIPMAP 3
+</span><span class="cp">#define OBJ_ENCODING_LINKEDLIST 4
+</span><span class="cp">#define OBJ_ENCODING_ZIPLIST 5 </span><span class="c1">// 压缩列表
+</span><span class="c1"></span><span class="cp">#define OBJ_ENCODING_INTSET 6 </span><span class="c1">// 整数集合
+</span><span class="c1"></span><span class="cp">#define OBJ_ENCODING_SKIPLIST 7 </span><span class="c1">// 跳表
+</span><span class="c1"></span><span class="cp">#define OBJ_ENCODING_EMBSTR 8 </span><span class="c1">// embstr编码的SDS
+</span><span class="c1"></span><span class="cp">#define OBJ_ENCODING_QUICKLIST 9
+</span><span class="cp">#define OBJ_ENCODING_STREAM 10
+</span><span class="cp"></span><span class="c1">// 对象结构
+</span><span class="c1"></span><span class="k">typedef</span> <span class="k">struct</span> <span class="n">redisObject</span> <span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="nl">type</span><span class="p">:</span><span class="mi">4</span><span class="p">;</span> <span class="c1">// 类型
+</span><span class="c1"></span>    <span class="kt">unsigned</span> <span class="nl">encoding</span><span class="p">:</span><span class="mi">4</span><span class="p">;</span> <span class="c1">// 编码
+</span><span class="c1"></span>    <span class="kt">unsigned</span> <span class="nl">lru</span><span class="p">:</span><span class="n">LRU_BITS</span><span class="p">;</span> <span class="c1">// 最后一次访问时间
+</span><span class="c1"></span>    <span class="kt">int</span> <span class="n">refcount</span><span class="p">;</span> <span class="c1">// 引用计数
+</span><span class="c1"></span>    <span class="kt">void</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span> <span class="c1">// 底层指针
+</span><span class="c1"></span><span class="p">}</span> <span class="n">robj</span><span class="p">;</span>
+</code></pre></div><h2 id="1-sds">1. <code>SDS</code></h2>
+<p>        <strong>简单动态字符串</strong> ( $simple\ \ dynamic\ \ string$, $SDS$ ) 是<code>Redis</code>中字符串的数据结构，定义在 $sds.h$ 头文件中。</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="k">typedef</span> <span class="kt">char</span> <span class="o">*</span><span class="n">sds</span><span class="p">;</span>
+
+<span class="c1">// 不使用该结构，而是直接访问flag
+</span><span class="c1"></span><span class="k">struct</span> <span class="nf">__attribute__</span> <span class="p">((</span><span class="n">__packed__</span><span class="p">))</span> <span class="n">sdshdr5</span> <span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">flags</span><span class="p">;</span>
+    <span class="kt">char</span> <span class="n">buf</span><span class="p">[];</span>
+<span class="p">};</span>
+<span class="k">struct</span> <span class="nf">__attribute__</span> <span class="p">((</span><span class="n">__packed__</span><span class="p">))</span> <span class="n">sdshdr8</span> <span class="p">{</span>
+    <span class="n">uint8_t</span> <span class="n">len</span><span class="p">;</span> <span class="c1">// 已使用的字节数，不包括&#39;\0&#39;
+</span><span class="c1"></span>    <span class="n">uint8_t</span> <span class="n">alloc</span><span class="p">;</span> <span class="c1">// 总共分配的字节数，不包括&#39;\0&#39;
+</span><span class="c1"></span>    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">flags</span><span class="p">;</span> <span class="c1">// 类型
+</span><span class="c1"></span>    <span class="kt">char</span> <span class="n">buf</span><span class="p">[];</span> <span class="c1">// 字节数组，包括&#39;\0&#39;
+</span><span class="c1"></span><span class="p">};</span>
+<span class="k">struct</span> <span class="nf">__attribute__</span> <span class="p">((</span><span class="n">__packed__</span><span class="p">))</span> <span class="n">sdshdr16</span> <span class="p">{</span>
+    <span class="n">uint16_t</span> <span class="n">len</span><span class="p">;</span>
+    <span class="n">uint16_t</span> <span class="n">alloc</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">flags</span><span class="p">;</span>
+    <span class="kt">char</span> <span class="n">buf</span><span class="p">[];</span>
+<span class="p">};</span>
+<span class="k">struct</span> <span class="nf">__attribute__</span> <span class="p">((</span><span class="n">__packed__</span><span class="p">))</span> <span class="n">sdshdr32</span> <span class="p">{</span>
+    <span class="n">uint32_t</span> <span class="n">len</span><span class="p">;</span>
+    <span class="n">uint32_t</span> <span class="n">alloc</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">flags</span><span class="p">;</span>
+    <span class="kt">char</span> <span class="n">buf</span><span class="p">[];</span>
+<span class="p">};</span>
+<span class="k">struct</span> <span class="nf">__attribute__</span> <span class="p">((</span><span class="n">__packed__</span><span class="p">))</span> <span class="n">sdshdr64</span> <span class="p">{</span>
+    <span class="n">uint64_t</span> <span class="n">len</span><span class="p">;</span>
+    <span class="n">uint64_t</span> <span class="n">alloc</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">flags</span><span class="p">;</span>
+    <span class="kt">char</span> <span class="n">buf</span><span class="p">[];</span>
+<span class="p">};</span>
+
+<span class="cp">#define SDS_TYPE_5 0
+</span><span class="cp">#define SDS_TYPE_8 1
+</span><span class="cp">#define SDS_TYPE_16 2
+</span><span class="cp">#define SDS_TYPE_32 3
+</span><span class="cp">#define SDS_TYPE_64 4
+</span><span class="cp">#define SDS_TYPE_MASK 7
+</span><span class="cp">#define SDS_TYPE_BITS 3
+</span></code></pre></div><p>        __ $attribute$ __ $(($ __ $packed$ __ $))$ 作用是取消字节对齐，从而允许通过传入 $buf$ 的方式访问 $flags$ ，即 $buf[-1]$ 。<br/>
+        <code>Redis</code>会根据字符串长度选择对应的数据结构。在 $sds.c$ 文件中定义了如下函数：</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="k">static</span> <span class="kr">inline</span> <span class="kt">char</span> <span class="nf">sdsReqType</span><span class="p">(</span><span class="n">size_t</span> <span class="n">string_size</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">string_size</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">5</span><span class="p">)</span> <span class="c1">// 32
+</span><span class="c1"></span>        <span class="k">return</span> <span class="n">SDS_TYPE_5</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">string_size</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">)</span> <span class="c1">// 256
+</span><span class="c1"></span>        <span class="k">return</span> <span class="n">SDS_TYPE_8</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">string_size</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">16</span><span class="p">)</span> <span class="c1">// 65536
+</span><span class="c1"></span>        <span class="k">return</span> <span class="n">SDS_TYPE_16</span><span class="p">;</span>
+<span class="cp">#if (LONG_MAX == LLONG_MAX)
+</span><span class="cp"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">string_size</span> <span class="o">&lt;</span> <span class="mi">1ll</span><span class="o">&lt;&lt;</span><span class="mi">32</span><span class="p">)</span> <span class="c1">// 2^32
+</span><span class="c1"></span>        <span class="k">return</span> <span class="n">SDS_TYPE_32</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">SDS_TYPE_64</span><span class="p">;</span> <span class="c1">// 2^64
+</span><span class="c1"></span><span class="cp">#else
+</span><span class="cp"></span>    <span class="k">return</span> <span class="n">SDS_TYPE_32</span><span class="p">;</span>
+<span class="cp">#endif;
+</span><span class="cp"></span><span class="p">}</span>
+</code></pre></div><p>        与普通的字符数组相比，$SDS$ 可以直接获取长度，并且在添加字节时不用每次都重新创建。由于底层用的也是字符数组，因此 $SDS$ 也兼容<code>C</code>库函数中的字符串操作。</p>
+<h2 id="2-链表">2. 链表</h2>
+<p>        链表定义在 $adlist.h$ 文件中。</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="c1">// 节点
+</span><span class="c1"></span><span class="k">typedef</span> <span class="k">struct</span> <span class="n">listNode</span> <span class="p">{</span>
+    <span class="k">struct</span> <span class="n">listNode</span> <span class="o">*</span><span class="n">prev</span><span class="p">;</span>
+    <span class="k">struct</span> <span class="n">listNode</span> <span class="o">*</span><span class="n">next</span><span class="p">;</span>
+    <span class="kt">void</span> <span class="o">*</span><span class="n">value</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">listNode</span><span class="p">;</span>
+
+<span class="c1">// 迭代器
+</span><span class="c1"></span><span class="k">typedef</span> <span class="k">struct</span> <span class="n">listIter</span> <span class="p">{</span>
+    <span class="n">listNode</span> <span class="o">*</span><span class="n">next</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">direction</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">listIter</span><span class="p">;</span>
+
+<span class="c1">// 链表
+</span><span class="c1"></span><span class="k">typedef</span> <span class="k">struct</span> <span class="n">list</span> <span class="p">{</span>
+    <span class="n">listNode</span> <span class="o">*</span><span class="n">head</span><span class="p">;</span>
+    <span class="n">listNode</span> <span class="o">*</span><span class="n">tail</span><span class="p">;</span>
+    <span class="kt">void</span> <span class="o">*</span><span class="p">(</span><span class="o">*</span><span class="n">dup</span><span class="p">)(</span><span class="kt">void</span> <span class="o">*</span><span class="n">ptr</span><span class="p">);</span> <span class="c1">// 节点复制
+</span><span class="c1"></span>    <span class="kt">void</span> <span class="p">(</span><span class="o">*</span><span class="n">free</span><span class="p">)(</span><span class="kt">void</span> <span class="o">*</span><span class="n">ptr</span><span class="p">);</span> <span class="c1">// 节点删除
+</span><span class="c1"></span>    <span class="kt">int</span> <span class="p">(</span><span class="o">*</span><span class="n">match</span><span class="p">)(</span><span class="kt">void</span> <span class="o">*</span><span class="n">ptr</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">key</span><span class="p">);</span> <span class="c1">// 节点查找
+</span><span class="c1"></span>    <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">len</span><span class="p">;</span> <span class="c1">// 长度
+</span><span class="c1"></span><span class="p">}</span> <span class="n">list</span><span class="p">;</span>
+</code></pre></div><h2 id="3-整数集合">3. 整数集合</h2>
+<p>        如果一个 $set$ 只包含整数，那么就会使用整数集合存储。整数集合定义在 $intset.h$ 中。</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">intset</span> <span class="p">{</span>
+    <span class="n">uint32_t</span> <span class="n">encoding</span><span class="p">;</span> <span class="c1">// 集合类型
+</span><span class="c1"></span>    <span class="n">uint32_t</span> <span class="n">length</span><span class="p">;</span> <span class="c1">// 长度
+</span><span class="c1"></span>    <span class="n">int8_t</span> <span class="n">contents</span><span class="p">[];</span> <span class="c1">// 以不包含重复项的形式升序排序的数组
+</span><span class="c1"></span><span class="p">}</span> <span class="n">intset</span><span class="p">;</span>
+</code></pre></div><p>        整数集合中保存的整数类型取决于 $encoding$ 。如果存入的整数不符合编码格式，就需要升级，升级要根据新元素的类型扩展数组并重新分配空间。</p>
+<h2 id="4-hash">4. <code>Hash</code></h2>
+<p>        $Hash$ 定义在 $dict.h$ 文件中。</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">dicEntry</span> <span class="p">{</span> <span class="c1">// 节点
+</span><span class="c1"></span>    <span class="kt">void</span> <span class="o">*</span><span class="n">key</span><span class="p">;</span> <span class="c1">// 键
+</span><span class="c1"></span>    <span class="k">union</span> <span class="p">{</span>
+        <span class="kt">void</span> <span class="o">*</span><span class="n">val</span><span class="p">;</span>
+        <span class="n">uint64_t</span> <span class="n">u64</span><span class="p">;</span>
+        <span class="n">int64_t</span> <span class="n">s64</span><span class="p">;</span>
+        <span class="kt">double</span> <span class="n">d</span><span class="p">;</span>
+    <span class="p">}</span> <span class="n">v</span><span class="p">;</span> <span class="c1">// 值
+</span><span class="c1"></span>    <span class="k">struct</span> <span class="n">dicEntry</span> <span class="o">*</span><span class="n">next</span><span class="p">;</span> <span class="c1">// 链表结构解决冲突
+</span><span class="c1"></span><span class="p">}</span> <span class="n">dictEntry</span><span class="p">;</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">dictType</span> <span class="p">{</span> <span class="c1">// 字典类型
+</span><span class="c1"></span>    <span class="n">uint64_t</span> <span class="p">(</span><span class="o">*</span><span class="n">hashFunction</span><span class="p">)(</span><span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">key</span><span class="p">);</span> <span class="c1">// 计算哈希值行数
+</span><span class="c1"></span>    <span class="kt">void</span> <span class="o">*</span><span class="p">(</span><span class="o">*</span><span class="n">keyDup</span><span class="p">)(</span><span class="kt">void</span> <span class="o">*</span><span class="n">privdata</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">key</span><span class="p">);</span> <span class="c1">// 复制键
+</span><span class="c1"></span>    <span class="kt">void</span> <span class="o">*</span><span class="p">(</span><span class="o">*</span><span class="n">valDup</span><span class="p">)(</span><span class="kt">void</span> <span class="o">*</span><span class="n">privdata</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">obj</span><span class="p">);</span> <span class="c1">// 复制值
+</span><span class="c1"></span>    <span class="kt">int</span> <span class="p">(</span><span class="o">*</span><span class="n">keyCompare</span><span class="p">)(</span><span class="kt">void</span> <span class="o">*</span><span class="n">privdata</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">key1</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">key2</span><span class="p">);</span> <span class="c1">// 查找键
+</span><span class="c1"></span>    <span class="kt">void</span> <span class="p">(</span><span class="o">*</span><span class="n">keyDestructor</span><span class="p">)(</span><span class="kt">void</span> <span class="o">*</span><span class="n">privdata</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">key</span><span class="p">);</span> <span class="c1">// 删除键
+</span><span class="c1"></span>    <span class="kt">void</span> <span class="p">(</span><span class="o">*</span><span class="n">valDestructor</span><span class="p">)(</span><span class="kt">void</span> <span class="o">*</span><span class="n">privdata</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">obj</span><span class="p">);</span> <span class="c1">// 删除值
+</span><span class="c1"></span>    <span class="kt">int</span> <span class="p">(</span><span class="o">*</span><span class="n">expandAllowed</span><span class="p">)(</span><span class="n">size_t</span> <span class="n">moreMem</span><span class="p">,</span> <span class="kt">double</span> <span class="n">usedRatio</span><span class="p">);</span> <span class="c1">// 扩容
+</span><span class="c1"></span><span class="p">}</span> <span class="n">dictType</span><span class="p">;</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">dictht</span> <span class="p">{</span> <span class="c1">// 哈希表
+</span><span class="c1"></span>    <span class="n">dictEntry</span> <span class="o">**</span><span class="n">table</span><span class="p">;</span> <span class="c1">// 哈希数组
+</span><span class="c1"></span>    <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">size</span><span class="p">;</span> <span class="c1">// 表大小，2的幂次
+</span><span class="c1"></span>    <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">sizemask</span><span class="p">;</span> <span class="c1">// 计算索引，即表大小-1
+</span><span class="c1"></span>    <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">used</span><span class="p">;</span> <span class="c1">// 已使用节点数
+</span><span class="c1"></span><span class="p">}</span> <span class="n">dictht</span><span class="p">;</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">dict</span> <span class="p">{</span> <span class="c1">// 字典
+</span><span class="c1"></span>    <span class="n">dictType</span> <span class="o">*</span><span class="n">type</span><span class="p">;</span> <span class="c1">// 类型
+</span><span class="c1"></span>    <span class="kt">void</span> <span class="o">*</span><span class="n">privdata</span><span class="p">;</span> <span class="c1">// 私有数据
+</span><span class="c1"></span>    <span class="n">dictht</span> <span class="n">ht</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span> <span class="c1">// 两个哈希表
+</span><span class="c1"></span>    <span class="kt">long</span> <span class="n">rehashidx</span><span class="p">;</span> <span class="c1">// rehash索引，不进行rehash时为-1
+</span><span class="c1"></span>    <span class="n">int16_t</span> <span class="n">pauserhash</span><span class="p">;</span> <span class="c1">// 如果&gt;0说明rehash暂停，&lt;0说明发生错误
+</span><span class="c1"></span><span class="p">}</span> <span class="n">dict</span><span class="p">;</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">dictIterator</span> <span class="p">{</span>
+    <span class="n">dict</span> <span class="o">*</span><span class="n">d</span><span class="p">;</span>
+    <span class="kt">long</span> <span class="n">index</span><span class="p">;</span>
+    <span class="kt">int</span> <span class="n">table</span><span class="p">,</span> <span class="n">safe</span><span class="p">;</span>
+    <span class="n">dictEntry</span> <span class="o">*</span><span class="n">entry</span><span class="p">,</span> <span class="o">*</span><span class="n">nextEntry</span><span class="p">;</span>
+    <span class="kt">long</span> <span class="kt">long</span> <span class="n">fingerprint</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">dictIterator</span><span class="p">;</span>
+</code></pre></div><p>        <code>Redis</code>的字典使用链地址法解决哈希冲突，采用头插法。<code>Redis</code>中的字典不仅可以进行扩容操作，也可以进行收缩操作，大小固定为不小于当前使用空间的最小的 $2$ 的整数次幂。在每次执行 $CRUD$ 操作之后都会进行 $rehash$ 操作，将保存在 $ht[0]$ 中的键值对迁移到 $ht[1]$ 中，直到 $ht[0]$ 为空，然后交换 $ht[0]$ 和 $ht[1]$ ，并在 $ht[1]$ 上重建一个新表。$rehashidx$ 的作用是记录每次操作过程中应该进行迁移的键值对的索引，如果迁移完成，会重新设为 $-1$ 。</p>
+<h2 id="5-压缩列表">5. 压缩列表</h2>
+<p>        压缩列表是 $list$ 和 $hash$ 的底层实现之一，对于只包含少量数据的项，会使用压缩列表存储。压缩列表定义在 $ziplist.c$ 文件中，结构如下：</p>
+<ol>
+<li>$zlbytes$ ：$4$ 字节压缩列表长度；</li>
+<li>$zltail$ ：$4$ 字节尾元素相对于压缩列表起始地址偏移量；</li>
+<li>$zllen$ ：$2$ 字节压缩列表元素数目，长度超过 $2^{16}-1$ ，需要遍历压缩列表才能获取元素数目</li>
+<li>$entry$ ：元素节点；</li>
+<li>$zlend$ ：$1$ 字节表示压缩列表结尾，恒为 $0xFF$。</li>
+</ol>
+<p>        其中元素节点的编码如下：</p>
+<ol>
+<li>$previous_-entry_-length$ ：前一个节点的字节长度；</li>
+<li>$encoding$ ：当前元素编码；</li>
+<li>$content$ ：存储的数据，可以是字节数组或者整数。</li>
+</ol>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="c1">// zl为char*类型，指向压缩列表首地址
+</span><span class="c1"></span><span class="cp">#define ZIPLIST_BYTES(zl) (*((uint32_t*)(zl)))
+</span><span class="cp"></span><span class="c1">// zl+4指向zltail字段
+</span><span class="c1"></span><span class="cp">#define ZIPLIST_TAIL_OFFSET(zl) (*((uint32_t)((zl)+sizeof(uint32_t))))
+</span><span class="cp"></span><span class="c1">// zl+zltail指向为元素首地址
+</span><span class="c1"></span><span class="cp">#define ZIPLIST_ENTRY_TAIL(zl) ((zl)+intrev32ifbe(ZIPLIST_TAIL_OFFSET(zl)))
+</span><span class="cp"></span><span class="c1">// zl+8指向zllen字段
+</span><span class="c1"></span><span class="cp">#define ZIPLIST_LENGTH(zl) (*((uint16_t)((zl)+sizeof(uint32_T)*2)))
+</span><span class="cp"></span><span class="c1">// 最后一个字段为zlend
+</span><span class="c1"></span><span class="cp">#define ZIPLIST_ENTRY_END(zl) ((zl)+intrev32ifbe(ZIPLIST_BYTES(zl))-1)
+</span><span class="cp"></span><span class="c1">// 存储经过解码后的节点
+</span><span class="c1"></span><span class="k">typedef</span> <span class="k">struct</span> <span class="n">zlentry</span> <span class="p">{</span>
+    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">prevrawlensize</span><span class="p">;</span> <span class="c1">// 前驱节点长度的字节长度
+</span><span class="c1"></span>    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">prevrawlen</span><span class="p">;</span> <span class="c1">// 前驱节点长度
+</span><span class="c1"></span>    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">lensize</span><span class="p">;</span> <span class="c1">// encoding字段的字节长度
+</span><span class="c1"></span>    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">len</span><span class="p">;</span> <span class="c1">// 数据字节长度
+</span><span class="c1"></span>    <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">headersize</span><span class="p">;</span> <span class="c1">// prevrawlensize + lensize，即previous_entry_length+encoding长度
+</span><span class="c1"></span>    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">encoding</span><span class="p">;</span> <span class="c1">// ZIP_STR_* 或者 ZIP_INT_*
+</span><span class="c1"></span>    <span class="kt">unsigned</span> <span class="kt">char</span> <span class="o">*</span><span class="n">p</span><span class="p">;</span> <span class="c1">// 存储数据的首地址
+</span><span class="c1"></span><span class="p">}</span> <span class="n">zlentry</span><span class="p">;</span>
+</code></pre></div><h2 id="6-跳表">6. 跳表</h2>
+<p>        跳表定义在 $server.h$ 文件中。</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">zskiplistNode</span> <span class="p">{</span> <span class="c1">// 跳表节点
+</span><span class="c1"></span>    <span class="n">sds</span> <span class="n">ele</span><span class="p">;</span> <span class="c1">// 元素
+</span><span class="c1"></span>    <span class="kt">double</span> <span class="n">score</span><span class="p">;</span> <span class="c1">// 分值
+</span><span class="c1"></span>    <span class="k">struct</span> <span class="n">zskiplistNode</span> <span class="o">*</span> <span class="n">backward</span><span class="p">;</span> <span class="c1">// 后向指针
+</span><span class="c1"></span>    <span class="k">struct</span> <span class="n">zskiplistLevel</span> <span class="p">{</span> <span class="c1">// 层
+</span><span class="c1"></span>        <span class="k">struct</span> <span class="n">zskiplistNode</span> <span class="o">*</span><span class="n">forward</span><span class="p">;</span> <span class="c1">// 前向指针
+</span><span class="c1"></span>        <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">span</span><span class="p">;</span> <span class="c1">// 跨度，即同层相邻节点之间最底层节点的数量
+</span><span class="c1"></span>    <span class="p">}</span> <span class="n">level</span><span class="p">[];</span>
+<span class="p">}</span> <span class="n">zskiplistNode</span><span class="p">;</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">zskiplist</span> <span class="p">{</span> <span class="c1">// 跳表
+</span><span class="c1"></span>    <span class="k">struct</span> <span class="n">zskiplistNode</span> <span class="o">*</span><span class="n">header</span><span class="p">,</span> <span class="o">*</span><span class="n">tail</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">length</span><span class="p">;</span> <span class="c1">// 长度
+</span><span class="c1"></span>    <span class="kt">int</span> <span class="n">level</span><span class="p">;</span> <span class="c1">// 最大层数
+</span><span class="c1"></span><span class="p">}</span> <span class="n">zskiplist</span><span class="p">;</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="n">zset</span> <span class="p">{</span> <span class="c1">// 有序集合
+</span><span class="c1"></span>    <span class="n">dict</span> <span class="o">*</span><span class="n">dict</span><span class="p">;</span> <span class="c1">// 字典
+</span><span class="c1"></span>    <span class="n">zskiplist</span> <span class="o">*</span><span class="n">zsl</span><span class="p">;</span> <span class="c1">// 跳表
+</span><span class="c1"></span><span class="p">}</span> <span class="n">zset</span><span class="p">;</span>
+</code></pre></div><p>        $ZSKIPLIST_-P$ 为 $0.25$ ，代表每次插入的节点都有 $25\%$ 的概率上升一层。</p>
+
+
+<a href="javascript:void(0)" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+<div id="sidetoc">
+    <header>
+        <h4>Redis底层数据结构实现</h4>
+    </header>
+    
+    <nav id="TableOfContents">
+        <ul></ul>
+    </nav>
+</div>
+<script src=https://z217blog.cn/js/toc.js></script>
+
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/reentranlock%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        
+        
+        
+        var all = MathJax.Hub.getAllJax(),
+            i;
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+        if (tocFlag) tocInit();
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
+</body>
+
+</html>
