@@ -7,10 +7,21 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved.</copyright>
-    <lastBuildDate>Tue, 16 Mar 2021 18:05:19 +0800</lastBuildDate>
+    <lastBuildDate>Fri, 26 Mar 2021 20:08:53 +0800</lastBuildDate>
     
 	<atom:link href="https://z217blog.cn/tags/algorithm/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Leetcode题解（6）：用Rand7实现Rand10</title>
+      <link>https://z217blog.cn/post/leetcode%E9%A2%98%E8%A7%A36%E7%94%A8rand7%E5%AE%9E%E7%8E%B0rand10/</link>
+      <pubDate>Fri, 26 Mar 2021 20:08:53 +0800</pubDate>
+      
+      <guid>https://z217blog.cn/post/leetcode%E9%A2%98%E8%A7%A36%E7%94%A8rand7%E5%AE%9E%E7%8E%B0rand10/</guid>
+      <description>LeetCode470
+ 在解决这道题之前，我们可以先查看一个反过来的情况——用 $Rand10()$ 实现 $Rand7()$ ，可以直接发现实现方式就是不断用 $Rand10()$ 生成随机数，直到生成的数字处于 $1 \sim 7$ 之间即可。也就是说，如果可以生成的数字范围要大于待生成的数字范围，可以通过不断循环直到获取落在生成范围里面的数字的方式实现。 利用上述思想，我们可以很容易的想出这道题的解法——利用 $Rand7()$ 构造一个生成的数字范围大于 $1 \sim 10$ 的随机数生成器即可。要想构造这样的生成器，我们可以再观察下 $Rand10()$ 。如果我们想要用 $Rand10()$ 构造一个生成数字范围在 $1 \sim 99$ 之间的随机数生成器，可以使用如下算法 $(Rand10() - 1) * 10 + Rand10()$ ，也就是生成两次，一个作为十位一个作为个位。可以很容易发现这种算法生成的数字是随机均匀分布的。 使用 $Rand10()$ 的例子生成的是 $10$ 进制二位数，利用同样的思想我们也可以生成 $7$ 进制二位数，即 $(Rand7() - 1) * 7 + Rand7()$ ，使用这种方式生成的数字也是随机均匀分布的。将其转为 $10$ 进制后，数字范围落在 $1 \sim 49$ 之间，如果直接抛弃 $11 \sim 49$ 之间的数字，那么可能需要重复调用很多次。因此我们可以只抛弃 $41 \sim 49$ 之间的数字，对剩余的数字采用取模运算，实现方式如下：
+class Solution extends SolBase { public int rand10() { int num; do { num = (rand7() - 1) * 7 + rand7(); } while (num &amp;gt; 40); return num % 10 + 1; } }  上述的实现方式是抛弃了 $41 \sim 49$ 之间的数字，抛弃了 $9$ 个数字的实现方式还是有点多的。从我们之前的讲解来看，可以不局限于生成两位数，三位数、四位数也是可以的，因此我们也可以这样实现：首先生成 $7$ 进制两位数，如果不大于 $40$ ，返回，否则利用两位数再次生成 $3$ 位数、$4$ 位数。对于 $Rand7()$ ，我们只需要生成到 $7$ 进制 $4$ 位数就行了，因为 $7^3=243$ ，$7^4=1701$ ，也就是 $4$ 位数最多只需要抛弃 $1$ 个数字，而如果是 $5$ 位数，则又要抛弃 $7$ 个数字才行。 我们也可以利用取模 $10$ 这个点来进一步简化算法。如果生成的数字在 $41 \sim 49$ 之间，没有必要直接用该数字进行计算，因为 $40$ 在取模这一步会被消掉，无论乘以哪个数字，所以我们可以将生成的数字减去 $40$ 再进行计算。减去 $40$ 后生成的数字范围在 $1 \sim 63$ 之间，同样的，如果生成了 $61 \sim 63$ 之间的数字，也可以减去 $60$ 后再计算。实现方式如下：</description>
+    </item>
     
     <item>
       <title>Leetcode题解（5）：LRU与LinkedHashMap</title>
