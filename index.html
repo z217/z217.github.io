@@ -86,6 +86,24 @@
     
     
     <div class="list-item">
+        <a class="entry-title" href="/post/%E7%BC%93%E5%AD%98%E4%B8%80%E8%87%B4%E6%80%A7%E5%8D%8F%E8%AE%AEmesi/">缓存一致性协议MESI</a>
+        
+        
+        <p>缓存一致性协议MESI介绍</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2021 Aug 16 11:02
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: OS
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
         <a class="entry-title" href="/post/mysql%E7%AC%94%E8%AE%B0/">MySQL笔记</a>
         
         
@@ -116,7 +134,7 @@
             <br>
             
             <i class="fas fa-tags"></i>
-            Tags: Other
+            Tags: OS
             
         </div>
     </div>
@@ -134,7 +152,7 @@
             <br>
             
             <i class="fas fa-tags"></i>
-            Tags: Other
+            Tags: OS
             
         </div>
     </div>
@@ -157,24 +175,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="/post/stampedlock%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB/">StampedLock源码解读</a>
-        
-        
-        <p>StampedLock源码解读</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2021 Mar 30 14:05
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: Java
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -183,6 +183,84 @@
     <div class="section-title">μblog</div>
     <div class="posts">
         
+        
+        <div class="post">
+            
+            <center>
+                <h1><a href="/post/%E7%BC%93%E5%AD%98%E4%B8%80%E8%87%B4%E6%80%A7%E5%8D%8F%E8%AE%AEmesi/">缓存一致性协议MESI</a></h1>
+            </center>
+            <div class="post-content">
+                <p>        <strong>高速缓冲存储器一致性</strong> ( $Cache\ \ coherence$ )，也称缓存一致性，是指在采用层次结构存储系统的计算机系统中，保证告诉缓冲存储器中数据与主存储器中数据相同的机制。在有多个<code>CPU</code>的多处理机系统中特别容易出现高速缓存中数据不一致的问题。<br>
+        在<code>CPU</code>缓存设计中，<code>L1</code>高速缓存包含指令缓存和数据缓存，位于<code>CPU</code>芯片上，访问速度几乎和寄存器一样快。<code>L2</code>高速缓存在<code>L1</code>和主存之间，连接到存储器总线或者高速缓存总线上。有些高性能系统还会在存储器总线上设置<code>L3</code>高速缓存。<code>L1</code>和<code>L2</code>是每个<code>CPU</code>内核间独立的，<code>L3</code>是所有<code>CPU</code>内核间共享的。<br>
+        对于单核<code>CPU</code>来说，数据更新时缓存更新只用考虑自己的就行了，主要有两种处理方法。<strong>写回法</strong> ( $write\ \ back$ )，是当处理器执行写操作时，信息只写入<code>cache</code>，当<code>cache</code>中的数据被替换出去时写回主存。为了减少内存写操作，<code>cache</code>中通常还会设置一个脏位 ( $dirty\ \ bit$ )，标识该块在被载入后是否发生了更新。<strong>直写法</strong> ( $write\ \ through$ ) 是当处理器执行写操作时，既向<code>cache</code>中写入也向主存中写入。直写法会造成大量写内存操作，需要设置一个缓冲来减少硬件冲突，称为写缓冲器 ( $write\ \ buffer$ )，通常不超过 $4$ 个缓存块的大小，也适用于写回法。<br>
+        相比于单核<code>CPU</code>，多核<code>CPU</code>除了要保证<code>L1</code>和<code>L2</code>最新外还要考虑到其他核中<code>L1</code>和<code>L2</code>的实时性和有效性。<code>MESI</code>协议是一个基于失效的缓存一致性协议，是支持写回缓存的最常用协议。该协议对总线上的操作进行监听，即核 $A$ 可以窥探到核 $B$ 对过期值的读操作，并更新主存中的过期值。<code>MESI</code>把<code>cache</code>中的数据分为几个状态：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">状态</th>
+<th style="text-align:center">描述</th>
+<th style="text-align:center">监听</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">$Invalid$</td>
+<td style="text-align:center">该<code>cache</code>字段失效</td>
+<td style="text-align:center">无</td>
+</tr>
+<tr>
+<td style="text-align:center">$Shared$</td>
+<td style="text-align:center">字段数据一致并且多核<code>cache</code>共享该字段</td>
+<td style="text-align:center">监听其他缓存使该字段无效或者变为 $Exclusive$ 的请求，监听到对应事件后会将该字段设为 $Invalid$</td>
+</tr>
+<tr>
+<td style="text-align:center">$Exclusive$</td>
+<td style="text-align:center">字段数据一致并且只在当前核<code>cache</code>中独有</td>
+<td style="text-align:center">监听其他缓存读主存中该字段的操作，监听到对应事件后将该字段变为 $Shared$</td>
+</tr>
+<tr>
+<td style="text-align:center">$Modified$</td>
+<td style="text-align:center">该字段有效但是与主存不一致，只存在于当前核<code>cache</code>中</td>
+<td style="text-align:center">监听所有试图读该字段对应主存字段的操作，该操作会被延迟到当前缓存字段写回主存并将状态设为 $Shared$ 之后执行</td>
+</tr>
+</tbody>
+</table>
+<p><img src="/image/2021-08-16-01.png" alt="状态机"></p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">事件</th>
+<th style="text-align:center">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">$Local\ \ Read$</td>
+<td style="text-align:center">读取本地<code>cache</code>字段</td>
+</tr>
+<tr>
+<td style="text-align:center">$Local\ \ Write$</td>
+<td style="text-align:center">写入本地<code>cache</code>字段</td>
+</tr>
+<tr>
+<td style="text-align:center">$Remote\ \ Read$</td>
+<td style="text-align:center">其他<code>cache</code>读取字段</td>
+</tr>
+<tr>
+<td style="text-align:center">$Remote\ \ Write$</td>
+<td style="text-align:center">其他<code>cache</code>写入字段</td>
+</tr>
+</tbody>
+</table>
+<p>        对于 $Modified$ 和 $Exclusive$
+状态，数据是精确的，而 $Shared$ 状态可能是非一致的。如果一个处于 $Shared$ 的缓存字段作废了，另一个缓存实际上可能已经独享了该缓存字段，但是该缓存不会转为 $Exclusive$
+，因为其他缓存并不会广播他们作废该缓存字段的通知。如果一个<code>CPU</code>想修改一个处于 $Shared$ 状态的缓存字段，总线事务需要将所有该缓存字段的副本变为 $Invalid$ 状态，而修改 $Exclusive$ 状态的缓存字段不需要总线事务。<br>
+        缓存的一致性消息传递是需要时间的，这就使其切换时产生延迟。当一个缓存被切换状态时其他缓存收到消息完成各自的切换并且发出回应消息这么长一段时间中<code>CPU</code>都会等待所有缓存响应完成。为了避免这种<code>CPU</code>运算能力的浪费，$Store\ \ Buffer$ 被引入。处理器会将想要写入主存的值写到 $Store\ \ Buffer$ 中再去处理其他事情。为了避免在 $Store\ \ Buffer$ 未保存完时其他核已经完成读取，需要引入内存屏障。写屏障保证处理器在更新数据前必须将所有 $Store\ \ Buffer$ 中的指令执行完毕，读屏障保证处理器在读之前将所有需要设置为 $Invalid$ 的字段设置完毕。</p>
+
+            </div>
+            <div class="meta post-footer"> <span>2021 Aug 16 11:02</span> <a href="/post/%E7%BC%93%E5%AD%98%E4%B8%80%E8%87%B4%E6%80%A7%E5%8D%8F%E8%AE%AEmesi/"><i
+                        class="fas fa-link"></i> link</a></div>
+        </div>
         
         <div class="post">
             
@@ -915,170 +993,6 @@ $$</p>
 
             </div>
             <div class="meta post-footer"> <span>2021 May 10 20:54</span> <a href="/post/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%AC%94%E8%AE%B0/"><i
-                        class="fas fa-link"></i> link</a></div>
-        </div>
-        
-        <div class="post">
-            
-            <center>
-                <h1><a href="/post/leetcode%E9%A2%98%E8%A7%A37%E8%82%A1%E7%A5%A8%E9%97%AE%E9%A2%98/">Leetcode题解（7）：股票问题</a></h1>
-            </center>
-            <div class="post-content">
-                <h2 id="i">I</h2>
-<p><a href="https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock/">LeetCode121.买卖股票的最佳时机</a></p>
-<p>        题目很简单，所以直接写了。思路就是遍历数组，维护一个最小值，以及一个最大差值。在遍历过程中不断计算差值，如果当前值比最小值小则更新最小值，如果当前差值比最大差值大则更新差值。</p>
-<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="nf">maxProfit</span><span class="p">(</span><span class="nx">prices</span> <span class="p">[]</span><span class="kt">int</span><span class="p">)</span> <span class="kt">int</span> <span class="p">{</span>
-    <span class="nx">min</span><span class="p">,</span> <span class="nx">res</span> <span class="o">:=</span> <span class="nx">prices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">0</span>
-    <span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">v</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">prices</span> <span class="p">{</span>
-        <span class="k">if</span> <span class="nx">v</span> <span class="p">&lt;</span> <span class="nx">min</span> <span class="p">{</span>
-            <span class="nx">min</span> <span class="p">=</span> <span class="nx">v</span>
-        <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="nx">res</span> <span class="p">&lt;</span> <span class="nx">v</span> <span class="o">-</span> <span class="nx">min</span> <span class="p">{</span>
-            <span class="nx">res</span> <span class="p">=</span> <span class="nx">v</span> <span class="o">-</span> <span class="nx">min</span>
-        <span class="p">}</span>
-    <span class="p">}</span>
-    <span class="k">return</span> <span class="nx">res</span>
-<span class="p">}</span>
-</code></pre></div><h2 id="ii">II</h2>
-<p><a href="https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock-ii/">LeetCode122.买卖股票的最佳时机II</a></p>
-<p>        与上一题不同的是这次可以多次购买，但是同样很简单，只要差值是正数就可以直接加在结果上。</p>
-<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="nf">maxProfit</span><span class="p">(</span><span class="nx">prices</span> <span class="p">[]</span><span class="kt">int</span><span class="p">)</span> <span class="kt">int</span> <span class="p">{</span>
-    <span class="nx">min</span><span class="p">,</span> <span class="nx">res</span> <span class="o">:=</span> <span class="nx">prices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">0</span>
-    <span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">v</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">prices</span> <span class="p">{</span>
-        <span class="k">if</span> <span class="nx">v</span> <span class="p">&lt;</span> <span class="nx">min</span> <span class="p">{</span>
-            <span class="nx">min</span> <span class="p">=</span> <span class="nx">v</span>
-        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-            <span class="nx">res</span> <span class="o">+=</span> <span class="nx">v</span><span class="o">-</span><span class="nx">min</span>
-            <span class="nx">min</span> <span class="p">=</span> <span class="nx">v</span>
-        <span class="p">}</span>
-    <span class="p">}</span>
-    <span class="k">return</span> <span class="nx">res</span>
-<span class="p">}</span>
-</code></pre></div><p>        我们可以把第二题看成维护两个状态，买入 $buy$ 和卖出 $sell$ ，从而第二题可以这样实现：</p>
-<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="nf">maxProfit</span><span class="p">(</span><span class="nx">prices</span> <span class="p">[]</span><span class="kt">int</span><span class="p">)</span> <span class="kt">int</span> <span class="p">{</span>
-    <span class="nx">buy</span><span class="p">,</span> <span class="nx">sell</span> <span class="o">:=</span> <span class="nx">math</span><span class="p">.</span><span class="nx">MinInt32</span><span class="p">,</span> <span class="mi">0</span>
-    <span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">v</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">prices</span> <span class="p">{</span>
-        <span class="nx">buy</span> <span class="p">=</span> <span class="nf">max</span><span class="p">(</span><span class="nx">buy</span><span class="p">,</span> <span class="nx">sell</span><span class="o">-</span><span class="nx">v</span><span class="p">)</span>
-        <span class="nx">sell</span> <span class="p">=</span> <span class="nx">buy</span> <span class="o">+</span> <span class="nx">v</span>
-    <span class="p">}</span>
-    <span class="k">return</span> <span class="nx">sell</span>
-<span class="p">}</span>
-
-<span class="kd">func</span> <span class="nf">max</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span> <span class="nx">b</span> <span class="kt">int</span><span class="p">)</span> <span class="kt">int</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="nx">a</span> <span class="p">&gt;</span> <span class="nx">b</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="nx">a</span>
-    <span class="p">}</span>
-    <span class="k">return</span> <span class="nx">b</span>
-<span class="p">}</span>
-</code></pre></div><p>        $buy$ 表示买入股票，更新规则可以这样理解：</p>
-<ul>
-<li>如果当前买入的股票比现在的股票便宜，也即 $buy &gt; sell-v$ ，则不更新</li>
-<li>如果当前买入的股票比现在的股票贵，也即 $buy &lt; sell-v$ ，则更新</li>
-</ul>
-<p>        而 $sell$ 表示卖出股票，可以发现我们只是简单的为其赋值 $buy+v$ 。如果不在 $buy$ 更新后再更新，就代表着没有考虑今天的股票价格，如果今天的股票价格要小于上次买入的价格，那么就会带来亏损，从而达不到最大的收益。当然，第二题也可以采用下面这种更新方式：</p>
-<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="nx">buy</span><span class="p">,</span> <span class="nx">sell</span> <span class="p">=</span> <span class="nf">max</span><span class="p">(</span><span class="nx">buy</span><span class="p">,</span> <span class="nx">sell</span><span class="o">-</span><span class="nx">v</span><span class="p">),</span> <span class="nf">max</span><span class="p">(</span><span class="nx">sell</span><span class="p">,</span> <span class="nx">buy</span><span class="o">+</span><span class="nx">v</span><span class="p">)</span>
-</code></pre></div><p>        采用上面这种更新方式，当发现在当前卖出之前买入的股票会导致亏损，也就是 $sell &gt; buy+v$ 时，就选择不更新。</p>
-<h3 id="iii">III</h3>
-<p><a href="https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock-iii/">LeetCode123.买卖股票的最佳时机III</a></p>
-<p>        难度突然骤升，但是还是一样的解法。遍历数组，维护四个变量：第一次买入、第一次卖出、第二次买入和第二次卖出，在遍历的过程中尝试将每个数分别作为第一次买入、第一次卖出、第二次买入和第二次卖出的结果，然后取最大值。</p>
-<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="nf">maxProfit</span><span class="p">(</span><span class="nx">prices</span> <span class="p">[]</span><span class="kt">int</span><span class="p">)</span> <span class="kt">int</span> <span class="p">{</span>
-	<span class="kd">var</span> <span class="nx">buy1</span> <span class="p">=</span> <span class="nx">math</span><span class="p">.</span><span class="nx">MinInt32</span>
-	<span class="kd">var</span> <span class="nx">buy2</span> <span class="p">=</span> <span class="nx">math</span><span class="p">.</span><span class="nx">MinInt32</span>
-	<span class="kd">var</span> <span class="nx">sell1</span> <span class="p">=</span> <span class="mi">0</span>
-	<span class="kd">var</span> <span class="nx">sell2</span> <span class="p">=</span> <span class="mi">0</span>
-	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">v</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">prices</span> <span class="p">{</span>
-		<span class="nx">buy1</span> <span class="p">=</span> <span class="nf">max</span><span class="p">(</span><span class="nx">buy1</span><span class="p">,</span> <span class="o">-</span><span class="nx">v</span><span class="p">)</span>
-		<span class="nx">sell1</span> <span class="p">=</span> <span class="nf">max</span><span class="p">(</span><span class="nx">sell1</span><span class="p">,</span> <span class="nx">buy1</span><span class="o">+</span><span class="nx">v</span><span class="p">)</span>
-		<span class="nx">buy2</span> <span class="p">=</span> <span class="nf">max</span><span class="p">(</span><span class="nx">buy2</span><span class="p">,</span> <span class="nx">sell1</span><span class="o">-</span><span class="nx">v</span><span class="p">)</span>
-		<span class="nx">sell2</span> <span class="p">=</span> <span class="nf">max</span><span class="p">(</span><span class="nx">sell2</span><span class="p">,</span> <span class="nx">buy2</span><span class="o">+</span><span class="nx">v</span><span class="p">)</span>
-	<span class="p">}</span>
-	<span class="k">return</span> <span class="nx">sell2</span>
-<span class="p">}</span>
-
-<span class="kd">func</span> <span class="nf">max</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span> <span class="nx">b</span> <span class="kt">int</span><span class="p">)</span> <span class="kt">int</span> <span class="p">{</span>
-	<span class="k">if</span> <span class="nx">a</span> <span class="p">&gt;</span> <span class="nx">b</span> <span class="p">{</span>
-		<span class="k">return</span> <span class="nx">a</span>
-	<span class="p">}</span>
-	<span class="k">return</span> <span class="nx">b</span>
-<span class="p">}</span>
-</code></pre></div><h2 id="iv">IV</h2>
-<p><a href="https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock-iv/">LeetCode188.买卖股票的最佳时机IV</a></p>
-<p>        其实跟上面一道题一样，只是这次可以多次交易而已，还有注意下对 $0$ 值的处理就行了。</p>
-<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="nf">maxProfit</span><span class="p">(</span><span class="nx">k</span> <span class="kt">int</span><span class="p">,</span> <span class="nx">prices</span> <span class="p">[]</span><span class="kt">int</span><span class="p">)</span> <span class="kt">int</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="nx">k</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="mi">0</span>
-    <span class="p">}</span>
-    <span class="nx">buy</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">([]</span><span class="kt">int</span><span class="p">,</span> <span class="nx">k</span><span class="p">)</span>
-    <span class="nx">sell</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">([]</span><span class="kt">int</span><span class="p">,</span> <span class="nx">k</span><span class="p">)</span>
-    <span class="k">for</span> <span class="nx">i</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">buy</span> <span class="p">{</span>
-        <span class="nx">buy</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="p">=</span> <span class="nx">math</span><span class="p">.</span><span class="nx">MinInt32</span>
-    <span class="p">}</span>
-    <span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">v</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">prices</span> <span class="p">{</span>
-        <span class="k">for</span> <span class="nx">i</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">buy</span> <span class="p">{</span>
-            <span class="k">if</span> <span class="nx">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">{</span>
-                <span class="nx">buy</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="p">=</span> <span class="nf">max</span><span class="p">(</span><span class="nx">buy</span><span class="p">[</span><span class="nx">i</span><span class="p">],</span> <span class="o">-</span><span class="nx">v</span><span class="p">)</span>
-            <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-                <span class="nx">buy</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="p">=</span> <span class="nf">max</span><span class="p">(</span><span class="nx">buy</span><span class="p">[</span><span class="nx">i</span><span class="p">],</span> <span class="nx">sell</span><span class="p">[</span><span class="nx">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="nx">v</span><span class="p">)</span>
-            <span class="p">}</span>
-            <span class="nx">sell</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="p">=</span> <span class="nf">max</span><span class="p">(</span><span class="nx">sell</span><span class="p">[</span><span class="nx">i</span><span class="p">],</span> <span class="nx">buy</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span><span class="o">+</span><span class="nx">v</span><span class="p">)</span>
-        <span class="p">}</span>
-    <span class="p">}</span>
-    <span class="k">return</span> <span class="nx">sell</span><span class="p">[</span><span class="nx">k</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-<span class="p">}</span>
-
-<span class="kd">func</span> <span class="nf">max</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span> <span class="nx">b</span> <span class="kt">int</span><span class="p">)</span> <span class="kt">int</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="nx">a</span> <span class="p">&gt;</span> <span class="nx">b</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="nx">a</span>
-    <span class="p">}</span>
-    <span class="k">return</span> <span class="nx">b</span>
-<span class="p">}</span>
-</code></pre></div><h2 id="v">V</h2>
-<p><a href="https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock-with-cooldown/">LeetCode309.最佳买卖股票时机含冷冻期</a></p>
-<p>        这道题其实就是在第二题的基础上多加了个冷冻期的状态，我们可以把之前的 $sell$ 拆为两个状态，从而实现方式为：</p>
-<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="nf">maxProfit</span><span class="p">(</span><span class="nx">prices</span> <span class="p">[]</span><span class="kt">int</span><span class="p">)</span> <span class="kt">int</span> <span class="p">{</span>
-	<span class="nx">buy</span><span class="p">,</span> <span class="nx">sell1</span><span class="p">,</span> <span class="nx">sell2</span> <span class="o">:=</span> <span class="nx">math</span><span class="p">.</span><span class="nx">MinInt32</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
-	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">v</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">prices</span> <span class="p">{</span>
-		<span class="nx">buy</span><span class="p">,</span> <span class="nx">sell1</span><span class="p">,</span> <span class="nx">sell2</span> <span class="p">=</span> <span class="nf">max</span><span class="p">(</span><span class="nx">buy</span><span class="p">,</span> <span class="nx">sell2</span><span class="o">-</span><span class="nx">v</span><span class="p">),</span> <span class="nx">buy</span><span class="o">+</span><span class="nx">v</span><span class="p">,</span> <span class="nf">max</span><span class="p">(</span><span class="nx">sell1</span><span class="p">,</span> <span class="nx">sell2</span><span class="p">)</span>
-	<span class="p">}</span>
-	<span class="k">return</span> <span class="nf">max</span><span class="p">(</span><span class="nx">sell1</span><span class="p">,</span> <span class="nx">sell2</span><span class="p">)</span>
-<span class="p">}</span>
-
-<span class="kd">func</span> <span class="nf">max</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span> <span class="nx">b</span> <span class="kt">int</span><span class="p">)</span> <span class="kt">int</span> <span class="p">{</span>
-	<span class="k">if</span> <span class="nx">a</span> <span class="p">&gt;</span> <span class="nx">b</span> <span class="p">{</span>
-		<span class="k">return</span> <span class="nx">a</span>
-	<span class="p">}</span>
-	<span class="k">return</span> <span class="nx">b</span>
-<span class="p">}</span>
-</code></pre></div><p>        比较疑惑的一点就是为什么第二题的 $sell$ 要在 $buy$ 更新后才更新而这一题却不用，而这个问题的关键在于新增的变量 $sell2$ 。 这一道题我们采用了三个变量，其中 $buy$ 依旧是买入的意思，而 $sell1$ 表示卖出当前持有的股票并进入冷冻期，$sell2$ 表示冷冻期结束。$sell2$ 采用的更新方式是与 $sell1$ 进行比较，如果 $sell1$ 产生了亏损，则不会出售。<br>
-        当然也可以采用下面的更新方式，依旧是正确的：</p>
-<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="nf">maxProfit</span><span class="p">(</span><span class="nx">prices</span> <span class="p">[]</span><span class="kt">int</span><span class="p">)</span> <span class="kt">int</span> <span class="p">{</span>
-	<span class="nx">buy</span><span class="p">,</span> <span class="nx">sell1</span><span class="p">,</span> <span class="nx">sell2</span> <span class="o">:=</span> <span class="nx">math</span><span class="p">.</span><span class="nx">MinInt32</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
-	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">v</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">prices</span> <span class="p">{</span>
-		<span class="nx">buy</span><span class="p">,</span> <span class="nx">sell1</span><span class="p">,</span> <span class="nx">sell2</span> <span class="p">=</span> <span class="nf">max</span><span class="p">(</span><span class="nx">buy</span><span class="p">,</span> <span class="nx">sell2</span><span class="o">-</span><span class="nx">v</span><span class="p">),</span> <span class="nf">max</span><span class="p">(</span><span class="nx">sell1</span><span class="p">,</span> <span class="nx">buy</span><span class="o">+</span><span class="nx">v</span><span class="p">),</span> <span class="nx">sell1</span>
-	<span class="p">}</span>
-	<span class="k">return</span> <span class="nx">sell1</span>
-<span class="p">}</span>
-</code></pre></div><p>        可能这种方式比上面的更好理解，但是本质还是一样的。</p>
-<h2 id="vi">VI</h2>
-<p><a href="https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock-with-transaction-fee/">LeetCode714.买卖股票的最佳时机含手续费</a></p>
-<p>        有了之前题目作准备，这道题肯定已经没啥难度了，直接秒了。</p>
-<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="nf">maxProfit</span><span class="p">(</span><span class="nx">prices</span> <span class="p">[]</span><span class="kt">int</span><span class="p">,</span> <span class="nx">fee</span> <span class="kt">int</span><span class="p">)</span> <span class="kt">int</span> <span class="p">{</span>
-    <span class="nx">buy</span><span class="p">,</span> <span class="nx">sell</span> <span class="o">:=</span> <span class="nx">math</span><span class="p">.</span><span class="nx">MinInt32</span><span class="p">,</span> <span class="mi">0</span>
-    <span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">v</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">prices</span> <span class="p">{</span>
-        <span class="nx">buy</span> <span class="p">=</span> <span class="nf">max</span><span class="p">(</span><span class="nx">buy</span><span class="p">,</span> <span class="nx">sell</span><span class="o">-</span><span class="nx">v</span><span class="o">-</span><span class="nx">fee</span><span class="p">)</span>
-        <span class="nx">sell</span> <span class="p">=</span> <span class="nf">max</span><span class="p">(</span><span class="nx">sell</span><span class="p">,</span> <span class="nx">buy</span><span class="o">+</span><span class="nx">v</span><span class="p">)</span>
-    <span class="p">}</span>
-    <span class="k">return</span> <span class="nx">sell</span>
-<span class="p">}</span>
-
-<span class="kd">func</span> <span class="nf">max</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span> <span class="nx">b</span> <span class="kt">int</span><span class="p">)</span> <span class="kt">int</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="nx">a</span> <span class="p">&gt;</span> <span class="nx">b</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="nx">a</span>
-    <span class="p">}</span>
-    <span class="k">return</span> <span class="nx">b</span>
-<span class="p">}</span>
-</code></pre></div>
-            </div>
-            <div class="meta post-footer"> <span>2021 Apr 24 19:11</span> <a href="/post/leetcode%E9%A2%98%E8%A7%A37%E8%82%A1%E7%A5%A8%E9%97%AE%E9%A2%98/"><i
                         class="fas fa-link"></i> link</a></div>
         </div>
         

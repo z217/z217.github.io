@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/jquery-3.4.1.min.js></script>
+<script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="https://www.cnblogs.com/meidaoli/"  target="_blank" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">缓存一致性协议MESI</h1>
+
+
+<p>        <strong>高速缓冲存储器一致性</strong> ( $Cache\ \ coherence$ )，也称缓存一致性，是指在采用层次结构存储系统的计算机系统中，保证告诉缓冲存储器中数据与主存储器中数据相同的机制。在有多个<code>CPU</code>的多处理机系统中特别容易出现高速缓存中数据不一致的问题。<br>
+        在<code>CPU</code>缓存设计中，<code>L1</code>高速缓存包含指令缓存和数据缓存，位于<code>CPU</code>芯片上，访问速度几乎和寄存器一样快。<code>L2</code>高速缓存在<code>L1</code>和主存之间，连接到存储器总线或者高速缓存总线上。有些高性能系统还会在存储器总线上设置<code>L3</code>高速缓存。<code>L1</code>和<code>L2</code>是每个<code>CPU</code>内核间独立的，<code>L3</code>是所有<code>CPU</code>内核间共享的。<br>
+        对于单核<code>CPU</code>来说，数据更新时缓存更新只用考虑自己的就行了，主要有两种处理方法。<strong>写回法</strong> ( $write\ \ back$ )，是当处理器执行写操作时，信息只写入<code>cache</code>，当<code>cache</code>中的数据被替换出去时写回主存。为了减少内存写操作，<code>cache</code>中通常还会设置一个脏位 ( $dirty\ \ bit$ )，标识该块在被载入后是否发生了更新。<strong>直写法</strong> ( $write\ \ through$ ) 是当处理器执行写操作时，既向<code>cache</code>中写入也向主存中写入。直写法会造成大量写内存操作，需要设置一个缓冲来减少硬件冲突，称为写缓冲器 ( $write\ \ buffer$ )，通常不超过 $4$ 个缓存块的大小，也适用于写回法。<br>
+        相比于单核<code>CPU</code>，多核<code>CPU</code>除了要保证<code>L1</code>和<code>L2</code>最新外还要考虑到其他核中<code>L1</code>和<code>L2</code>的实时性和有效性。<code>MESI</code>协议是一个基于失效的缓存一致性协议，是支持写回缓存的最常用协议。该协议对总线上的操作进行监听，即核 $A$ 可以窥探到核 $B$ 对过期值的读操作，并更新主存中的过期值。<code>MESI</code>把<code>cache</code>中的数据分为几个状态：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">状态</th>
+<th style="text-align:center">描述</th>
+<th style="text-align:center">监听</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">$Invalid$</td>
+<td style="text-align:center">该<code>cache</code>字段失效</td>
+<td style="text-align:center">无</td>
+</tr>
+<tr>
+<td style="text-align:center">$Shared$</td>
+<td style="text-align:center">字段数据一致并且多核<code>cache</code>共享该字段</td>
+<td style="text-align:center">监听其他缓存使该字段无效或者变为 $Exclusive$ 的请求，监听到对应事件后会将该字段设为 $Invalid$</td>
+</tr>
+<tr>
+<td style="text-align:center">$Exclusive$</td>
+<td style="text-align:center">字段数据一致并且只在当前核<code>cache</code>中独有</td>
+<td style="text-align:center">监听其他缓存读主存中该字段的操作，监听到对应事件后将该字段变为 $Shared$</td>
+</tr>
+<tr>
+<td style="text-align:center">$Modified$</td>
+<td style="text-align:center">该字段有效但是与主存不一致，只存在于当前核<code>cache</code>中</td>
+<td style="text-align:center">监听所有试图读该字段对应主存字段的操作，该操作会被延迟到当前缓存字段写回主存并将状态设为 $Shared$ 之后执行</td>
+</tr>
+</tbody>
+</table>
+<p><img src="/image/2021-08-16-01.png" alt="状态机"></p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">事件</th>
+<th style="text-align:center">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">$Local\ \ Read$</td>
+<td style="text-align:center">读取本地<code>cache</code>字段</td>
+</tr>
+<tr>
+<td style="text-align:center">$Local\ \ Write$</td>
+<td style="text-align:center">写入本地<code>cache</code>字段</td>
+</tr>
+<tr>
+<td style="text-align:center">$Remote\ \ Read$</td>
+<td style="text-align:center">其他<code>cache</code>读取字段</td>
+</tr>
+<tr>
+<td style="text-align:center">$Remote\ \ Write$</td>
+<td style="text-align:center">其他<code>cache</code>写入字段</td>
+</tr>
+</tbody>
+</table>
+<p>        对于 $Modified$ 和 $Exclusive$
+状态，数据是精确的，而 $Shared$ 状态可能是非一致的。如果一个处于 $Shared$ 的缓存字段作废了，另一个缓存实际上可能已经独享了该缓存字段，但是该缓存不会转为 $Exclusive$
+，因为其他缓存并不会广播他们作废该缓存字段的通知。如果一个<code>CPU</code>想修改一个处于 $Shared$ 状态的缓存字段，总线事务需要将所有该缓存字段的副本变为 $Invalid$ 状态，而修改 $Exclusive$ 状态的缓存字段不需要总线事务。<br>
+        缓存的一致性消息传递是需要时间的，这就使其切换时产生延迟。当一个缓存被切换状态时其他缓存收到消息完成各自的切换并且发出回应消息这么长一段时间中<code>CPU</code>都会等待所有缓存响应完成。为了避免这种<code>CPU</code>运算能力的浪费，$Store\ \ Buffer$ 被引入。处理器会将想要写入主存的值写到 $Store\ \ Buffer$ 中再去处理其他事情。为了避免在 $Store\ \ Buffer$ 未保存完时其他核已经完成读取，需要引入内存屏障。写屏障保证处理器在更新数据前必须将所有 $Store\ \ Buffer$ 中的指令执行完毕，读屏障保证处理器在读之前将所有需要设置为 $Invalid$ 的字段设置完毕。</p>
+
+
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/mysql%E7%AC%94%E8%AE%B0/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        
+        
+        
+        var all = MathJax.Hub.getAllJax(),
+            i;
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+        if (tocFlag) tocInit();
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
+</body>
+
+</html>
