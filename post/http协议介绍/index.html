@@ -270,33 +270,98 @@
 </ol>
 <p>        以上流程中，应用层发送数据时会附加一种叫做<code>MAC</code> ( $Message\ \ Authentication\ \ Code$ ) 的报文摘要，能够查知报文是否被篡改。<br/>
         和使用<code>HTTP</code>相比，使用<code>SSL</code>会使网络负载增加 $2$ 到 $100$ 倍，而且加密和解密也会带来额外的处理。</p>
-<h2 id="3-认证">3. 认证</h2>
+<h2 id="3-发展">3. 发展</h2>
+<h3 id="31-http10http11">3.1 <code>HTTP1.0</code>/<code>HTTP1.1</code></h3>
+<p>        <code>HTTP1.0</code>最早在网页中使用是在 $1996$ 年，那个时候只是使用在一些较为简单的网页和网络请求上，而<code>HTTP1.1</code>在 $1999$ 年才开始广泛应用于现在的各大浏览器网络请求中，也是当前使用最为广泛的<code>HTTP</code>协议。主要区别体现在：</p>
+<ol>
+<li><strong>连接</strong>：<code>HTTP1.0</code>每次发送请求都要进行一次<code>TCP</code>连接；<code>HTTP1.1</code>新增 $Connection$ 字段，通过设置 $keep-alive$ 保持<code>HTTP</code>连接不断，如果客户端想要关闭连接，可以通过设置 $Connection:false$ 进行关闭；</li>
+<li><strong>传输</strong>：<code>HTTP1.0</code>规定下一个请求必须在前一个请求响应到达之前才能发送；<code>HTTP1.1</code>引入了管道 ( $pipelining$ )，将多个请求整批提交，并且在发送过程中不需要先等待服务器响应。虽然可以一次性发出所有请求，但是在服务端接收到请求时还是一一处理，如果服务端返回的其中一个响应阻塞，接下来的响应也会被阻塞；</li>
+<li><strong>缓存处理</strong>：<code>HTTP1.0</code>主要使用 $header$ 里的 $If-Modified-Since$ 和 $Expires$ 来作为缓存判断的标志；<code>HTTP1.1</code>则引入了更多的缓存控制策略如 $If-Unmodified-Since$ 和 $If-Match$ 等；</li>
+<li><strong>带宽优化及网络连接的使用</strong>：<code>HTTP1.0</code>中不支持分段传输，一次只能传输整个对象；<code>HTTP1.1</code>引入了 $range$ 头，允许只请求资源的某个部分，返回码为 $206$ ；</li>
+<li><strong>错误通知的管理</strong>：<code>HTTP1.1</code>新增了 $24$ 个错误状态响应码，如 $409$ 和 $410$ 等；</li>
+<li><strong><code>Host</code>头处理</strong>：<code>HTTP1.0</code>为每台服务器绑定一个唯一的<code>IP</code>地址，因此请求中没有传递 $hostname$ 。但是随着技术发展，一台服务器上可以存在多个虚拟主机，共享<code>IP</code>。<code>HTTP1.1</code>支持 $Host$ 头，并且请求中如果没有 $Host$ 头会返回 $400$ 。</li>
+</ol>
+<h3 id="32-spdyhttp20">3.2 <code>SPDY</code>/<code>HTTP2.0</code></h3>
+<p>        <code>SPDY</code>是<code>Google</code>在 $2012$ 年提出的，是一个综合了<code>HTTP</code>和<code>HTTPS</code>协议优点的传输协议。</p>
+<ol>
+<li><strong>降低延迟</strong>：<code>SPDY</code>使用了多路复用，多个请求共享同一个<code>TCP</code>连接；</li>
+<li><strong>请求优先级</strong>：多路复用可能会导致关键请求被阻塞，<code>SPDY</code>允许给请求设置优先级；</li>
+<li><strong>消息头压缩</strong>：<code>HTTP1.x</code>的消息头很多时候都是重复多余的，通过合适的压缩算法可以减小包大小和数量；</li>
+<li><strong>基于<code>HTTPS</code>的传输</strong>：保留<code>HTTPS</code>的加密特性；</li>
+<li><strong>服务端推送</strong>：采用了<code>SPDY</code>的网页允许服务端将文件额外推送给客户端。</li>
+</ol>
+<p>        <code>SPDY</code>位于<code>HTTP</code>之下，<code>SSL</code>之上，可以兼容老版本<code>HTTP</code>协议，同时可以使用已有的<code>SSL</code>协议。但是<code>SPDY</code>并不是一个标准协议。<br>
+        <code>HTTP2.0</code>的特性大部分和<code>SPDY</code>类似，主要有：</p>
+<ol>
+<li><strong>二进制分帧</strong>：<code>HTTP1.x</code>基于文本解析，文本的表现形式很多，要做到健壮性很难；<code>HTTP2.0</code>在<code>HTTP</code>和<code>SSL</code>之间增加了一个二进制分帧层，将传输信息分为更小的消息和帧，并采用二进制格式编码；</li>
+<li><strong>多路复用</strong>：允许通过单一的<code>HTTP</code>连接发起多重请求，即一个<code>TCP</code>连接上可以有多个请求，即 $stream$ 。每个连接的请求可以随机的混杂在一起，<code>HTTP2.0</code>引入的二进制分帧 ，通过帧对数据进行顺序标识，接收方在接收到数据后可以按照序列对数据进行合并；</li>
+<li><strong>消息头压缩</strong>：<code>HTTP2.0</code>使用压缩算法减少需要传输的消息头大小，通讯双方各自缓存一份消息头字段表，避免重复数据的传输；</li>
+<li><strong>服务端推送</strong>：客户端发送资源请求后，服务器推断客户端需要的其他资源并一同发送给客户端，客户端可以将额外资源放入缓存中。如果客户端已经存在缓存，那么推送就是浪费资源，而且推送提高的性能也不高，大概就几百毫秒，所以只推送<code>CSS</code>是一个比较好的选择；</li>
+<li><strong>主动重置连接</strong>：<code>HTTP</code>消息被送出后就很难中断了，通常可以通过断开<code>TCP</code>连接，但是下次发送时就需要重新建立连接了。<code>HTTP1.x</code>是通过<code>TCP</code>的<code>RST</code>标志位重置连接的。<code>HTTP2.0</code>引入 $RST_-STREAM$ 类型的帧，让客户端在已有连接中发送重置请求，可以在不断开连接的情况下中断或放弃响应。</li>
+</ol>
+<p>        <code>HTTP2.0</code>可以说是<code>SPDY</code>的升级版，与<code>SPDY</code>的不同之处在于：</p>
+<ol>
+<li><code>HTTP2.0</code>的消息头压缩算法使用<code>HPACK</code>，而<code>SPDY</code>使用<code>DEFLATE</code>；</li>
+<li><code>HTTP2.0</code>初期支持<code>HTTP</code>，而<code>SPDY</code>强制使用<code>HTTPS</code>，后期二者都使用<code>HTTPS</code>。</li>
+</ol>
+<h3 id="33-http30">3.3 <code>HTTP3.0</code></h3>
+<p>        <code>HTTP3.0</code>也称作 $HTTP\ \ over\ \ QUIC$ ，由<code>Google</code>在 $2015$ 年提出的<code>SPDY v3</code>演化而来的新协议。传统的<code>HTTP</code>协议基于<code>TCP</code>，<code>HTTP3.0</code>则基于<code>UDP</code>，并且在<code>UDP</code>的基础上加了一层，即<code>QUIC</code>协议，保证可靠传输，实现了数据重传、拥塞控制等功能。<br>
+        <code>HTTP3.0</code>针对<code>HTTP2.0</code>解决了以下问题：</p>
+<ol>
+<li><strong>减少了<code>TCP</code>和<code>TLS</code>握手时间</strong>：<code>HTTP3.0</code>基于<code>UDP</code>，不需要握手。<code>QUIC</code>也需要建立连接，但是在第一个数据包就可以传输数据；</li>
+<li><strong>多路复用丢包时的队头阻塞问题</strong>：队头阻塞 ( $Head-of-line\ \ blocking$ ) 指一个数据包阻塞了后续数据包的现象。<code>HTTP2.0</code>的多路复用解决了<code>HTTP</code>层的队头阻塞，但是没有解决<code>TCP</code>层的队头阻塞。<code>QUIC</code>基于<code>UDP</code>实现，解决了队头阻塞的问题；</li>
+<li><strong>前向纠错</strong>：前向纠错 ( $Forward\ \ Error\ \ Correction$, $FEC$ ) 是增加数据通讯可信度的方法，在单向通讯信道中，一旦错误被发现，其接收器将无权再次请求传输。<code>QUIC</code>每发送一组数据就对这组数据进行异或计算，并将结果作为一个<code>FEC</code>包发送出去，接收方通过<code>FEC</code>包即可进行校验和纠错；</li>
+<li><strong>流量控制</strong>：在多路复用中允许同时存在多个请求 ( $stream$ )，如果有一个请求速度很慢，导致长时间占用缓存，<code>HTTP3.0</code>限制了单一 $stream$ 的缓存大小；</li>
+<li><strong>连接迁移</strong>：<code>TCP</code>连接基于源<code>IP</code>、源端口、目的<code>IP</code>、目的端口的四元组，当连接发生变化时需要重新建立。<code>HTTP3.0</code>不受四元组影响，当连接发生变化时可以维持该连接，不使用四元组标识，而是使用一个 $64$ 位的随机数，称为 $Connection\ \ ID$ ，对应每个 $stream$ 。</li>
+</ol>
+<p>        <code>HTTP3.0</code>建立连接的可以分为首次和非首次两种情况，使用的交换算法是<code>DH</code> ( $Diffie-Hellman$ ) 算法。<code>DH</code>算法的基本过程：</p>
+<ol>
+<li>客户端发送 $client\ \ hello$ 请求；</li>
+<li>服务端生成一个素数 $p$ 和一个整数 $g$ ，以及一个随机数 $K_{s_-pri}$ 作为私钥，然后计算出公钥 $K_{s_-pub} = g^{K_{s_-pri}}\ \ mod\ \ p$ ，服务端将 $K_{s_-pub}$ 、$p$ 和 $g$ 打包称为 $config$ ，发送给客户端；</li>
+<li>客户端随机生成私钥 $K_{c_-pri}$ ，再从 $config$ 中读取 $p$ 和 $g$ ，计算公钥 $K_{c_-pub} = g^{K_{c_-pri}}\ \ mod\ \ p$ ；</li>
+<li>客户端使用私钥 $K_{c_-pri}$ 和服务端发来的 $config$ ，读取服务端公钥 $K_{s_-pub}$ ，生成后续数据加密使用的密钥 $K=K_{s_-pub}^{K_{c_-pri}}\ \ mod\ \ p$ ；</li>
+<li>客户端使用密钥 $K$ 加密，并将公钥 $K_{c_-pub}$ 传递给服务端；</li>
+<li>服务端根据私钥 $K_{s_-pri}$ 和客户端公钥 $K_{c_-pub}$ 生成客户端密钥 $K = K_{c_-pub}^{K_{s_-pri}}\ \ mod\ \ p$ ；</li>
+<li>密钥生成后只会使用一次，后续服务端会使用相同的规则生成公钥和密钥，并使用这组公钥生成新的密钥；</li>
+</ol>
+<p>        首次连接生成的 $config$ 会被客户端保存，并在后续连接中使用。$config$ 是有时限的，失效后仍然需要重新生成。</p>
+<h2 id="4-认证">4. 认证</h2>
 <p>        <code>HTTP/1.1</code>使用的认证方式包括：<code>BASIC</code>认证、<code>DIGEST</code>认证、<code>SSL</code>客户端认证和<code>FormBase</code>认证。</p>
-<h3 id="31-basic认证">3.1 <code>BASIC</code>认证</h3>
+<h3 id="41-basic认证">4.1 <code>BASIC</code>认证</h3>
 <ol>
 <li>服务器随状态码 $401\ \ Authorization\ \ Required$ 返回带 $WWW-Authenticate$ 首部字段的响应，字段包含认证方式 ( <code>BASIC</code> ) 和<code>Request-URI</code><strong>安全域字符串</strong> ( $realm$ )；</li>
 <li>客户端将用户名<code>ID</code>及密码发送给服务器，中间以冒号连接，经过<code>Base64</code>编码处理。</li>
 <li>服务器对信息正确性进行验证。</li>
 </ol>
-<h3 id="32-digest认证">3.2 <code>DIGEST</code>认证</h3>
+<h3 id="42-digest认证">4.2 <code>DIGEST</code>认证</h3>
 <ol>
 <li>服务器随状态码 $401\ \ Authorization\ \ Required$ 返回带 $WWW-Authenticate$ 首部字段的响应，包含质问响应方式所需的临时质询码 ( 随机数，$nonce$ ) 和 $realm$ ；</li>
 <li>客户端返回的响应首部字段 $Authorization$ 内包含 $username$ 、$realm$ 、$nonce$ 、$uri$ 和 $response$ 的字段信息；</li>
 <li>服务器对信息正确性进行验证。</li>
 </ol>
-<h3 id="33-ssl客户端认证">3.3 <code>SSL</code>客户端认证</h3>
+<h3 id="43-ssl客户端认证">4.3 <code>SSL</code>客户端认证</h3>
 <ol>
 <li>服务器发送 $Certificate\ \ Request$ 报文，要求客户端提供证书；</li>
 <li>客户端将证书信息以 $Client\ \ Certificate$ 报文方式发送给服务器；</li>
 <li>服务器验证客户端证书。</li>
 </ol>
-<h3 id="34-基于表单认证">3.4 基于表单认证</h3>
+<h3 id="44-基于表单认证">4.4 基于表单认证</h3>
 <ol>
 <li>客户端将用户<code>ID</code>和密码等信息放入报文的实体部分，通常通过 $POST$ 请求发送给服务器；</li>
 <li>服务器通过<code>Session ID</code>标识用户，并进行身份验证。通常会使用<code>Cookie</code>传输<code>Session ID</code>给客户端；</li>
 <li>客户端接收到<code>Session ID</code>后，将其作为<code>Cookie</code>保存在本地。</li>
 </ol>
-<h2 id="4-websocket">4. <code>WebSocket</code></h2>
+<h2 id="5-cors">5. <code>CORS</code></h2>
+<p>        <code>CORS</code>全称 $Cross-Origin\ \ Resource\ \ Sharing$ ，即跨域资源共享，是一种让运行在一个域 ( $Origin$ ) 上的<code>Web</code>应用被准许访问来自不同源服务器上指定资源的机制。<code>Web</code>概念中域的内容由协议、主机和用于访问它的端口定义，当且仅当这三个内容都匹配时，两个对象才有相同域。协议相同、域名相同、端口相同的安全策略也被称为同源策略 ( $Same\ \ Origin\ \ Policy$ )。某些操作仅限于具有相同来源的内容，可以使用<code>CORS</code>取消此限制。<br>
+        出于安全的因素，浏览器限制了从脚本发起跨域的<code>HTTP</code>请求。$XMLHttpRequest$ 和其他 $Fetch$ 接口会遵循同源策略。也就是说使用这些<code>API</code>的应用程序想要请求相同的资源，那么他们应该具有相同的来源，除非来自其他来源的响应包括正确的<code>CORS</code>标头。<br>
+        跨域资源共享标准通过添加新的<code>HTTP</code>标头来工作，这些标头允许服务器描述哪些来源的可以从<code>Web</code>浏览器读取信息。另外，对于可能导致服务器产生副作用的<code>HTTP</code>请求方法，该规范要求浏览器预检请求，即使用 $OPTIONS$ 请求从服务器请求受支持的方法。</p>
+<h2 id="6-sessioncookie">6. <code>Session</code>/<code>Cookie</code></h2>
+<p>        <code>HTTP</code>是一种无状态协议，即每次服务端收到客户端的请求时，都是一个全新的请求，服务器并不知道客户端的历史请求记录。<code>Session</code>和<code>Cookie</code>的主要目的就是为了弥补<code>HTTP</code>的无状态特性。<br>
+        客户端请求服务端，服务端会为这次请求开辟一块内存空间，这个对象便是<code>Session</code>对象，<code>Java</code>语言中的结构通常为 $ConcurrentHashMap$ ，服务端可利用<code>Session</code>存储客户端在同一个会话期间的一些操作记录。服务器在第一次接收到请求时，会生成一个 $SessionID$ ，并通过响应头的 $Set-Cookie:\ JSESSIONID=XXXXX$ 命令，向客户端发送要求设置的<code>Cookie</code>响应。客户端接收到响应后，会设置 $JSESSIONID=XXXXX$ 的<code>Cookie</code>信息，该<code>Cookie</code>过期时间为浏览器会话结束时间。<code>Session</code>机制有一个缺点，比如 $A$ 服务器存储了<code>Session</code>，在做了负载均衡后，假设一段时间内 $A$ 的访问量激增，会转发到 $B$ 进行访问，但是 $B$ 并没有存储<code>Session</code>。<br>
+        <code>Cookie</code>是服务器发送到<code>Web</code>浏览器的一小块数据，浏览器会存储<code>Cookie</code>，并与下一个请求一起发送到服务器。通常用于判断两个请求是否来自同一个浏览器，例如用户保持登录状态。<code>Cookie</code>包括 $Session\ \ Cookie$ 和 $Persistent\ \ Cookie$ ， 如果<code>Cookie</code>不包含到期时间，则为会话<code>Cookie</code>，否则为持久性<code>Cookie</code>，在到期指定时间会从磁盘中删除。安全的<code>Cookie</code>需要经过<code>HTTPS</code>协议通过加密的方式发送到服务器，即使是安全的，也不应该将敏感信息存储在<code>Cookie</code>中，因为它们本质上是不安全的。缺少 $HttpOnly$ 属性会导致攻击者可以通过程序获取到用户的<code>Cookie</code>信息，造成用户<code>Cookie</code>信息泄漏。<br>
+        <code>JWT</code>和<code>Session</code>都可以为网站提供用户的身份认证。在<code>Session Cookie</code>中，用户的登录状态会保存在服务器的内存中，当用户登录时，<code>Session</code>就被服务端安全的创建。每次请求时，服务器都会从<code>Cookie</code>中读取 $SessionID$ ，如果服务端数据和读取的 $SessionID$ 相同，那么服务器就会发送响应给浏览器，允许登录。<code>JWT</code>中存储的信息是经过数字签名的，可以使用<code>HMAC</code>算法或者使用<code>RSA/ECDSA</code>的公用/专用密钥对<code>JWT</code>进行签名。<br>
+        <code>JWT</code>是无状态的，因为声明被存储在客户端中，而不是服务端中，身份验证可以在本地进行，而不是在请求必须通过服务器数据库或类似位置中进行。这意味着可以对用户进行多次身份验证，而无需与站点或应用程序的数据库进行通信。由于<code>Session Cookie</code>存储在服务器内存中，会耗费大量资源，而<code>JWT</code>是无状态的，可以节省服务器资源。<code>Session Cookie</code>只能用在单节点域或者它的子域中，如果尝试通过第三个节点访问，就会被禁止，而<code>JWT</code>可以通过多个节点进行用户认证，也就是跨域认证。综上，对于一些中小型网站，如果只需要登录用户访问存储在站点数据库的一些信息，<code>Session Cookie</code>就可以满足需求；对于企业级站点，需要处理大量请求，尤其是大量第三方域的访问，<code>JWT</code>更合适。</p>
+<h2 id="7-websocket">7. <code>WebSocket</code></h2>
 <p>        <code>WebSocket</code>是<code>Web</code>浏览器与<code>Web</code>服务器之间的全双工通信标准。一旦<code>Web</code>服务器与客户端之间建立起<code>WebSocket</code>协议的通信连接，之后所有的通信都依靠这个专用协议进行，并且可以互相发送任意格式的数据。由于是建立在<code>HTTP</code>基础上的协议，因此连接的发起方仍是客户端，而一旦建立<code>WebSocket</code>通信连接，不论服务器还是客户端，任意一方都可以直接向对方发送报文。<br/>
         为了实现<code>WebSocket</code>通信，需要用到<code>HTTP</code>的 $Upgrade$ 首部字段。</p>
 <div class="highlight"><pre class="chroma"><code class="language-http" data-lang="http"><span class="nf">GET</span> <span class="nn">/chat</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
