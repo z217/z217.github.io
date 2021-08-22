@@ -7,7 +7,23 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2020, z217 and the Hugo Authors; all rights reserved.</copyright>
-    <lastBuildDate>Mon, 16 Aug 2021 11:02:05 +0800</lastBuildDate><atom:link href="https://z217blog.cn/post/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sun, 22 Aug 2021 15:30:25 +0800</lastBuildDate><atom:link href="https://z217blog.cn/post/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>I/O多路复用</title>
+      <link>https://z217blog.cn/post/io%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8/</link>
+      <pubDate>Sun, 22 Aug 2021 15:30:25 +0800</pubDate>
+      
+      <guid>https://z217blog.cn/post/io%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8/</guid>
+      <description>1. 基本概念  操作系统内核 ( $kernel$ ) 是操作系统的核心，独立于普通应用程序，可以访问受保护的内存空间，也有权访问所有底层硬件设备。为了保证用户进程不能直接操作内核，操作系统将内存空间划为两部分，内核空间和用户空间。对于linux系统，如果是 $32$ 位系统，虚拟内存中最高的 $1G$ 字节 ( $0xC0000000 \sim 0xFFFFFFFF$ ) 为内核空间；如果是 $64$ 位系统，指针的前 $16$ 位保留，从而只有 $48$ 位寻址空间，于是最高的 $128T$ 字节 ( $0x0000000000000000 \sim 0x00007FFFFFFFF000$ ) 作为系统空间，中间部分 ( $0x00007FFFFFFFFFFF \sim 0xFFFF800000000000$ ) 作为保留，其余部分为用户空间。
+正在执行的进程由于某些期待的事件未发生，如资源请求失败或者等待某些操作完成等，会自动执行阻塞原语，使自己由运行态变为阻塞态。进程的阻塞是一种主动行为，只有处于运行态的进程才可以触发，并且阻塞后不占用CPU资源。
+文件描述符 ( $fd$ ) 是一个指向文件引用的概念，在形式上是一个非负整数，实际上是一个索引值，指向内核打开文件表中的对应记录。打开文件表中记录了文件的属性，包括磁盘位置、访问权限、文件位置指针以及打开计数。
+缓存I/O又称为标准I/O，大多数文件系统的默认I/O操作都是缓存I/O。在Linux中，操作系统会将I/O数据缓存在文件系统的 $Page\ \ Cache$ 中，即数据会先被拷贝到操作系统内核的缓冲区中，然后才会从操作系统内核的缓冲区拷贝到应用程序的地址空间。
+在BIO模式下，当线程接收一个请求后，在等待I/O的时间内，调用会被阻塞，无法接受其他请求。在多线程环境下，如果想要接受大量请求，就需要创建大量线程，占用大量系统空间，并且线程切换会带来很大的开销。$10000$ 个线程真正发生读写的实际的线程数不会超过 $20\%$ 。
+在NIO模式下，当线程接收一个请求后，会加入 $fd_-set$ 集合，每次轮询集合接收数据，如果没有数据会返回错误。每次都要轮询所有集合，包括未发生实际读写的 $fd$ ，会浪费CPU资源。
+在I/O多路复用模式下，服务端通过 $select$ / $poll$ / $epoll$ 等系统调用获取 $fd$ 列表，遍历有事件的 $fd$ 进行数据接收，可以支持更多并发连接请求。
+ I/O多路复用是一种同步I/O模型，多路指网络连接，复用指一个线程，即一个线程可以监视多个文件句柄； 一旦某个文件句柄就绪，就可以通知应用程序进行相应的读写操作； 没有文件句柄就会阻塞线程。  2.</description>
+    </item>
+    
     <item>
       <title>缓存一致性协议MESI</title>
       <link>https://z217blog.cn/post/%E7%BC%93%E5%AD%98%E4%B8%80%E8%87%B4%E6%80%A7%E5%8D%8F%E8%AE%AEmesi/</link>

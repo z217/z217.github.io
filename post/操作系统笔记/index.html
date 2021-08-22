@@ -448,6 +448,14 @@ $$</p>
 <li><code>DMA</code>方式。<code>DMA</code>方式的基本单位是数据块，传送数据是从设备直接送入内存或者相反，仅在传送一个或多个数据块的开始和结束时，才需要<code>CPU</code>干预，整块数据的传送是在<code>DMA</code>控制器的控制下完成的。为了实现在主机与控制器之间成块数据的直接交换，必须在<code>DMA</code>控制器中设置如下四类寄存器：命令/状态寄存器 ( $CR$ )，接收从<code>CPU</code>发来的<code>I/O</code>命令、有关控制信息或设备状态；内存地址寄存器 ( $MAR$ )，输入时存放把数据从设备传送到内存的起始目标地址，输出时存放由内存到设备的内存源地址；数据寄存器 ( $DR$ )，用于暂存从设备到内存，或从内存到设备的数据；数据计数器 ( $DC$ )，存放本次<code>CPU</code>要读或写的数据量。<code>CPU</code>读写数据时，会给<code>I/O</code>控制器发出一条命令，启动<code>DMA</code>控制器，然后继续其他工作，之后<code>CPU</code>就把控制操作委托给<code>DMA</code>控制器，由该控制器负责处理。当传送完成后，<code>DMA</code>控制器发送一个中断信号给处理器。</li>
 <li>通道控制方式。<code>I/O</code>通道是指专门负责输入/输出的处理机，是<code>DMA</code>方式的发展，即把对一个数据块的读写为单位的<code>CPU</code>干预，减少为对一组数据块的读写及有关的控制和管理为单位的干预。当<code>CPU</code>要完成一组相关的读写操作及有关控制时，只需向<code>I/O</code>通道发送一条<code>I/O</code>指令，以给出其所要执行的通道程序的首地址和要访问的<code>I/O</code>设备，通道接收到该指令后，通过执行通道程序即可完成<code>CPU</code>指定的<code>I/O</code>任务，数据传送结束时向<code>CPU</code>发中断请求。与<code>DMA</code>方式的区别是，<code>DMA</code>需要<code>CPU</code>控制传输的数据块大小和内存位置，而通道中这些信息是由通道控制的，另外，通道可以控制多台设备与内存的数据交换。</li>
 </ul>
+<p>        <code>Linux</code>系统提供了 $5$ 种<code>I/O</code>处理模型：</p>
+<ul>
+<li>阻塞<code>I/O</code>：应用进程被阻塞，直到数据从内核缓冲区复制到应用进程缓冲区中才返回。在这个过程中，当前进程被阻塞，但是其他进程还可以执行，<code>CPU</code>利用率较高；</li>
+<li>非阻塞式<code>I/O</code>：应用进程执行系统调用之后，内核返回一个错误码。应用进程可以继续执行，但是需要不断的执行系统调用来获知<code>I/O</code>是否完成，即轮询。由于<code>CPU</code>要处理更多的系统调用，这种模型的<code>CPU</code>利用率较低；</li>
+<li><code>I/O</code>复用：使用 $select$ 或者 $poll$ 等待多个套接字中的任何一个变为可读，这个过程会阻塞。当某一个套接字返回可读时，再通过 $recvfrom$ 把数据从内核复制到进程中，又称为事件驱动<code>I/O</code>；</li>
+<li>信号驱动<code>I/O</code>：使用 $sigaction$ 系统调用，内核立即返回，应用进程可以继续执行，在数据到达时向应用进程发送 $SIGIO$ 信号，应用进程再在信号处理程序中调用 $recvfrom$ 将数据从内核复制到进程中；</li>
+<li>异步<code>I/O</code>：应用进程执行 $aio_-read$ 系统调用后立即返回，应用进程可以继续执行，不会被阻塞，内核在完成所有操作后向应用进程发送信号。与信号驱动<code>I/O</code>的区别在于，异步<code>I/O</code>的信号是通知应用<code>I/O</code>完成，信号驱动<code>I/O</code>是通知应用进程可以开始<code>I/O</code>。</li>
+</ul>
 
 
 <a href="javascript:void(0)" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
