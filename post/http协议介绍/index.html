@@ -297,7 +297,7 @@
 <li><strong>多路复用</strong>：允许通过单一的<code>HTTP</code>连接发起多重请求，即一个<code>TCP</code>连接上可以有多个请求，即 $stream$ 。每个连接的请求可以随机的混杂在一起，<code>HTTP2.0</code>引入的二进制分帧 ，通过帧对数据进行顺序标识，接收方在接收到数据后可以按照序列对数据进行合并；</li>
 <li><strong>消息头压缩</strong>：<code>HTTP2.0</code>使用压缩算法减少需要传输的消息头大小，通讯双方各自缓存一份消息头字段表，避免重复数据的传输；</li>
 <li><strong>服务端推送</strong>：客户端发送资源请求后，服务器推断客户端需要的其他资源并一同发送给客户端，客户端可以将额外资源放入缓存中。如果客户端已经存在缓存，那么推送就是浪费资源，而且推送提高的性能也不高，大概就几百毫秒，所以只推送<code>CSS</code>是一个比较好的选择；</li>
-<li><strong>主动重置连接</strong>：<code>HTTP</code>消息被送出后就很难中断了，通常可以通过断开<code>TCP</code>连接，但是下次发送时就需要重新建立连接了。<code>HTTP1.x</code>是通过<code>TCP</code>的<code>RST</code>标志位重置连接的。<code>HTTP2.0</code>引入 $RST_-STREAM$ 类型的帧，让客户端在已有连接中发送重置请求，可以在不断开连接的情况下中断或放弃响应。</li>
+<li><strong>主动重置连接</strong>：在<code>HTTP1.x</code>中，一个连接同一时间只能发送一个请求，如果需要中止，直接关闭即可；在<code>HTTP2.0</code>中，多个 $stream$ 共享一个连接，如果关闭连接会影响其他 $stream$ ，$RST_-STREAM$ 允许立刻中止一个 $stream$ 。</li>
 </ol>
 <p>        <code>HTTP2.0</code>可以说是<code>SPDY</code>的升级版，与<code>SPDY</code>的不同之处在于：</p>
 <ol>

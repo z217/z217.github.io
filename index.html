@@ -86,6 +86,24 @@
     
     
     <div class="list-item">
+        <a class="entry-title" href="/post/hashmap%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB/">HashMap源码解读</a>
+        
+        
+        <p>HashMap源码解读</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2021 Aug 23 15:01
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: Java
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
         <a class="entry-title" href="/post/io%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8/">I/O多路复用</a>
         
         
@@ -157,24 +175,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="/post/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%AC%94%E8%AE%B0/">操作系统笔记</a>
-        
-        
-        <p>操作系统笔记，方便查阅</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2021 May 10 20:54
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: OS
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -183,6 +183,296 @@
     <div class="section-title">μblog</div>
     <div class="posts">
         
+        
+        <div class="post">
+            
+            <center>
+                <h1><a href="/post/hashmap%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB/">HashMap源码解读</a></h1>
+            </center>
+            <div class="post-content">
+                <h2 id="1-字段">1. 字段</h2>
+<p>        字段设置为 $transient$ ，因为 $HashMap$ 通过 $Object.hashCode(\ )$ 获取哈希值，并通过哈希值与桶个数取模确定对象。$Object.hashCode(\ )$ 是一个本地方法，依赖于<code>JVM</code>实现，存在跨平台问题，所有 $HashMap$ 在序列化时会先保存所有 $Key$ ，再在反序列化时重新插入。</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="c1">// 最大容量
+</span><span class="c1"></span><span class="kd">static</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">MAXIMUM_CAPACITY</span> <span class="o">=</span> <span class="n">1</span> <span class="o">&lt;&lt;</span> <span class="n">30</span><span class="o">;</span>
+
+<span class="c1">// 默认负载因子，大小/容量超过这个比例就会扩容
+</span><span class="c1"></span><span class="kd">static</span> <span class="kd">final</span> <span class="kt">float</span> <span class="n">DEFAULT_LOAD_FACTOR</span> <span class="o">=</span> <span class="n">0</span><span class="o">.</span><span class="na">75f</span><span class="o">;</span>
+
+<span class="c1">// 当桶中节点数不小于该值时树化
+</span><span class="c1">// 树节点大小是常规节点两倍，应该在有足够的节点后树化
+</span><span class="c1"></span><span class="kd">static</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">TREEIFY_THRESHOLD</span> <span class="o">=</span> <span class="n">8</span><span class="o">;</span>
+
+<span class="c1">// 当桶中节点数小于该值时链表化
+</span><span class="c1">// 不设为TREEIFY_THRESHOLD，避免抖动
+</span><span class="c1"></span><span class="kd">static</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">UNTREEIFY_THRESHOLD</span> <span class="o">=</span> <span class="n">6</span><span class="o">;</span>
+
+<span class="c1">// 当容量不小于该值时才会树化，否则会优先扩容
+</span><span class="c1">// 应当至少为 4 * TREEIFY_THRESHOLD
+</span><span class="c1"></span><span class="kd">static</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">MIN_TREEIFY_CAPACITY</span> <span class="o">=</span> <span class="n">64</span><span class="o">;</span>
+
+<span class="c1">// 初次使用时初始化，长度为 2 的幂次
+</span><span class="c1"></span><span class="kd">transient</span> <span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;[]</span> <span class="n">table</span><span class="o">;</span>
+
+<span class="c1">// entrySet() 缓存
+</span><span class="c1"></span><span class="kd">transient</span> <span class="n">Set</span><span class="o">&lt;</span><span class="n">Map</span><span class="o">.</span><span class="na">Entry</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;&gt;</span> <span class="n">entrySet</span><span class="o">;</span>
+
+<span class="c1">// 改变次数，每次修改都会增加
+</span><span class="c1"></span><span class="kd">transient</span> <span class="kt">int</span> <span class="n">modCount</span><span class="o">;</span>
+</code></pre></div><h2 id="2-构造函数">2. 构造函数</h2>
+<div class="highlight"><pre class="chroma"><code class="language-Java" data-lang="Java"><span class="kd">public</span> <span class="nf">HashMap</span><span class="o">(</span><span class="kt">int</span> <span class="n">initialCapacity</span><span class="o">,</span> <span class="kt">float</span> <span class="n">loadFactor</span><span class="o">)</span> <span class="o">{</span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">initialCapacity</span> <span class="o">&lt;</span> <span class="n">0</span><span class="o">)</span>
+        <span class="k">throw</span> <span class="k">new</span> <span class="n">IllegalArgumentException</span><span class="o">(</span><span class="s">&#34;Illegal initial capacity: &#34;</span> <span class="o">+</span>
+                                            <span class="n">initialCapacity</span><span class="o">);</span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">initialCapacity</span> <span class="o">&gt;</span> <span class="n">MAXIMUM_CAPACITY</span><span class="o">)</span>
+        <span class="n">initialCapacity</span> <span class="o">=</span> <span class="n">MAXIMUM_CAPACITY</span><span class="o">;</span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">loadFactor</span> <span class="o">&lt;=</span> <span class="n">0</span> <span class="o">||</span> <span class="n">Float</span><span class="o">.</span><span class="na">isNaN</span><span class="o">(</span><span class="n">loadFactor</span><span class="o">))</span>
+        <span class="k">throw</span> <span class="k">new</span> <span class="n">IllegalArgumentException</span><span class="o">(</span><span class="s">&#34;Illegal load factor: &#34;</span> <span class="o">+</span>
+                                            <span class="n">loadFactor</span><span class="o">);</span>
+    <span class="k">this</span><span class="o">.</span><span class="na">loadFactor</span> <span class="o">=</span> <span class="n">loadFactor</span><span class="o">;</span>
+    <span class="c1">// tableSizeFor会获得不小于当前数字的最小的2的幂次
+</span><span class="c1"></span>    <span class="k">this</span><span class="o">.</span><span class="na">threshold</span> <span class="o">=</span> <span class="n">tableSizeFor</span><span class="o">(</span><span class="n">initialCapacity</span><span class="o">);</span>
+<span class="o">}</span>
+
+<span class="kd">public</span> <span class="nf">HashMap</span><span class="o">(</span><span class="kt">int</span> <span class="n">initialCapacity</span><span class="o">)</span> <span class="o">{</span>
+    <span class="k">this</span><span class="o">(</span><span class="n">initialCapacity</span><span class="o">,</span> <span class="n">DEFAULT_LOAD_FACTOR</span><span class="o">);</span>
+<span class="o">}</span>
+
+<span class="kd">public</span> <span class="nf">HashMap</span><span class="o">()</span> <span class="o">{</span>
+    <span class="k">this</span><span class="o">.</span><span class="na">loadFactor</span> <span class="o">=</span> <span class="n">DEFAULT_LOAD_FACTOR</span><span class="o">;</span> <span class="c1">// all other fields defaulted
+</span><span class="c1"></span><span class="o">}</span>
+
+<span class="kd">public</span> <span class="nf">HashMap</span><span class="o">(</span><span class="n">Map</span><span class="o">&lt;?</span> <span class="kd">extends</span> <span class="n">K</span><span class="o">,</span> <span class="o">?</span> <span class="kd">extends</span> <span class="n">V</span><span class="o">&gt;</span> <span class="n">m</span><span class="o">)</span> <span class="o">{</span>
+    <span class="k">this</span><span class="o">.</span><span class="na">loadFactor</span> <span class="o">=</span> <span class="n">DEFAULT_LOAD_FACTOR</span><span class="o">;</span>
+    <span class="n">putMapEntries</span><span class="o">(</span><span class="n">m</span><span class="o">,</span> <span class="kc">false</span><span class="o">);</span>
+<span class="o">}</span>
+
+<span class="cm">/** 计算大于等于输入参数的最小的 2 的幂次 */</span>
+<span class="kd">static</span> <span class="kd">final</span> <span class="kt">int</span> <span class="nf">tableSizeFor</span><span class="o">(</span><span class="kt">int</span> <span class="n">cap</span><span class="o">)</span> <span class="o">{</span>
+    <span class="kt">int</span> <span class="n">n</span> <span class="o">=</span> <span class="n">cap</span> <span class="o">-</span> <span class="n">1</span><span class="o">;</span>
+    <span class="n">n</span> <span class="o">|=</span> <span class="n">n</span> <span class="o">&gt;&gt;&gt;</span> <span class="n">1</span><span class="o">;</span>
+    <span class="n">n</span> <span class="o">|=</span> <span class="n">n</span> <span class="o">&gt;&gt;&gt;</span> <span class="n">2</span><span class="o">;</span>
+    <span class="n">n</span> <span class="o">|=</span> <span class="n">n</span> <span class="o">&gt;&gt;&gt;</span> <span class="n">4</span><span class="o">;</span>
+    <span class="n">n</span> <span class="o">|=</span> <span class="n">n</span> <span class="o">&gt;&gt;&gt;</span> <span class="n">8</span><span class="o">;</span>
+    <span class="n">n</span> <span class="o">|=</span> <span class="n">n</span> <span class="o">&gt;&gt;&gt;</span> <span class="n">16</span><span class="o">;</span>
+    <span class="k">return</span> <span class="o">(</span><span class="n">n</span> <span class="o">&lt;</span> <span class="n">0</span><span class="o">)</span> <span class="o">?</span> <span class="n">1</span> <span class="o">:</span> <span class="o">(</span><span class="n">n</span> <span class="o">&gt;=</span> <span class="n">MAXIMUM_CAPACITY</span><span class="o">)</span> <span class="o">?</span> <span class="n">MAXIMUM_CAPACITY</span> <span class="o">:</span> <span class="n">n</span> <span class="o">+</span> <span class="n">1</span><span class="o">;</span>
+<span class="o">}</span>
+</code></pre></div><h2 id="3-内部类">3. 内部类</h2>
+<div class="highlight"><pre class="chroma"><code class="language-Java" data-lang="Java"><span class="kd">static</span> <span class="kd">class</span> <span class="nc">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;</span> <span class="kd">implements</span> <span class="n">Map</span><span class="o">.</span><span class="na">Entry</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;</span> <span class="o">{</span>
+    <span class="kd">final</span> <span class="kt">int</span> <span class="n">hash</span><span class="o">;</span>
+    <span class="kd">final</span> <span class="n">K</span> <span class="n">key</span><span class="o">;</span>
+    <span class="n">V</span> <span class="n">value</span><span class="o">;</span>
+    <span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;</span> <span class="n">next</span><span class="o">;</span>
+
+    <span class="kd">public</span> <span class="kd">final</span> <span class="kt">int</span> <span class="nf">hashCode</span><span class="o">()</span> <span class="o">{</span> <span class="k">return</span> <span class="n">Objects</span><span class="o">.</span><span class="na">hashCode</span><span class="o">(</span><span class="n">key</span><span class="o">)</span> <span class="o">^</span> <span class="n">Objects</span><span class="o">.</span><span class="na">hashCode</span><span class="o">(</span><span class="n">value</span><span class="o">);</span> <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div><h2 id="4-插入">4. 插入</h2>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="c1">// 高低16位异或
+</span><span class="c1"></span><span class="kd">static</span> <span class="kd">final</span> <span class="kt">int</span> <span class="nf">hash</span><span class="o">(</span><span class="n">Object</span> <span class="n">key</span><span class="o">)</span> <span class="o">{</span>
+    <span class="kt">int</span> <span class="n">h</span><span class="o">;</span>
+    <span class="k">return</span> <span class="o">(</span><span class="n">key</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="o">?</span> <span class="n">0</span> <span class="o">:</span> <span class="o">(</span><span class="n">h</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="na">hashCode</span><span class="o">())</span> <span class="o">^</span> <span class="o">(</span><span class="n">h</span> <span class="o">&gt;&gt;&gt;</span> <span class="n">16</span><span class="o">);</span>
+<span class="o">}</span>
+
+<span class="kd">public</span> <span class="n">V</span> <span class="nf">put</span><span class="o">(</span><span class="n">K</span> <span class="n">key</span><span class="o">,</span> <span class="n">V</span> <span class="n">value</span><span class="o">)</span> <span class="o">{</span> <span class="k">return</span> <span class="n">putVal</span><span class="o">(</span><span class="n">hash</span><span class="o">(</span><span class="n">key</span><span class="o">),</span> <span class="n">key</span><span class="o">,</span> <span class="n">value</span><span class="o">,</span> <span class="kc">false</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span> <span class="o">}</span>
+
+<span class="c1">// @param onlyIfAbsent 如果为true，则不会改变已存在的value
+</span><span class="c1">// @param evict        如果为false，说明处于构造模式
+</span><span class="c1"></span><span class="kd">final</span> <span class="n">V</span> <span class="nf">putVal</span><span class="o">(</span><span class="kt">int</span> <span class="n">hash</span><span class="o">,</span> <span class="n">K</span> <span class="n">key</span><span class="o">,</span> <span class="n">V</span> <span class="n">value</span><span class="o">,</span> <span class="kt">boolean</span> <span class="n">onlyIfAbsent</span><span class="o">,</span> <span class="kt">boolean</span> <span class="n">evict</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;[]</span> <span class="n">tab</span><span class="o">;</span> <span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;</span> <span class="n">p</span><span class="o">;</span> <span class="kt">int</span> <span class="n">n</span><span class="o">,</span> <span class="n">i</span><span class="o">;</span>
+    <span class="k">if</span> <span class="o">((</span><span class="n">tab</span> <span class="o">=</span> <span class="n">table</span><span class="o">)</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">||</span> <span class="o">(</span><span class="n">n</span> <span class="o">=</span> <span class="n">tab</span><span class="o">.</span><span class="na">length</span><span class="o">)</span> <span class="o">==</span> <span class="n">0</span><span class="o">)</span>
+        <span class="c1">// 表为空，创建表
+</span><span class="c1"></span>        <span class="n">n</span> <span class="o">=</span> <span class="o">(</span><span class="n">tab</span> <span class="o">=</span> <span class="n">resize</span><span class="o">()).</span><span class="na">length</span><span class="o">;</span>
+    <span class="k">if</span> <span class="o">((</span><span class="n">p</span> <span class="o">=</span> <span class="n">tab</span><span class="o">[</span><span class="n">i</span> <span class="o">=</span> <span class="o">(</span><span class="n">n</span> <span class="o">-</span> <span class="n">1</span><span class="o">)</span> <span class="o">&amp;</span> <span class="n">hash</span><span class="o">])</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span>
+        <span class="c1">// 对应位置为空，直接创建节点
+</span><span class="c1"></span>        <span class="n">tab</span><span class="o">[</span><span class="n">i</span><span class="o">]</span> <span class="o">=</span> <span class="n">newNode</span><span class="o">(</span><span class="n">hash</span><span class="o">,</span> <span class="n">key</span><span class="o">,</span> <span class="n">value</span><span class="o">,</span> <span class="kc">null</span><span class="o">);</span>
+    <span class="c1">// 碰撞处理
+</span><span class="c1"></span>    <span class="k">else</span> <span class="o">{</span>
+        <span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;</span> <span class="n">e</span><span class="o">;</span> <span class="n">K</span> <span class="n">k</span><span class="o">;</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">p</span><span class="o">.</span><span class="na">hash</span> <span class="o">==</span> <span class="n">hash</span> <span class="o">&amp;&amp;</span>
+            <span class="o">((</span><span class="n">k</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="na">key</span><span class="o">)</span> <span class="o">==</span> <span class="n">key</span> <span class="o">||</span> <span class="o">(</span><span class="n">key</span> <span class="o">!=</span> <span class="kc">null</span> <span class="o">&amp;&amp;</span> <span class="n">key</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">k</span><span class="o">))))</span>
+            <span class="c1">// 节点key相同
+</span><span class="c1"></span>            <span class="n">e</span> <span class="o">=</span> <span class="n">p</span><span class="o">;</span>
+        <span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">p</span> <span class="k">instanceof</span> <span class="n">TreeNode</span><span class="o">)</span>
+            <span class="c1">// 树状节点，向树中插入
+</span><span class="c1"></span>            <span class="n">e</span> <span class="o">=</span> <span class="o">((</span><span class="n">TreeNode</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;)</span><span class="n">p</span><span class="o">).</span><span class="na">putTreeVal</span><span class="o">(</span><span class="k">this</span><span class="o">,</span> <span class="n">tab</span><span class="o">,</span> <span class="n">hash</span><span class="o">,</span> <span class="n">key</span><span class="o">,</span> <span class="n">value</span><span class="o">);</span>
+        <span class="k">else</span> <span class="o">{</span>
+            <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">binCount</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span> <span class="o">;</span> <span class="o">++</span><span class="n">binCount</span><span class="o">)</span> <span class="o">{</span>
+                <span class="k">if</span> <span class="o">((</span><span class="n">e</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="na">next</span><span class="o">)</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+                    <span class="c1">// 尾插法
+</span><span class="c1"></span>                    <span class="n">p</span><span class="o">.</span><span class="na">next</span> <span class="o">=</span> <span class="n">newNode</span><span class="o">(</span><span class="n">hash</span><span class="o">,</span> <span class="n">key</span><span class="o">,</span> <span class="n">value</span><span class="o">,</span> <span class="kc">null</span><span class="o">);</span>
+                    <span class="k">if</span> <span class="o">(</span><span class="n">binCount</span> <span class="o">&gt;=</span> <span class="n">TREEIFY_THRESHOLD</span> <span class="o">-</span> <span class="n">1</span><span class="o">)</span> <span class="c1">// -1 for 1st
+</span><span class="c1"></span>                        <span class="c1">// 超过阈值，树化
+</span><span class="c1"></span>                        <span class="n">treeifyBin</span><span class="o">(</span><span class="n">tab</span><span class="o">,</span> <span class="n">hash</span><span class="o">);</span>
+                    <span class="k">break</span><span class="o">;</span>
+                <span class="o">}</span>
+                <span class="k">if</span> <span class="o">(</span><span class="n">e</span><span class="o">.</span><span class="na">hash</span> <span class="o">==</span> <span class="n">hash</span> <span class="o">&amp;&amp;</span>
+                    <span class="o">((</span><span class="n">k</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="na">key</span><span class="o">)</span> <span class="o">==</span> <span class="n">key</span> <span class="o">||</span> <span class="o">(</span><span class="n">key</span> <span class="o">!=</span> <span class="kc">null</span> <span class="o">&amp;&amp;</span> <span class="n">key</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">k</span><span class="o">))))</span>
+                    <span class="c1">// 节点key相同
+</span><span class="c1"></span>                    <span class="k">break</span><span class="o">;</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="n">e</span><span class="o">;</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">e</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span> <span class="c1">// existing mapping for key
+</span><span class="c1"></span>            <span class="n">V</span> <span class="n">oldValue</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="na">value</span><span class="o">;</span>
+            <span class="c1">// 更新值
+</span><span class="c1"></span>            <span class="k">if</span> <span class="o">(!</span><span class="n">onlyIfAbsent</span> <span class="o">||</span> <span class="n">oldValue</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span>
+                <span class="n">e</span><span class="o">.</span><span class="na">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">;</span>
+            <span class="n">afterNodeAccess</span><span class="o">(</span><span class="n">e</span><span class="o">);</span>
+            <span class="k">return</span> <span class="n">oldValue</span><span class="o">;</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+    <span class="o">++</span><span class="n">modCount</span><span class="o">;</span>
+    <span class="k">if</span> <span class="o">(++</span><span class="n">size</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="o">)</span>
+        <span class="c1">// 超过阈值，扩容
+</span><span class="c1"></span>        <span class="n">resize</span><span class="o">();</span>
+    <span class="n">afterNodeInsertion</span><span class="o">(</span><span class="n">evict</span><span class="o">);</span>
+    <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
+<span class="o">}</span>
+
+<span class="c1">// 扩容方法
+</span><span class="c1"></span><span class="kd">final</span> <span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;[]</span> <span class="nf">resize</span><span class="o">()</span> <span class="o">{</span>
+    <span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;[]</span> <span class="n">oldTab</span> <span class="o">=</span> <span class="n">table</span><span class="o">;</span>
+    <span class="kt">int</span> <span class="n">oldCap</span> <span class="o">=</span> <span class="o">(</span><span class="n">oldTab</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="o">?</span> <span class="n">0</span> <span class="o">:</span> <span class="n">oldTab</span><span class="o">.</span><span class="na">length</span><span class="o">;</span>
+    <span class="kt">int</span> <span class="n">oldThr</span> <span class="o">=</span> <span class="n">threshold</span><span class="o">;</span>
+    <span class="kt">int</span> <span class="n">newCap</span><span class="o">,</span> <span class="n">newThr</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">oldCap</span> <span class="o">&gt;</span> <span class="n">0</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">oldCap</span> <span class="o">&gt;=</span> <span class="n">MAXIMUM_CAPACITY</span><span class="o">)</span> <span class="o">{</span>
+            <span class="n">threshold</span> <span class="o">=</span> <span class="n">Integer</span><span class="o">.</span><span class="na">MAX_VALUE</span><span class="o">;</span>
+            <span class="k">return</span> <span class="n">oldTab</span><span class="o">;</span>
+        <span class="o">}</span>
+        <span class="k">else</span> <span class="k">if</span> <span class="o">((</span><span class="n">newCap</span> <span class="o">=</span> <span class="n">oldCap</span> <span class="o">&lt;&lt;</span> <span class="n">1</span><span class="o">)</span> <span class="o">&lt;</span> <span class="n">MAXIMUM_CAPACITY</span> <span class="o">&amp;&amp;</span>
+                    <span class="n">oldCap</span> <span class="o">&gt;=</span> <span class="n">DEFAULT_INITIAL_CAPACITY</span><span class="o">)</span>
+            <span class="c1">// 两倍扩容
+</span><span class="c1"></span>            <span class="n">newThr</span> <span class="o">=</span> <span class="n">oldThr</span> <span class="o">&lt;&lt;</span> <span class="n">1</span><span class="o">;</span> <span class="c1">// double threshold
+</span><span class="c1"></span>    <span class="o">}</span>
+    <span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">oldThr</span> <span class="o">&gt;</span> <span class="n">0</span><span class="o">)</span> <span class="c1">// initial capacity was placed in threshold
+</span><span class="c1"></span>        <span class="n">newCap</span> <span class="o">=</span> <span class="n">oldThr</span><span class="o">;</span>
+    <span class="k">else</span> <span class="o">{</span>               <span class="c1">// zero initial threshold signifies using defaults
+</span><span class="c1"></span>        <span class="n">newCap</span> <span class="o">=</span> <span class="n">DEFAULT_INITIAL_CAPACITY</span><span class="o">;</span>
+        <span class="n">newThr</span> <span class="o">=</span> <span class="o">(</span><span class="kt">int</span><span class="o">)(</span><span class="n">DEFAULT_LOAD_FACTOR</span> <span class="o">*</span> <span class="n">DEFAULT_INITIAL_CAPACITY</span><span class="o">);</span>
+    <span class="o">}</span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">newThr</span> <span class="o">==</span> <span class="n">0</span><span class="o">)</span> <span class="o">{</span>
+        <span class="kt">float</span> <span class="n">ft</span> <span class="o">=</span> <span class="o">(</span><span class="kt">float</span><span class="o">)</span><span class="n">newCap</span> <span class="o">*</span> <span class="n">loadFactor</span><span class="o">;</span>
+        <span class="n">newThr</span> <span class="o">=</span> <span class="o">(</span><span class="n">newCap</span> <span class="o">&lt;</span> <span class="n">MAXIMUM_CAPACITY</span> <span class="o">&amp;&amp;</span> <span class="n">ft</span> <span class="o">&lt;</span> <span class="o">(</span><span class="kt">float</span><span class="o">)</span><span class="n">MAXIMUM_CAPACITY</span> <span class="o">?</span>
+                    <span class="o">(</span><span class="kt">int</span><span class="o">)</span><span class="n">ft</span> <span class="o">:</span> <span class="n">Integer</span><span class="o">.</span><span class="na">MAX_VALUE</span><span class="o">);</span>
+    <span class="o">}</span>
+    <span class="c1">// 设置新阈值并创建新表
+</span><span class="c1"></span>    <span class="n">threshold</span> <span class="o">=</span> <span class="n">newThr</span><span class="o">;</span>
+    <span class="nd">@SuppressWarnings</span><span class="o">({</span><span class="s">&#34;rawtypes&#34;</span><span class="o">,</span><span class="s">&#34;unchecked&#34;</span><span class="o">})</span>
+    <span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;[]</span> <span class="n">newTab</span> <span class="o">=</span> <span class="o">(</span><span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;[])</span><span class="k">new</span> <span class="n">Node</span><span class="o">[</span><span class="n">newCap</span><span class="o">];</span>
+    <span class="n">table</span> <span class="o">=</span> <span class="n">newTab</span><span class="o">;</span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">oldTab</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+        <span class="c1">// 迁移节点
+</span><span class="c1"></span>        <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">j</span> <span class="o">=</span> <span class="n">0</span><span class="o">;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">oldCap</span><span class="o">;</span> <span class="o">++</span><span class="n">j</span><span class="o">)</span> <span class="o">{</span>
+            <span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;</span> <span class="n">e</span><span class="o">;</span>
+            <span class="k">if</span> <span class="o">((</span><span class="n">e</span> <span class="o">=</span> <span class="n">oldTab</span><span class="o">[</span><span class="n">j</span><span class="o">])</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+                <span class="n">oldTab</span><span class="o">[</span><span class="n">j</span><span class="o">]</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+                <span class="k">if</span> <span class="o">(</span><span class="n">e</span><span class="o">.</span><span class="na">next</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span>
+                    <span class="c1">// 没有碰撞
+</span><span class="c1"></span>                    <span class="n">newTab</span><span class="o">[</span><span class="n">e</span><span class="o">.</span><span class="na">hash</span> <span class="o">&amp;</span> <span class="o">(</span><span class="n">newCap</span> <span class="o">-</span> <span class="n">1</span><span class="o">)]</span> <span class="o">=</span> <span class="n">e</span><span class="o">;</span>
+                <span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">e</span> <span class="k">instanceof</span> <span class="n">TreeNode</span><span class="o">)</span>
+                    <span class="c1">// 树分裂，这一步会判断是否链表化
+</span><span class="c1"></span>                    <span class="o">((</span><span class="n">TreeNode</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;)</span><span class="n">e</span><span class="o">).</span><span class="na">split</span><span class="o">(</span><span class="k">this</span><span class="o">,</span> <span class="n">newTab</span><span class="o">,</span> <span class="n">j</span><span class="o">,</span> <span class="n">oldCap</span><span class="o">);</span>
+                <span class="k">else</span> <span class="o">{</span> <span class="c1">// preserve order
+</span><span class="c1"></span>                    <span class="c1">// 链表分裂
+</span><span class="c1"></span>                    <span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;</span> <span class="n">loHead</span> <span class="o">=</span> <span class="kc">null</span><span class="o">,</span> <span class="n">loTail</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+                    <span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;</span> <span class="n">hiHead</span> <span class="o">=</span> <span class="kc">null</span><span class="o">,</span> <span class="n">hiTail</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+                    <span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;</span> <span class="n">next</span><span class="o">;</span>
+                    <span class="k">do</span> <span class="o">{</span>
+                        <span class="n">next</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="na">next</span><span class="o">;</span>
+                        <span class="k">if</span> <span class="o">((</span><span class="n">e</span><span class="o">.</span><span class="na">hash</span> <span class="o">&amp;</span> <span class="n">oldCap</span><span class="o">)</span> <span class="o">==</span> <span class="n">0</span><span class="o">)</span> <span class="o">{</span>
+                            <span class="k">if</span> <span class="o">(</span><span class="n">loTail</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span>
+                                <span class="n">loHead</span> <span class="o">=</span> <span class="n">e</span><span class="o">;</span>
+                            <span class="k">else</span>
+                                <span class="n">loTail</span><span class="o">.</span><span class="na">next</span> <span class="o">=</span> <span class="n">e</span><span class="o">;</span>
+                            <span class="n">loTail</span> <span class="o">=</span> <span class="n">e</span><span class="o">;</span>
+                        <span class="o">}</span>
+                        <span class="k">else</span> <span class="o">{</span>
+                            <span class="k">if</span> <span class="o">(</span><span class="n">hiTail</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span>
+                                <span class="n">hiHead</span> <span class="o">=</span> <span class="n">e</span><span class="o">;</span>
+                            <span class="k">else</span>
+                                <span class="n">hiTail</span><span class="o">.</span><span class="na">next</span> <span class="o">=</span> <span class="n">e</span><span class="o">;</span>
+                            <span class="n">hiTail</span> <span class="o">=</span> <span class="n">e</span><span class="o">;</span>
+                        <span class="o">}</span>
+                    <span class="o">}</span> <span class="k">while</span> <span class="o">((</span><span class="n">e</span> <span class="o">=</span> <span class="n">next</span><span class="o">)</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">);</span>
+                    <span class="k">if</span> <span class="o">(</span><span class="n">loTail</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+                        <span class="n">loTail</span><span class="o">.</span><span class="na">next</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+                        <span class="n">newTab</span><span class="o">[</span><span class="n">j</span><span class="o">]</span> <span class="o">=</span> <span class="n">loHead</span><span class="o">;</span>
+                    <span class="o">}</span>
+                    <span class="k">if</span> <span class="o">(</span><span class="n">hiTail</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+                        <span class="n">hiTail</span><span class="o">.</span><span class="na">next</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+                        <span class="n">newTab</span><span class="o">[</span><span class="n">j</span> <span class="o">+</span> <span class="n">oldCap</span><span class="o">]</span> <span class="o">=</span> <span class="n">hiHead</span><span class="o">;</span>
+                    <span class="o">}</span>
+                <span class="o">}</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+    <span class="k">return</span> <span class="n">newTab</span><span class="o">;</span>
+<span class="o">}</span>
+</code></pre></div><h2 id="5-删除">5. 删除</h2>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="n">V</span> <span class="nf">remove</span><span class="o">(</span><span class="n">Object</span> <span class="n">key</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;</span> <span class="n">e</span><span class="o">;</span>
+    <span class="k">return</span> <span class="o">(</span><span class="n">e</span> <span class="o">=</span> <span class="n">removeNode</span><span class="o">(</span><span class="n">hash</span><span class="o">(</span><span class="n">key</span><span class="o">),</span> <span class="n">key</span><span class="o">,</span> <span class="kc">null</span><span class="o">,</span> <span class="kc">false</span><span class="o">,</span> <span class="kc">true</span><span class="o">))</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">?</span>
+        <span class="kc">null</span> <span class="o">:</span> <span class="n">e</span><span class="o">.</span><span class="na">value</span><span class="o">;</span>
+<span class="o">}</span>
+
+<span class="c1">// @param value      值
+</span><span class="c1">// @param matchValue true表示只有value相同时才会移除
+</span><span class="c1">// @param movable    false则移除时不会移动其他节点
+</span><span class="c1"></span><span class="kd">final</span> <span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;</span> <span class="nf">removeNode</span><span class="o">(</span><span class="kt">int</span> <span class="n">hash</span><span class="o">,</span> <span class="n">Object</span> <span class="n">key</span><span class="o">,</span> <span class="n">Object</span> <span class="n">value</span><span class="o">,</span>
+                            <span class="kt">boolean</span> <span class="n">matchValue</span><span class="o">,</span> <span class="kt">boolean</span> <span class="n">movable</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;[]</span> <span class="n">tab</span><span class="o">;</span> <span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;</span> <span class="n">p</span><span class="o">;</span> <span class="kt">int</span> <span class="n">n</span><span class="o">,</span> <span class="n">index</span><span class="o">;</span>
+    <span class="c1">// 表存在、节点存在
+</span><span class="c1"></span>    <span class="k">if</span> <span class="o">((</span><span class="n">tab</span> <span class="o">=</span> <span class="n">table</span><span class="o">)</span> <span class="o">!=</span> <span class="kc">null</span> <span class="o">&amp;&amp;</span> <span class="o">(</span><span class="n">n</span> <span class="o">=</span> <span class="n">tab</span><span class="o">.</span><span class="na">length</span><span class="o">)</span> <span class="o">&gt;</span> <span class="n">0</span> <span class="o">&amp;&amp;</span>
+        <span class="o">(</span><span class="n">p</span> <span class="o">=</span> <span class="n">tab</span><span class="o">[</span><span class="n">index</span> <span class="o">=</span> <span class="o">(</span><span class="n">n</span> <span class="o">-</span> <span class="n">1</span><span class="o">)</span> <span class="o">&amp;</span> <span class="n">hash</span><span class="o">])</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">Node</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;</span> <span class="n">node</span> <span class="o">=</span> <span class="kc">null</span><span class="o">,</span> <span class="n">e</span><span class="o">;</span> <span class="n">K</span> <span class="n">k</span><span class="o">;</span> <span class="n">V</span> <span class="n">v</span><span class="o">;</span>
+        <span class="c1">// 查找节点
+</span><span class="c1"></span>        <span class="k">if</span> <span class="o">(</span><span class="n">p</span><span class="o">.</span><span class="na">hash</span> <span class="o">==</span> <span class="n">hash</span> <span class="o">&amp;&amp;</span>
+            <span class="o">((</span><span class="n">k</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="na">key</span><span class="o">)</span> <span class="o">==</span> <span class="n">key</span> <span class="o">||</span> <span class="o">(</span><span class="n">key</span> <span class="o">!=</span> <span class="kc">null</span> <span class="o">&amp;&amp;</span> <span class="n">key</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">k</span><span class="o">))))</span>
+            <span class="n">node</span> <span class="o">=</span> <span class="n">p</span><span class="o">;</span>
+        <span class="k">else</span> <span class="k">if</span> <span class="o">((</span><span class="n">e</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="na">next</span><span class="o">)</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+            <span class="k">if</span> <span class="o">(</span><span class="n">p</span> <span class="k">instanceof</span> <span class="n">TreeNode</span><span class="o">)</span>
+                <span class="n">node</span> <span class="o">=</span> <span class="o">((</span><span class="n">TreeNode</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;)</span><span class="n">p</span><span class="o">).</span><span class="na">getTreeNode</span><span class="o">(</span><span class="n">hash</span><span class="o">,</span> <span class="n">key</span><span class="o">);</span>
+            <span class="k">else</span> <span class="o">{</span>
+                <span class="k">do</span> <span class="o">{</span>
+                    <span class="k">if</span> <span class="o">(</span><span class="n">e</span><span class="o">.</span><span class="na">hash</span> <span class="o">==</span> <span class="n">hash</span> <span class="o">&amp;&amp;</span>
+                        <span class="o">((</span><span class="n">k</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="na">key</span><span class="o">)</span> <span class="o">==</span> <span class="n">key</span> <span class="o">||</span>
+                            <span class="o">(</span><span class="n">key</span> <span class="o">!=</span> <span class="kc">null</span> <span class="o">&amp;&amp;</span> <span class="n">key</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">k</span><span class="o">))))</span> <span class="o">{</span>
+                        <span class="n">node</span> <span class="o">=</span> <span class="n">e</span><span class="o">;</span>
+                        <span class="k">break</span><span class="o">;</span>
+                    <span class="o">}</span>
+                    <span class="n">p</span> <span class="o">=</span> <span class="n">e</span><span class="o">;</span>
+                <span class="o">}</span> <span class="k">while</span> <span class="o">((</span><span class="n">e</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="na">next</span><span class="o">)</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">);</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+        <span class="c1">// 找到对应节点
+</span><span class="c1"></span>        <span class="k">if</span> <span class="o">(</span><span class="n">node</span> <span class="o">!=</span> <span class="kc">null</span> <span class="o">&amp;&amp;</span> <span class="o">(!</span><span class="n">matchValue</span> <span class="o">||</span> <span class="o">(</span><span class="n">v</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="na">value</span><span class="o">)</span> <span class="o">==</span> <span class="n">value</span> <span class="o">||</span>
+                                <span class="o">(</span><span class="n">value</span> <span class="o">!=</span> <span class="kc">null</span> <span class="o">&amp;&amp;</span> <span class="n">value</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">v</span><span class="o">))))</span> <span class="o">{</span>
+            <span class="k">if</span> <span class="o">(</span><span class="n">node</span> <span class="k">instanceof</span> <span class="n">TreeNode</span><span class="o">)</span>
+                <span class="c1">// 树移除节点，这一步如果红黑树太小会链表化
+</span><span class="c1"></span>                <span class="o">((</span><span class="n">TreeNode</span><span class="o">&lt;</span><span class="n">K</span><span class="o">,</span><span class="n">V</span><span class="o">&gt;)</span><span class="n">node</span><span class="o">).</span><span class="na">removeTreeNode</span><span class="o">(</span><span class="k">this</span><span class="o">,</span> <span class="n">tab</span><span class="o">,</span> <span class="n">movable</span><span class="o">);</span>
+            <span class="k">else</span> <span class="k">if</span> <span class="o">(</span><span class="n">node</span> <span class="o">==</span> <span class="n">p</span><span class="o">)</span>
+                <span class="n">tab</span><span class="o">[</span><span class="n">index</span><span class="o">]</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="na">next</span><span class="o">;</span>
+            <span class="k">else</span>
+                <span class="n">p</span><span class="o">.</span><span class="na">next</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="na">next</span><span class="o">;</span>
+            <span class="o">++</span><span class="n">modCount</span><span class="o">;</span>
+            <span class="o">--</span><span class="n">size</span><span class="o">;</span>
+            <span class="n">afterNodeRemoval</span><span class="o">(</span><span class="n">node</span><span class="o">);</span>
+            <span class="k">return</span> <span class="n">node</span><span class="o">;</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+    <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
+<span class="o">}</span>
+</code></pre></div><h2 id="6-区别">6. 区别</h2>
+<ol>
+<li><code>JDK1.7</code>使用头插法，<code>JDK1.8</code>使用尾插法，避免多线程同时扩容时的死循环；</li>
+<li><code>JDK1.7</code>是先扩容后插入的，<code>JDK1.8</code>反过来，避免无效扩容；</li>
+<li><code>JDK1.7</code>只有数组+链表，<code>JDK1.8</code>引入红黑树；</li>
+</ol>
+
+            </div>
+            <div class="meta post-footer"> <span>2021 Aug 23 15:01</span> <a href="/post/hashmap%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB/"><i
+                        class="fas fa-link"></i> link</a></div>
+        </div>
         
         <div class="post">
             
@@ -297,7 +587,7 @@
 </ul>
 <p>        $epoll$ 有 $EPOLLLT$ 和 $EPOLLET$ 两种触发模式，$LT$ ( $level-triggered$ ) 是默认模式，$ET$ ( $edge-triggered$ ) 是高速模式。</p>
 <ul>
-<li>$LT$ ：只要 $fd$ 还有数据可读，每次 $epoll_wait$ 都会返回该事件，即每次触发；</li>
+<li>$LT$ ：只要 $fd$ 还有数据可读，每次 $epoll_-wait$ 都会返回该事件，即每次触发；</li>
 <li>$ET$ ：每个 $fd$ 只会返回一次事件，直到下次有数据流入，即数据到来触发。</li>
 </ul>
 <h2 id="6-应用场景">6. 应用场景</h2>
@@ -588,265 +878,6 @@
 
             </div>
             <div class="meta post-footer"> <span>2021 Jun 21 20:33</span> <a href="/post/mysql%E7%AC%94%E8%AE%B0/"><i
-                        class="fas fa-link"></i> link</a></div>
-        </div>
-        
-        <div class="post">
-            
-            <center>
-                <h1><a href="/post/csapp%E7%AC%94%E8%AE%B0/">CSAPP笔记</a></h1>
-            </center>
-            <div class="post-content">
-                <h2 id="1-计算机系统漫游">1. 计算机系统漫游</h2>
-<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;hello, world</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
-    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div><p>        $hello$ 程序生命周期的一开始是一个高级<code>C</code>程序，因为处于这种形式时，它是能够被人读懂的。为了运行 $hello.c$ ，每条<code>C</code>语句都必须被其他程序转化为一系列的低级机器语言指令。然后这些指令按照一种称为<strong>可执行目标程序</strong> ( $executable\ \ object\ \ program$ ) 的格式打包，并以二进制磁盘文件的形式存放起来。在<code>Unix</code>系统上，从源文件到目标文件的转化是由<strong>编译器驱动程序</strong> ( $compiler\ \ driver$ ) 完成的，这个过程可以分成四个阶段，执行这四个阶段的程序一起构成了编译系统：</p>
-<ul>
-<li>预处理阶段。预处理器 ( $cpp$ ) 根据以字符 $\#$ 开头的命令 ( $directives$ )，修改原始的<code>C</code>程序。修改完成后得到另一个<code>C</code>程序，通常是以 $.i$ 作为文件扩展名；</li>
-<li>编译阶段：编译器 ( $ccl$ ) 将文本文件 $hello.i$ 翻译成文本文件 $hello.s$ ，它包含一个汇编语言程序；</li>
-<li>汇编阶段：汇编器 ( $as$ ) 将 $hello.s$ 翻译成机器语言指令，并把这些指令打包成一种叫做<strong>可重定位</strong> ( $relocatable$ ) 目标程序的格式，将结果保存在目标文件 $hello.o$ 中；</li>
-<li>链接阶段：$hello.c$ 调用了<code>C</code>库函数 $printf$ ，后者存在于名为 $printf.o$ 的单独的预编译目标文件中。链接器 ( $ld$ ) 负责处理目标文件的并入，处理完成后得到可执行文件。可执行文件加载到存储器后，由系统负责执行。</li>
-</ul>
-<p><img src="/image/2021-05-19-01.png" alt="一个典型系统的硬件组成"></p>
-<ul>
-<li><strong>总线</strong>：总线是贯穿整个系统的电子管道，携带信息字节并负责在各个部件间传递。通常被设计成传送定长的字节块，也就是<strong>字</strong> ( $word$ )；</li>
-<li><code>I/O</code><strong>设备</strong>：系统与外界的联系通道。每个<code>I/O</code>设备都是通过一个控制器或适配器与<code>I/O</code>总线连接。控制器是<code>I/O</code>设备本身中或是系统的主板上的芯片组，而适配器是一块插在主板槽上的卡；</li>
-<li><strong>主存</strong>：临时存储设备，在处理器执行程序时，用于存放程序和程序处理的数据。物理上来说，主存是一组<code>DRAM</code>芯片组成的，逻辑上来说，主存是由一个线性字节数组组成的；</li>
-<li><strong>处理器</strong> ( <code>CPU</code> )：解释 ( 或执行 ) 存储在主存中指令的引擎，核心是<strong>程序计数器</strong> ( $PC$ )。寄存器文件 ( $register\ \ file$ ) 是一个小存储设备，由一些字长大小的寄存器组成。算术逻辑单元 ( $ALU$ ) 计算新数据和地址值。</li>
-</ul>
-<p>        一个典型的寄存器文件只存储几百字节的信息，主存可存放几百万字节。然而，处理器从寄存器文件中读取数据比从主存中读取要快几乎 $100$ 倍。针对这种处理器与主存之间的差异，系统设计者采用了更小更快的存储设备，称为<strong>高速缓存存储器</strong> ( $cache\ \ memories$ )。位于处理器芯片上的<code>L1</code>高速缓存的容量可以达到数万字节，访问速度几乎和访问寄存器文件一样快。容量为数十万到数百万字节的<code>L2</code>高速缓存是通过一条特殊的总线连接到处理器的，访问<code>L2</code>的时间开销要比访问<code>L1</code>的开销大 $5$ 倍。</p>
-<h2 id="2-信息表示和处理">2. 信息表示和处理</h2>
-<p>        大多数计算机采用 $8$ 位的块，或叫做<strong>字节</strong> ( $byte$ ) 作为最小的可寻址的存储器单位。机器级程序将存储器视为一个非常大的字节数组，称为<strong>虚拟存储器</strong> ( $virtual\ \ memory$ )。编译器和运行时系统的一个任务就是将存储器空间划分为可管理的单元，用来存放不同的<strong>程序对象</strong> ( $program\ \ object$ )，也就是程序数据、指令和控制信息。<br>
-        每台计算机都有一个<strong>字长</strong> ( $word\ \ size$ )，指明整数和指针数据的标称大小 ( $normal\ \ size$ )。字长决定的最重要的系统参数就是虚拟地址空间的最大大小。<br>
-        <strong>无符号</strong> ( $unsigned$ ) 编码是基于传统的二进制表示法的，<strong>二进制补码</strong> ( $tow&rsquo;s-complement$ ) 编码是表示有符号整数的最常见的方式，<strong>浮点数</strong> ( $floating-point$ ) 编码是表示实数的科学记数法的以二为基数的版本。将一个无符号数转换为一个更大的数据类型，只需要在开头添加 $0$ 即可，称为零扩展 ( $zero\ \ extension$ )。将一个二进制补码数字转换为一个更大的数据类型，规则是执行一个符号扩展 ( $sign\ \ extension$ )，在开头添加最高有效位的值。</p>
-<h2 id="3-程序的机器级表示">3. 程序的机器级表示</h2>
-<p>        与<code>C</code>代码相比，汇编代码可以看到一些被屏蔽的处理器状态，包括：</p>
-<ul>
-<li>程序计数器 ( $\%eip$ )</li>
-<li>整数寄存器文件，包含 $8$ 个被命名的位置，分别存储 $32$ 位的值；</li>
-<li>条件码寄存器保存着最近执行的算术指令的状态信息，用来实现控制流中的条件变化；</li>
-<li>浮点寄存器文件包含 $8$ 个位置，用来存放浮点数据。</li>
-</ul>
-<p>        程序存储器 ( $program\ \ memory$ ) 包含程序的目标代码，操作系统需要的一些信息，用来管理过程调用和返回的运行时栈，以及用户分配的存储器块。程序存储器采用虚拟地址寻址。<br>
-        一个<code>IA32</code>中央处理单元 ( $CPU$ ) 包含一组八个存储 $32$ 位值的寄存器，这些寄存器用来存储整数数据和指针。在平面寻址中，对特殊寄存器的需求已经大为降低了，在大多数情况中，前六个寄存器都可以看成通用寄存器，对它们的使用没有限制。<br>
-        大多数指令有一个或多个操作数 ( $operand$ )，指示出执行一个操作中要引用的源数据值，以及放置结果的目的的位置。源数据值可以以常数形式给出，或是从寄存器或存储器中读出，结果可以存放在寄存器或存储器中。因此，各种操作数的可能性被分为三种类型。第一种是立即数 ( $immediate$ )，也就是常数值。第二种类型是寄存器 ( $register$ )，它表示某个寄存器的内容。第三种是存储器引用，根据计算出来的地址访问某个存储器位置。<br>
-        除了整数寄存器，<code>CPU</code>还包含一组单个位的条件码 ( $condition\ \ code$ ) 寄存器，它们描述了最近的算术或逻辑操作的属性。最有用的条件码是：</p>
-<ul>
-<li>CF：进位标志；</li>
-<li>ZF：零标志；</li>
-<li>SF：符号标志；</li>
-<li>OF：溢出标志。</li>
-</ul>
-<p>        一个过程调用包括将数据 ( 以过程参数和返回值的形式 ) 和控制从代码的一部分传递到另一部分。另外，它还必须在进入时为过程的局部变量分配空间，并在退出时释放这些空间。<code>IA32</code>程序用程序栈来支持过程调用，为单个过程分配的那部分栈称为栈帧 ( $stack\ \ frame$ )。假设过程 $P$ 调用过程 $Q$ ，$Q$ 的参数放在 $P$ 的栈帧中，$P$ 的返回地址被压入栈中，形成 $P$ 的栈帧的末尾。过程 $Q$ 也会用栈来保存其他不能存放在寄存器中的局部变量。<br>
-        程序寄存器组是唯一一个被所有过程共享的资源。虽然在给定时刻只能有一个过程是活动的，但我们必须保证当调用者调用被调用者时，被调用者不会覆盖某个调用者稍后会使用的寄存器的值。为此，<code>IA32</code>采用了一组统一的寄存器使用惯例，所有的过程都必须遵守，包括程序库中的过程。<br>
-        <code>C</code>的 $struct$ 声明创建一个数据类型，将可能不同类型的对象聚合到一个对象中。结构的各个组成部分是用名字来引用的，实现类似于数组的实现。编译器保存关于每个结构类型的信息，指示每个域 ( $field$ ) 的字节偏移。<br>
-        许多计算机系统对基本数据类型的可允许地址做出了一些限制，要求某种类型的对象的地址必须是某个值的倍数。这种对齐限制简化了处理器和存储器系统之间接口的硬件设计。例如，假设一个处理器总是从存储器中取 $8$ 个字节出来，则地址必须为 $8$ 的倍数。如果可以保证所有的 $double$ 都将它们的地址对齐成 $8$ 的倍数，那么就可以用一个存储器操作来读或者写值了。<br>
-        <code>C</code>对于数组引用不进行任何边界检查，而且局部变量和状态信息都存放在栈中。一个对越界的数组元素的写操作破坏了存储在栈中的状态信息，当程序使用这个被破坏的状态，试图重新加载寄存器或执行 $ret$ 指令时，就会出现很严重的错误。一种特别常见的状态破坏称为缓冲区溢出 ( $buffer\ \ overflow$ )。例如，在栈中分配某个字节数组来保存一个字符串，但是字符串的长度超出了为数组分配的空间时，就会发生缓冲区溢出。<br>
-        浮点单元包括 $8$ 个浮点寄存器，但是和普通寄存器不一样，这些寄存器是被当成一个浅栈 ( $shallow\ \ stack$ ) 来对待的。当压入栈中的值超过 $8$ 个时，栈底的那些值就会消失。对于返回值为 $float$ 或 $double$ 类型的函数，结果是以扩展精度格式在浮点寄存器栈顶部返回的。</p>
-<h2 id="4-处理器体系结构">4. 处理器体系结构</h2>
-<p>        处理器必须执行一系列的指令，每条指令执行某个简单操作，被编码为由一个或多个字节序列组成的二进制格式。一个处理器支持的指令和指令的字节级编码称为它的<code>ISA</code> ( $instruction-set\ \ architecture$，指令集体系结构 )。<code>ISA</code>在编译器编写者和处理器设计人员之间提供了一个概念抽象层，编译器编写者只需要知道允许哪些指令，以及它们是如何编码的；而处理器设计者必须建造出执行这些指令的处理器。<br>
-        在硬件设计中，电子电路被用来计算位的函数 ( $functions\ \ on\ \ bits$ )，以及在各种存储器元素中存储位。大多数现代电路技术都是用信号线上的高电压或低电压来表示不同的位值。通常的技术中，逻辑 $1$ 是用 $1.0$ 伏特左右的高电压表示的，而逻辑 $0$ 是用 $0.0$ 伏特左右的低电压表示的。要实现一个数字系统需要三个主要的组成部分：计算位的函数的组合逻辑、存储位的存储器元素，以及控制存储器元素更新的时钟信号。<br>
-        通常，处理一条指令包括很多操作。我们将它们组织成某个特殊的阶段序列，使得即使指令的动作差异很大，但所有的指令都遵循统一的序列。处理指令的阶段有：</p>
-<ul>
-<li>取指 ( $fetch$ )：取指阶段从存储器读入指令，地址为程序计数器的值。从指令中抽取出指令指示符字节的两个四位部分，称为 $icode$ ( 指令代码 ) 和 $ifun$ ( 指令功能 )；</li>
-<li>解码 ( $decode$ )：解码阶段从寄存器文件读入最多两个操作数；</li>
-<li>执行 ( $execute$ )：执行阶段，<code>ALU</code>要么执行指令指明的操作，计算存储器引用的有效地址，要么增加或减少栈指针；</li>
-<li>访存 ( $memory$ )：访存阶段可以将数据写入存储器，或者从存储器读出数据；</li>
-<li>写回 ( $write\ \ back$ )：写回阶段最多可以写两个结果到寄存器文件；</li>
-<li>更新<code>PC</code> ( $PC\ \ update$ )：将<code>PC</code>设置成下一条指令的地址。</li>
-</ul>
-<p>        处理器无限循环执行这些阶段，只有在遇到 $halt$ 或一些错误情况时，才会停下来，包括非法存储器地址和非法指令。<br>
-        六个阶段按序执行，产生的处理器设计称为 $SEQ$ 。重新排列六个阶段，使得更新<code>PC</code>阶段在一个周期开始时执行，而不是结束时才执行，这样产生的处理器设计称为 $SEQ+$ 。$SEQ+$ 对控制逻辑的唯一修改就是重新定义了<code>PC</code>的计算，使它使用以前的状态值。<br>
-        在流水线化的系统中，待执行的任务被划分成了若干个独立的阶段。流水线化的一个重要特性就是增加了系统的吞吐量 ( $throughput$ )，不过它也会轻微地增加执行时间 ( $latency$ )。对硬件设计者来说，将系统计算设计划分成一组具有相同延迟的阶段是一个主要的挑战。现代处理器为了提高时钟频率，采用了很深的 ( $15$ 或更多的阶段 ) 流水线。处理器设计师将指令的执行划分成很多非常简单的步骤，这样一来每个阶段的延迟就很小。电路设计者小心地设计流水线寄存器，使其延迟尽可能的小。芯片设计者也必须小心地设计时钟传播网络，以保证时钟在整个芯片上同时改变。<br>
-        对于程序来说，相邻指令之间很可能是相关的，相关包括数据相关 ( $data\ \ dependency$ )、顺序相关 ( $sequential\ \ dependency$ ) 和控制相关 ( $control\ \ dependency$ )。为了处理相关指令，流水线需要调整指令的执行顺序，保证在执行一条指令时，其前一个相关指令执行完毕。<br>
-        流水线化的设计的目的就是每个时钟周期都发射 ( $issue$ ) 一条新指令，也就是说每个时钟周期都有一条新指令进入执行阶段并最终完成。为了达到这个目的，我们必须在取出当前指令后，马上确定下一条指令的位置。不幸的是，如果取出的指令是条件分支指令，要到几个周期后，也就是指令通过执行阶段后，才能知道是否要选择分支。类似地，如果取出的指令是 $ret$ ，要到指令通过访存阶段，才能确定返回地址。猜测分支方向并根据猜测开始取指的技术称为分支预测。<br>
-        相关的存在可能会导致流水线产生计算错误，称为冒险。同相关一样，冒险也可以分为数据冒险 ( $data\ \ hazard$ ) 和控制冒险 ( $control\ \ hazard$ )。暂停 ( $stalling$ ) 是一种常用的用来避免冒险的技术。暂停时，处理器会停止流水线中一条或多条指令，直到冒险条件不再满足。只要一条指令的源操作数会被流水线后面某个阶段中的指令产生，处理器就会通过将指令阻塞在解码阶段来避免数据冒险。暂停技术就是让一组指令阻塞在它们的阶段，而允许其他指令继续通过流水线。将结果值直接从一个流水线阶段传到较早阶段的技术称为数据转发 ( $data\ \ forwarding$ )，通过使用转发可以在一定程度上避免暂停。有一类数据冒险不能单纯使用转发解决，因为存储器读是在流水线较后面发生的，称为加载/使用冒险 ( $load/use\ \ hazard$ )，可以通过结合暂停和转发来解决，称为加载互锁 ( $load\ \ interlock$ )。<br>
-        对于一些简单的操作，比如数字加法，可以在执行阶段一个周期内处理完。但是对于一些更加复杂操作指令，例如过整数乘法和除法，以及浮点运算，执行时间会需要几个或者几十个周期。为了实现这些指令，我们既需要额外的硬件来执行这些计算，还需要一种机制来协调这些指令的处理与流水线其他部分之间的关系。可以通过采用独立于主流水线的特殊硬件功能单元来处理较为复杂的操作。</p>
-<h2 id="5-优化程序性能">5. 优化程序性能</h2>
-<p>        对许多程序都很有用的度量标准是每元素的周期数 ( $cycles\ \ per\ \ element$, $CPE$ )。这种度量标准帮助我们在更详细的级别上理解迭代程序的循环性能。<br>
-        <code>P6</code>微体系结构是自 $20$ 世纪 $90$ 年代后期以来许多厂商生产的高端处理器的典型。在工业界称为超标量 ( $superscalar$ )，意思是它可以在每个时钟周期执行多个操作，而且是乱序的。整个设计有两个主要部分：<code>ICU</code> ( $Instruction\ \ Control\ \ Unit$ ) 和<code>EU</code> ( $Execution\ \ Unit$ )，前者负责从存储器中读出指令序列，并根据这些指令序列生成一组针对程序数据的基本操作，而后者执行这些操作。<br>
-        <code>ICU</code>从指令高速缓存 ( $instruction\  \ cache$ ) 中读取指令，指令高速缓存是一个特殊的高速缓存存储器，它包含最近访问的指令。通常，<code>ICU</code>会在当前正在执行的指令很早之前取指，所以它有足够的时间对指令解码，并把操作发送到<code>EU</code>。不过，有一个问题，那就是当程序遇到分支时，程序有两个可能的前进方向。一种可能会选择分支，控制被传递到分支目标；另一种可能是不选择分支，控制被传递到指令序列的下一条指令。现代处理器采用了一种称为分支预测 ( $branch\ \ prediction$ ) 的技术，在这种技术中处理器会预测是否选择分支，同时还预测分支的目标地址。使用一种称为投机执行 ( $speculative\ \ execution$ ) 的技术，处理器会开始取出它预测的分支处的指令并对指令解码，甚至于在它确定分支预测是否正确之前就开始执行这些操作。如果过后它确定分支预测错误，它会将状态重新设置到分支点的状态。<br>
-        <code>EU</code>接收来自指令读取单元的操作。通常，它会每个时钟周期接收若干个操作。这些操作会被分派到一组功能单元中，它们会执行实际的操作。这些功能单元是专门用来处理特定类型的操作。<br>
-        在<code>ICU</code>中，退役单元 ( $Retirement\ \ Unit$ ) 记录正在进行的处理，并确保它遵守机器级程序的顺序语义。指令解码时，关于指令的信息被放置在一个先进先出的队列中。这个信息会一直保持在队列中，直到两个结果中的一个发生。首先，一旦指令的操作完成了，而所有导致这条指令的分支点也都被确认为预测正确，那么这条指令就可以退役了，所有对程序寄存器的更新都可以被实际执行了。另一方面，如果导致该指令的某个分支点预测错误，这条指令会被清空，丢弃所有计算出来的值。通过这种方法，错误的预测就不会改变程序状态了。<br>
-        循环并行性的好处是受描述计算的汇编代码的能力限制的。特别地，<code>IA32</code>指令集只有很少量的寄存器来存放累积的值。如果我们有并行度 $p$ 超过了可用的寄存器数量，编译器会诉诸于溢出 ( $spilling$ )，将某些临时值存放到栈中。一旦出现这种情况，性能会急剧下降。</p>
-<h2 id="6-存储器层次结构">6. 存储器层次结构</h2>
-<p>        存储器系统 ( $memory\ \ system$ ) 是一个具有不同容量、成本和访问时间的存储 ( $storage$ ) 设备的层次结构。</p>
-<h3 id="61-主存">6.1 主存</h3>
-<p>        随机访问存储器 ( $random-access\ \ memory$, $RAM$ ) 分为两类——静态的和动态的。静态<code>RAM</code> ( <code>SRAM</code> ) 比动态<code>RAM</code> ( <code>DRAM</code> ) 更快，但也贵得多。<code>SRAM</code>用来作为高速缓存存储器，既可以在<code>CPU</code>芯片上，也可以不在<code>CPU</code>芯片上。<code>DRAM</code>用来作为主存以及图形系统的帧缓冲区。典型地，一个桌面系统的<code>SRAM</code>不会超过几兆字节，但是<code>DRAM</code>却有几百或几千兆字节。<br>
-        <code>DRAM</code>芯片中的单元 ( 位 ) 被分成 $d$ 个超单元 ( $supercell$ )，每个超单元都是由 $w$ 个<code>DRAM</code>单元组成的。一个 $d \times w$ 的<code>DRAM</code>总共存储了 $dw$ 位信息。超单元被组织成一个 $r$ 行 $c$ 列的长方形阵列，这里 $rc = d$ 。每个超单元有形如 $(i, j)$ 的地址，这里 $i$ 表示行，而 $j$ 表示列。<br>
-        每个<code>DRAM</code>芯片被连接到某个称为存储控制器的电路，这个电路可以一次传送 $w$ 位到每个<code>DRAM</code>芯片或一次从每个<code>DRAM</code>芯片传出 $w$ 位。为了读出超单元 $(i, j)$ 的内容，存储控制器将行地址 $i$ 发送到<code>DRAM</code>，然后是列地址 $j$ 。行地址 $i$ 被称为<code>RAS</code> ( $Row\ \ Access\ \ Strobe$ ，行访问选通脉冲 ) 请求。列地址 $j$ 被称为<code>CAS</code> ( $Column\ \ Access\ \ Strobe$ ，列访问选通脉冲 ) 请求。<code>RAS</code>和<code>CAS</code>请求共享同样的<code>DRAM</code>地址管脚 ( $pin$ )，信息通过管脚的外部连接器流入和流出芯片，每个管脚携带一个一位的信号。为了读出某一单元数据，存储控制器首先发送行地址，<code>DRAM</code>会将对应行的所有内容都拷贝到行缓冲区。接下来，存储控制器再发送列地址，<code>DRAM</code>从行缓冲区中拷贝出对应列的超单元数据并发送到存储控制器。电路设计者将<code>DRAM</code>组织成二维阵列而不是线性数组的一个原因是降低芯片上地址管脚的数量，缺点是必须分两步发送地址，增加了访问时间。<br>
-        如果断电，<code>DRAM</code>和<code>SRAM</code>会丢失它们的信息，从这个意义上说，它们是易失的 ( $volatile$ )。另一方面，非易失性存储器 ( $nonvolatile\ \ memory$ ) 即使是在关电后，仍然保存着它们的信息。出于历史原因，虽然<code>ROM</code>中有的类型既可以读也可以写，但是它们整体上都被称为<code>ROM</code> ( $read-only\ \ memory$ )。<code>ROM</code>是以它们能够被重编程 ( 写 ) 的次数和对它们进行重编程所用的机制来区分的。存储在<code>ROM</code>设备中的程序通常被称为固件 ( $firmware$ )。当一个计算机系统通电以后，它会运行存储在<code>ROM</code>中的固件。</p>
-<h3 id="62-总线">6.2 总线</h3>
-<p>        数据流通过称为总线 ( $bus$ ) 的共享电路在处理器和<code>DRAM</code>主存之间来来回回。每次<code>CPU</code>和主存之间的数据传送都是通过一系列步骤来完成的，这些步骤称为总线事务 ( $bus\ \ transaction$ )。读事务 ( $read\ \ transaction$ ) 从主存传送数据到<code>CPU</code>，写事务 ( $write\ \ transaction$ ) 从<code>CPU</code>传送数据到主存。总线是一组并行的导线，能携带地址、数据和控制信号。取决于总线设计，数据和地址信号可以共享同一组导线，也可以使用不同的。同时，两个以上的设备也能共享同一个总线。</p>
-<p><img src="/image/2021-05-19-02.png" alt="典型的连接CPU和主存的总线结构"></p>
-<p>        典型的桌面系统的结构，主要部件是<code>CPU</code>芯片、<code>I/O</code>桥接器 ( $I/O\ \ bridge$，包括存储控制器 ) 以及组成主存的<code>DRAM</code>存储器模块。这些部件由一对总线连接起来，其中一条总线是系统总线 ( $system\ \ bus$ )，它将<code>CPU</code>连接到<code>I/O</code>桥接器，另一条总线是存储器总线 ( $memory\ \ bus$ )，它将<code>I/O</code>桥接器连接到主存。<code>I/O</code>桥接器将系统总线的电信号翻译成存储器总线的电信号。</p>
-<pre><code class="language-x86asm" data-lang="x86asm">movl A, %eax
-</code></pre><p>当<code>CPU</code>执行上述加载操作时，地址 $A$ 的内容会被加载到寄存器 $\%eax$ 中。<code>CPU</code>芯片上称为总线接口 ( $bus\ \ interface$ ) 的电路发起总线上的读事务。读事务由三步骤组成。首先，<code>CPU</code>将地址 $A$ 放到系统总线上。<code>I/O</code>桥接器将信号传递到存储器总线，接下来，主存感受到存储器总线上的地址信号，从存储器总线读地址，从<code>DRAM</code>取出数据字，并将数据写到存储器总线。<code>I/O</code>桥接器将存储器总线信号翻译成系统总线信号，然后传递到系统总线。最后，<code>CPU</code>感受到系统总线上的数据，从总线上读数据，并将数据拷贝到寄存器 $\%eax$ 。</p>
-<h3 id="63-磁盘">6.3 磁盘</h3>
-<p>        磁盘是由盘片 ( $platter$ ) 构成的，每个盘片有两面，表面 ( $surface$ ) 覆盖着磁性记录材料。盘片中间有一个可以旋转的主轴 ( $spindle$ )，它使得盘片以固定的旋转速率 ( $rotational\ \ rate$ ) 旋转。每个表面由一组称为磁道 ( $track$ ) 的同心圆组成的，且每个磁道被划分为一组扇区 ( $sector$ )。每个扇区包含相等数量的数据位 ( 通常是 $512$ 字节 )，这些数据编码在扇区上的磁性材料中。扇区之间由一些间隙 ( $gap$ ) 分隔开，这些间隙中不存储数据位。间隙存储用来标识扇区的格式化位。磁盘是由一个或多个叠放在一起的盘片组成的，它们放在一个密封的包装里，整个装置通常被称为磁盘驱动器 ( $disk\ \ drive$ )。磁盘制造商通常用柱面 ( $cylinder$ ) 来描述多个盘片驱动器的构造，这里，柱面是所有盘片表面上到中心主轴的距离相等的磁道的集合。<br>
-        磁盘用连接到一个传动臂 ( $actuator\ \ arm$ ) 的读/写头 ( $read/write\ \ head$ ) 来读写存储在磁性表面的位。通过沿着半径轴移动传动臂，驱动器可以将读/写头定位在盘面上的任何磁道上，这样的机械运动称为寻道 ( $seek$ )。<br>
-        像图形卡、监视器、鼠标、键盘和磁盘这样的设备都是通过诸如<code>Intel</code>的<code>PCI</code> ( $Peripheral\ \ Component\ \ Interconnect$，外围设备互连 ) 总线这样的<code>I/O</code>总线连接到<code>CPU</code>和主存的。同系统总线和存储器总线不同，诸如<code>PCI</code>这样的<code>I/O</code>总线设计成与底层<code>CPU</code>无关。<br>
-        虽然<code>I/O</code>总线比系统总线和存储器总线慢，但是它可以容纳种类繁多的第三方设备，例如<code>USB</code>、图形卡等。其他的设备，例如网络适配器，可以通过将适配器插入到主板上空的扩展槽中，从而连接到<code>I/O</code>总线，这些插槽提供了到总线的直接电路连接。<br>
-        <code>CPU</code>使用一种称为存储器映射<code>I/O</code> ( $memory-mapped\ \ I/O$ ) 的技术来向<code>I/O</code>设备发射命令。在使用存储器映射<code>I/O</code>的系统中，地址空间中有一块地址是为与<code>I/O</code>设备通信保留的。每个这样的地址称为一个<code>I/O</code>端口 ( $I/O\ \ port$ )。当一个设备连接到总线时，它与一个或多个端口相关联 ( 或它被映射到一个或多个端口 )。<br>
-        在磁盘控制器收到来自<code>CPU</code>的读命令之后，它将逻辑块号翻译成一个扇区地址，读该扇区的内容，然后将这些内容直接传送到主存，不需要<code>CPU</code>的干涉，这个设备称为<code>DMA</code> ( $direct\ \ memory\ \ access$ )，这种数据传送称为<code>DMA</code>传送 ( $DMA\ \ transfer$ )。在<code>DMA</code>传送完成，磁盘扇区的内容被安全地存储在主存中以后，磁盘控制器通过给<code>CPU</code>发送一个中断信号来通知<code>CPU</code>。基本思想是中断会发信号到<code>CPU</code>芯片的一个外部管脚上，这会导致<code>CPU</code>暂停它当前正在做的工作，跳转到一个操作系统函数，这个函数会记录下<code>I/O</code>已经完成，然后将控制返回到<code>CPU</code>被中断的地方。</p>
-<h3 id="64-局部性">6.4 局部性</h3>
-<p>        一个编写良好的计算机程序倾向于展示出良好的局部性 ( $locality$ )。也就是，它们倾向于引用的数据项邻近于其他最近引用过的数据项，或者邻近于最近自我引用过的数据项。局部性通常有两种形式：时间局部性 ( $temporal\ \ locality$ ) 和空间局部性 ( $spatial\ \ locality$ )。在一个具有良好时间局部性的程序中，被引用过一次的存储器位置很可能在不远的将来再被多次引用。在一个具有良好空间局部性的程序中，如果一个存储器位置被引用了一次，那么程序很可能在不远的将来引用附近的一个存储器位置。<br>
-        一般而言，高速缓存 ( $cache$ ) 是一个小而快速的存储设备，它作为存储在更大也更慢的设备中的数据对象的缓冲区域，使用高速缓存的过程被称为缓存 ( $caching$ )。存储器层次结构的中心思想是，对于每个 $k$ ，位于 $k$ 层的更快更小的存储设备作为位于 $k + 1$ 层的更大更慢的存储设备的缓存。换句话说，层次结构中的每一层都缓存来自较低一层的数据对象。<br>
-        当发生缓存不命中时，第 $k$ 层的缓存就必须执行某个替换策略，确定把它从第 $k + 1$ 层中取出的块放在哪里。硬件缓存通常使用的是更严格的放置策略，这个策略将第 $k + 1$ 层的某个块限制放置在第 $k$ 层块的一个小的子集中 ( 有时只是一个块 )。这种限制性的放置策略会引起冲突不命中 ( $conflict\ \ miss$ )。当工作集的大小超过缓存的大小时，缓存会经历容量不命中 ( $capacity\ \ miss$ )。</p>
-<h3 id="65-高速缓存">6.5 高速缓存</h3>
-<p>        早期计算机系统的存储器层次结构只有三层：<code>CPU</code>寄存器、主<code>DRAM</code>存储器和磁盘存储设备。不过由于<code>CPU</code>和主存之间逐渐增大的差距，系统设计者被迫在<code>CPU</code>寄存器文件和主存之间插入了一个小的<code>SRAM</code>存储器，称为<code>L1</code>高速缓存。在现代系统中，<code>L1</code>高速缓存位于<code>CPU</code>芯片上，访问速度几乎和寄存器一样快。随着<code>CPU</code>和主存之间的性能差距不断增大，系统设计者在<code>L1</code>高速缓存和主存之间又插入了一个高速缓存，称为<code>L2</code>高速缓存，可以将<code>L2</code>高速缓存连接到存储器总线，或者连接到它自己的高速缓存总线 ( $cache\ \ bus$ )。有些高性能系统，甚至于在存储器总线上还有一个层高速缓存，称为<code>L3</code>高速缓存。<br>
-        考虑一个计算机系统，其中每个存储器地址有 $m$ 位，形成 $M = 2^m$ 个不同的地址。这样一个机器的高速缓存被组织成一个 $S = 2^s$ 个高速缓存组 ( $cache\ \ set$ ) 的数组。每个组包含 $E$ 个高速缓存行 ( $cache\ \ line$ )。每个行是由一个 $B = 2^b$ 字节的数据块 ( $block$ ) 组成的，一个有效位 ( $valid\ \ bit$ ) 指明这个行包含的数据是否有意义，还有 $t = m - (b + s)$ 个标记位 ( $tag\ \ bit$ )，唯一标识存储在这个高速缓存行中的块。<br>
-        当一条加载指令指示<code>CPU</code>从主存地址 $A$ 中读一个字时，它将地址 $A$ 发送到高速缓存。如果高速缓存正保存着地址 $A$ 处那个字的拷贝，它就立即将那个字发回给<code>CPU</code>。<br>
-        假设<code>CPU</code>写一个已经缓存了的字 $w$ ，在高速缓存更新了它的 $w$ 的拷贝之后，要更新在存储器中对应的拷贝。最简单的方法称为直写 ( $well-through$ )，就是立即将 $w$ 的高速缓存块写回到存储器中。虽然简单，但是直写的缺点是每条存储指令都会引起总线上的一个写事务。另一种方法，称为写回 ( $write-back$ )，尽可能地推迟存储器更新，只有当替换算法要驱逐已更新的块时，才把它写到存储器。虽然减少了总线事务的数量，但是增加了复杂性，高速缓存必须为每个高速缓存行维护一个额外的修改位 ( $dirty\ \ bit$ )，表明这个高速缓存块是否被修改过。另一个问题是如何处理写不命中。一种方法，称为写分配 ( $write-allocate$ )，加载相应的存储器块到高速缓存中，然后更新这个高速缓存块。写分配利用了写的空间局部性，但是缺点是每次不命中都会导致一个块从存储器传送到高速缓存。另一种方法称为非写分配 ( $non-write-allocate$ )，避开高速缓存，直接把这个字写到存储器中。直写高速缓存通常是非写分配的，写回高速缓存通常是写分配的。<br>
-        只保存指令的高速缓存称为 $i-cache$ ，只保存数据的高速缓存称为 $d-cache$ ，两者都保存的称为统一的高速缓存 ( $unified\ \ cache$ )。一个典型的桌面系统<code>CPU</code>芯片本身就包括一个<code>L1</code> $i-cache$ 和一个<code>L1</code> $d-cache$ 。</p>
-<h2 id="7-链接">7. 链接</h2>
-<p>        <strong>链接</strong> ( $linking$ ) 就是将不同部分的代码和数据收集和组合成一个单一文件的过程，这个文件可被加载 ( 或被拷贝 ) 到存储器并执行。链接可以执行于编译时 ( $compile\ \ time$ )，也就是在源代码被翻译成机器代码时；也可以执行于加载时 ( $load\ \ time$ )，也就是在程序被加载器 ( $loader$ ) 加载到存储器并执行时；甚至于运行时 ( $run\ \ time$ ) 由应用程序来执行。在早期的计算机系统中，链接是手动执行的。在现代系统中，链接是由叫做链接器 ( $linker$ ) 的程序自动执行的。<br>
-        像<code>Unix ld</code>程序这样的静态链接器 ( $static\ \ linker$ ) 以一组可重定位目标文件和命令行参数作为输入，生成一个完全链接的可以加载和运行的可执行目标文件作为输出。输入的可重定位目标文件由各种不同的代码和数据节 ( $section$ ) 组成。指令在一个节中，初始化的全局变量在另一个节中，而未初始化的变量又在另外一个节中。<br>
-        为了创建可执行文件，链接器必须完成两个主要任务：</p>
-<ul>
-<li>符号解析 ( $symbol\ \ resolution$ )。目标文件定义和引用符号。符号解析的目的是将每个符号引用和一个符号定义联系起来。</li>
-<li>重定位 ( $relocation$ )。编译器和汇编器生成从地址零开始的代码和数据节。链接器通过把每个符号定义与一个存储器位置联系起来，然后修改所有对这些符号的引用，使得它们指向这个存储器位置，从而重定位这些节。</li>
-</ul>
-<p>        目标文件有三种形式：</p>
-<ul>
-<li>可重定位目标文件。包含二进制代码和数据，其形式可以在编译时与其他可重定位目标文件合并起来，创建一个可执行目标文件。</li>
-<li>可执行目标文件。包含二进制代码和数据，其形式可以被直接拷贝到存储器并执行。</li>
-<li>共享目标文件。一种特殊类型的可重定位目标文件，可以在加载或者运行时，被动态地加载到存储器并链接。</li>
-</ul>
-<p>        编译器和汇编器生成可重定位目标文件 ( 包括共享目标文件 )。链接器生成可执行目标文件。从技术上来说，一个目标模块 ( $object\ \ module$ ) 就是一个字节序列，而一个目标文件 ( $object\ \ file$ ) 就是一个存放在磁盘文件中的目标模块。<br>
-        每个可重定位目标模块 $m$ 都有一个符号表，包含 $m$ 所定义和引用的符号的信息。在链接器的上下文中，有三种不同的符号：</p>
-<ul>
-<li>由 $m$ 定义并能被其他模块引用的全局符号。</li>
-<li>由其他模块定义并被模块 $m$ 引用的全局符号。</li>
-<li>只被模块 $m$ 定义和引用的本地符号。</li>
-</ul>
-<p>        链接器解析符号引用的方法是将每个引用与它输入的可重定位目标文件的符号表中的一个确定的符号定义联系起来。当编译器遇到一个不是在当前模块中定义的符号时，它会假设该符号是在其他某个模块中定义的，生成一个链接器符号表表目，并把它交给链接器处理。如果链接器在它的任何输入模块中都找不到这个被引用的符号，它就输出一条错误信息并终止。<br>
-        所有的编译系统都提供一种机制，将所有相关的目标模块打包为一个单独的文件，称为静态库 ( $static\ \ library$ )，它也可以用做链接器的输入。当链接器构造一个输出的可执行文件时，它只拷贝静态库里被应用程序引用的目标模块。在<code>Unix</code>系统中，静态库以一种称为存档 ( $archive$ ) 的特殊文件格式存放在磁盘中。存档文件是一组连接起来的可重定位目标文件的集合，有一个头部描述每个成员目标文件的大小和位置。<br>
-        一旦链接器完成了符号解析，它就把代码中的每个符号引用和确定的一个符号定义联系起来。在此时，链接器就知道它的输入目标模块中代码节和数据节的确切大小。接下来就可以开始重定位了：</p>
-<ul>
-<li>重定位节和符号定义。链接器将所有相同类型的节合并为同一类型的新的聚合节。</li>
-<li>重定位节中的符号引用。链接器修改代码节和数据节中对每个符号的引用，使得它们指向正确的运行时地址。为了执行这一步，链接器依赖于称为重定位表目 ( $relocation\ \ entry$ ) 的可重定位目标模块中的数据结构，记录需要修改的引用。</li>
-</ul>
-<p>        静态库同所有的软件一样，需要定期维护和更新。如果应用程序员想要使用一个库的最新版本，他们必须以某种方式了解到该库的更新情况，然后显式地将他们的程序与新的库重新链接。另一个问题是<code>C</code>程序使用的标准库函数，在运行时会被复制到每个运行进程的文本段中，从而造成存储器系统资源的极大浪费。<br>
-        共享库 ( $shared\ \ library$ ) 是一个目标模块，在运行时，可以加载到任意的存储器地址，并在存储器中和一个程序链接起来。这个过程称为动态链接 ( $dynamic\ \ linking$ )，是由一个叫做动态链接器 ( $dynamic\ \ linker$ ) 的程序来执行的。在任何给定的文件系统中，对于一个库只有一个共享库文件，所有引用该库的可执行目标文件共享这个库中的代码和数据。使用共享库后，链接过程中不会将库中代码和数据节拷贝到可执行文件中，而是拷贝一些重定位和符号表信息，它们使得运行时可以解析库中代码和数据的引用。</p>
-<h2 id="8-异常控制流">8. 异常控制流</h2>
-<h3 id="81-异常">8.1 异常</h3>
-<p>        从给处理器加电开始，直到断电为止，程序计数器假设一个序列的值</p>
-<p>$$
-a_0, a_1, \cdots, a_{n-1}
-$$</p>
-<p>        其中，每个 $a_k$ 是某个相应的指令 $I_k$ 的地址，每次从 $a_k$ 到 $a_{k+1}$ 的过渡称为控制转移 ( $control\ \ transfer$ )。这样的控制转移序列叫做处理器的控制流 ( $control\ \ flow$ )。现代系统通过使控制流发生突变来应对系统状态的变化，一般而言，我们把这些突变称为<code>ECF</code> ( $exceptional\ \ control\ \ flow$ )。<br>
-        <b>异常</b> ( $exception$ ) 是一种形式的异常控制流，它一部分是由硬件实现的，一部分是由操作系统实现的。因为它们有一部分是由硬件实现的，所以具体细节将随系统的不同而有所不同。然而，对于每个系统而言，基本的思想都是相同的。在处理器中，状态被编码为不同的位和信号。状态变化被称为事件 ( $event$ )，事件可能和当前指令的执行直接相关，也可能没有关系。在任何情况中，当处理器检测到有事件发生时，它就会通过一张叫做异常表 ( $exception\ \ table$ ) 的跳转表，进行一个间接过程调用，到一个专门设计用来处理这类事件的操作系统子程序——异常处理程序 ( $exception\ \ handler$ )。当异常处理程序完成处理后，根据引起异常的事件的类型，会发生以下三种情况中的一种：</p>
-<ol>
-<li>处理程序将控制返回给当前指令 $Icurr$ 。</li>
-<li>处理程序将控制返回给 $Inext$ 。</li>
-<li>处理程序终止被中断的程序。</li>
-</ol>
-<p>        系统中可能的每种类型的异常都分配了一个唯一的非负整数的异常号 ( $exception\ \ number$ )。这些号码中的某一些是由处理器的设计者分配的，其他号码是由操作系统内核的设计者分配的。在系统启动时，操作系统分配和初始化一张称为异常表的跳转表，表目 $k$ 包含异常 $k$ 的处理程序的地址。在运行时，处理器检测到发生了一个事件，并且确定了相应的异常号 $k$ 。随后，处理器触发异常，方法是间接过程调用，通过异常表的表目 $k$ ，转到相应的处理程序。异常号是异常表的索引，异常表的起始地址放在一个叫做异常表基寄存器 ( $exception\ \ table\ \ base\ \ register$ ) 的特殊<code>CPU</code>寄存器里。<br>
-        异常可以分为四类：</p>
-<table>
-<thead>
-<tr>
-<th style="text-align:center">类别</th>
-<th style="text-align:center">原因</th>
-<th style="text-align:center">异步/同步</th>
-<th style="text-align:center">返回行为</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">中断</td>
-<td style="text-align:center">来自<code>I/O</code>设备的信号</td>
-<td style="text-align:center">异步</td>
-<td style="text-align:center">总是返回到下一条指令</td>
-</tr>
-<tr>
-<td style="text-align:center">陷阱</td>
-<td style="text-align:center">有意的异常</td>
-<td style="text-align:center">同步</td>
-<td style="text-align:center">总是返回到下一条指令</td>
-</tr>
-<tr>
-<td style="text-align:center">故障</td>
-<td style="text-align:center">潜在可恢复的错误</td>
-<td style="text-align:center">同步</td>
-<td style="text-align:center">可能返回到当前指令</td>
-</tr>
-<tr>
-<td style="text-align:center">终止</td>
-<td style="text-align:center">不可恢复的错误</td>
-<td style="text-align:center">同步</td>
-<td style="text-align:center">不会返回</td>
-</tr>
-</tbody>
-</table>
-<p>        <strong>中断</strong>是异步发生的，是来自处理器外部的<code>I/O</code>设备的信号的结果。硬件中断不是任何一条专门的指令造成的，从这个意义上来说它是异步的。硬件终端的异常处理程序常常被称为中断处理程序 ( $interrupt\ \ handler$ )。<code>I/O</code>设备，例如网络适配器、磁盘控制器和定时器芯片，通过向处理器芯片上的一个管脚发信号，并将异常号放到系统总线上，来触发中断，这个异常号标识了引起中断的设备。在当前指令完成之前，处理器注意到中断管脚的电压变高了，就从系统总线读取异常号，然后调用适当的中断处理器程序。当处理程序返回时，它就将控制返回给下一条指令。结果是程序继续执行，就好像没有发生中断一样。<br>
-        陷阱是有意的异常，是执行一条指令的结果。就像中断处理程序一样，陷阱处理程序将返回到下一条指令。陷阱最重要的用途是在用户程序和内核之间提供一个像过程一样的接口，叫做系统调用。用户程序经常需要向内核请求服务，比如读一个文件 ( $read$ )、创建一个新的进程 ( $fork$ )、加载一个新的程序 ( $execve$ )，或者终止当前进程 ( $exit$ )。为了允许对这些内核服务的受控的访问，处理器提供了一条特殊的 $syscall\ \ n$ 指令，当用户程序想要请求服务 $n$ 时，可以执行这条指令，产生一个到异常处理程序的陷阱。<br>
-        故障由错误情况引起，它可能被故障处理程序修正。当一个故障发生时，处理器将控制转移给故障处理程序。如果处理程序能够修正这个错误情况，它就将控制返回到故障指令，从而重新执行它。否则，处理程序返回到内核中的 $abort$ 例程，终止引起故障的应用程序。故障的一个经典示例是缺页异常。<br>
-        终止是不可恢复的致命错误造成的结果——典型的是一些硬件错误，比如<code>DRAM</code>或者<code>SRAM</code>位被损坏时发生的奇偶错误。终止处理程序从不将控制返回给应用程序，而是传递给一个内核 $abort$ 例程。</p>
-<h3 id="82-进程">8.2 进程</h3>
-<p>        异常提供基本的构造块，它允许操作系统提供<strong>进程</strong> ( $process$ ) 的概念。进程的经典定义就是一个执行中程序的实例。系统中的每个程序都是运行在某个进程的上下文 ( $context$ ) 中的。上下文是由程序正确运行所需的状态组成的，这个状态包括存放在存储器中的程序的代码和数据、它的栈、它的通用目的寄存器的内容、它的程序计数器、环境变量以及打开文件描述符的集合。<br>
-        典型的，即使在系统中有许多其他程序在运行，进程也可以向每个程序提供一种假象，好像它在独占地使用处理器。如果我们想用调试器单步执行我们的程序，我们会看到一系列的<code>PC</code>的值，这些值唯一地对应于包含在我们程序的可执行目标文件中的指令或是包含在运行时动态链接到我们程序的共享对象中的指令。这个<code>PC</code>值的序列叫做逻辑控制流。任何逻辑流在时间上和另外的逻辑流重叠的进程被称为并发进程 ( $concurrent\ \ process$ )，而这两个进程就被称为并发运行。进程和其他进程轮换运行的概念称为多任务 ( $multitasking$ )。一个进程执行它的控制流的一部分的每一时间段叫做时间片 ( $time\ \ slice$ )。因此，多任务也叫做时间分片 ( $time\ \ slicing$ )。<br>
-        进程也为每个程序提供一种假象，就好像它正在独占地使用系统地址空间。一个进程为每个程序提供它自己的私有地址空间。一般而言，和这个空间中某个地址相关联的那个存储器字节是不能被其他进程读或者写的，从这个意义上说，这个地址空间是私有的。<br>
-        为了使操作系统内核提供一个无懈可击的进程抽象，处理器必须提供一种机制，限制一个应用可以执行的指令以及它可以访问的地址空间范围。典型地，处理器是用某个控制寄存器中的一个方式位 ( $mode\ \ bit$ ) 来提供这种功能的，当该方式位设置了时，进程就运行在内核模式中。一个运行在内核模式的进程可以执行指令集中的任何指令，并且可以访问系统中任何存储器位置。一个运行应用程序代码的进程初始时是在用户模式中的。进程从用户模式变为内核模式的唯一方法是通过诸如中断、故障或者陷入系统调用 ( $trapping\ \ system\ \ call$ ) 这样的异常。<br>
-        操作系统内核利用一种称为上下文切换 ( $context\ \ switch$ ) 的较高级形式的异常控制流来实现多任务。内核为每个进程维持一个上下文，上下文就是内核重新启动一个被抢占进程所需的状态，由一些对象的值组成，包括通用目的寄存器、浮点寄存器、程序计数器、用户栈、状态寄存器、内核栈和各种内核数据结构，比如描绘地址空间的页表、包含有关当前进程信息的进程表，以及包含进程已打开文件的信息的文件表。在进程执行的某些时刻，内核可以决定抢占当前进程，并重新开始一个先前被抢占的进程，这种决定就叫做调度 ( $scheduling$ )，是由内核中称为调度器 ( $scheduler$ ) 的代码处理的。上下文切换可以：</p>
-<ol>
-<li>保存当前进程的上下文；</li>
-<li>恢复某个先前被抢占进程所保存的上下文；</li>
-<li>将控制传递给这个新恢复的进程。</li>
-</ol>
-<p>        当内核代表用户执行系统调用时，可以发生上下文切换。如果系统调用因为等待某个事件发生而阻塞，那么内核可以让当前进程休眠，切换到另一个进程。<br>
-        当一个进程由于某种原因终止时，内核并不是立即把它从系统中清除。取而代之的是，进程被保持在一种终止状态中，直到被它的父进程回收 ( $reaped$ )。当父进程回收已终止的子进程时，内核将子进程的退出状态传递给父进程，然后抛弃已终止的进程，从此时开始，该进程就不存在了。一个终止了但还未被回收的进程称为僵死进程 ( $zombie$ )。如果父进程没有回收它的僵死子进程就终止了，那么内核会安排 $init$ 进程来回收它们。$init$ 进程的 $PID$ 为 $1$ ，并且是在系统初始化时由内核创建的。</p>
-<h3 id="83-信号">8.3 信号</h3>
-<p>        一个信号 ( $signal$ ) 就是一条消息，它通知进程一个某种类型的事件已经在系统中发生了。每种信号类型都对应于某个类型的系统事件。低层的硬件异常是由内核异常处理程序处理的，对用户进程而言通常是不可见的。信号提供了一种机制向用户进程通知这些异常的发生。发送一个信号到目的进程是由两个不同步骤组成的：</p>
-<ul>
-<li>发送信号。内核通过更新目的进程上下文中的某个状态，发送一个信号给目的进程。发送信号可以有如下两个原因：内核检测到一个系统事件，或者一个进程调用了 $kill$ 函数，显式地要求内核发送一个信号给目的进程。</li>
-<li>接收信号。当目的进程被内核强迫以某种方式对信号的发送作出反应时，目的进程就接收了信号。进程可以忽略这个信号，终止，或者通过执行一个称为信号处理程序 ( $signal\ \ handler$ ) 的用户层函数捕获这个信号。</li>
-</ul>
-<p>        一个只发出而没有被接收的信号叫做待处理信号 ( $pending\ \ signal$ )。在任何时刻，一种类型至多只会有一个待处理信号，接下来发送到这个进程的该类型的信号都会被丢弃。一个进程可以有选择性地阻塞接收某种信号。当一种信号被阻塞时，它仍可以被发送，但是产生的待处理信号不会被接收，直到取消阻塞。</p>
-<h2 id="9-测量程序执行时间">9. 测量程序执行时间</h2>
-<p>        计算机是在两个完全不同的时间尺度 ( $time\ \ scale$ ) 上工作的。在微观级别，它们以每个时钟周期一条或多条指令的速度执行指令，这里每个时钟周期只需要大约 $1ns$ 。在宏观尺度上，处理器必须响应外部事件，外部事件发生的时间尺度要以 $ms$ 来度量。<br>
-        外部事件，例如击键、磁盘操作和网络活动，会产生中断信号，这些中断信号使得操作系统调度程序得以运行，可能还会切换到另一个进程。即使没有这样的事件，我们也希望处理器从一个进程切换到另一个，这样用户看上去就好像处理器在同时执行许多程序一样。出于这个原因，计算机有一个外部计时器，它周期性地向处理器发送中断信号。这些中断信号之间的时间被称为间隔时间 ( $interval\ \ time$ )。当计时器中断发生时，操作系统调度程序可以选择要么继续当前正在执行的进程，要么切换到另一个进程。这个间隔时间必须设置得足够短，以保证处理器在任务间切换得足够频繁。但如果设置得太短，会导致性能很差，因为进程切换需要几千个时钟周期来进行。典型的计时器间隔范围是 $1 \sim 10ms$ 。<br>
-        为了给计时测量提供更高的精确度，许多处理器还包含一个运行在时钟周期级的计时器。这个计时器是一个特殊的寄存器，每个时钟周期它都会加 $1$ 。可以用特殊的机器指令来读这个计数器的值。不是所有的处理器都有这样的计数器，而且有这样的计数器的处理器在实现细节上也各不相同。</p>
-<h2 id="10-虚拟存储器">10. 虚拟存储器</h2>
-<p>        计算机系统的主存被组织成一个由 $M$ 个连续的字节大小的单元组成的数组。每字节都有一个唯一的物理地址 ( $physical\ \ address$, $PA$ )。<code>CPU</code>访问存储器的最自然的方式就是使用物理地址。我们把这种方式称为物理寻址 ( $physical\ \ addressing$ )。根据虚拟寻址，<code>CPU</code>通过生成一个虚拟地址 ( $virtual\ \ address$, $VA$ ) 来访问主存，这个虚拟地址在被送到存储器之前先转换成适当的物理地址。将一个虚拟地址转换为物理地址的任务叫做地址翻译 ( $address\ \ translation$ )。就像异常处理一样，地址翻译需要<code>CPU</code>硬件和操作系统之间的紧密合作。<code>CPU</code>芯片上叫做<code>MMU</code> ( $memory\ \ management\ \ unit$ ) 的专用硬件，利用存放在主存中的查询表来动态翻译虚拟地址。<br>
-        和存储器层次结构中其他缓存一样，磁盘上的数据被分割成块，这些块作为磁盘和主存之间的传输单元。<code>VM</code>系统通过将虚拟存储器分割为称为虚拟页 ( $virtual\ \ page$, $VP$ ) 的大小固定的块。<br>
-        同任何缓存一样，虚拟存储器系统必须有某种方法来判定一个虚拟页是否存放在<code>DRAM</code>中的某个地方。如果是，系统还必须确定这个虚拟页存放在哪个物理页中。如果不命中，还需要进行替换。页表将虚拟页映射到物理页。虚拟地址空间中的每个页在页表中的一个固定偏移量处都有一个<code>PTE</code> ( $page\ \ table\ \ entry$ )。为了我们的目的，我们将假设每个<code>PTE</code>是由一个有效位和一个 $n$ 位地址字段组成的。<br>
-        独立地址空间为操作系统提供了一个管理用户进程和操作系统自身之间共享的一致机制。一般而言，每个进程都有自己私有的代码、数据、堆以及栈区域，是不和其他进程共享的。然而，在一些情况中，还是需要进程来共享代码和数据。例如，每个进程必须调用相同的操作系统内核代码。操作系统通过将不同进程中适当的虚拟页面映射到相同的物理页面，从而安排多个进程共享这部分代码的一个拷贝，而不是在每个进程中都包括单独的内核的拷贝。<br>
-        地址翻译是一个 $N$ 元素的虚拟地址空间 ( $VAS$ ) 中的元素和一个 $M$ 元素的物理地址空间 ( $PAS$ ) 中元素之间的映射。<code>CPU</code>中的一个控制寄存器，页表基址寄存器 ( $page\ \ table\ \ base\ \ register$, $PTBR$ ) 指向当前页表。$n$ 位的虚拟地址包含两个部分：一个 $p$ 位的<code>VPO</code> ( $virtual\ \ page\ \ offset$ ) 和一个 $(n - p)$ 的<code>VPN</code> ( $virtual\ \ page\ \ number$ )。<code>MMU</code>利用<code>VPN</code>来选择适当的<code>PTE</code>。<br>
-        每次<code>CPU</code>产生一个虚拟地址，<code>MMU</code>就必须查阅一个<code>PTE</code>，在最糟糕情况下，这会要求一次对存储器的额外的取数据，代价是几十到几百个周期。许多系统都试图消除这样的开销，它们在<code>MMU</code>中包括了一个关于<code>PTE</code>的小的缓存，称为<code>TLB</code> ( $translation\ \ lookaside\ \ buffer$ )。<code>TLB</code>中每一行都保存着一个由单个<code>PTE</code>组成的块。当<code>TLB</code>不命中时，<code>MMU</code>必须从<code>L1</code>缓存中取出相应的<code>PTE</code>。<br>
-        <code>Linux</code>通过将一个虚拟存储器区域与一个磁盘上的对象 ( $object$ ) 关联起来，以初始化这个虚拟存储器区域的内容，这个过程称为存储器映射 ( $memory\ \ mapping$ )。虚拟存储器区域可以映射到两种类型的对象：</p>
-<ol>
-<li><code>Unix</code>文件系统中的普通文件：一个区域可以映射到一个普通磁盘文件的连续部分。文件被分成页面大小的片，每一片包含一个虚拟页面的初始内容。</li>
-<li>匿名文件：一个区域也可以映射到一个匿名文件，匿名文件是由内核创建的，包含的全是二进制零。<code>CPU</code>第一次引用这样一个区域内的虚拟页面时，内核就在物理存储器中找到一个合适的牺牲页面，用二进制零覆盖，并更新页表，在磁盘和存储器之间并没有实际的数据传送。</li>
-</ol>
-<p>        无论哪一种情况，一旦一个虚拟页面被初始化了，它就在一个由内核维护的专门的交换文件 ( $swap\ \ file$ ) 之间换来换去。交换文件也叫做交换空间 ( $swap\ \ space$ ) 或者交换区域 ( $swap\ \ area$ )。在任何时刻，交换空间都限制着当前运行着的进程能够分配的虚拟页面的总数。<br>
-        一个对象可以被映射到虚拟存储器的一个区域，要么作为共享对象，要么作为私有对象。私有对象是使用一种叫做写时拷贝 ( $copy-on-write$ ) 的技术映射到虚拟存储器中的。一个私有对象开始的生命周期的方式基本上与共享对象一样，在物理存储器中只保存有私有对象的一份拷贝。两个进程可以将一个私有对象映射到它们的虚拟存储器的不同区域，但是共享同一份物理拷贝。对于每个映射私有对象的进程，相应私有区域的页表条目都被标记为只读，并且区域结构被标记为私有的写时拷贝。只要没有进程试图写它自己的私有区域，它们就可以继续共享物理存储器中对象的一个单独拷贝。然而，只要有一个进程试图写它自己的私有区域内的某个页面，那么这个写操作就会触发一个保护故障。当故障处理程序注意到保护异常是由于进程试图写私有的写时拷贝区域中的一个页面而引起的，它就会在物理存储器中创建这个页面的一个新拷贝，更新页表条目指向这个新拷贝，然后恢复这个页面的可写权限。<br>
-        大多数<code>C</code>程序会在运行时需要额外的虚拟存储器，使用一种动态存储器分配器 ( $dynamic\ \ memory\ \ allocater$ )。一个动态存储器分配器维护着一个进程的虚拟存储器区域，称为堆 ( $heap$ )。在大多数的<code>Unix</code>系统中，堆是一个请求二进制零的区域，对于每个进程，内核维护着一个变量 $brk$ ，指向堆的顶部。<br>
-        任何实际的分配器都需要一些数据结构，允许它来区分块边界，并区别已分配块和空闲块，大多数分配器将这些信息嵌在块本身当中。一个块是由一个字的头部、有效载荷以及可能的一些额外的填充组成的。头部编码了这个块的大小，以及这个块是已分配的还是空闲的。我们称这种结构为隐式空闲列表，因为空闲块是通过头部中的大小字段隐含地连接着的。<br>
-        对于通用的分配器，隐式空闲列表是不适合的。一种更好的方法是将空闲块组织为某种形式的显式数据结构。例如，堆可以组织成一个双向空闲列表，或者使用<code>FIFO</code>方法维护链表。</p>
-<h2 id="11-系统级io">11. 系统级<code>I/O</code></h2>
-<p>        输入/输出 ( $I/O$ ) 是在主存和外部设备之间拷贝数据的过程。一个<code>Unix</code>文件就是一个 $m$ 字节的序列，所有的<code>I/O</code>设备，都被模型化为文件，而所有的输入和输出都被当作对相应文件的读和写来执行。内核用三种相关的数据结构来表示打开的文件：</p>
-<ul>
-<li>描述符表 ( $descriptor\ \ table$ )。每个进程都有它独立的描述符表，它的表项是由进程打开的文件描述符来索引的。每个打开的描述符表项指向文件表中的一个表项。</li>
-<li>文件表 ( $file\ \ table$ )。打开文件的集合是由一张文件表来表示的，所有的进程共享这张表。每个文件表的表项组成包括有当前的文件位置、引用计数，以及一个指向 $v-node$ 表中对应表项的指针。</li>
-<li>$v-node$ 表 ( $v-node\ \ table$ )。同文件表一样，所有的进程共享这张表。每个表项包含 $stat$ 结构中的大多数信息，包括 $st_-mode$ 和 $st_-size$ 成员。</li>
-</ul>
-<h2 id="12-网络编程">12. 网络编程</h2>
-<p>        每个网络应用都是基于客户端-服务器模型的。根据这个模型，一个应用是由一个服务器进程和一个或者多个客户端进程组成的。客户端和服务器通常运行在不同的主机上，并且通过计算机网络的硬件和软件资源来通信。对于一个主机而言，网络只是一种<code>I/O</code>设备，作为数据源和数据接收方。从网络上接收到的数据从适配器经过<code>I/O</code>和存储器总线拷贝到存储器，典型地是通过<code>DMA</code>传送。<br>
-        因特网客户端和服务器通过在连接 ( $connection$ ) 上发送和接收字节流来通信。从连接一对进程的意义上而言，连接是点对点 ( $point-to-point$ ) 的。从数据可以同时双向流动的角度来说，它是全双工 ( $full-duplex$ ) 的。套接字 ( $socket$ ) 是连接的端点 ( $end-point$ )。</p>
-<h2 id="13-并发编程">13. 并发编程</h2>
-<p>        构造并发程序最简单的方法就是用进程。对于在父、子进程间共享状态信息，进程有一个非常清晰的模型：共享文件表，但是不共享用户地址空间。有独立的进程地址空间，进程不可能不小心覆盖另一个进程的虚拟存储器，但是会使得进程共享状态信息变得更加困难。为了共享信息，它们必须使用显式的<code>IPC</code> ( 进程间通信 ) 机制。<br>
-        <code>I/O</code>多路技术可以用作并发事件驱动 ( $event-driven$ ) 程序的基础，在事件驱动中，流是作为某种事件的结果前进的。一般概念是将逻辑流模型化为状态机。不严格地说，一个状态机 ( $state\ \ machine$ ) 就是一组状态 ( $state$ )、输入事件 ( $input\ \ event$ ) 和转移 ( $transition$ )，其中转移就是将状态和输入事件映射到状态。对于每个新客户端 $k$ ，基于<code>I/O</code>多路复用的并发服务器会创建一个新的状态机 $s_k$ ，并将它和已连接描述符 $d_k$ 联系起来。服务器使用<code>I/O</code>多路复用，借助 $select$ 函数，检测输入事件的发生。当每个已连接描述符准备好可读时，服务器就为相应的状态机执行转移。<br>
-        <strong>线程</strong> ( $thread$ ) 就是运行在一个进程上下文中的一个逻辑流。线程由内核自动调度。每个线程都有它自己的线程上下文 ( $thread\ \ context$ )，包括一个唯一的整数线程<code>ID</code> ( $Thread\ \ ID$, $TID$ )、栈、栈指针、程序计数器、通用目的寄存器和条件码。所有运行在一个进程里的线程共享该进程的整个虚拟地址空间。在一些重要的方面，线程执行是不同于进程的。因为一个线程的上下文要比一个进程的上下文小得多，线程的上下文切换要比进程的上下文切换快得多。另一个不同就是线程不像进程那样按照严格的父子层次来组织，主线程和其他线程的区别仅在于它总是进程中第一个运行的线程。对等线程池概念的主要影响是，一个线程可以杀死它的任何对等线程，或者等待它的任意对等线程终止。进一步来说，每个对等线程都能读写相同的共享数据。<br>
-        在任何一个时间点上，线程是可结合的 ( $joinable$ ) 或者是可分离的 ( $detached$ )。一个可结合的线程能够被其他线程收回资源和杀死。在被其他线程回收之前，它的存储器资源是不释放的。相反，一个分离的线程是不能被其他线程回收或杀死的。它的存储器资源在它终止时由系统自动释放。默认情况下，线程是可结合的。</p>
-
-            </div>
-            <div class="meta post-footer"> <span>2021 May 19 15:06</span> <a href="/post/csapp%E7%AC%94%E8%AE%B0/"><i
                         class="fas fa-link"></i> link</a></div>
         </div>
         
