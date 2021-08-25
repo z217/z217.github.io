@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/jquery-3.4.1.min.js></script>
+<script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="https://www.cnblogs.com/meidaoli/"  target="_blank" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">进程、线程和协程</h1>
+
+
+<table>
+<thead>
+<tr>
+<th style="text-align:center"></th>
+<th style="text-align:center">进程</th>
+<th style="text-align:center">线程</th>
+<th style="text-align:center">协程</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"><code>CPU</code></td>
+<td style="text-align:center">系统负责执行线程</td>
+<td style="text-align:center">一个进程含有多个线程，系统分配线程在不同的<code>CPU</code>上执行</td>
+<td style="text-align:center">线程上执行</td>
+</tr>
+<tr>
+<td style="text-align:center">内存</td>
+<td style="text-align:center">进程管理自己的内存区域</td>
+<td style="text-align:center">多线程共享进程的内存区域</td>
+<td style="text-align:center">同线程</td>
+</tr>
+<tr>
+<td style="text-align:center">栈</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">系统负责在内存中分配调用栈，默认为 $8MB$</td>
+<td style="text-align:center">用户程序在堆上分配栈，切换的时候修改 $SP$ 、$PC$ 、$BP$</td>
+</tr>
+<tr>
+<td style="text-align:center">切换方式</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">时间片耗尽后触发中断处理程序，内核负责切换线程</td>
+<td style="text-align:center">主动切换，让出<code>CPU</code></td>
+</tr>
+<tr>
+<td style="text-align:center">切换内容</td>
+<td style="text-align:center">通用寄存器，$PC$ 寄存器，页表寄存器，<code>TLB</code>，<code>CPU</code>缓存</td>
+<td style="text-align:center">通用寄存器，$PC$ 寄存器，<code>CPU</code>缓存</td>
+<td style="text-align:center">通用寄存器，$PC$ 寄存器</td>
+</tr>
+<tr>
+<td style="text-align:center">上下文</td>
+<td style="text-align:center">$task_-struct$ ，页表</td>
+<td style="text-align:center">$task_-struct$ ，页表</td>
+<td style="text-align:center">运行栈，寄存器</td>
+</tr>
+</tbody>
+</table>
+<h2 id="1-cpu和内存">1. <code>CPU</code>和内存</h2>
+<p>        操作系统为进程分配了一个专门的数据结构称为进程控制块 ( $Process\ \ Control\ \ Block$ ，$PCB$ )。系统利用<code>PCB</code>来描述进程基本情况和运行状态，进而实现对进程的控制和管理。程序段、相关数据段和<code>PCB</code>构成了进程实体。<code>PCB</code>内的信息包括：</p>
+<ul>
+<li>进程描述信息：进程标识符 ( $PID$ ) 和用户标识符 ( $UID$ )；</li>
+<li>进程控制和管理信息：进程状态信息，进程优先级，代码运行入口，程序外存地址，处理机占用时间等；</li>
+<li>资源分配清单：代码段指针、数据段指针、堆栈段指针和文件描述符等；</li>
+<li>处理机相关信息：通用寄存器，地址寄存器，控制寄存器，状态字等。</li>
+</ul>
+<p>        线程的最直接理解就是轻量级进程，是<code>CPU</code>的基本执行单元，也是程序执行的最小单元，包括：</p>
+<ul>
+<li>线程<code>ID</code>；</li>
+<li>程序计数器；</li>
+<li>寄存器；</li>
+<li>堆栈。</li>
+</ul>
+<p>        线程是进程中的一个实体，是系统独立调度和分派的基本单位，只拥有一些运行中必不可少的资源，共享其所在线程的全部资源。在多线程操作系统中，进程的执行实际上是进程中的某个线程正在执行。<code>Linux</code>系统中进程和线程都使用 $task_-struct$ 结构描述，存储在一个双端循环列表中，列表存储在内核栈的末尾。<br>
+        线程的实现可以分为两类，用户级线程 ( $User-Level\ \ Thread$ ) 和内核级线程 ( $Kernel-Level\ \ Thread$ )。用户级线程中，有关线程管理的所有工作都交由应用程序完成；内核级线程中，线程管理的所有工作都交由内核完成，应用程序只有一个到内核级线程的编程接口，内核为进程及其内部的每个线程维护上下文信息。<br>
+        协程并不是一个新概念，它在 $1958$ 年就被提出。协程就是一个子任务，特点是非抢占式的调度。协程会自己判断运行状况，当满足一定条件就会主动让出<code>CPU</code>给其他协程，而进程或者线程的切换需要进入内核态交给内核处理。协程其实就是用户级线程。协程中的信息只包括运行栈和寄存器，后者决定了程序在代码中的执行位置。</p>
+<ul>
+<li>$PC$ 寄存器：指向下一条指令的位置；</li>
+<li>$BP$ 寄存器：当前函数栈帧的起始位置，用于定位函数参数以及函数内变量的位置；</li>
+<li>$SP$ 寄存器：当前函数栈帧的结束位置，也即下一个函数栈帧的起始位置。</li>
+</ul>
+<h2 id="2-栈">2. 栈</h2>
+<ul>
+<li>每次函数调用的时候，对于通用寄存器传参的冲突，我们可以先将通用寄存器临时压入栈中，在子函数调用完毕后，再将栈顶参数弹出，恢复寄存器值；</li>
+<li>局部变量也是在栈中申请空间的，每次申请时都要向下移动栈指针，指针回移即可完成局部变量的释放；</li>
+<li>函数的返回地址也是在子函数调用前压入栈中，待子函数调用完毕后弹出到 $PC$ 寄存器中。</li>
+</ul>
+<p>        进程的内存空间中有一块栈区，<code>PCB</code>会存储栈区指针，表示用户空间栈。栈的初始化是由编译器和链接器计算出来的，但是栈的实时大小并不是固定的，栈也不是能无限增长的，一般为 $8MB$ 。对于主线程，其栈实际上就是进程栈。然而对于主线程生成的子线程来说，其栈是固定的，使用 $mmap(\ )$ 系统调用，也就是说不会动态增长，一旦用尽就没了。由于线程栈是从进程地址空间中 $mmap(\ )$ 映射的一块内存区域，原则上是线程私有的。<br>
+        在每一个进程的生命周期中，必然会通过系统调用陷入内核。在执行系统调用陷入内核之后，这些内核代码所使用的栈并不是原先进程用户空间中的栈，而是一个单独内核空间的栈，称作进程内核栈。进程内核栈通过 $slab$ 分配器从 $thread_-info_-cache$ 缓存池中分配出来，其大小为 $THREAD_-SIZE$ ，一般来说是一个页大小 ( $4K$ )。</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="k">union</span> <span class="n">thread_union</span> <span class="p">{</span>
+    <span class="k">struct</span> <span class="n">thread_info</span> <span class="n">thread_info</span><span class="p">;</span>
+    <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">stack</span><span class="p">[</span><span class="n">THREAD_SIZE</span><span class="o">/</span><span class="k">sizeof</span><span class="p">(</span><span class="kt">long</span><span class="p">)];</span>
+<span class="p">}</span>
+</code></pre></div><p>        $thread_-union$ 进程内核栈和 $task_-struct$ 进程描述符有着紧密的联系，内核经常要访问 $task_-struct$ ，高效获取当前进程描述符是一个很重要的事。因此内核在进程内核栈头部存放了 $thread_-union$ ，从而记录了对应的进程描述符。<br>
+        进程陷入内核栈的时候，需要内核栈来支持内核函数调用，中断也是如此。当系统收到中断事件后，进行中断处理的时候，也需要中断栈来支持函数调用。由于系统中断的时候，系统当然是处于内核态的，所以中断栈是可以和内核栈共享的，具体是否共享，和处理器架构有关。<br>
+        协程可以被分为两类，一种是有栈协程，例如 $goroutine$ 和 $libco$ ，一种是无栈协程，例如<code>C++</code>。有栈和无栈的区别并不是运行的时候有没有栈，而是协程之间是否存在调用栈。<br>
+       很多地方又把协程称为 $subroutine$ ，也即函数，而 $coroutine$ 就是可以中断并恢复执行的 $subroutine$ 。如果把协程当作一个特殊的函数调用，那么有栈协程就是我们理想中的协程实现形式。把协程当作一个函数调用，难点在于如何切换函数，也即切换协程，最后还要切换回来。一种做法是在协程内部存储自身的上下文，并在需要的时候进行切换。上下文的本质是寄存器，所以保存上下文实际上就是把寄存器的值保存下来。在<code>Go</code>程序中，每个 $goroutine$ 都有自己的栈区，各个栈区隔离，初始大小为 $2KB$ ，可以按照需求增长和收缩，最大限制为 $1GB$ 。<br>
+        无栈协程的本质就是一个状态机，即所有协程本质都是同一个协程，而协程切换不过是寄存器状态的改变。从执行时栈的角度来看，所有协程共用一个系统栈，也就不必给协程分配栈。相比于有栈协程把局部变量放在新开的空间上，无栈协程直接使用系统栈，具有更好的局部性，而且中断和函数返回没有区别，更加高效。</p>
+<h2 id="3-调度">3. 调度</h2>
+<p>        通常进程的创建、撤销以及要求系统设备完成<code>I/O</code>操作都是利用系统调用进入内核模式，再由内核中相应的处理程序完成的。进程切换也是内核模式下完成的，过程为：</p>
+<ol>
+<li>保存处理机上下文，包括程序计数器和寄存器；</li>
+<li>更新<code>PCB</code>；</li>
+<li>把<code>PCB</code>移入相应的就绪队列或者事件的阻塞队列；</li>
+<li>找到下一个要执行的进程，更新<code>PCB</code>；</li>
+<li>更新内存管理的数据结构；</li>
+<li>恢复处理机上下文。</li>
+</ol>
+<p>        线程只持有一些必不可少的资源，包括线程<code>ID</code>、程序计数器、寄存器集合和堆栈。在进行线程切换时，只需要保存和设置少量寄存器内容即可。由于<code>Linux</code>中线程和进程使用相同的结构，因此在<code>Linux</code>中，线程和进程调度算法相同。<br>
+        <code>Linux</code>系统使用了一种叫做<code>CFS</code> ( $Completely\ \ Fair\ \ Scheduler$ ) 的可抢占支持优先级时间片动态轮转调度算法。首先会根据<code>CPU</code>的负载状况确定一个调度的时间区间，然后将这个区间根据各个可运行进程的静态优先级 划分给每个进程一个时间片，这个时间片即动态优先级，跟虚拟运行时间有关 ( 虚拟运行时间 = 实际运行时间 $\times$ $nice$ 值 / 权重 )。然后将所有进程按照时间片的大小构建成一颗红黑树，每次调度时取红黑树中边上时间片最多的进程 ( 也即虚拟运行时间最少的进程 ) 运行，直到红黑树所有节点都用完了时间片就会触发下一轮调度。基本思路就是让虚拟运行时间最少的进程运行，所以叫做基本公平调度算法。<br>
+        $goroutine$ 就是协程，不同的是<code>Go</code>在运行时、系统调用等多方面对 $goroutine$ 调度进行了封装和处理，当遇到长时间执行或者进行系统调用时，会主动把当前 $goroutine$ 的<code>CPU</code>转让出去，让其他 $goroutine$ 能被调度执行。在内部实现上，进程内维护了一组数据结构和 $n$ 个线程，协程执行的代码在一个待执行队列中，由 $n$ 个线程消费。<code>Go</code>对<code>I/O</code>函数进行封装，内部使用异步<code>I/O</code>模式，在异步<code>I/O</code>执行的过程中，将现有执行序列入栈，让另一个协程执行。<br>
+        <code>Go</code>协程使用了<code>M-P-G</code>模型。$M$ 为 $Machine$ ，即一个底层的操作系统线程；$G$ 即 $goroutine$ ，也就是协程；$P$ 为 $Processor$ ，是协程的管理者，<code>Go</code>抽象的一个处理器，通常数量等于<code>CPU</code>数量，运行时会绑定一个 $M$ ，当 $M$ 不可运行，比如陷入的时候，会转移到其他 $M$ 中。$P$ 中存在一个协程队列，$M$ 会消费这个队列，中途出现阻塞或者占用时间片过久都会触发协程调度。<br>
+        <code>Go</code>协程采用了一种无优先级可抢占<code>FIFO</code>时间片轮转调度算法，调度本质是给绑定在 $P$ 的 $M$ 选择下一个可以运行的 $G$ 。$P$ 中的队列会被 $M$ 按照顺序消费，同时<code>Go</code>启动一个特殊的不绑定 $P$ 的线程 $sysmon$ ( $System\ \ Monitor$ )，会遍历所有 $P$ ，将在 $P$ 上运行超过 $10ms$ 的协程标记为可抢占。被标记为可抢占的协程在函数调用时会触发抢占调度，重新回到队列中。当 $P$ 的队列消费完毕，就会尝试去全局的协程队列中寻找任务，如果还是没有，就会从其他 $P$ 中窃取一半任务到当前队列上。</p>
+
+
+<a href="javascript:void(0)" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+<div id="sidetoc">
+    <header>
+        <h4>进程、线程和协程</h4>
+    </header>
+    
+    <nav id="TableOfContents">
+        <ul></ul>
+    </nav>
+</div>
+<script src=https://z217blog.cn/js/toc.js></script>
+
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/hashmap%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2021, z217 and the Hugo Authors; all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        
+        
+        
+        var all = MathJax.Hub.getAllJax(),
+            i;
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+        if (tocFlag) tocInit();
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
+</body>
+
+</html>
