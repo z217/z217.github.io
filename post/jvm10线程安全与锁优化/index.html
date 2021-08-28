@@ -176,7 +176,7 @@
 <tr>
 <td style="text-align:center">$32$ / $64$</td>
 <td style="text-align:center">$Class\ \ Metadata\ \ Address$</td>
-<td style="text-align:center">存储到对象类型数据的指针</td>
+<td style="text-align:center">存储指向对象类型元数据的指针</td>
 </tr>
 <tr>
 <td style="text-align:center">$32$ / $64$</td>
@@ -186,20 +186,20 @@
 </tbody>
 </table>
 <p>        $32$ 位虚拟机的 $Mark\ \ Word$ 状态如下：</p>
-<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="o">|------------------------------------------------------------------|--------------|</span>
-<span class="o">|</span>                     <span class="n">Mark</span> <span class="n">Word</span> <span class="p">(</span><span class="mi">32</span> <span class="n">bits</span><span class="p">)</span>                          <span class="o">|</span>     <span class="err">状态</span>     <span class="o">|</span>
-<span class="o">|------------------------------------------------------------------|--------------|</span>
-<span class="o">|</span>          <span class="err">哈希码</span><span class="p">(</span><span class="mi">25</span><span class="p">)</span>        <span class="o">|</span> <span class="err">年龄</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="o">|</span> <span class="err">偏向锁标记</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">|</span> <span class="err">锁标记</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">|</span> <span class="err">普通</span> <span class="p">(</span> <span class="err">无锁</span> <span class="p">)</span><span class="o">|</span>
-<span class="o">|------------------------------------------------------------------|--------------|</span>
-<span class="o">|</span> <span class="err">线程</span><span class="n">ID</span><span class="p">(</span><span class="mi">23</span><span class="p">)</span> <span class="o">|</span> <span class="err">偏向时间戳</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">|</span> <span class="err">年龄</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="o">|</span> <span class="err">偏向锁标记</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">|</span> <span class="err">锁标记</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">|</span>    <span class="err">偏向锁</span>    <span class="o">|</span>
-<span class="o">|------------------------------------------------------------------|--------------|</span>
-<span class="o">|</span>                  <span class="err">栈中锁记录指针</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span>                  <span class="o">|</span> <span class="err">锁标记</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">|</span>   <span class="err">轻量级锁</span>   <span class="o">|</span>
-<span class="o">|------------------------------------------------------------------|--------------|</span>
-<span class="o">|</span>                    <span class="err">互斥量指针</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span>                    <span class="o">|</span> <span class="err">锁标记</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">|</span>   <span class="err">重量级锁</span>   <span class="o">|</span>
-<span class="o">|------------------------------------------------------------------|--------------|</span>
-<span class="o">|</span>                                                      <span class="o">|</span> <span class="err">锁标记</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">|</span>    <span class="n">GC标记</span>    <span class="o">|</span>
-<span class="o">|------------------------------------------------------------------|--------------|</span>
-</code></pre></div><p>        $64$ 位虚拟机的 $Mark\ \ Word$ 状态如下：</p>
+<pre><code>|------------------------------------------------------------------|--------------|
+|                     Mark Word (32 bits)                          |     状态     |
+|------------------------------------------------------------------|--------------|
+|          哈希码(25)        | 年龄(4) | 偏向锁标记(1) | 锁标记(2) | 普通 ( 无锁 )|
+|------------------------------------------------------------------|--------------|
+| 线程ID(23) | 偏向时间戳(2) | 年龄(4) | 偏向锁标记(1) | 锁标记(2) |    偏向锁    |
+|------------------------------------------------------------------|--------------|
+|                  栈中锁记录指针(30)                  | 锁标记(2) |   轻量级锁   |
+|------------------------------------------------------------------|--------------|
+|                    互斥量指针(30)                    | 锁标记(2) |   重量级锁   |
+|------------------------------------------------------------------|--------------|
+|                                                      | 锁标记(2) |    GC标记    |
+|------------------------------------------------------------------|--------------|
+</code></pre><p>        $64$ 位虚拟机的 $Mark\ \ Word$ 状态如下：</p>
 <pre><code>|----------------------------------------------------------------------------======------|---------------|
 |                                      Mark Word (64 bits)                               |      状态     |
 |----------------------------------------------------------------------------------------|---------------|
@@ -276,20 +276,20 @@
 <p>        偏向锁的实现与轻量级锁类似，不同之处在于 $Mark\ \ Word$ 中会记录获得偏向锁的线程<code>ID</code>，并在之后同一个线程进入同步块时不再进行任何同步操作。一旦出现另一个线程尝试获取锁，偏向模式立即结束，根据当前对象的锁定状态决定是否撤销偏向。偏向锁可以提高带有同步但是无竞争的程序性能，同样也并非总是有利，对于大多数总是被多个线程访问的情况，偏向模式就是多余的。<br>
         偏向锁的实现需要占用 $Mark\ \ Word$ 中存储哈希码的区域。哈希码依赖于 $Object::hashCode(\ )$ 方法，会在第一次调用后存储在对象头中，从而保证哈希码的一致性。因此如果一个对象计算过一次哈希码之后，就不能再使用偏向锁，一个处于偏向锁状态的对象需要计算哈希码时，它的偏向锁状态会被立即撤销，并膨胀为重量级锁。</p>
 <h3 id="37-重量级锁">3.7 重量级锁</h3>
-<p>        重量级锁依赖于操作系统的互斥量 ( $mutex$ ) 实现，而操作系统中线程间状态的转换需要较长时间，所以重量级锁效率低，但被阻塞的线程不会消耗<code>CPU</code>。当多个线程同时请求某个对象锁时，对象锁会设置几种状态来区分请求线程：</p>
+<p>        重量级锁依赖于操作系统的互斥量 ( $mutex$ ) 实现，而操作系统中线程间状态的转换需要较长时间，所以重量级锁效率低，但被阻塞的线程不会消耗<code>CPU</code>。当对象锁是重量级锁时，$Mark\ \ Word$  中会记录一个指向 $ObjectMonitor$ 的指针，后者是线程共享并且持有更多信息。当多个线程同时请求某个对象锁时，对象锁会设置几种状态来区分请求线程：</p>
 <ul>
-<li>$Contention\ \ List$ ：所有请求锁的线程会首先进入该竞争队列；</li>
-<li>$Entry\ \ List$ ：从竞争队列中选择有资格的线程移入 $Entry\ \ List$ ；</li>
+<li>$Contention\ \ List$ ：所有请求锁的线程会首先进入该竞争队列，是单向链表；</li>
+<li>$Entry\ \ List$ ：从竞争队列中选择有资格的线程移入 $Entry\ \ List$ ，双向链表；</li>
 <li>$Wait\ \ Set$ ：调用 $wait$ 方法被阻塞的线程会被放置到 $Wait\ \ Set$ ；</li>
 <li>$OnDeck$ ：任何时刻最多只有一个线程在竞争锁，称为 $OnDeck$ ；</li>
 <li>$Owner$ ：持有锁的线程；</li>
 <li>$!Owner$ ：释放锁的线程。</li>
 </ul>
 <ol>
-<li>当线程尝试获取锁但是锁已经被其他线程持有时，线程会被封装成 $ObjectWaiter$ 对象，插入 $Contention\ \ List$ 队列的队列，然后通过 $LockSupport.park(\ )$ 方法挂起；</li>
-<li>当线程释放锁时，会从 $Contention\ \ List$ 或者 $Entry\ \ List$ 中选择一个线程唤醒，被选中的线程称为 $Heir\ \ presumptive$ ( 假定继承人 )；</li>
+<li>当线程尝试获取锁但是锁已经被其他线程持有时，线程会被封装成 $ObjectWaiter$ 对象，插入 $Contention\ \ List$ 队列的队头，然后通过 $LockSupport.park(\ )$ 方法挂起；</li>
+<li>当线程释放锁时，会在 $Entry\ \ List$ 中从前往后选择一个线程唤醒，如果 $Entry\ \ List$ 为空，将 $Contention\ \ List$ 设置为 $Entry\ \ List$ ，再从 $Entry\ \ List$ 中选择。被选中的线程称为 $Heir\ \ presumptive$ ( 假定继承人 )；</li>
 <li>假定继承人被唤醒后会尝试获取锁，但由于 $synchronized$ 非公平，线程会先尝试自旋获取锁，自旋不成功再进入等待队列，所以假定继承人不一定能获取锁；</li>
-<li>如果线程获取锁后调用 $Object.wait(\ )$ 方法，线程会加入到 $Wait\ \ Set$ 中，在被唤醒后重新加入 $Contention\ \ List$ 或者 $Entry\ \ List$ 中去。当调用一个锁对象的 $wait(\ )$ 或者 $notify(\ )$ 方法时，会先将锁膨胀为重量级锁。</li>
+<li>如果线程获取锁后调用 $Object.wait(\ )$ 方法，线程会加入到 $Wait\ \ Set$ 中，在被唤醒后重新加入 $Contention\ \ List$ 中。当调用一个锁对象的 $wait(\ )$ 或者 $notify(\ )$ 方法时，会先将锁膨胀为重量级锁。</li>
 </ol>
 
 
