@@ -87,31 +87,31 @@
 <table>
 <thead>
 <tr>
-<th style="text-align:center">状态</th>
-<th style="text-align:center">描述</th>
-<th style="text-align:center">监听</th>
+<th align="center">状态</th>
+<th align="center">描述</th>
+<th align="center">监听</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td style="text-align:center">$Invalid$</td>
-<td style="text-align:center">该<code>cache</code>字段失效</td>
-<td style="text-align:center">无</td>
+<td align="center">$Invalid$</td>
+<td align="center">该<code>cache</code>字段失效</td>
+<td align="center">无</td>
 </tr>
 <tr>
-<td style="text-align:center">$Shared$</td>
-<td style="text-align:center">字段数据一致并且多核<code>cache</code>共享该字段</td>
-<td style="text-align:center">监听其他缓存使该字段无效或者变为 $Exclusive$ 的请求，监听到对应事件后会将该字段设为 $Invalid$</td>
+<td align="center">$Shared$</td>
+<td align="center">字段数据一致并且多核<code>cache</code>共享该字段</td>
+<td align="center">监听其他缓存使该字段无效或者变为 $Exclusive$ 的请求，监听到对应事件后会将该字段设为 $Invalid$</td>
 </tr>
 <tr>
-<td style="text-align:center">$Exclusive$</td>
-<td style="text-align:center">字段数据一致并且只在当前核<code>cache</code>中独有</td>
-<td style="text-align:center">监听其他缓存读主存中该字段的操作，监听到对应事件后将该字段变为 $Shared$</td>
+<td align="center">$Exclusive$</td>
+<td align="center">字段数据一致并且只在当前核<code>cache</code>中独有</td>
+<td align="center">监听其他缓存读主存中该字段的操作，监听到对应事件后将该字段变为 $Shared$</td>
 </tr>
 <tr>
-<td style="text-align:center">$Modified$</td>
-<td style="text-align:center">该字段有效但是与主存不一致，只存在于当前核<code>cache</code>中</td>
-<td style="text-align:center">监听所有试图读该字段对应主存字段的操作，该操作会被延迟到当前缓存字段写回主存并将状态设为 $Shared$ 之后执行</td>
+<td align="center">$Modified$</td>
+<td align="center">该字段有效但是与主存不一致，只存在于当前核<code>cache</code>中</td>
+<td align="center">监听所有试图读该字段对应主存字段的操作，该操作会被延迟到当前缓存字段写回主存并将状态设为 $Shared$ 之后执行</td>
 </tr>
 </tbody>
 </table>
@@ -119,33 +119,44 @@
 <table>
 <thead>
 <tr>
-<th style="text-align:center">事件</th>
-<th style="text-align:center">描述</th>
+<th align="center">事件</th>
+<th align="center">描述</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td style="text-align:center">$Local\ \ Read$</td>
-<td style="text-align:center">读取本地<code>cache</code>字段</td>
+<td align="center">$Local\ \ Read$</td>
+<td align="center">读取本地<code>cache</code>字段</td>
 </tr>
 <tr>
-<td style="text-align:center">$Local\ \ Write$</td>
-<td style="text-align:center">写入本地<code>cache</code>字段</td>
+<td align="center">$Local\ \ Write$</td>
+<td align="center">写入本地<code>cache</code>字段</td>
 </tr>
 <tr>
-<td style="text-align:center">$Remote\ \ Read$</td>
-<td style="text-align:center">其他<code>cache</code>读取字段</td>
+<td align="center">$Remote\ \ Read$</td>
+<td align="center">其他<code>cache</code>读取字段</td>
 </tr>
 <tr>
-<td style="text-align:center">$Remote\ \ Write$</td>
-<td style="text-align:center">其他<code>cache</code>写入字段</td>
+<td align="center">$Remote\ \ Write$</td>
+<td align="center">其他<code>cache</code>写入字段</td>
 </tr>
 </tbody>
 </table>
 <p>        对于 $Modified$ 和 $Exclusive$
-状态，数据是精确的，而 $Shared$ 状态可能是非一致的。如果一个处于 $Shared$ 的缓存字段作废了，另一个缓存实际上可能已经独享了该缓存字段，但是该缓存不会转为 $Exclusive$
-，因为其他缓存并不会广播他们作废该缓存字段的通知。如果一个<code>CPU</code>想修改一个处于 $Shared$ 状态的缓存字段，总线事务需要将所有该缓存字段的副本变为 $Invalid$ 状态，而修改 $Exclusive$ 状态的缓存字段不需要总线事务。<br>
-        缓存的一致性消息传递是需要时间的，这就使其切换时产生延迟。当一个缓存被切换状态时其他缓存收到消息完成各自的切换并且发出回应消息这么长一段时间中<code>CPU</code>都会等待所有缓存响应完成。为了避免这种<code>CPU</code>运算能力的浪费，$Store\ \ Buffer$ 被引入。处理器会将想要写入主存的值写到 $Store\ \ Buffer$ 中再去处理其他事情。为了避免在 $Store\ \ Buffer$ 未保存完时其他核已经完成读取，需要引入内存屏障。写屏障保证处理器在更新数据前必须将所有 $Store\ \ Buffer$ 中的指令执行完毕，读屏障保证处理器在读之前将所有需要设置为 $Invalid$ 的字段设置完毕。</p>
+状态，数据是精确的，而 $Shared$ 状态可能是非一致的。如果一个处于 $Shared$ 的缓存字段作废了，另一个缓存实际上可能已经独享了该缓存字段，但是该缓存不会转为 $Exclusive$ ，因为其他缓存并不会广播他们作废该缓存字段的通知。如果一个<code>CPU</code>想修改一个处于 $Shared$ 状态的缓存字段，总线事务需要将所有该缓存字段的副本变为 $Invalid$ 状态，而修改 $Exclusive$ 状态的缓存字段不需要总线事务。<br>
+        缓存的一致性消息传递是需要时间的，这就使其切换时产生延迟。当一个缓存被切换状态时其他缓存收到消息完成各自的切换并且发出回应消息这么长一段时间中<code>CPU</code>都会等待所有缓存响应完成。为了避免这种<code>CPU</code>运算能力的浪费，$Store\ \ Buffer$ ( 写缓存 ) 被引入。处理器会将想要写入主存的值写到 $Store\ \ Buffer$ 中再去处理其他事情。<br>
+        同样的，<code>CPU</code>在收到无效化通知后，也不会立即将数据无效化，因为发出通知的<code>CPU</code>在等待响应，而无效化需要时间。所以<code>CPU</code>会将数据存入无效化队列，在存入之后就返回 $Ack$ ，以免阻塞<code>CPU</code>。<br>
+        写缓冲器和无效化队列也会带来新的问题：</p>
+<ol>
+<li><code>CPU 0</code>更新写缓存还没有写入内存时，<code>CPU 1</code>再次更新，但是无法无效写缓存器中的记录，从而<code>CPU 0</code>认为写缓存数据是最新的，导致数据错误；</li>
+<li><code>CPU 0</code>先对 $Invalid$ 记录写入，再对 $Exclusive$ / $Modify$ 记录写入时，会将 $Invalid$ 记录写入写缓冲器，对 $Exclusive$ / $Modify$ 记录直接写入缓存，由于写缓冲器有延迟，从而导致变相的指令重排序；</li>
+<li><code>CPU 0</code>收到无效化信息后存入无效化队列，然后立即对无效数据进行读取，导致数据错误。</li>
+</ol>
+<p>        对于上述问题，需要通过内存屏障解决：</p>
+<ul>
+<li>存储屏障：清空写缓冲器，全部写入缓存；</li>
+<li>加载屏障：清空无效化队列，设置对应记录为 $Invalid$ 。</li>
+</ul>
 
 
 
