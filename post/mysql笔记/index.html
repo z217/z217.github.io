@@ -103,7 +103,8 @@
 <ol>
 <li><code>redo log</code>是<code>InnoDB</code>特有的，<code>binlog</code>是<code>MySQL</code>的<code>Server</code>层实现的；</li>
 <li><code>redo log</code>是物理日志，记录对某个数据页的修改；<code>binlog</code>是逻辑日志，记录语句的原始逻辑；</li>
-<li><code>redo log</code>是循环写入的，<code>binlog</code>是可以追加写入的，即当文件达到一定空间后切换到下一个文件。</li>
+<li><code>redo log</code>是循环写入的，<code>binlog</code>是可以追加写入的，即当文件达到一定空间后切换到下一个文件；</li>
+<li><code>binlog</code>的应用场景是主从复制和数据恢复；<code>redo log</code>记录对数据页的修改，<code>InnoDB</code>使用<code>LSN</code> ( $Log\ \ Sequence\ \ Number$ ) 进行标记，如果数据页中的<code>LSN</code>落后于<code>redo log</code>的<code>LSN</code>，就通过<code>redo log</code>恢复数据。</li>
 </ol>
 <p>        每当引擎将新数据更新到内存中时，就会把更新操作记录到<code>redo log</code>中，此时<code>redo log</code>处于 $prepare$ 状态。当执行器执行完成后，会生成操作的<code>binlog</code>。当事务提交之后，引擎会把刚写入的<code>redo log</code>改成 $commit$ 状态，完成更新。<br>
         写<code>redo log</code>的时候，可以通过 $innodb_-flush_-log_-at_-trx_-commit$ 参数设置：</p>
