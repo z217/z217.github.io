@@ -67,7 +67,7 @@
         </a>
         
         
-        <a href="https://www.cnblogs.com/meidaoli/"  target="_blank" >
+        <a href="/friend" >
             <i class="fas fa-map fa-sm"></i>
             <span>友链</span>
         </a>
@@ -84,7 +84,7 @@
 源码可以在<code>GitHub</code>上查阅：<a href="https://github.com/z217/ChatRoom">ChatRoom</a></p>
 <p>        <code>WebSocket</code>最常用的地方就是聊天室，所以我用<code>Servlet</code>+<code>WebSocket</code>实现了一个简单的多人聊天室。这个多人聊天室改一改就能作为一对一的聊天室使用，毕竟实现方法都是差不多的。</p>
 <p>        首先是<code>maven</code>依赖，在此只展示几个要注意的依赖项：</p>
-<div class="highlight"><pre class="chroma"><code class="language-xml" data-lang="xml"><span class="nt">&lt;dependencies&gt;</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="nt">&lt;dependencies&gt;</span>
         <span class="nt">&lt;dependency&gt;</span>
             <span class="nt">&lt;groupId&gt;</span>org.projectlombok<span class="nt">&lt;/groupId&gt;</span>
             <span class="nt">&lt;artifactId&gt;</span>lombok<span class="nt">&lt;/artifactId&gt;</span>
@@ -112,7 +112,7 @@
     <span class="nt">&lt;/dependencies&gt;</span>
 </code></pre></div><p>        <code>Lombok</code>简化实体的编写（虽然只有一个实体），然后<code>jackson</code>相关的依赖用于<code>Java</code>实例和<code>JSON</code>对象之间的相互转化。为了避免兼容问题，我这里选择依赖基本上都是最新版本。<br>
         然后是实体，$ChatMessage$ 用于存储消息相关的信息，使用<code>lombok</code>简化了编写：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kn">import</span> <span class="nn">lombok.AllArgsConstructor</span><span class="o">;</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kn">import</span> <span class="nn">lombok.AllArgsConstructor</span><span class="o">;</span>
 <span class="kn">import</span> <span class="nn">lombok.Getter</span><span class="o">;</span>
 <span class="kn">import</span> <span class="nn">lombok.NoArgsConstructor</span><span class="o">;</span>
 <span class="kn">import</span> <span class="nn">lombok.Setter</span><span class="o">;</span>
@@ -129,7 +129,7 @@
   <span class="kd">private</span> <span class="n">OffsetDateTime</span> <span class="n">timestamp</span><span class="o">;</span>
 <span class="o">}</span>
 </code></pre></div><p>        有了实体之后再建立仓库，用于存储聊天信息以及用户信息：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kn">import</span> <span class="nn">java.util.LinkedList</span><span class="o">;</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kn">import</span> <span class="nn">java.util.LinkedList</span><span class="o">;</span>
 <span class="kn">import</span> <span class="nn">java.util.List</span><span class="o">;</span>
 <span class="kn">import</span> <span class="nn">java.util.concurrent.CopyOnWriteArraySet</span><span class="o">;</span>
 
@@ -148,7 +148,7 @@
 <span class="o">}</span>
 </code></pre></div><p>        没有连接数据库，因此这里使用了 $LinkedList$ 在内存存储聊天记录，$addChat$ 方法用于添加聊天记录，设置为只存储 $10$ 条记录。要注意的是 $addChat$ 方法上使用了 $synchronized$ 关键字用于保证同步。不过这里有个小问题就是通过 $Getter$ 获取的 $List$ 的 $add$ 方法并没有同步，因此可以的话还是使用阻塞容器比较好。接着我使用了同步容器 $CopyOnWriteArraySet$ 用于存储用户列表。<br>
         然后就是<code>Servlet</code>，我把<code>Servlet</code>用于处理用户名的填写及转发，在转发完成后，就全部交予<code>WebSocket</code>服务终端进行管理了。</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kn">import</span> <span class="nn">javax.servlet.ServletException</span><span class="o">;</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kn">import</span> <span class="nn">javax.servlet.ServletException</span><span class="o">;</span>
 <span class="kn">import</span> <span class="nn">javax.servlet.annotation.WebServlet</span><span class="o">;</span>
 <span class="kn">import</span> <span class="nn">javax.servlet.http.HttpServlet</span><span class="o">;</span>
 <span class="kn">import</span> <span class="nn">javax.servlet.http.HttpServletRequest</span><span class="o">;</span>
@@ -185,7 +185,7 @@
 <span class="o">}</span>
 </code></pre></div><p>        我这里使用了 $index.jsp$ 文件处理表单的填写和提交，在以<code>GET</code>方式访问时 $doGet$ 方法将网址重定向至用户名填写的页面，也就是 $index.jsp$，由于实现逻辑比较简单，因此在这里不做展示。$doPost$ 方法用于判断用户名的合法性，如果合法，就转到聊天室界面，也就是 $room.jsp$ 。<br>
         在实现服务终端之前，我们要先实现编码器和译码器，用于处理<code>JSON</code>对象。由于实现途径是实现接口，因此我们可以在一个类内实现编码和译码：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kn">import</span> <span class="nn">com.fasterxml.jackson.core.JsonGenerationException</span><span class="o">;</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kn">import</span> <span class="nn">com.fasterxml.jackson.core.JsonGenerationException</span><span class="o">;</span>
 <span class="kn">import</span> <span class="nn">com.fasterxml.jackson.core.JsonGenerator</span><span class="o">;</span>
 <span class="kn">import</span> <span class="nn">com.fasterxml.jackson.core.JsonParseException</span><span class="o">;</span>
 <span class="kn">import</span> <span class="nn">com.fasterxml.jackson.databind.JsonMappingException</span><span class="o">;</span>
@@ -233,7 +233,7 @@
 <span class="o">}</span>
 </code></pre></div><p>        在这里使用了之前导入的依赖<code>jackson</code>包中的 $ObjectMapper$ 用于处理<code>JSON</code>对象，$init$ 和 $destroy$ 方法都是空实现，如果需要的话也可以修改。<br>
         接下来是服务终端：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kn">import</span> <span class="nn">javax.websocket.*</span><span class="o">;</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kn">import</span> <span class="nn">javax.websocket.*</span><span class="o">;</span>
 <span class="kn">import</span> <span class="nn">javax.websocket.server.PathParam</span><span class="o">;</span>
 <span class="kn">import</span> <span class="nn">javax.websocket.server.ServerEndpoint</span><span class="o">;</span>
 <span class="kn">import</span> <span class="nn">java.io.IOException</span><span class="o">;</span>
@@ -288,7 +288,7 @@
 <span class="o">}</span>
 </code></pre></div><p>        首先使用了 $@ServerEndpoint$ 注解标出服务终端，要注意注解使用了 $encoders$ 和 $decoders$ 设置了编码器和解码器（也就是之前实现的 $ChatMessageCodec$ 类），通过 $CopyOnWriteArraySet$ 存储了所有加入聊天室的会话，由于发送消息的代码大体一致，因此我省略了之后几个方法发送消息的实现。<br>
         最后就是聊天室的实现了，也就是 $room.jsp$ 文件。</p>
-<div class="highlight"><pre class="chroma"><code class="language-html" data-lang="html"><span class="err">&lt;</span>%@ taglib prefix=&#34;c&#34; uri=&#34;http://java.sun.com/jsp/jstl/core&#34; %&gt;
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-html" data-lang="html"><span class="err">&lt;</span>%@ taglib prefix=&#34;c&#34; uri=&#34;http://java.sun.com/jsp/jstl/core&#34; %&gt;
 <span class="err">&lt;</span>%--@elvariable id=&#34;username&#34; type=&#34;java.lang.String&#34;--%&gt;
 <span class="err">&lt;</span>%--@elvariable id=&#34;chatRepository&#34; type=&#34;java.util.List<span class="p">&lt;</span><span class="nt">org.example.ChatMessage</span><span class="p">&gt;</span>&#34;--%&gt;
 <span class="err">&lt;</span>%@ page contentType=&#34;text/html;charset=UTF-8&#34; language=&#34;java&#34; %&gt;

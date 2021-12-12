@@ -67,7 +67,7 @@
         </a>
         
         
-        <a href="https://www.cnblogs.com/meidaoli/"  target="_blank" >
+        <a href="/friend" >
             <i class="fas fa-map fa-sm"></i>
             <span>友链</span>
         </a>
@@ -82,7 +82,7 @@
 
 <p><strong>参考书籍：《Pro Java for Web Apps》</strong></p>
 <p><code>Maven</code>依赖</p>
-<div class="highlight"><pre class="chroma"><code class="language-xml" data-lang="xml"><span class="nt">&lt;dependency&gt;</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="nt">&lt;dependency&gt;</span>
     <span class="nt">&lt;groupId&gt;</span>javax.inject<span class="nt">&lt;/groupId&gt;</span>
     <span class="nt">&lt;artifactId&gt;</span>javax.inject<span class="nt">&lt;/artifactId&gt;</span>
     <span class="nt">&lt;version&gt;</span>1<span class="nt">&lt;/version&gt;</span>
@@ -144,7 +144,7 @@
 <p>        配置和启动<code>Spring framework</code>是不同的，且相互独立，都可以用多种方式实现。在<code>Java SE</code>中只能通过在应用程序的 $main$ 方法中以编程方式启动。而在<code>Java EE</code>中，可以使用<code>XML</code>创建部署描述符（ $web.xml$ ）或者在 $javax.servlet.ServletContainerInitializer$ 中通过编程方式启动。</p>
 <h3 id="部署描述符方式">部署描述符方式</h3>
 <p>        传统的<code>Spring Framework</code>应用程序总是通过部署描述符启动。以部署描述符方式启动要求在配置文件中创建 $DispatcherServlet$ 实例，然后以 $contextConfigLocation$ 启动参数的形式为它提供配置文件，并指示<code>Spring</code>在启动时加载。</p>
-<div class="highlight"><pre class="chroma"><code class="language-xml" data-lang="xml"><span class="nt">&lt;context_param&gt;</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="nt">&lt;context_param&gt;</span>
     <span class="nt">&lt;param-name&gt;</span>contextConfigLocation<span class="nt">&lt;/param-name&gt;</span>
     <span class="nt">&lt;param-value&gt;</span>/WEB-INF/rootContext.xml<span class="nt">&lt;/param-value&gt;</span>
 <span class="nt">&lt;/context-param&gt;</span>
@@ -168,7 +168,7 @@
 </code></pre></div><p>        $ContextLoaderListener$ 将在<code>Web</code>应用程序启动时初始化，然后从 $contextConfigLocation$ 中指定的 $rootContext.xml$ 中加载根应用上下文并启动。同样的，$springDispatcher$ 也从指定的 $servletContext.xml$ 中加载应用上下文。</p>
 <h3 id="编程方式">编程方式</h3>
 <p>        <code>Java EE 6</code>提供了一个新接口 $ServletContainerInitializer$ ，实现其的类将在应用程序开始时启动，并在所有监听器启动之前调用它们的 $onStartup$ 方法。要使用该接口，需要在 $/META-INF/services/javax.servlet.ServletContainerInitializer$ 文件中列出实现它的类。<code>Spring Framework</code>提供了一个桥接口，简化了这一步：$org.springframework.web.SpringServletContainerInitializer$ 类实现了 $ServletContainerInitializer$ 接口，然后该类会扫描程序并寻找 $org.framework.web.WebApplicationInitializer$ 接口的实现，调用其 $onStartup$ 方法。因此我们可以在 $WebApplicationInitializer$ 实现类中以编程方式配置监听器、<code>Servlet</code>和过滤器。</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Bootstrap</span> <span class="kd">implements</span> <span class="n">WebApplicationInitializer</span> <span class="o">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Bootstrap</span> <span class="kd">implements</span> <span class="n">WebApplicationInitializer</span> <span class="o">{</span>
     <span class="nd">@Override</span>
     <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onStartup</span><span class="o">(</span><span class="n">ServletContext</span> <span class="n">container</span><span class="o">)</span> <span class="o">{</span>
         <span class="n">AnnotationConfigWebApplicationContext</span> <span class="n">rootContext</span> <span class="o">=</span> <span class="k">new</span> <span class="n">AnnotationConfigWebApplicationContext</span><span class="o">();</span>
@@ -184,7 +184,7 @@
 <span class="o">}</span>
 </code></pre></div><p>        上面的代码实现了与之前的<code>XML</code>文件一样的配置，其中 $RootContextConfiguration$ 和 $ServletContextConfiguration$ 是自定义的配置应用上下文的类。在此要注意的是，不要把 $DispatcherServlet$ 映射到 $/\star$ ，因为映射到 $/\star$ 也会把内部<code>JSP</code>请求发送到该<code>Servlet</code>。<br>
         我们也不必只使用一种方式配置，可以混合使用，如下所示：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Bootstrap</span> <span class="kd">implements</span> <span class="n">WebApplicationInitializer</span> <span class="o">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Bootstrap</span> <span class="kd">implements</span> <span class="n">WebApplicationInitializer</span> <span class="o">{</span>
     <span class="nd">@Override</span>
     <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onStartup</span><span class="o">(</span><span class="n">ServletContext</span> <span class="n">container</span><span class="o">)</span> <span class="o">{</span>
         <span class="n">XmlWebApplicationContext</span> <span class="n">rootContext</span> <span class="o">=</span> <span class="k">new</span> <span class="n">XmlWebApplicationContext</span><span class="o">();</span>
@@ -203,7 +203,7 @@
 <p>        与启动相同，配置<code>Spring Framework</code>同样可以通过<code>XML</code>和编程方式。配置<code>Spring Framework</code>的主要步骤就是配置<code>bean</code>。<code>Spring Framework</code>本身提供了默认<code>bean</code>，在此基础上，我们需要自己再编写一些<code>bean</code>。</p>
 <h3 id="xml配置方式"><code>XML</code>配置方式</h3>
 <p>        通过在上面的引用的 $servletContext.xml$ 文件中添加如下内容进行配置：</p>
-<div class="highlight"><pre class="chroma"><code class="language-xml" data-lang="xml"><span class="cp">&lt;?xml version=&#34;1.0&#34; encoding=&#34;UTF-8&#34;?&gt;</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="cp">&lt;?xml version=&#34;1.0&#34; encoding=&#34;UTF-8&#34;?&gt;</span>
 <span class="nt">&lt;beans</span> <span class="na">xmlns=</span><span class="s">&#34;http://www.springframework.org/schema/beans&#34;</span>
     <span class="na">xmlns:xsi=</span><span class="s">&#34;http://www.w3.org/2001/XMLSchema-instance&#34;</span>
     <span class="na">xmlns:mvc=</span><span class="s">&#34;http://www.springframework.org/schema/mvc&#34;</span>
@@ -224,7 +224,7 @@
 <h3 id="混合配置方式">混合配置方式</h3>
 <p>        在<code>XML</code>的基础上，我们可以通过使用组件扫描和注解进行配置。组件扫描将扫描所有标注了 $org.springframework.stereotype.Component$ 的类，并将他们变成<code>bean</code>交由<code>Spring</code>进行管理。任何标注了 $@Component$ 的注解都将变成组件注解，因此 $@Controller$, $@Repository$, $@Service$ 也都是组件注解。当然，也可以创建自己的组件注解。$@org.springframework.beans.factory.annotation.Autowired$ 注解，以及它的同义词 $@javax.inject.Inject$ 和 $@javax.annotation.Resource$ 用于声明<code>Spring</code>应该注入的依赖，可以用于标注字段、方法、方法参数或者构造器。通常<code>bean</code>应该具有无参构造器，但对于一个标注了 $@Autowired$ 的构造器的类，<code>Spring</code>将注入所有构造器参数并使用该构造器构造实例。当存在多个匹配的<code>bean</code>时，可以通过使用 $@org.springframework.beans.factory.annotation.Qualifier$ 或者 $@javax.inject.Named$ 指定使用的<code>bean</code>的名字，或者使用 $@org.springframework.context.annotation.Primary$ 标记组件指定优先使用的<code>bean</code>的名字。除了上述注解之外，还有两个特殊的用于<code>bean</code>的注解，$@javax.annotation.PostConstruct$ 注解和 $@javax.annotation.PreDestroy$ 注解，用于标注一个 $public\ \ void$ 的无参方法，前者会在<code>bean</code>构造完成后调用，后者会在<code>bean</code>关闭前调用。<br>
         通过使用注解，我们可以简化我们的<code>Spring</code>配置。在 $rootContext.xml$ 中可以添加如下配置：</p>
-<div class="highlight"><pre class="chroma"><code class="language-xml" data-lang="xml"><span class="cp">&lt;?xml version=&#34;1.0&#34; encoding=&#34;UTF-8&#34;?&gt;</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="cp">&lt;?xml version=&#34;1.0&#34; encoding=&#34;UTF-8&#34;?&gt;</span>
 <span class="nt">&lt;beans</span> <span class="na">xmlns=</span><span class="s">&#34;http://www.springframework.org/schema/beans&#34;</span>
     <span class="na">xmlns:xsi=</span><span class="s">&#34;http://www.w3.org/2001/XMLSchema-instance&#34;</span>
     <span class="na">xmlns:mvc=</span><span class="s">&#34;http://www.springframework.org/schema/mvc&#34;</span>
@@ -240,7 +240,7 @@
 
 <span class="nt">&lt;/beans&gt;</span>
 </code></pre></div><p>        &lt;$context:annotation-config$&gt; 启用注解配置，&lt;$context:component-scan$&gt; 启用组件扫描，$base-package$ 特性指定要扫描的包，在其命名空间内，我们使用了 &lt;$context:exclude-filter$&gt; 标签排除了对 $@Controller$ 组件的扫描。因为在之前的 $servletContext.xml$ 中我们已经配置了 $barController$ ，如果不排除的话，它将会被实例化两次。或者，我们可以修改 $servletContext.xml$ 配置为如下：</p>
-<div class="highlight"><pre class="chroma"><code class="language-xml" data-lang="xml"><span class="cp">&lt;?xml version=&#34;1.0&#34; encoding=&#34;UTF-8&#34;?&gt;</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="cp">&lt;?xml version=&#34;1.0&#34; encoding=&#34;UTF-8&#34;?&gt;</span>
 <span class="nt">&lt;beans</span> <span class="na">xmlns=</span><span class="s">&#34;http://www.springframework.org/schema/beans&#34;</span>
     <span class="na">xmlns:xsi=</span><span class="s">&#34;http://www.w3.org/2001/XMLSchema-instance&#34;</span>
     <span class="na">xmlns:mvc=</span><span class="s">&#34;http://www.springframework.org/schema/mvc&#34;</span>
@@ -302,7 +302,7 @@
 </tr>
 </tbody>
 </table>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="nd">@Configuration</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="nd">@Configuration</span>
 <span class="nd">@EnableWebMvc</span>
 <span class="nd">@ComponentScan</span><span class="o">(</span>
     <span class="n">basePackage</span> <span class="o">=</span> <span class="s">&#34;org.example&#34;</span><span class="o">,</span>

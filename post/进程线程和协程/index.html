@@ -67,7 +67,7 @@
         </a>
         
         
-        <a href="https://www.cnblogs.com/meidaoli/"  target="_blank" >
+        <a href="/friend" >
             <i class="fas fa-map fa-sm"></i>
             <span>友链</span>
         </a>
@@ -159,7 +159,7 @@
 </ul>
 <p>        进程的内存空间中有一块栈区，<code>PCB</code>会存储栈区指针，表示用户空间栈。栈的初始化是由编译器和链接器计算出来的，但是栈的实时大小并不是固定的，栈也不是能无限增长的，一般为 $8MB$ 。对于主线程，其栈实际上就是进程栈。然而对于主线程生成的子线程来说，其栈是固定的，使用 $mmap(\ )$ 系统调用，也就是说不会动态增长，一旦用尽就没了。由于线程栈是从进程地址空间中 $mmap(\ )$ 映射的一块内存区域，原则上是线程私有的。<br>
         在每一个进程的生命周期中，必然会通过系统调用陷入内核。在执行系统调用陷入内核之后，这些内核代码所使用的栈并不是原先进程用户空间中的栈，而是一个单独内核空间的栈，称作进程内核栈。进程内核栈通过 $slab$ 分配器从 $thread_-info_-cache$ 缓存池中分配出来，其大小为 $THREAD_-SIZE$ ，一般来说是一个页大小 ( $4K$ )。</p>
-<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="k">union</span> <span class="n">thread_union</span> <span class="p">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">union</span> <span class="n">thread_union</span> <span class="p">{</span>
     <span class="k">struct</span> <span class="n">thread_info</span> <span class="n">thread_info</span><span class="p">;</span>
     <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">stack</span><span class="p">[</span><span class="n">THREAD_SIZE</span><span class="o">/</span><span class="k">sizeof</span><span class="p">(</span><span class="kt">long</span><span class="p">)];</span>
 <span class="p">}</span>

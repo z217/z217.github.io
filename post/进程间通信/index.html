@@ -67,7 +67,7 @@
         </a>
         
         
-        <a href="https://www.cnblogs.com/meidaoli/"  target="_blank" >
+        <a href="/friend" >
             <i class="fas fa-map fa-sm"></i>
             <span>友链</span>
         </a>
@@ -97,14 +97,14 @@
 <h3 id="12-锁变量">1.2 锁变量</h3>
 <p>        设想有一个共享锁变量，其初始值为 $0$ 。当一个进程想进入临界区时，会首先测试锁。如果锁的值为 $0$ ，则进程将其设置为 $1$ 并进入临界区。否则，进程等待直到值变为 $0$ 。虽然实现简单，但是却存在着多个进程同时读到 $0$ 的可能。</p>
 <h3 id="13-严格轮换法">1.3 严格轮换法</h3>
-<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="c1">// 进程a
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="c1">// 进程a
 </span><span class="c1"></span><span class="k">while</span> <span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
     <span class="k">while</span> <span class="p">(</span><span class="n">turn</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">);</span>
     <span class="n">critical_region</span><span class="p">();</span>
     <span class="n">turn</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
     <span class="n">noncritical_region</span><span class="p">();</span>
 <span class="p">}</span>
-</code></pre></div><div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="c1">// 进程b
+</code></pre></div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="c1">// 进程b
 </span><span class="c1"></span><span class="k">while</span> <span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
     <span class="k">while</span> <span class="p">(</span><span class="n">turn</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">);</span>
     <span class="n">critical_region</span><span class="p">();</span>
@@ -113,7 +113,7 @@
 <span class="p">}</span>
 </code></pre></div><p>        通过连续检查一个变量来决定哪个进程进入临界区。连续测试一个变量直到某个值出现为止，称为<strong>忙等待</strong> ( $busy\ \ waiting$ )。由于这种方式浪费<code>CPU</code>时间，所以通常应该避免。只有在有理由认为等待时间是非常短的情况下，才使用忙等待。用于忙等待的锁，称为<strong>自旋锁</strong> ( $spin\ \ lock$ )。</p>
 <h3 id="14-peterson解法">1.4 <code>Peterson</code>解法</h3>
-<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="cp">#define FALSE 0
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#define FALSE 0
 </span><span class="cp">#define TRUE 1
 </span><span class="cp">#define N 2    </span><span class="c1">// 进程数
 </span><span class="c1"></span>
@@ -135,13 +135,13 @@
 </code></pre></div><p>        在进入临界区之前，各个进程使用其进程号作为参数来调用 $enter_-region$ 。该调用在需要时将使进程等待，直到能安全地进入临界区。在完成对共享变量的操作之后，进程将调用 $leave_-region$ ，表示操作已完成。</p>
 <h3 id="15-tsl指令">1.5 <code>TSL</code>指令</h3>
 <p>        在某些计算机中，特别是那些设计为多处理器的计算机，都有下面一条指令：</p>
-<pre><code>TSL RX, LOCK
+<pre tabindex="0"><code>TSL RX, LOCK
 </code></pre><p>        称为<strong>测试并加锁</strong> ( $test\ \ and\ \ set\ \ lock$ )，它将一个内存字读到寄存器 $RX$ 中，然后在该内存地址上存一个非零值。读字和写字操作保证是不可分割的，即该指令结束之前其他处理器均不允许访问该内存字。执行<code>TSL</code>指令的<code>CPU</code>将锁住内存总线，以禁止其他<code>CPU</code>在本指令结束之前访问内存。为了使用<code>TSL</code>指令，需要使用一个共享变量 $lock$ 来协调对共享内存的访问。当 $lock$ 为 $0$ 时，任何进程都可以使用<code>TSL</code>指令将其设置为 $1$ 并读写共享内存。当操作结束时，进程用一条普通的<code>MOV</code>指令将 $lock$ 的值重新设置为 $0$ 。</p>
 <h2 id="2-睡眠与唤醒">2. 睡眠与唤醒</h2>
 <p>        <code>Peterson</code>解法和<code>TSL</code>解法都是我们想要的正确的解法，但是都存在忙等待的缺点。这些解法的本质是：当一个进程想进入临界区时，先检查是否允许进入，若不允许，则该进程将原地等待，直到允许为止。如果进程之间存在优先级，甚至还可能带来<strong>优先级反转问题</strong> ( $priority\ \ inversion\ \ problem$ )，即高优先级进程就绪时，低优先级进程仍处于临界区并且永远不会被调度的问题。<br/>
         $sleep$ 原语将引起调用进程阻塞的系统调用，即被挂起，直到另外一个进程将其唤醒。$wakeup$ 调用有一个参数，即将要被唤醒的进程。另一种方法是让 $sleep$ 和 $wakeup$ 各有一个参数，即有一个用于匹配 $sleep$ 和 $wakeup$ 的内存地址。<br/>
         <strong>生产者-消费者</strong> ( $producer-consumer$ ) 问题，也称为<strong>有界缓冲区</strong> ( $bounded-buffer$ ) 问题。两个进程共享一个公共的固定大小的缓冲区，其中一个是生产者，将信息放入缓冲区；另一个是消费者，从缓冲区中取出信息。问题在于当缓冲区已满，而此时生产者还想向其中放入一个新的数据项的情况，解决办法是让生产者睡眠，待消费者从缓冲区中取出一个或多个数据项时再唤醒。同样地，当消费者试图从缓冲区中取出数据而发现缓冲区为空时，消费者就睡眠，直到生产者向其中放入一些数据时再将其唤醒。</p>
-<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="cp">#define N 100    </span><span class="c1">// 缓冲区中的槽数目
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#define N 100    </span><span class="c1">// 缓冲区中的槽数目
 </span><span class="c1"></span><span class="kt">int</span> <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>    <span class="c1">// 缓冲区中的数据项数目
 </span><span class="c1"></span>
 <span class="kt">void</span> <span class="nf">producer</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span>
@@ -171,7 +171,7 @@
 <h2 id="3-信号量">3. 信号量</h2>
 <p>        <strong>信号量</strong> ( $semaphore$ ) 方法使用一个整形变量来累计唤醒次数，供以后使用。一个信号量的取值可以为 $0$ ( 表示没有保存下来的唤醒操作 ) 或者为正值 ( 表示有一个或多个唤醒操作 )。对一个信号量执行 $down$ 操作，会检查其值是否大于 $0$ ，如果是则减 $1$ ，否则进程进入睡眠状态。检查数值、修改变量值以及可能发生的睡眠操作均作为一个单一的、不可分割的原子操作完成，从而保证一旦一个信号量操作开始，则在操作完成或阻塞之前其他进程均无法访问信号量。对一个信号量执行 $up$ 操作会将其值加 $1$ 。对一个有进程在其上睡眠的信号量执行一次 $up$ 操作之后，该信号量的值仍旧是 $0$ ，但在其上睡眠的进程却少了一个。同样的，信号量的值加 $1$ 和唤醒一个进程的操作也是不可分割的。<br/>
         为了确保信号量能正确工作，最重要的是采用一种不可分割的方式实现它，通常是将 $up$ 和 $down$ 作为系统调用实现。我们可以使用信号解决 $wakeup$ 丢失的问题：</p>
-<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="cp">#define N 100    </span><span class="c1">// 缓冲区中的槽数目
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#define N 100    </span><span class="c1">// 缓冲区中的槽数目
 </span><span class="c1"></span><span class="k">typedef</span> <span class="kt">int</span> <span class="n">semaphore</span><span class="p">;</span>    <span class="c1">// 信号量是一种特殊的整型
 </span><span class="c1"></span><span class="n">semaphore</span> <span class="n">mutex</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>    <span class="c1">// 控制对临界区的访问
 </span><span class="c1"></span><span class="n">semaphore</span> <span class="n">empty</span> <span class="o">=</span> <span class="n">N</span><span class="p">;</span>    <span class="c1">// 计数缓冲区的空槽数目

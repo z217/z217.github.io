@@ -67,7 +67,7 @@
         </a>
         
         
-        <a href="https://www.cnblogs.com/meidaoli/"  target="_blank" >
+        <a href="/friend" >
             <i class="fas fa-map fa-sm"></i>
             <span>友链</span>
         </a>
@@ -273,7 +273,7 @@
 <p>        $reducing$ 方法允许定义一个更一般化的归约过程，它接收三个参数：初始值、转换函数和一个 $BinaryOperator$ ，用于将两个项目累积成一个同类型的值。此外还有一个单参数类型的重载版本，只接收一个 $BinaryOperator$ ，以第一个项目作为起点，把恒等函数作为转换函数。<br/>
         在收集的时候，由于调用的方法的原因，可能会返回 $Optional$ 类型的参数，而这往往不是我们想要的，这时候就可以使用 $collectingAndThen$ 方法，可以额外接收一个转换函数，将 $Optional$ 类型进行转换。<br/>
         如果要自定义收集器，需要使用 $Collector$ 接口：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">Collector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">,</span> <span class="n">A</span><span class="o">,</span> <span class="n">R</span><span class="o">&gt;</span> <span class="o">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">Collector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">,</span> <span class="n">A</span><span class="o">,</span> <span class="n">R</span><span class="o">&gt;</span> <span class="o">{</span>
     <span class="n">Supplier</span><span class="o">&lt;</span><span class="n">A</span><span class="o">&gt;</span> <span class="nf">supplier</span><span class="o">();</span>
     <span class="n">BiConsumer</span><span class="o">&lt;</span><span class="n">A</span><span class="o">,</span> <span class="n">T</span><span class="o">&gt;</span> <span class="nf">accumulator</span><span class="o">();</span>
     <span class="n">Function</span><span class="o">&lt;</span><span class="n">A</span><span class="o">,</span> <span class="n">R</span><span class="o">&gt;</span> <span class="nf">finisher</span><span class="o">();</span>
@@ -281,7 +281,7 @@
     <span class="n">Set</span><span class="o">&lt;</span><span class="n">Characteristics</span><span class="o">&gt;</span> <span class="nf">characteristics</span><span class="o">();</span>
 <span class="o">}</span>
 </code></pre></div><p>        其中 $T$ 是流要收集的项目的泛型，$A$ 是累加器的类型，$R$ 是收集操作得到的对象的类型。$supplier$ 方法返回一个结果为空的 $Supplier$ ，创建一个空的累加器实例；$accumulator$ 方法返回执行归约操作的函数；$finisher$ 方法返回在累积过程的最后调用的函数，以便将累加器对象转换为整个集合操作的最终结果；$combiner$ 方法返回一个供归约操作使用的函数，定义了对流的各个子部分进行并行处理时如何合并累加器结果；$characteristics$ 方法会返回一个不可变的 $Characteristics$ 集合，定义了收集器的行为，是一个包含了三个项目的枚举：$UNORDERED$ ( 结果不受流中项目的遍历和累计顺序的影响 )、$CONCURRENT$ ( $accumulator$ 可以多线程调用 )、$IDENTITY_-FINISH$ ( $finisher$ 返回恒等函数，可以跳过 )。以下为 $ToListCollector$ 类型实例，它将流转换为 $List$ ：</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">ToListCollector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="kd">implements</span> <span class="n">Collector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="o">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">ToListCollector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="kd">implements</span> <span class="n">Collector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="o">{</span>
     <span class="nd">@Override</span>
     <span class="kd">public</span> <span class="n">Supplier</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="nf">supplier</span><span class="o">()</span> <span class="o">{</span>
         <span class="k">return</span> <span class="n">ArrayList</span><span class="o">::</span><span class="k">new</span><span class="o">;</span>
@@ -328,7 +328,7 @@
 <p>        并行流的背后使用的是<code>Java 7</code>中引入的<code>分支/合并框架</code>，目的是以递归方式将可以并行的任务拆分成更小的任务，然后把每个子任务的结果合并起来生成整体结果。它是 $ExecutorService$ 接口的一个实现，它把子任务分配给线程池 ( 称为 $ForJoinPool$ ) 中的工作线程。<br/>
         要把任务提交到该线程池，必须创建 $RecursiveTask$&lt;$R$&gt;的一个子类，其中 $R$ 是并行化任务产生的结果，如果任务不返回结果，则是 $RecursiveTask$ 类型。要定义 $RecursiveTask$ ，只需要实现它唯一的抽象方法 $compute$ 。$compute$ 方法定义了将任务拆分为子任务的逻辑，以及无法再拆分或不方便再拆分时生成单个子任务结果的逻辑。一般来说并没有确切的标准决定一个任务是否应该再拆分。分支/合并框架中使用了<code>工作窃取</code> ( $work\ stealing$ ) 技术，每个线程都为分配给它的任务保存一个双向链式队列，每完成一个任务，就会从队列中取出下一个任务，提前完成了队列中的所有任务，则会随机选择一个其他线程的队列，从中获取任务。由于工作窃取，因此将原任务分为大量的小任务一般来说都是一个好的选择。<br/>
         $Spliterator$ 是 <code>Java 8</code>中加入的另一个新接口，用于并行遍历数据源中的元素。同时<code>Java 8</code>为集合框架中包含的所有数据结构提供了一个默认的 $Spliterator$ 实现。</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">Spliterator</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">Spliterator</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
     <span class="kt">boolean</span> <span class="nf">tryAdvance</span><span class="o">(</span><span class="n">Consumer</span><span class="o">&lt;?</span> <span class="kd">super</span> <span class="n">T</span><span class="o">&gt;</span> <span class="n">action</span><span class="o">);</span>
     <span class="n">Spliterator</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="nf">trySplit</span><span class="o">();</span>
     <span class="kt">long</span> <span class="nf">estimateSize</span><span class="o">();</span>
