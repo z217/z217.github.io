@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/jquery-3.4.1.min.js></script>
+<script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="/friend" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">Unix网络编程（1）</h1>
+
+
+<h2 id="1-传输层">1. 传输层</h2>
+<p>        <code>TCP</code>建立一个连接需要三次握手：</p>
+<ol>
+<li>服务器准备接受外部连接，通常通过调用 $socket$ 、$bind$ 、$listen$ 这 $3$ 个函数完成，称为<strong>被动打开</strong> ( $passive$ $open$ )；</li>
+<li>客户端通过调用 $connect$ 发起<strong>主动打开</strong> ( $active$ $open$ )，即发送一个<code>SYN</code>报文；</li>
+<li>服务器确认 ( <code>ACK</code> ) 客户端的<code>SYN</code>，同时也发送一个<code>SYN</code>；</li>
+<li>客户端确认服务器的<code>SYN</code>。</li>
+</ol>
+<p>        <code>TCP</code>终止一个连接需要四次挥手：</p>
+<ol>
+<li>某个进程调用 $close$ ，称为<strong>主动关闭</strong> ( $active$ $close$ )，该端发送一个<code>FIN</code>报文；</li>
+<li>对端接受<code>FIN</code>，执行<strong>被动关闭</strong> ( $passive$ $close$ )。这个<code>FIN</code>由<code>TCP</code>确认，接收也作为一个<strong>文件结束符</strong> ( $end-of-file$ , $EOF$ ) 传递给接收端应用程序 ( 放在已排队等候该应用进程接收的任何其他数据之后 )；</li>
+<li>一段时间后，接收到<code>EOF</code>的进程调用 $close$ 关闭套接字，并发送一个<code>FIN</code>报文；</li>
+<li>接收到<code>FIN</code>的原端<code>TCP</code>确认。</li>
+</ol>
+<p>        <code>TCP</code>状态转换图可参考<a href="https://z217blog.cn/post/tcpudp%E5%92%8Cdns%E7%AE%80%E4%BB%8B/#16-%E7%8A%B6%E6%80%81">TCP、UDP和DNS简介</a>。<br>
+        <code>SCTP</code>建立一个连接的过程为：</p>
+<ol>
+<li>服务器准备接受外部连接，通常通过调用 $socket$ 、$bind$ 、$listen$ 这 $3$ 个函数完成，称为被动打开；</li>
+<li>客户端通过调用 $connect$ 或者发送一个隐式打开该关联的消息进行主动打开，从而发送一个<code>INIT</code>消息，告知服务器客户端的<code>IP</code>地址清单、初始序列号、分组起始标记、客户端请求的外出流数目以及客户端能支持的外出流的数目；</li>
+<li>服务器以一个<code>INIT</code> <code>ACK</code>消息确认，其中含有服务器的<code>IP</code>地址清单、初始序列号、起始标记、请求的外出流数目、支持的外出流数目和一个状态<code>cookie</code>，包含服务器用于确认本次连接有效所需的所有状态；</li>
+<li>客户端以一个<code>COOKIE</code> <code>ECHO</code>消息回射状态<code>cookie</code>；</li>
+<li>服务器以一个<code>COOKIE</code> <code>ACK</code>消息确认<code>cookie</code>正确，于是连接建立。</li>
+</ol>
+<p>        <code>SCTP</code>不像<code>TCP</code>那样允许”半关闭“的连接，而是当某一端关闭时，另一端必须停止发送新数据，在发送完所有队列中的数据后关闭。<br>
+        一个<code>TCP</code>连接的<strong>套接字对</strong> ( $socket$ $pair$ ) 是一个定义该连接的两个端点的四元组：本地<code>IP</code>地址、本地<code>TCP</code>端口号、外地<code>IP</code>地址、外地<code>TCP</code>端口号。在两个端点均非多宿这一最简单情形下，<code>SCTP</code>和<code>TCP</code>所用的四元组套接字对一致。然而在某个关联的任何一个端点为多宿的情形下，同一个关联可能需要多个四元组标识 ( <code>IP</code>地址各不相同，但端口号一致 )。标识每个端点的两个值 ( <code>IP</code>地址和端口号 ) 通常称为一个套接字。<br>
+        并发服务器中主服务器循环通过派生一个子进程来处理每个新连接。假设服务器在端口 $21$ 上被动打开，等待请求，此时我们可使用 $\{$ $*:21$ , $*:*$ $\}$ 指出服务器的套接字对，其中外地<code>IP</code>地址和外地端口都没有指定，记为 $*.*$ ，我们称为<strong>监听套接字</strong> ( $listening$ $socket$ )。当服务器接受到一个客户连接时，会 $fork$ 一个子进程，并将连接交由子进程处理，这时产生的套接字称为 <strong>已连接套接字</strong> ( $connected$ $socket$ )。</p>
+<h2 id="2-套接字编程">2. 套接字编程</h2>
+<h3 id="21-套接字地址结构">2.1 套接字地址结构</h3>
+<h4 id="211-ipv4套接字地址结构">2.1.1 <code>IPv4</code>套接字地址结构</h4>
+<p>        <code>IPv4</code>套接字地址结构通常也称为“网际套接字地址结构”，命名为 $sockaddr_-in$ ，定义在 &lt;$netinet/in.h$&gt; 头文件中。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">struct</span> <span class="n">in_addr</span> <span class="p">{</span>
+  <span class="n">in_addr_t</span>  <span class="n">s_addr</span><span class="p">;</span>  <span class="c1">// 32位IPv4地址，以网络字节序存储
+</span><span class="c1"></span><span class="p">};</span>
+
+<span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">short</span> <span class="kt">int</span> <span class="n">sa_family_t</span><span class="p">;</span>
+
+<span class="k">struct</span> <span class="n">sockaddr_in</span> <span class="p">{</span>
+  <span class="kt">uint8_t</span>         <span class="n">sin_len</span><span class="p">;</span>  <span class="c1">// 结构体长度
+</span><span class="c1"></span>  <span class="n">sa_family_t</span>     <span class="n">sin_family</span><span class="p">;</span>  <span class="c1">// AF_INET
+</span><span class="c1"></span>  <span class="n">in_port_t</span>       <span class="n">sin_port</span><span class="p">;</span>  <span class="c1">// 16位端口号，网络字节序存储
+</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">in_addr</span>  <span class="n">sin_addr</span><span class="p">;</span>  <span class="c1">// 32位IPv4地址
+</span><span class="c1"></span>  <span class="kt">char</span>            <span class="n">sin_zero</span><span class="p">[</span><span class="mi">8</span><span class="p">];</span>  <span class="c1">// 未使用
+</span><span class="c1"></span><span class="p">};</span>
+</code></pre></div><ul>
+<li>长度 $sin_-len$ 是为增加对<code>OSI</code>协议的支持而添加的，不是所有厂家都支持，而且<code>POSIX</code>协议也并不要求；</li>
+<li>即使有长度字段，也无需设置和进行检查，除非涉及路由套接字；</li>
+<li><code>POSIX</code>规范只需要 $sin_-family$ 、$sin_-addr$ 和 $sin_-port$ 这三个字段，除此之外，额外字段也是可以接受的；</li>
+<li><code>IPv4</code>地址和<code>TCP</code>或<code>UDP</code>端口总是以网络字节序存储；</li>
+<li>$sin_-zero$ 字段不被使用，但在大多数定义中都存在；</li>
+<li>按照惯例，在使用前应当将整个结构置 $0$ 。</li>
+</ul>
+<h4 id="212-通用套接字地址结构">2.1.2 通用套接字地址结构</h4>
+<p>        当作为一个参数传递进任何套接字函数时，套接字地址结构总是以指针形式传递。然而这样的指针作为参数之一的任何套接字函数必须处理来自所支持的任何协议族的套接字地址结构。在<code>ANSI C</code>之前，采取的办法是定义一个通用的套接字地址结构 $sockaddr$ ，定义在 &lt;$sys/socket.h$&gt; 头文件中。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">struct</span> <span class="n">sockaddr</span> <span class="p">{</span>
+  <span class="kt">uint8_t</span>      <span class="n">sa_len</span><span class="p">;</span>
+  <span class="n">sa_family_t</span>  <span class="n">sa_family</span><span class="p">;</span>  <span class="c1">// 地址族：AF_xxx
+</span><span class="c1"></span>  <span class="kt">char</span>         <span class="n">sa_data</span><span class="p">[</span><span class="mi">14</span><span class="p">];</span>  <span class="c1">// 协议地址
+</span></code></pre></div><p>        于是套接字函数被定义为指向通用套接字地址结构的一个指针作为参数之一，比如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="kt">int</span> <span class="nf">bind</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="p">,</span> <span class="n">socklen_t</span><span class="p">);</span>
+</code></pre></div><p>        所以在对这些函数进行调用前需要进行类型转换，否则会产生警告信息。因此，从应用程序开发人员的角度来看，通用套接字地址结构的唯一用途就是用作强制类型转换。</p>
+<h4 id="213-ipv6套接字地址结构">2.1.3 <code>IPv6</code>套接字地址结构</h4>
+<p>        <code>IPv6</code>套接字地址结构定义在 &lt;$netinet/in.h$&gt; 头文件中。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">struct</span> <span class="n">in6_addr</span> <span class="p">{</span>
+  <span class="kt">uint8_t</span>  <span class="n">s6_addr</span><span class="p">[</span><span class="mi">16</span><span class="p">];</span>  <span class="c1">// 128位IPv6地址，以网络字节序存储
+</span><span class="c1"></span><span class="p">};</span>
+
+<span class="cp">#define SIN6_LEN  </span><span class="c1">// 用于编译时测试
+</span><span class="c1"></span>
+<span class="k">struct</span> <span class="n">sockaddr_in6</span> <span class="p">{</span>
+  <span class="kt">uint8_t</span>          <span class="n">sin6_len</span><span class="p">;</span>  <span class="c1">// 结构体长度
+</span><span class="c1"></span>  <span class="n">sa_family_t</span>      <span class="n">sin6_family</span><span class="p">;</span>  <span class="c1">// AF_INET6
+</span><span class="c1"></span>  <span class="n">in_port_t</span>        <span class="n">sin6_port</span><span class="p">;</span>  <span class="c1">// 传输层端口，以网络字节序存储
+</span><span class="c1"></span>  <span class="kt">uint32_t</span>         <span class="n">sin6_flowinfo</span><span class="p">;</span>  <span class="c1">// 流信息，未定义
+</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">in6_addr</span>  <span class="n">sin6_addr</span><span class="p">;</span>  <span class="c1">// IPv6地址
+</span><span class="c1"></span>  <span class="kt">uint32_t</span>         <span class="n">sin6_scope_id</span><span class="p">;</span>  <span class="c1">// 范围接口集
+</span><span class="c1"></span><span class="p">};</span>
+</code></pre></div><ul>
+<li>如果系统支持套接字地址结构中长度字段，那么 $SIN6_-LEN$ 常数必须定义；</li>
+<li>$sin6_-flowinfo$ 字段分成两个部分，低 $20$ 位作为<em><strong>流标识</strong></em> ( $flow$ $label$ )，高 $12$ 位保留；</li>
+<li>对于<em><strong>范围地址</strong></em> ( $scoped$ $address$ )，$sin6_-scope_-id$ 字段标识范围。</li>
+</ul>
+<h4 id="214-新的通用套接字地址结构">2.1.4 新的通用套接字地址结构</h4>
+<p>        作为<code>IPv6</code>套接字<code>API</code>的一部分而定义的新的通用套接字地址结构克服了现有结构的一些缺点，足以容纳系统所支持的任何套接字地址结构，定义在 &lt;$netinet/in.h$&gt; 头文件中。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">struct</span> <span class="n">sockaddr_storage</span> <span class="p">{</span>
+  <span class="kt">uint8_t</span>      <span class="n">ss_len</span><span class="p">;</span>  <span class="c1">// 结构体长度
+</span><span class="c1"></span>  <span class="n">sa_family_t</span>  <span class="n">ss_family</span><span class="p">;</span> <span class="c1">// 地址族：AF_xxx
+</span><span class="c1"></span><span class="p">};</span>
+</code></pre></div><p>        $sockaddr_-storage$ 类型提供的通用套接字地址结构相比 $sockaddr$ 存在以下两点差别：</p>
+<ol>
+<li>如果系统支持的任何套接字地址结构有对齐需求，那么 $sockaddr_-storage$ 能够满足严苛的对齐需求；</li>
+<li>$sockaddr_storage$ 足够大，能够容纳系统支持的任何套接字地址结构。</li>
+</ol>
+<p>        除了 $ss_-family_-t$ 和 $ss_-len$ 之外，$sockaddr_-storage$ 结构中的其他字段对于用户来说是透明的，必须转换成或者复制到对应的地址结构中才能访问。</p>
+<h3 id="22-值-结果参数">2.2 值-结果参数</h3>
+<p>        当往一个套接字函数传递套接字结构时，除了结构体指针外，还需要传递结构长度，传递方式取决于是从进程到内核，还是从内核到进程。从进程到和内核传递套接字地址结构的函数有 $3$ 个：$bind$ 、$connect$ 和 $sendto$ ，这些函数其中一个参数是套接字结构体指针，另一个参数是结构体的整型大小；从内核到进程传递套接字地址结构的函数有 $4$ 个：$accept$ 、$recvfrom$ 、$getsockname$ 和 $getpeername$ ，这些函数的其中一个参数是套接字结构体指针，另一个是结构体整型大小指针。于是在这两种传递方式中，结构体大小既作为值进行传递，也作为结果进行传递，称为<strong>值-结果</strong> ( $value-result$ ) 参数。</p>
+<h3 id="23-字节排序函数">2.3 字节排序函数</h3>
+<p>        系统中存储数据的方式可以分为将字节低位存储在起始位置的<strong>小端</strong> ( $little-endian$ ) 序和将字节高位存储在起始地址的 <strong>大端</strong> ( $big-endian$ ) 序，这两种字节序之间没有标准可循，并且都有系统使用。我们把某个给定系统所用的字节序称为<strong>主机字节序</strong> ( $host$ $byte$ $order$ )。网络协议必须指定一个<strong>网络字节序</strong> ( $network$ $byte$ $order$ )，即大端序。从理论上来说，具体实现可以按照主机字节序存储套接字地址结构中的各个字段，等到需要再进行转换。然而，由于历史原因和<code>POSIX</code>协议规定，套接字地址结构中的某些字段必须按照网络字节序进行维护。用于主机字节序和网络字节序之间相互转换的函数主要有以下 $4$ 个：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netinet/in.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 返回网络字节序值
+</span><span class="c1"></span><span class="kt">uint16_t</span> <span class="nf">htons</span><span class="p">(</span><span class="kt">uint16_t</span> <span class="n">host16bitvalue</span><span class="p">);</span>
+<span class="kt">uint32_t</span> <span class="nf">htonl</span><span class="p">(</span><span class="kt">uint32_t</span> <span class="n">host32bitvalue</span><span class="p">);</span>
+
+<span class="c1">// 返回主机字节序值
+</span><span class="c1"></span><span class="kt">uint16_t</span> <span class="nf">ntohs</span><span class="p">(</span><span class="kt">uint16_t</span> <span class="n">net16bitvalue</span><span class="p">);</span>
+<span class="kt">uint32_t</span> <span class="nf">ntohl</span><span class="p">(</span><span class="n">uint32_T</span> <span class="n">net32bitvalue</span><span class="p">);</span>
+</code></pre></div><h3 id="24-字节操纵函数">2.4 字节操纵函数</h3>
+<p>        操纵多字节字段的函数有两组。<br>
+        第一组名字以 $b$ 开头，现今几乎所有支持套接字函数的系统都有提供。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;strings.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">void</span> <span class="nf">bzero</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">dest</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">nbytes</span><span class="p">);</span>
+
+<span class="kt">void</span> <span class="nf">bcopy</span><span class="p">(</span><span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">src</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">dest</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">nbytes</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">bcmp</span><span class="p">(</span><span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">ptr1</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">ptr2</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">nbytes</span><span class="p">);</span>
+</code></pre></div><p>        第二组名字以 $mem$ 开头，起源自<code>ANSI C</code>标准，支持<code>ANSI C</code>标准函数库的系统都有提供。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;string.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">void</span> <span class="o">*</span><span class="nf">memset</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">dest</span><span class="p">,</span> <span class="kt">int</span> <span class="n">c</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">len</span><span class="p">);</span>
+
+<span class="kt">void</span> <span class="o">*</span><span class="nf">memcpy</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">dest</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">src</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">nbytes</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">memcmp</span><span class="p">(</span><span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">ptr1</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">ptr2</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">nbytes</span><span class="p">);</span>
+</code></pre></div><p>        $memset$ 将目标字符串指定数目字节数的值置为 $c$ 。$memcpy$ 类似于 $bcopy$ ，不过两个指针参数顺序相反，当处理区域重叠时，前者行为未定义，后者能正确处理。</p>
+<h3 id="25-地址转换函数">2.5 地址转换函数</h3>
+<p>        地址转换函数用于<code>ASCII</code>字符串与网络字节序二进制值之间转换网络地址。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;arpa/inet.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 字符串有效返回1，否则返回0
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">inet_aton</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">strptr</span><span class="p">,</span> <span class="k">struct</span> <span class="n">in_addr</span> <span class="o">*</span><span class="n">addrptr</span><span class="p">);</span>
+
+<span class="c1">// 字符串有效则返回32位二进制网络字节序IPv4地址，否则为INADDR_NONE
+</span><span class="c1"></span><span class="n">in_addr_t</span> <span class="nf">inet_addr</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">strptr</span><span class="p">);</span>
+
+<span class="c1">// 返回一个指向点分十进制字符串的指针
+</span><span class="c1"></span><span class="kt">char</span> <span class="o">*</span><span class="nf">inet_ntoa</span><span class="p">(</span><span class="k">struct</span> <span class="n">in_addr</span> <span class="n">inaddr</span><span class="p">);</span>
+</code></pre></div><p>        $inet_-aton$ 将 $strptr$ 转为 $32$ 位的网络字节序二进制值，存储在 $addrptr$ 中，成功返回 $1$ ，失败返回 $0$ 。$inet_-addr$ 进行相同转换，但是存在一个问题，当出错时，会返回 $INADDR_-NONE$ ，后者通常是 $32$ 位的以 $1$ 填充的值，这意味着有限广播地址 ( $255$.$255$.$255$.$255$ ) 不能由该函数处理，所以该函数如今已被废弃，应改用 $inet_-aton$ 。$inet_-ntoa$ 函数将一个 $32$ 位网络字节序二进制<code>IPv4</code>地址转换为相应的点分十进制字符串，该函数是不可重入的。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;arpa/inet.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 字符串有效返回1，否则返回0
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">inet_pton</span><span class="p">(</span><span class="kt">int</span> <span class="n">family</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">strptr</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">addrptr</span><span class="p">);</span>
+
+<span class="c1">// 返回一个指向结果的指针
+</span><span class="c1"></span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="nf">inet_ntop</span><span class="p">(</span><span class="kt">int</span> <span class="n">family</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">addrptr</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">strptr</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">len</span><span class="p">);</span>
+</code></pre></div><p>        这两个函数是随<code>IPv6</code>出现的，既适用于<code>IPv4</code>地址，也适用于<code>IPv6</code>地址。$family$ 参数可以是 $AF_INET$ ，也可以是 $AF_INET6$ ，如果是不支持的地址族，则会返回错误，并将 $errno$ 置为 $EAFNOSUPPORT$ 。$inet_-pton$ 会转换 $strptr$ 指针指向的字符串，存储在 $addrptr$ 中，成功返回 $1$ ，失败返回 $0$ 。$inet_-pton$ 则进行相反转换，从 $addptr$ 转换到 $strptr$ ，$len$ 标识目的存储单元大小。在 &lt;$netinet/in.h$&gt; 头文件中存在以下两个定义：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#define INET_ADDRSTRLEN   16
+</span><span class="cp">#define INET6_ADDRSTRLEN  46
+</span></code></pre></div><p>        帮助指定大小。如果 $len$ 太小，无法容纳结果，那么就会返回 $NULL$ ，并将 $errno$ 置为 $ENOSPC$ 。</p>
+<h3 id="26-io函数">2.6 <code>I/O</code>函数</h3>
+<p>        字节流套接字上的 $read$ 和 $write$ 函数所表现的行为不同于通常的文件<code>I/O</code>，其输入或输出的字节数可能比请求数量少，原因在于内核中用于套接字的缓冲区可能达到了极限，此时需要再次调用 $read$ 或 $write$ 函数，以输入或输出剩余字节。为了预防这种情况，我们需要改写下原来的<code>I/O</code>函数。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="n">ssize_t</span> <span class="nf">readn</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">vptr</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">n</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">size_t</span> <span class="n">nleft</span> <span class="o">=</span> <span class="n">n</span><span class="p">;</span>
+  <span class="n">ssize_t</span> <span class="n">nread</span><span class="p">;</span>
+  <span class="kt">char</span> <span class="o">*</span><span class="n">ptr</span> <span class="o">=</span> <span class="n">vptr</span><span class="p">;</span>
+
+  <span class="k">while</span> <span class="p">(</span><span class="n">nleft</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">((</span><span class="n">nread</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">ptr</span><span class="p">,</span> <span class="n">nleft</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">==</span> <span class="n">EINTR</span><span class="p">)</span>
+         <span class="n">nread</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="k">else</span>
+         <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">nread</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="n">nleft</span> <span class="o">-=</span> <span class="n">nread</span><span class="p">;</span>
+    <span class="n">ptr</span> <span class="o">+=</span> <span class="n">nread</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="k">return</span> <span class="n">n</span> <span class="o">-</span> <span class="n">nleft</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">ssize_t</span> <span class="nf">writen</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">vptr</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">n</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">size_t</span> <span class="n">nleft</span> <span class="o">=</span> <span class="n">n</span><span class="p">;</span>
+  <span class="n">ssize_t</span> <span class="n">nwritten</span><span class="p">;</span>
+  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">ptr</span> <span class="o">=</span> <span class="n">vptr</span><span class="p">;</span>
+
+  <span class="k">while</span> <span class="p">(</span><span class="n">nleft</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">((</span><span class="n">nwritten</span> <span class="o">=</span> <span class="n">write</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">ptr</span><span class="p">,</span> <span class="n">nleft</span><span class="p">))</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">nwriten</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">errno</span> <span class="o">==</span> <span class="n">EINTR</span><span class="p">)</span>
+        <span class="n">nwritten</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="k">else</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">nleft</span> <span class="o">-=</span> <span class="n">nwritten</span><span class="p">;</span>
+    <span class="n">ptr</span> <span class="o">+=</span> <span class="n">nwritten</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="k">return</span> <span class="n">n</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div><p>        $EINTR$ 表示系统调用被一个捕获的信号中断，如果发生该错误则继续进行读写操作。</p>
+
+<script src=https://z217blog.cn/js/toc.js></script>
+
+<a href="javascript:void(0);" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+<div id="sidetoc">
+    <header>
+        <h4>Unix网络编程（1）</h4>
+    </header>
+    <nav id="TableOfContents">
+        <ul></ul>
+    </nav>
+</div>
+<script>
+    tocFlag = true;
+</script>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/%E7%A7%8B%E6%8B%9B%E9%9D%A2%E8%AF%95%E6%80%BB%E7%BB%93/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+<script type="text/javascript">
+    if (tocFlag) tocInit();
+</script>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2021, z217 and the Hugo Authors; all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+
+<script type="text/javascript" async
+    src="https://cdn.bootcss.com/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        
+        
+        
+        var all = MathJax.Hub.getAllJax(),
+            i;
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
+</body>
+
+</html>

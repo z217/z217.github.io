@@ -184,19 +184,20 @@
         <code>Go</code>协程使用了<code>M-P-G</code>模型。$M$ 为 $Machine$ ，即一个底层的操作系统线程；$G$ 即 $goroutine$ ，也就是协程；$P$ 为 $Processor$ ，是协程的管理者，<code>Go</code>抽象的一个处理器，通常数量等于<code>CPU</code>数量，运行时会绑定一个 $M$ ，当 $M$ 不可运行，比如陷入的时候，会转移到其他 $M$ 中。$P$ 中存在一个协程队列，$M$ 会消费这个队列，中途出现阻塞或者占用时间片过久都会触发协程调度。<br>
         <code>Go</code>协程采用了一种无优先级可抢占<code>FIFO</code>时间片轮转调度算法，调度本质是给绑定在 $P$ 的 $M$ 选择下一个可以运行的 $G$ 。$P$ 中的队列会被 $M$ 按照顺序消费，同时<code>Go</code>启动一个特殊的不绑定 $P$ 的线程 $sysmon$ ( $System\ \ Monitor$ )，会遍历所有 $P$ ，将在 $P$ 上运行超过 $10ms$ 的协程标记为可抢占。被标记为可抢占的协程在函数调用时会触发抢占调度，重新回到队列中。当 $P$ 的队列消费完毕，就会尝试去全局的协程队列中寻找任务，如果还是没有，就会从其他 $P$ 中窃取一半任务到当前队列上。</p>
 
+<script src=https://z217blog.cn/js/toc.js></script>
 
-<a href="javascript:void(0)" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+<a href="javascript:void(0);" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
 <div id="sidetoc">
     <header>
         <h4>进程、线程和协程</h4>
     </header>
-    
     <nav id="TableOfContents">
         <ul></ul>
     </nav>
 </div>
-<script src=https://z217blog.cn/js/toc.js></script>
-
+<script>
+    tocFlag = true;
+</script>
 
 
 <div class="nav-next-prev">
