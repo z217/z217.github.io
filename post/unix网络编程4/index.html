@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  
+  <title>z217&#39;s blog</title>
+</head><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+    integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="/friend" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">Unix网络编程（4）：基本UDP/SCTP套接字编程</h1>
+
+
+<h2 id="1-基本udp套接字编程">1. 基本<code>UDP</code>套接字编程</h2>
+<h3 id="11-recvfrom和sendto函数">1.1 <code>recvfrom</code>和<code>sendto</code>函数</h3>
+<p>        $recvfrom$ 和 $sendto$ 类似于标准 $read$ 和 $write$ 函数，不过需要三个额外的参数。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="n">ssize_t</span> <span class="nf">recvfrom</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">buff</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">nbytes</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">,</span>
+  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">from</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="o">*</span><span class="n">addrlen</span><span class="p">);</span>
+
+<span class="n">ssize_t</span> <span class="nf">sendto</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">buff</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">nbytes</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">,</span>
+  <span class="k">const</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">to</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">addrlen</span><span class="p">);</span>
+
+<span class="c1">// 成功则返回读或写的字节数，出错返回-1
+</span></code></pre></div><p>        $sendto$ 的 $to$ 参数指向一个含有数据报接收者的协议地址的套接字地址结构，其大小由 $addrlen$ 指定。$recvfrom$ 的 $from$ 参数指向一个将由该参数在返回时填写数据报发送者的协议地址的套接字地址结构，其大小由 $addrlen$ 返回给调用者。写一个长度为 $0$ 的数据报是可行的。在<code>UDP</code>情况下，这回形成一个只包含一个<code>IP</code>首部和一个 $8$ 字节<code>UDP</code>首部而没有数据的<code>IP</code>数据报。这也意味着对于数据报协议，$recvfrom$ 返回 $0$ 值是可以接受的，并不像<code>TCP</code>一样代表对端连接关闭。如果 $recvfrom$ 的 $from$ 参数是一个空指针，那么相应的长度参数 $addrlen$ 也必须是一个空指针。<br>
+        <code>UDP</code>输出操作成功仅仅表示在接口输出队列中具有存放所形成<code>IP</code>数据报的空间，而错误会在之后返回，称为<strong>异步错误</strong> ( $asynchronous$ $error$ )。一个基本规则是：对于一个<code>UDP</code>套接字，由它引发的异步错误并不返回给它，除非它已连接。考虑在单个<code>UDP</code>套接字上接连发送 $3$ 个数据报给 $3$ 个不同的服务器的一个<code>UDP</code>客户，其中有 $2$ 个数据报被正确递送，但是第三个主机没有运行服务器，于是返回一个<code>ICMP</code>端口不可达错误。发送这 $3$ 个数据报的客户需要知道引发该错误的数据报的目的地址以区分究竟是哪一个数据报引发错误，如果 $recvfrom$ 仅仅设置 $errno$ ，则无法返回出错数据报的<code>IP</code>地址的端口。因此，仅在进程已将其<code>UDP</code>套接字连接到一个对端之后，这些异步错误才会返回给进程。</p>
+<h3 id="12-connect函数">1.2 <code>connect</code>函数</h3>
+<p>        我们可以给<code>UDP</code>套接字调用 $connect$ ，然而这样做的结果与<code>TCP</code>连接大相径庭：没有三次握手，而是更类似于指定对端地址。内核只是检查是否存在立即可知的错误，记录对端的<code>IP</code>地址和端口号，然后立即返回到调用进程。对于已连接的<code>UDP</code>套接字，与默认未连接的<code>UDP</code>套接字相比，有以下变化：</p>
+<ol>
+<li>不能给输出操作指定目的<code>IP</code>地址和端口号。也就是说，不使用 $sendto$ ，而是改为使用 $write$ 或 $send$ 。写到已连接<code>UDP</code>套接字上的任何内容都会自动发送到由 $connect$ 指定的协议地址；</li>
+<li>不必使用 $recvfrom$ 获取数据报，而是使用 $read$ 、$recv$ 或 $recvmsg$ 。在一个已连接<code>UDP</code>套接字上，由内核为输入操作返回的数据报只有那写来自 $connect$ 所指定协议地址的数据报。目的地为这个已连接<code>UDP</code>套接字的本地协议地址，发出地不是该套接字早先连接到的协议地址的数据报，不会被投递到该套接字。这就限制了一个已连接<code>UDP</code>套接字只能与一个对端交换数据；</li>
+<li>由已连接<code>UDP</code>套接字引发的异步错误会返回给它们所在的进程，未连接<code>UDP</code>套接字不会接收任何异步错误。</li>
+</ol>
+<p>        拥有一个已连接<code>UDP</code>套接字的进程可出于以下两个目的之一再次调用 $connect$ ：</p>
+<ol>
+<li>指定新的<code>IP</code>地址和端口号；</li>
+<li>断开套接字，再次调用 $connect$ 时把套接字地址结构的地址族成员设置为 $AF_-UNSPEC$ ，可能会返回 $EANNOSUPPORT$ 错误，但是没有关系。</li>
+</ol>
+<p>        已连接<code>UDP</code>套接字还可以用来确定用于某个特定目的地的外出接口，这是由 $connect$ 函数应用到<code>UDP</code>套接字时的一个副作用造成的：内核选择本地<code>IP</code>地址 ( 假设其进程未曾调用 $bind$ 进行显式指派 )。这个<code>IP</code>地址通过为目的<code>IP</code>地址搜索路由表得到外出接口，然后选用该接口的主<code>IP</code>地址而选定。当<code>UDP</code>套接字连接完成后，调用 $getsockname$ 即可得到本地<code>IP</code>地址和端口号。</p>
+<h2 id="2-基本sctp套接字编程">2. 基本<code>SCTP</code>套接字编程</h2>
+<h3 id="21-接口模型">2.1 接口模型</h3>
+<p>        <code>SCTP</code>套接字分为一到一套接字和一到多套接字。一到一套接字对应一个单独的<code>SCTP</code>关联，这种映射类似于<code>TCP</code>套接字和<code>TCP</code>连接的对应关系。对于一到多套接字，一个给定套接字上可以同时有多个活跃的<code>SCTP</code>关联，这种映射类似于绑定了某个特定端口的<code>UDP</code>套接字能够从若干个同时在发送数据的远程<code>UDP</code>端点接收彼此交错的数据报。</p>
+<h4 id="211-一到一形式">2.1.1 一到一形式</h4>
+<p>        开发一到一形式的目的是方便将现有的<code>TCP</code>应用程序移植到<code>SCTP</code>上。以下是这两者之间的差异：</p>
+<ol>
+<li>任何<code>TCP</code>套接字选项必须转换成等效的<code>SCTP</code>套接字选项；</li>
+<li><code>SCTP</code>保存消息边界，因而应用层消息边界并非必须。举例来说，基于<code>TCP</code>的某个应用协议可能先执行一个双字节的 $write$ 系统调用，给出消息的长度 $x$ ，再调用一个 $x$ 字节的系统调用，写出消息数据本身。改用<code>SCTP</code>，接收端<code>SCTP</code>将收到两个独立的消息；</li>
+<li>有些<code>TCP</code>应用进程使用半关闭来告知对端去往它的数据流已经结束。将这样的应用程序移植到<code>SCTP</code>需要额外重写应用层协议，让应用进程在应用数据流中告知对端该传输数据流已经结束；</li>
+<li>$send$ 函数能够以普通方式使用，使用 $sendto$ 或 $sendmsg$ 函数时，指定的任何地址都被认为是对目的地址的重写。</li>
+</ol>
+<h4 id="212-一到多形式">2.1.2 一到多形式</h4>
+<p>        一到多形式给应用程序开发人员提供这样的能力：编写的服务器程序无需管理大量的套接字描述符。单个套接字描述符将代表多个关联，就像一个<code>UDP</code>套接字能从多个客户接收消息那样。在一到多套接字上，用于标识单个关联的是一个<strong>关联标识</strong> ( $association$ $identifier$ )。关联标识是一个类型为 $sctp_-assoc_-t$ 的值，通常是一个整数。它是一个不透明的值，应用进程不应该使用不是由内核先前给予的任何关联标识。一到多套接字的用户要注意以下几点：</p>
+<ol>
+<li>当一个客户关闭其关联时，其服务器也将自动关闭同一个关联，服务器主机内核中不再有该关联的状态；</li>
+<li>可用于致使在四次握手的第三个或第四个分组中捎带用户数据的唯一办法就是使用一到多形式；</li>
+<li>对于一个与它还没有关联存在的<code>IP</code>地址，任何以它为目的地的 $sendto$ 、$sendmsg$ 或 $sctp_-sendmsg$ 将导致对主动打开的尝试，如果成功的话将建立一个与该地址的关联；</li>
+<li>用户必须使用 $sendto$ 、$sendmsg$ 或 $sctp_-sendmsg$ 这 $3$ 个分组发送函数，而不能使用 $send$ 或 $write$ 这 $2$ 个分组发送函数，除非已经使用 $sctp_-peeloff$ 函数从一个一到多套接字剥离出一个一到一套接字；</li>
+<li>任何时候调用其中任何一个分组发送函数时，所用的目的地址是由系统在关联建立阶段选定的主目的地址，除非调用者在所提供的 $sctp_-sndrcvinfo$ 结构中设置了 $MSG_-ADDR_-OVER$ 标志。为了提供这个结构，调用者必须使用伴随辅助数据的 $sendmsg$ 或 $sctp_-sendmsg$ 函数；</li>
+<li>关联事件可能被启用，因此要是应用进程不希望收到这些事件，就得使用 $SCTP_-EVENTS$ 套接字选项显式禁止它们。默认情况下启用的唯一事件是 $sctp_-data_-io_-event$ ，它给 $recvmsg$ 和 $sctp_-recvmsg$ 调用提供辅助数据。</li>
+</ol>
+<h3 id="22-函数">2.2 函数</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netinet/sctp.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回0, 出错返回-1
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">sctp_bindx</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">addrs</span><span class="p">,</span> <span class="kt">int</span> <span class="n">addrcnt</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">);</span>
+</code></pre></div><p>        <code>SCTP</code>服务器可能希望绑定与所在主机系统相关<code>IP</code>地址的一个子集。$sctp_-bindx$ 函数允许<code>SCTP</code>套接字捆绑一个特定地址子集。$flags$ 参数指定两种行为：$SCTP_-BINDX_-ADD_-ADDR$ 为往套接字中添加地址，$SCTP_-BINDX_-REM_-ADDR$ 为从套接字中移除地址。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netinet/sctp.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回0，出错返回-1
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">sctp_connectx</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">addrs</span><span class="p">,</span> <span class="kt">int</span> <span class="n">addrcnt</span><span class="p">);</span>
+</code></pre></div><p>        $sctp_-connectx$ 函数用于连接到一个多宿对端主机。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netinet/sctp.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回对端地址数，出错返回-1
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">sctp_getpaddrs</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="n">sctp_assoc_t</span> <span class="n">id</span><span class="p">,</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">**</span><span class="n">addrs</span><span class="p">);</span>
+</code></pre></div><p>        $getpeername$ 不是为支持多宿概念的传输协议设计的，当用于<code>SCTP</code>时仅返回主目地址。如果需要知道对端的所有地址，应该使用 $sctp_-getpaddrs$ 。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netinet/sctp.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">void</span> <span class="nf">sctp_freepaddrs</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">addrs</span><span class="p">);</span>
+</code></pre></div><p>        $sctp_-freepaddrs$ 函数释放由 $sctp_-getpaddrs$ 函数分配的资源。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netinet/sctp.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回本端地址数，出错返回-1
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">sctp_getladdrs</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="n">sctp_assoc_t</span> <span class="n">id</span><span class="p">,</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">**</span><span class="n">addrs</span><span class="p">);</span>
+</code></pre></div><p>        $sctp_-getladdrs$ 函数用于获取属于某个关联的本地地址。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netinet/sctp.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">void</span> <span class="nf">sctp_freeladdrs</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">addrs</span><span class="p">);</span>
+</code></pre></div><p>        $sctp_-freeladdrs$ 函数释放由 $sctp_-getladdrs$ 函数分配的资源。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netinet/sctp.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回所写字节数，出错返回-1
+</span><span class="c1"></span><span class="n">ssize_t</span> <span class="nf">sctp_sendmsg</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">msg</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">msgsz</span><span class="p">,</span>
+  <span class="k">const</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">to</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">tolen</span><span class="p">,</span> <span class="kt">uint32_t</span> <span class="n">ppid</span><span class="p">,</span>
+  <span class="kt">uint32_t</span> <span class="n">flags</span><span class="p">,</span> <span class="kt">uint16_t</span> <span class="n">stream</span><span class="p">,</span> <span class="kt">uint32_t</span> <span class="n">timetolive</span><span class="p">,</span> <span class="kt">uint32_t</span> <span class="n">context</span><span class="p">);</span>
+</code></pre></div><p>        $sctp_-sendmsg$ 的使用者以指定更多参数为代价简化了发送方法。$ppid$ 参数指定将随数据块传递的净荷协议标识符，$flags$ 参数将传递给<code>SCTP</code>栈，用以标识任何<code>SCTP</code>选项。调用者可以在 $stream$ 指定一个<code>SCTP</code>流号，可以在 $lifetime$ 参数中以毫秒为单位指定消息的生命期，其中 $0$ 表示无限生命期。$context$ 参数用于指定可能有的用户上下文。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netinet/sctp.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回所读字节数，出错返回-1
+</span><span class="c1"></span><span class="n">ssize_t</span> <span class="nf">sctp_recvmsg</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">msg</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">msgz</span><span class="p">,</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">from</span><span class="p">,</span>
+  <span class="n">socklen_t</span> <span class="o">*</span><span class="n">fromlen</span><span class="p">,</span> <span class="k">struct</span> <span class="n">sctp_sndrcvinfo</span> <span class="o">*</span><span class="n">sinfo</span><span class="p">,</span> <span class="kt">int</span> <span class="n">msg_flags</span><span class="p">);</span>
+</code></pre></div><p>        与$sctp_-sendmsg$ 一样，$sctp_-recvmsg$ 也为<code>SCTP</code>高级特性提供一个更方便用户的接口。使用本函数不仅能获取对端的地址，也能获取通常伴随 $recvmsg$ 函数调用返回的 $msg_-flags$ 参数。本函数也允许获取已读入消息缓冲区中的伴随所接收消息的 $sctp_-sndrcvinfo$ 结构。$msg_-flags$ 参数中存放可能有的消息标志。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netinet/sctp.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回0，出错返回-1
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">sctp_opt_info</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="n">sctp_assoc_t</span> <span class="n">assoc_id</span><span class="p">,</span> <span class="kt">int</span> <span class="n">opt</span><span class="p">,</span>
+  <span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="o">*</span><span class="n">siz</span><span class="p">);</span>
+</code></pre></div><p>        $sctp_-opt_-info$ 函数是为无法为<code>SCTP</code>使用 $getsockopt$ 函数的那写实现提供的。$assoc_-id$ 参数给出可能存在的关联标识。$opt$ 参数是<code>SCTP</code>套接字选项。$arg$ 给出套接字选项参数。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netinet/sctp.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回一个新的套接字描述符，出错返回-1
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">sctp_peeloff</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="n">sctp_assoc_t</span> <span class="n">id</span><span class="p">);</span>
+</code></pre></div><p>        $sctp_-peeloff$ 从一个一到多套接字中抽取一个关联，构成单独一个一到一套接字。</p>
+<h2 id="23-shutdown函数">2.3 <code>shutdown</code>函数</h2>
+<p>        由于<code>SCTP</code>设计成不提供半关闭状态，所以 $shutdown$ 的行为不同于<code>TCP</code>。当相互通信的两个<code>SCTP</code>端点中任意一个发起关联终止序列时，这两个端点都得把已排队的任何数据发送掉，然后关闭关联。关联主动打开的发起端点改用 $shutdown$ 而不是 $close$ 的可能原因是：同一个端点可用于连接到一个新的对端端点。<code>SCTP</code>允许一个端点调用 $shutdown$ ，$shutdown$ 结束之后，这个端点就可以重用原套接字连接到一个新的对端。注意，如果这个端点没有等到<code>SCTP</code>关联终止序列结束，新的连接就会失败。</p>
+
+<script src=https://z217blog.cn/js/toc.js></script>
+
+<a href="javascript:void(0);" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+<div id="sidetoc">
+    <header>
+        <h4>Unix网络编程（4）：基本UDP/SCTP套接字编程</h4>
+    </header>
+    <nav id="TableOfContents">
+        <ul></ul>
+    </nav>
+</div>
+<script>
+    tocFlag = true;
+</script>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B3/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+<script type="text/javascript">
+    if (tocFlag) tocInit();
+</script>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2021, z217 and the Hugo Authors; all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        let all = MathJax.Hub.getAllJax(),
+            i;
+        
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
+</body>
+
+</html>
