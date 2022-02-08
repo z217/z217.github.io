@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html><head>
-	<meta name="generator" content="Hugo 0.92.0" />
+	<meta name="generator" content="Hugo 0.92.1" />
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="A personal blog of z217">
@@ -88,6 +88,24 @@
     
     
     <div class="list-item">
+        <a class="entry-title" href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B5/">Unix网络编程（5）：DNS</a>
+        
+        
+        <p>《Unix网络编程》读书笔记（5）</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2022 Feb 07 15:57
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: Web, C/C++
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
         <a class="entry-title" href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B4/">Unix网络编程（4）：基本UDP/SCTP套接字编程</a>
         
         
@@ -159,24 +177,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="https://z217blog.cn/post/%E7%A7%8B%E6%8B%9B%E9%9D%A2%E8%AF%95%E6%80%BB%E7%BB%93/">秋招面试总结</a>
-        
-        
-        <p>秋招面试情况总结，也算面经吧</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2021 Sep 07 22:20
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: Other
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -185,6 +185,236 @@
     <div class="section-title">μblog</div>
     <div class="posts">
         
+        
+        <div class="post">
+            
+            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B5/">Unix网络编程（5）：DNS</a></h1>
+            <div class="post-content">
+                <h2 id="1-域名系统">1. 域名系统</h2>
+<p>        <code>DNS</code>中的条目称为<strong>资源记录</strong> ( $resource$ $record$ , $RR$ )。</p>
+<ul>
+<li>$A$ ：$A$ 记录把一个主机名映射成一个 $32$ 位的<code>IPv4</code>地址；</li>
+<li>$AAAA$ ：四 $A$ ( $quad$ $A$ ) 记录把一个主机名映射成一个 $128$ 位的<code>IPv6</code>地址；</li>
+<li>$PTR$ ：指针记录 ( $pointer$ $record$ ) 把<code>IP</code>地址映射成主机名。对于<code>IPv4</code>地址，$32$ 地址的 $4$ 字节先反转顺序，每字节都转换成各自的十进制<code>ASCII</code>值后，再添加 $in-addr.arpa$ ；对于<code>IPv6</code>地址，$128$ 位地址中的 $32$ 个四位组先反转顺序，每个四位组都被转换成相应的十六进制<code>ASCII</code>值后，再添加 $ip6.arpa$ ；</li>
+<li>$MX$　：$MX$ 记录把一个主机指定作为给定主机的邮件交换器 ( $mail$ $exchanger$ )；</li>
+<li>$CNAME$ ：$CNAME$ 代表规范名字 ( $canonical$ $name$ )，常见用法是为常用的服务指派 ( 例如 $ftp$ 和 $www$ ) <code>CNAME</code>记录。如果人们使用这些服务名而不是真实的主机名，那么相应的服务挪到另一个主机时他们也不必知道。</li>
+</ul>
+<p>        每个组织往往运行一个或多个<strong>名字服务器</strong> ( $name$ $server$ )，它们通常就是所谓的 $BIND$ ( $Berkeley$ $Internet$ $Name$ $Domain$ ) 程序。诸如我们编写的客户和服务器等应用程序通过调用称为<strong>解析器</strong> ( $resolver$ ) 的函数库中的函数接触<code>DNS</code>服务器。解析器代码通常包含在一个系统函数库中，在构造应用程序时被<em><strong>链编</strong></em> ( $link-editing$ ) 到应用程序中。解析器使用<code>UDP</code>向本地名字服务器发出查询，如果本地名字服务器不知道答案，通常就会使用<code>UDP</code>在整个因特网上查询其他名字服务器。如果答案太常，超出了<code>UDP</code>消息的承载能力，本地名字服务器和解析器会自动切换到<code>TCP</code>。<br>
+        不使用<code>DNS</code>也可能获取名字和地址信息。常用的替代方法有静态主机文件 ( 通常是 $/etc/hosts$ 文件 )、网络信息系统 ( $Network$ $Information$ $System$ , $NIS$ ) 以及轻权目录访问协议 ( $Lightweight$ $Directory$ $Access$ $Protocol$ , $LDAP$ )。不幸的是，系统管理员如何配置一个主机以使用不同类型的名字服务是实现相关的。幸运的是，这些差异对于应用程序开发人员来说通常是透明的，我们只需调用诸如 $gethostbyname$ 和 $gethostbyaddr$ 这样的解析器函数。</p>
+<h2 id="2-gethostbyname-函数">2. <code>gethostbyname</code> 函数</h2>
+<p>        查找主机名最基本的函数是 $gethostbyname$ 。如果调用成功，它就返回一个指向 $hostent$ 结构的指针，该结构中含有所查找主机的所有<code>IPv4</code>地址。这个函数的局限是只能返回<code>IPv4</code>地址。<code>POSIX</code>规范预警可能在将来的某个版本中撤销 $gethostbyname$ 函数。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netdb.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回非空指针，出错返回NULL并设置h_errno
+</span><span class="c1"></span><span class="k">struct</span> <span class="n">hostent</span> <span class="o">*</span><span class="nf">gethostbyname</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">hostname</span><span class="p">);</span>
+
+<span class="k">struct</span> <span class="n">hostent</span> <span class="p">{</span>
+  <span class="kt">char</span> <span class="o">*</span><span class="n">h_name</span><span class="p">;</span>  <span class="c1">// 正式规范主机名
+</span><span class="c1"></span>  <span class="kt">char</span> <span class="o">**</span><span class="n">h_aliases</span><span class="p">;</span>  <span class="c1">// 别名数组，以NULL结尾
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">h_addrtype</span><span class="p">;</span>  <span class="c1">// 主机地址类型：AF_INET
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">h_length</span><span class="p">;</span>  <span class="c1">// 地址长度：4
+</span><span class="c1"></span>  <span class="kt">char</span> <span class="o">**</span><span class="n">h_addr_list</span><span class="p">;</span>  <span class="c1">// IPv4地址指针数组，以NULL结尾
+</span><span class="c1"></span><span class="p">};</span>
+</code></pre></div><p>        按照<code>DNS</code>的说法，$gethostbyname$ 执行的是对 $A$ 记录的查询，只能返回<code>IPv4</code>地址。<br>
+        $gethostbyname$ 与我们介绍过的其他套接字函数的不同之处在于：当发生错误时，它不设置 $errno$ ，而是将 $h_errno$ 设置为在头文件 &lt;$netdb.h$&gt; 中定义的下列常值之一：</p>
+<ul>
+<li>$HOST_-NOT_-FOUND$</li>
+<li>$TRY_-AGAIN$</li>
+<li>$NO_-RECOVERY$</li>
+<li>$NO_-DATA$ ( 等同于 $NO_-ADDRESS$ )</li>
+</ul>
+<p>        $NO_-DATA$ 错误表示指定的名字有效，但是没有 $A$ 记录。如今多数解析器提供名为 $hstrerror$ 的函数，它以某个 $h_-errno$ 值作为唯一的参数，返回的是一个 $const$ $char$ $\star$ 指针，指向相应的错误说明。</p>
+<h2 id="3-gethostbyaddr函数">3. <code>gethostbyaddr</code>函数</h2>
+<p>        $gethostbyaddr$ 函数试图由一个二进制<code>IP</code>地址找到对应的主机名。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netdb.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回非空指针，出错返回NULL并设置h_errno
+</span><span class="c1"></span><span class="k">struct</span> <span class="n">hostent</span> <span class="o">*</span><span class="nf">gethostbyaddr</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">len</span><span class="p">,</span> <span class="kt">int</span> <span class="n">family</span><span class="p">);</span>
+</code></pre></div><p>        $addr$ 参数实际上不是 $char$ $\star$ 类型，而是一个指向存放<code>IPv4</code>地址的某个 $in_-addr$ 结构的指针。按照<code>DNS</code>的说法，$gethostbyaddr$ 在 $in_-addr.arpa$ 域中向一个名字服务器查询 $PTR$ 记录。</p>
+<h2 id="4-getservbyname和getservbyport函数">4. <code>getservbyname</code>和<code>getservbyport</code>函数</h2>
+<p>        像主机一样，服务也通常靠名字来认知。如果我们在程序代码中通过名字而不是端口来代指一个服务，而且从名字到端口的映射关系保存在一个文件中 ( 通常是 $/etc/services$ )，那么即使端口发生改变，我们仅需要修改文件中的一行即可。$getservbyname$ 函数用于根据给定名字查找相应的服务。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netdb.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回非空指针，出错返回NULL
+</span><span class="c1"></span><span class="k">struct</span> <span class="n">servent</span> <span class="o">*</span><span class="nf">getservbyname</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">servname</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">protoname</span><span class="p">);</span>
+
+<span class="k">struct</span> <span class="n">servent</span> <span class="p">{</span>
+  <span class="kt">char</span> <span class="o">*</span><span class="n">s_name</span><span class="p">;</span>  <span class="c1">// 官方服务名
+</span><span class="c1"></span>  <span class="kt">char</span> <span class="o">**</span><span class="n">s_aliases</span><span class="p">;</span>  <span class="c1">// 别名数组
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">s_port</span><span class="p">;</span>  <span class="c1">// 端口号，网络字节序
+</span><span class="c1"></span>  <span class="kt">char</span> <span class="o">*</span><span class="n">s_proto</span><span class="p">;</span>  <span class="c1">// 协议
+</span><span class="c1"></span><span class="p">};</span>
+</code></pre></div><p>        服务名参数 $servname$ 必须指定，如果同时指定了 $protoname$ ，那么指定服务必须有匹配的协议。如果 $protoname$ 未指定而 $servname$ 指定服务支持多个协议，那么返回哪个端口取决于实现。通常情况下这种选择无关紧要，因为支持多个协议的服务往往使用相同的<code>TCP</code>端口号和<code>UDP</code>端口号。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netdb.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回非空指针，出错返回NULL
+</span><span class="c1"></span><span class="k">struct</span> <span class="n">servent</span> <span class="o">*</span><span class="nf">getservbyport</span><span class="p">(</span><span class="kt">int</span> <span class="n">port</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">protoname</span><span class="p">);</span>
+</code></pre></div><p>        $getservbyport$ 用于根据给定端口号和可选协议查找相应服务。$port$ 参数的值必须为网络字节序。</p>
+<h2 id="5-getaddrinfo-函数">5. <code>getaddrinfo</code> 函数</h2>
+<p>        $gethostbyname$ 和 $gethostbyaddr$ 函数仅仅支持<code>IPv4</code>。$getaddrinfo$ 函数能够处理名字到地址以及服务到端口这两种转换，返回的是一个 $sockaddr$ 结构而不是一个地址列表，这些 $sockaddr$ 结构随后可由套接字函数直接使用。该函数在<code>POSIX</code>规范中定义。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netdb.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回0，出错返回非0
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">getaddrinfo</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">hostname</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">service</span><span class="p">,</span>
+  <span class="k">const</span> <span class="k">struct</span> <span class="n">addrinfo</span> <span class="o">*</span><span class="n">hints</span><span class="p">,</span> <span class="k">struct</span> <span class="n">addrinfo</span> <span class="o">**</span><span class="n">result</span><span class="p">);</span>
+
+<span class="k">struct</span> <span class="n">addrinfo</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">ai_flags</span><span class="p">;</span>  <span class="c1">// AI_PASSIVE, AI_CANONNAME
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ai_family</span><span class="p">;</span>  <span class="c1">// AF_xxx
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ai_socktype</span><span class="p">;</span>  <span class="c1">// SOCK_xxx
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ai_protocol</span><span class="p">;</span>  <span class="c1">// 0 或 IPPROTO_xxx
+</span><span class="c1"></span>  <span class="n">socklen_t</span> <span class="n">ai_addrlen</span><span class="p">;</span>  <span class="c1">// ai_addr长度
+</span><span class="c1"></span>  <span class="kt">char</span> <span class="o">*</span><span class="n">ai_canonname</span><span class="p">;</span>  <span class="c1">// 主机规范名称
+</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">ai_addr</span><span class="p">;</span>  <span class="c1">// 套接字地址结构
+</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">addrinfo</span> <span class="o">*</span><span class="n">ai_next</span><span class="p">;</span>  <span class="c1">// 链表后继节点
+</span><span class="c1"></span><span class="p">};</span>
+</code></pre></div><p>        $hostname$ 是一个主机名或地址串，$service$ 参数是一个服务名或十进制端口号。$hints$ 参数可以是一个空指针，也可以是一个指向某个 $addrinfo$ 结构的指针，调用者在这个结构中填入关于期望返回的信息类型的暗示。例如，如果指定的服务既支持<code>TCP</code>也支持<code>UDP</code>，那么调用者可以把 $hints$ 结构中的 $ai_-socktype$ 字段设置为 $SOCK_-DGRAM$ ，使得返回的仅仅是适用于数据报套接字的信息。$hints$ 结构中调用者可以设置的成员有：</p>
+<ul>
+<li>$ai_-flags$</li>
+<li>$ai_-family$</li>
+<li>$ai_-socktype$</li>
+<li>$ai_-protocol$</li>
+</ul>
+<p>        其中 $ai_-flags$ 成员可用的标志值及含义如下：</p>
+<ul>
+<li>$AI_-PASSIVE$ ：套接字被动打开；</li>
+<li>$AI_-CANONNAME$ ：返回主机规范名称；</li>
+<li>$AI_-NUMERICHOST$ ：防止任何类型的名字到地址映射，$hostname$ 参数必须是一个地址串；</li>
+<li>$AI_-NUMERICSERV$ ：防止任何类型的名字到服务映射，$service$ 参数必须是一个十进制端口号；</li>
+<li>$AI_-V4MAPPED$ ：如果同时指定 $ai_-family$ 成员的值为 $AF_-INET6$ ，那么如果没有可用的 $AAAA$ 记录，就返回与 $A$ 记录对应的<code>IPv4</code>映射的<code>IPv6</code>地址；</li>
+<li>$AI_-ALL$ ：如果同时指定 $AI_-V4MAPPED$ 标志，那么除了返回与 $AAAA$ 记录对应的<code>IPv6</code>地址外，还会返回与 $A$ 记录对应的<code>IPv4</code>映射的<code>IPv6</code>地址；</li>
+<li>$AI_-ADDRCONFIG$ ：按照所在主机的配置选择返回地址类型，也就是只查找与所在主机反馈接口以外的网络接口配置的<code>IP</code>地址版本一致的地址。</li>
+</ul>
+<p>        如果 $hints$ 参数是一个空指针，那么就假设 $ai_-flags$ 、$ai_-socktype$ 和 $ai_-protocol$ 的值均为 $0$ ，$ai_-family$ 的值为 $AF_-UNSPEC$ 。如果函数成功返回，那么 $result$ 参数会被填入结果指针，指向一个链表。可导致返回多个 $addrinfo$ 结构的情形有：</p>
+<ol>
+<li>与 $hostname$ 关联的地址有多个，那么适用于所请求地址族的每个地址都返回一个对应的结构；</li>
+<li>如果 $service$ 参数指定的服务支持多个套接字类型，那么每个套接字类型都可能返回一个对应的结构，具体取决于 $hints$ 结构的 $ai_-socktype$ 成员。</li>
+</ol>
+<p>        如果枚举 $getaddrinfo$ 所有可能的 $64$ 种输入，那么许多是无效的。我们只查看一些常见的输入：</p>
+<ul>
+<li>指定 $hostname$ 和 $service$　。这是<code>TCP</code>或<code>UDP</code>客户进程调用 $getaddrinfo$ 的常规输入。该调用返回后，<code>TCP</code>客户在一个循环中针对每个返回的<code>IP</code>地址，逐一调用 $socket$ 和 $connect$ ，直到有一个连接成功，或者所有地址尝试完毕；</li>
+<li>指定 $service$ ，同时在 $hints$ 中指定 $AI_-PASSIVE$ 。这是典型的服务器进程，返回的套接字地址结构中应当只含有一个值为 $INADDR_-ANY$ ( <code>IPv4</code> ) 或 $IN6ADDR_-ANY$ ( <code>IPv6</code> ) 的<code>IP</code>地址。<code>TCP</code>服务器随后调用 $socket$ 、$bind$ 和 $listen$ 。</li>
+</ul>
+<h2 id="6-gai_strerror函数">6. <code>gai_strerror</code>函数</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netdb.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 返回指向错误描述消息字符串的指针
+</span><span class="c1"></span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="nf">gai_strerror</span><span class="p">(</span><span class="kt">int</span> <span class="n">error</span><span class="p">);</span>
+</code></pre></div><table>
+<thead>
+<tr>
+<th style="text-align:center">常值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">$EAI_-AGAIN$</td>
+<td style="text-align:center">名字解析中临时失败</td>
+</tr>
+<tr>
+<td style="text-align:center">$EAI_-BADFLAGS$</td>
+<td style="text-align:center">$ai_-flags$ 的值无效</td>
+</tr>
+<tr>
+<td style="text-align:center">$EAI_-FAIL$</td>
+<td style="text-align:center">名字解析中不可恢复地失败</td>
+</tr>
+<tr>
+<td style="text-align:center">$EAI_-FAMILY$</td>
+<td style="text-align:center">不支持 $ai_-family$</td>
+</tr>
+<tr>
+<td style="text-align:center">$EAI_-MEMORY$</td>
+<td style="text-align:center">内存分配失败</td>
+</tr>
+<tr>
+<td style="text-align:center">$EAI_-NONAME$</td>
+<td style="text-align:center">$hostname$ 或 $service$ 未提供或不可知</td>
+</tr>
+<tr>
+<td style="text-align:center">$EAI_-OVERFLOW$</td>
+<td style="text-align:center">用户参数缓冲区溢出</td>
+</tr>
+<tr>
+<td style="text-align:center">$EAI_-SERVICE$</td>
+<td style="text-align:center">不支持 $ai_-socktype$ 类型的 $service$</td>
+</tr>
+<tr>
+<td style="text-align:center">$EAI_-SYSTEM$</td>
+<td style="text-align:center">在 $errno$ 变量中有系统错误返回</td>
+</tr>
+</tbody>
+</table>
+<h2 id="7-freeaddrinfo函数">7. <code>freeaddrinfo</code>函数</h2>
+<p>        由 $getaddrinfo$ 返回的所有存储空间都是动态获取的，包括 $addrinfo$ 结构、$ai_-addr$ 结构和 $ai_-canonname$ 字符串。这些存储空间通过 $freeaddrinfo$ 返还给系统。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netdb.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">void</span> <span class="nf">freeaddrinfo</span><span class="p">(</span><span class="k">struct</span> <span class="n">addrinfo</span> <span class="o">*</span><span class="n">ai</span><span class="p">);</span>
+</code></pre></div><h2 id="8-getnameinfo函数">8. <code>getnameinfo</code>函数</h2>
+<p>        $getnameinfo$ 函数是 $getaddrinfo$ 的互补函数。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netdb.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回0，出错返回非0
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">getnameinfo</span><span class="p">(</span><span class="k">const</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">sockaddr</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">addrlen</span><span class="p">,</span>
+  <span class="kt">char</span> <span class="o">*</span><span class="n">host</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">hostlen</span><span class="p">,</span>
+  <span class="kt">char</span> <span class="o">*</span><span class="n">serv</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">servlen</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">);</span>
+</code></pre></div><p>        $sockaddr$ 指向一个套接字地址结构，其中包含待转换成直观可读的字符串的协议地址，$addrlen$ 是这个结构的长度，该结构及其长度通常由 $accept$ 、$recvfrom$ 、$getsockname$ 或 $getpeername$ 返回。待返回的 $2$ 个直观可读字符串由调用者预先分配存储空间，$host$ 和 $hostlen$ 指定主机字符串，$serv$ 和 $servlen$ 指定服务字符串。如果调用者不想返回主机字符串，那就指定 $hostlen$ 为 $0$ ，同样的，也可以通过指定 $servlen$ 为 $0$ 来不返回服务字符串。$flags$ 可以改变 $getnameinfo$ 的操作，如下表所示。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">常值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">$NI_-DGRAM$</td>
+<td style="text-align:center">数据报服务</td>
+</tr>
+<tr>
+<td style="text-align:center">$NI_-NAMEREQD$</td>
+<td style="text-align:center">若不能从地址解析出名字则返回错误</td>
+</tr>
+<tr>
+<td style="text-align:center">$NI_-NOFQDN$</td>
+<td style="text-align:center">只返回<code>FQDN</code>的主机名部分</td>
+</tr>
+<tr>
+<td style="text-align:center">$NI_-NUMERICHOST$</td>
+<td style="text-align:center">以数串格式返回主机字符串</td>
+</tr>
+<tr>
+<td style="text-align:center">$NI_-NUMERICSCOPE$</td>
+<td style="text-align:center">以数串格式返回范围标识字符串</td>
+</tr>
+<tr>
+<td style="text-align:center">$NI_-NUMERICSERV$</td>
+<td style="text-align:center">以数串格式返回服务字符串</td>
+</tr>
+</tbody>
+</table>
+<p>        当知道处理的是数据报套接字时，调用者应设置 $NI_-DGRAM$ 标志，因为在套接字地址结构中给出的仅仅是<code>IP</code>地址和端口号，$getnameinfo$ 无法就此确定所使用的协议。</p>
+<h2 id="9-gethostbyname_r和gethostbyaddr_r函数">9. <code>gethostbyname_r</code>和<code>gethostbyaddr_r</code>函数</h2>
+<p>        $gethostbyname$ 等函数是不可重入的，因为他们的返回值结构是一个静态全局变量。有两种方法可以把它们改为可重入函数：</p>
+<ol>
+<li>把不可重入函数填写并返回静态结构的做法改为由调用者分配再由可重入函数填写结构，这是 $gethostbyname_-r$ 使用的技巧。这种方法比较复杂，因为调用者必须显式提供对应字符串数组的大小，此外，作为额外的参数，用于存放错误码的整数常量指针也是必要的，因为不能再使用 $h_-errno$ ；</li>
+<li>由可重入函数调用 $malloc$ 动态分配内存空间，这是 $getaddrinfo$ 使用的技巧。这种方法的问题就是调用者必须调用 $freeaddrinfo$ 释放空间。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netdb.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="k">struct</span> <span class="n">hostent</span> <span class="o">*</span><span class="nf">gethostbyname_r</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">hostname</span><span class="p">,</span>
+  <span class="k">struct</span> <span class="n">hostent</span> <span class="o">*</span><span class="n">result</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="kt">int</span> <span class="n">buflen</span><span class="p">,</span> <span class="kt">int</span> <span class="o">*</span><span class="n">h_errnop</span><span class="p">);</span>
+<span class="k">struct</span> <span class="n">hostent</span> <span class="o">*</span><span class="nf">gethostbyaddr_r</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="kt">int</span> <span class="n">len</span><span class="p">,</span> <span class="kt">int</span> <span class="n">type</span><span class="p">,</span>
+  <span class="k">struct</span> <span class="n">hostent</span> <span class="o">*</span><span class="n">result</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="kt">int</span> <span class="n">buflen</span><span class="p">,</span> <span class="kt">int</span> <span class="o">*</span><span class="n">h_errnop</span><span class="p">);</span>
+</code></pre></div><p>        上面两个函数每个都需要 $4$ 个额外的参数，其中 $result$ 指向用户分配的用于存储 $hostent$ 结构，$buf$ 指向由调用者分配的大小为 $buflen$ 的缓冲区，用于存放规范主机名、别名指针数组等，$result$ 中所有指针都指向该缓冲区内部。$gethostbyname$ 当前的实现最多能够返回 $35$ 个别名指针和 $35$ 个地址指针，并且内部使用了一个 $8192$ 字节的缓冲区存放，因此大小为 $8192$ 字节的缓冲区应该足够了。</p>
+
+            </div>
+            <div class="meta post-footer"> 
+                <span>2022 Feb 7 15:57</span> 
+                <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B5/"><i class="fas fa-link"></i> link</a>
+            </div>
+        </div>
         
         <div class="post">
             
@@ -909,209 +1139,6 @@
             <div class="meta post-footer"> 
                 <span>2022 Jan 29 18:38</span> 
                 <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B2/"><i class="fas fa-link"></i> link</a>
-            </div>
-        </div>
-        
-        <div class="post">
-            
-            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B1/">Unix网络编程（1）：套接字编程简介</a></h1>
-            <div class="post-content">
-                <h2 id="1-传输层">1. 传输层</h2>
-<p>        <code>TCP</code>建立一个连接需要三次握手：</p>
-<ol>
-<li>服务器准备接受外部连接，通常通过调用 $socket$ 、$bind$ 、$listen$ 这 $3$ 个函数完成，称为<strong>被动打开</strong> ( $passive$ $open$ )；</li>
-<li>客户端通过调用 $connect$ 发起<strong>主动打开</strong> ( $active$ $open$ )，即发送一个<code>SYN</code>报文；</li>
-<li>服务器确认 ( <code>ACK</code> ) 客户端的<code>SYN</code>，同时也发送一个<code>SYN</code>；</li>
-<li>客户端确认服务器的<code>SYN</code>。</li>
-</ol>
-<p>        <code>TCP</code>终止一个连接需要四次挥手：</p>
-<ol>
-<li>某个进程调用 $close$ ，称为<strong>主动关闭</strong> ( $active$ $close$ )，该端发送一个<code>FIN</code>报文；</li>
-<li>对端接受<code>FIN</code>，执行<strong>被动关闭</strong> ( $passive$ $close$ )。这个<code>FIN</code>由<code>TCP</code>确认，接收也作为一个<strong>文件结束符</strong> ( $end-of-file$ , $EOF$ ) 传递给接收端应用程序 ( 放在已排队等候该应用进程接收的任何其他数据之后 )；</li>
-<li>一段时间后，接收到<code>EOF</code>的进程调用 $close$ 关闭套接字，并发送一个<code>FIN</code>报文；</li>
-<li>接收到<code>FIN</code>的原端<code>TCP</code>确认。</li>
-</ol>
-<p>        <code>TCP</code>状态转换图可参考<a href="https://z217blog.cn/post/tcpudp%E5%92%8Cdns%E7%AE%80%E4%BB%8B/#16-%E7%8A%B6%E6%80%81">TCP、UDP和DNS简介</a>。<br>
-        <code>SCTP</code>建立一个连接的过程为：</p>
-<ol>
-<li>服务器准备接受外部连接，通常通过调用 $socket$ 、$bind$ 、$listen$ 这 $3$ 个函数完成，称为被动打开；</li>
-<li>客户端通过调用 $connect$ 或者发送一个隐式打开该关联的消息进行主动打开，从而发送一个<code>INIT</code>消息，告知服务器客户端的<code>IP</code>地址清单、初始序列号、分组起始标记、客户端请求的外出流数目以及客户端能支持的外出流的数目；</li>
-<li>服务器以一个<code>INIT</code> <code>ACK</code>消息确认，其中含有服务器的<code>IP</code>地址清单、初始序列号、起始标记、请求的外出流数目、支持的外出流数目和一个状态<code>cookie</code>，包含服务器用于确认本次连接有效所需的所有状态；</li>
-<li>客户端以一个<code>COOKIE</code> <code>ECHO</code>消息回射状态<code>cookie</code>；</li>
-<li>服务器以一个<code>COOKIE</code> <code>ACK</code>消息确认<code>cookie</code>正确，于是连接建立。</li>
-</ol>
-<p>        <code>SCTP</code>不像<code>TCP</code>那样允许”半关闭“的连接，而是当某一端关闭时，另一端必须停止发送新数据，在发送完所有队列中的数据后关闭。<br>
-        一个<code>TCP</code>连接的<strong>套接字对</strong> ( $socket$ $pair$ ) 是一个定义该连接的两个端点的四元组：本地<code>IP</code>地址、本地<code>TCP</code>端口号、外地<code>IP</code>地址、外地<code>TCP</code>端口号。在两个端点均非多宿这一最简单情形下，<code>SCTP</code>和<code>TCP</code>所用的四元组套接字对一致。然而在某个关联的任何一个端点为多宿的情形下，同一个关联可能需要多个四元组标识 ( <code>IP</code>地址各不相同，但端口号一致 )。标识每个端点的两个值 ( <code>IP</code>地址和端口号 ) 通常称为一个套接字。<br>
-        并发服务器中主服务器循环通过派生一个子进程来处理每个新连接。假设服务器在端口 $21$ 上被动打开，等待请求，此时我们可使用 $\{$ $*:21$ , $*:*$ $\}$ 指出服务器的套接字对，其中外地<code>IP</code>地址和外地端口都没有指定，记为 $*.*$ ，我们称为<strong>监听套接字</strong> ( $listening$ $socket$ )。当服务器接受到一个客户连接时，会 $fork$ 一个子进程，并将连接交由子进程处理，这时产生的套接字称为 <strong>已连接套接字</strong> ( $connected$ $socket$ )。</p>
-<h2 id="2-套接字编程">2. 套接字编程</h2>
-<h3 id="21-套接字地址结构">2.1 套接字地址结构</h3>
-<h4 id="211-ipv4套接字地址结构">2.1.1 <code>IPv4</code>套接字地址结构</h4>
-<p>        <code>IPv4</code>套接字地址结构通常也称为“网际套接字地址结构”，命名为 $sockaddr_-in$ ，定义在 &lt;$netinet/in.h$&gt; 头文件中。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">struct</span> <span class="n">in_addr</span> <span class="p">{</span>
-  <span class="n">in_addr_t</span>  <span class="n">s_addr</span><span class="p">;</span>  <span class="c1">// 32位IPv4地址，以网络字节序存储
-</span><span class="c1"></span><span class="p">};</span>
-
-<span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">short</span> <span class="kt">int</span> <span class="n">sa_family_t</span><span class="p">;</span>
-
-<span class="k">struct</span> <span class="n">sockaddr_in</span> <span class="p">{</span>
-  <span class="kt">uint8_t</span>         <span class="n">sin_len</span><span class="p">;</span>  <span class="c1">// 结构体长度
-</span><span class="c1"></span>  <span class="n">sa_family_t</span>     <span class="n">sin_family</span><span class="p">;</span>  <span class="c1">// AF_INET
-</span><span class="c1"></span>  <span class="n">in_port_t</span>       <span class="n">sin_port</span><span class="p">;</span>  <span class="c1">// 16位端口号，网络字节序存储
-</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">in_addr</span>  <span class="n">sin_addr</span><span class="p">;</span>  <span class="c1">// 32位IPv4地址
-</span><span class="c1"></span>  <span class="kt">char</span>            <span class="n">sin_zero</span><span class="p">[</span><span class="mi">8</span><span class="p">];</span>  <span class="c1">// 未使用
-</span><span class="c1"></span><span class="p">};</span>
-</code></pre></div><ul>
-<li>长度 $sin_-len$ 是为增加对<code>OSI</code>协议的支持而添加的，不是所有厂家都支持，而且<code>POSIX</code>协议也并不要求；</li>
-<li>即使有长度字段，也无需设置和进行检查，除非涉及路由套接字；</li>
-<li><code>POSIX</code>规范只需要 $sin_-family$ 、$sin_-addr$ 和 $sin_-port$ 这三个字段，除此之外，额外字段也是可以接受的；</li>
-<li><code>IPv4</code>地址和<code>TCP</code>或<code>UDP</code>端口总是以网络字节序存储；</li>
-<li>$sin_-zero$ 字段不被使用，但在大多数定义中都存在；</li>
-<li>按照惯例，在使用前应当将整个结构置 $0$ 。</li>
-</ul>
-<h4 id="212-通用套接字地址结构">2.1.2 通用套接字地址结构</h4>
-<p>        当作为一个参数传递进任何套接字函数时，套接字地址结构总是以指针形式传递。然而这样的指针作为参数之一的任何套接字函数必须处理来自所支持的任何协议族的套接字地址结构。在<code>ANSI C</code>之前，采取的办法是定义一个通用的套接字地址结构 $sockaddr$ ，定义在 &lt;$sys/socket.h$&gt; 头文件中。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">struct</span> <span class="n">sockaddr</span> <span class="p">{</span>
-  <span class="kt">uint8_t</span>      <span class="n">sa_len</span><span class="p">;</span>
-  <span class="n">sa_family_t</span>  <span class="n">sa_family</span><span class="p">;</span>  <span class="c1">// 地址族：AF_xxx
-</span><span class="c1"></span>  <span class="kt">char</span>         <span class="n">sa_data</span><span class="p">[</span><span class="mi">14</span><span class="p">];</span>  <span class="c1">// 协议地址
-</span></code></pre></div><p>        于是套接字函数被定义为指向通用套接字地址结构的一个指针作为参数之一，比如：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="kt">int</span> <span class="nf">bind</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="p">,</span> <span class="n">socklen_t</span><span class="p">);</span>
-</code></pre></div><p>        所以在对这些函数进行调用前需要进行类型转换，否则会产生警告信息。因此，从应用程序开发人员的角度来看，通用套接字地址结构的唯一用途就是用作强制类型转换。</p>
-<h4 id="213-ipv6套接字地址结构">2.1.3 <code>IPv6</code>套接字地址结构</h4>
-<p>        <code>IPv6</code>套接字地址结构定义在 &lt;$netinet/in.h$&gt; 头文件中。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">struct</span> <span class="n">in6_addr</span> <span class="p">{</span>
-  <span class="kt">uint8_t</span>  <span class="n">s6_addr</span><span class="p">[</span><span class="mi">16</span><span class="p">];</span>  <span class="c1">// 128位IPv6地址，以网络字节序存储
-</span><span class="c1"></span><span class="p">};</span>
-
-<span class="cp">#define SIN6_LEN  </span><span class="c1">// 用于编译时测试
-</span><span class="c1"></span>
-<span class="k">struct</span> <span class="n">sockaddr_in6</span> <span class="p">{</span>
-  <span class="kt">uint8_t</span>          <span class="n">sin6_len</span><span class="p">;</span>  <span class="c1">// 结构体长度
-</span><span class="c1"></span>  <span class="n">sa_family_t</span>      <span class="n">sin6_family</span><span class="p">;</span>  <span class="c1">// AF_INET6
-</span><span class="c1"></span>  <span class="n">in_port_t</span>        <span class="n">sin6_port</span><span class="p">;</span>  <span class="c1">// 传输层端口，以网络字节序存储
-</span><span class="c1"></span>  <span class="kt">uint32_t</span>         <span class="n">sin6_flowinfo</span><span class="p">;</span>  <span class="c1">// 流信息，未定义
-</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">in6_addr</span>  <span class="n">sin6_addr</span><span class="p">;</span>  <span class="c1">// IPv6地址
-</span><span class="c1"></span>  <span class="kt">uint32_t</span>         <span class="n">sin6_scope_id</span><span class="p">;</span>  <span class="c1">// 范围接口集
-</span><span class="c1"></span><span class="p">};</span>
-</code></pre></div><ul>
-<li>如果系统支持套接字地址结构中长度字段，那么 $SIN6_-LEN$ 常数必须定义；</li>
-<li>$sin6_-flowinfo$ 字段分成两个部分，低 $20$ 位作为<em><strong>流标识</strong></em> ( $flow$ $label$ )，高 $12$ 位保留；</li>
-<li>对于<em><strong>范围地址</strong></em> ( $scoped$ $address$ )，$sin6_-scope_-id$ 字段标识范围。</li>
-</ul>
-<h4 id="214-新的通用套接字地址结构">2.1.4 新的通用套接字地址结构</h4>
-<p>        作为<code>IPv6</code>套接字<code>API</code>的一部分而定义的新的通用套接字地址结构克服了现有结构的一些缺点，足以容纳系统所支持的任何套接字地址结构，定义在 &lt;$netinet/in.h$&gt; 头文件中。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">struct</span> <span class="n">sockaddr_storage</span> <span class="p">{</span>
-  <span class="kt">uint8_t</span>      <span class="n">ss_len</span><span class="p">;</span>  <span class="c1">// 结构体长度
-</span><span class="c1"></span>  <span class="n">sa_family_t</span>  <span class="n">ss_family</span><span class="p">;</span> <span class="c1">// 地址族：AF_xxx
-</span><span class="c1"></span><span class="p">};</span>
-</code></pre></div><p>        $sockaddr_-storage$ 类型提供的通用套接字地址结构相比 $sockaddr$ 存在以下两点差别：</p>
-<ol>
-<li>如果系统支持的任何套接字地址结构有对齐需求，那么 $sockaddr_-storage$ 能够满足严苛的对齐需求；</li>
-<li>$sockaddr_storage$ 足够大，能够容纳系统支持的任何套接字地址结构。</li>
-</ol>
-<p>        除了 $ss_-family_-t$ 和 $ss_-len$ 之外，$sockaddr_-storage$ 结构中的其他字段对于用户来说是透明的，必须转换成或者复制到对应的地址结构中才能访问。</p>
-<h3 id="22-值-结果参数">2.2 值-结果参数</h3>
-<p>        当往一个套接字函数传递套接字结构时，除了结构体指针外，还需要传递结构长度，传递方式取决于是从进程到内核，还是从内核到进程。从进程到和内核传递套接字地址结构的函数有 $3$ 个：$bind$ 、$connect$ 和 $sendto$ ，这些函数其中一个参数是套接字结构体指针，另一个参数是结构体的整型大小；从内核到进程传递套接字地址结构的函数有 $4$ 个：$accept$ 、$recvfrom$ 、$getsockname$ 和 $getpeername$ ，这些函数的其中一个参数是套接字结构体指针，另一个是结构体整型大小指针。于是在这两种传递方式中，结构体大小既作为值进行传递，也作为结果进行传递，称为<strong>值-结果</strong> ( $value-result$ ) 参数。</p>
-<h3 id="23-字节排序函数">2.3 字节排序函数</h3>
-<p>        系统中存储数据的方式可以分为将字节低位存储在起始位置的<strong>小端</strong> ( $little-endian$ ) 序和将字节高位存储在起始地址的 <strong>大端</strong> ( $big-endian$ ) 序，这两种字节序之间没有标准可循，并且都有系统使用。我们把某个给定系统所用的字节序称为<strong>主机字节序</strong> ( $host$ $byte$ $order$ )。网络协议必须指定一个<strong>网络字节序</strong> ( $network$ $byte$ $order$ )，即大端序。从理论上来说，具体实现可以按照主机字节序存储套接字地址结构中的各个字段，等到需要再进行转换。然而，由于历史原因和<code>POSIX</code>协议规定，套接字地址结构中的某些字段必须按照网络字节序进行维护。用于主机字节序和网络字节序之间相互转换的函数主要有以下 $4$ 个：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netinet/in.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 返回网络字节序值
-</span><span class="c1"></span><span class="kt">uint16_t</span> <span class="nf">htons</span><span class="p">(</span><span class="kt">uint16_t</span> <span class="n">host16bitvalue</span><span class="p">);</span>
-<span class="kt">uint32_t</span> <span class="nf">htonl</span><span class="p">(</span><span class="kt">uint32_t</span> <span class="n">host32bitvalue</span><span class="p">);</span>
-
-<span class="c1">// 返回主机字节序值
-</span><span class="c1"></span><span class="kt">uint16_t</span> <span class="nf">ntohs</span><span class="p">(</span><span class="kt">uint16_t</span> <span class="n">net16bitvalue</span><span class="p">);</span>
-<span class="kt">uint32_t</span> <span class="nf">ntohl</span><span class="p">(</span><span class="n">uint32_T</span> <span class="n">net32bitvalue</span><span class="p">);</span>
-</code></pre></div><h3 id="24-字节操纵函数">2.4 字节操纵函数</h3>
-<p>        操纵多字节字段的函数有两组。<br>
-        第一组名字以 $b$ 开头，现今几乎所有支持套接字函数的系统都有提供。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;strings.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="kt">void</span> <span class="nf">bzero</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">dest</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">nbytes</span><span class="p">);</span>
-
-<span class="kt">void</span> <span class="nf">bcopy</span><span class="p">(</span><span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">src</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">dest</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">nbytes</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">bcmp</span><span class="p">(</span><span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">ptr1</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">ptr2</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">nbytes</span><span class="p">);</span>
-</code></pre></div><p>        第二组名字以 $mem$ 开头，起源自<code>ANSI C</code>标准，支持<code>ANSI C</code>标准函数库的系统都有提供。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;string.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="kt">void</span> <span class="o">*</span><span class="nf">memset</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">dest</span><span class="p">,</span> <span class="kt">int</span> <span class="n">c</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">len</span><span class="p">);</span>
-
-<span class="kt">void</span> <span class="o">*</span><span class="nf">memcpy</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">dest</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">src</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">nbytes</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">memcmp</span><span class="p">(</span><span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">ptr1</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">ptr2</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">nbytes</span><span class="p">);</span>
-</code></pre></div><p>        $memset$ 将目标字符串指定数目字节数的值置为 $c$ 。$memcpy$ 类似于 $bcopy$ ，不过两个指针参数顺序相反，当处理区域重叠时，前者行为未定义，后者能正确处理。</p>
-<h3 id="25-地址转换函数">2.5 地址转换函数</h3>
-<p>        地址转换函数用于<code>ASCII</code>字符串与网络字节序二进制值之间转换网络地址。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;arpa/inet.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 字符串有效返回1，否则返回0
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">inet_aton</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">strptr</span><span class="p">,</span> <span class="k">struct</span> <span class="n">in_addr</span> <span class="o">*</span><span class="n">addrptr</span><span class="p">);</span>
-
-<span class="c1">// 字符串有效则返回32位二进制网络字节序IPv4地址，否则为INADDR_NONE
-</span><span class="c1"></span><span class="n">in_addr_t</span> <span class="nf">inet_addr</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">strptr</span><span class="p">);</span>
-
-<span class="c1">// 返回一个指向点分十进制字符串的指针
-</span><span class="c1"></span><span class="kt">char</span> <span class="o">*</span><span class="nf">inet_ntoa</span><span class="p">(</span><span class="k">struct</span> <span class="n">in_addr</span> <span class="n">inaddr</span><span class="p">);</span>
-</code></pre></div><p>        $inet_-aton$ 将 $strptr$ 转为 $32$ 位的网络字节序二进制值，存储在 $addrptr$ 中，成功返回 $1$ ，失败返回 $0$ 。$inet_-addr$ 进行相同转换，但是存在一个问题，当出错时，会返回 $INADDR_-NONE$ ，后者通常是 $32$ 位的以 $1$ 填充的值，这意味着有限广播地址 ( $255$.$255$.$255$.$255$ ) 不能由该函数处理，所以该函数如今已被废弃，应改用 $inet_-aton$ 。$inet_-ntoa$ 函数将一个 $32$ 位网络字节序二进制<code>IPv4</code>地址转换为相应的点分十进制字符串，该函数是不可重入的。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;arpa/inet.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 字符串有效返回1，否则返回0
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">inet_pton</span><span class="p">(</span><span class="kt">int</span> <span class="n">family</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">strptr</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">addrptr</span><span class="p">);</span>
-
-<span class="c1">// 返回一个指向结果的指针
-</span><span class="c1"></span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="nf">inet_ntop</span><span class="p">(</span><span class="kt">int</span> <span class="n">family</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">addrptr</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">strptr</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">len</span><span class="p">);</span>
-</code></pre></div><p>        这两个函数是随<code>IPv6</code>出现的，既适用于<code>IPv4</code>地址，也适用于<code>IPv6</code>地址。$family$ 参数可以是 $AF_INET$ ，也可以是 $AF_INET6$ ，如果是不支持的地址族，则会返回错误，并将 $errno$ 置为 $EAFNOSUPPORT$ 。$inet_-pton$ 会转换 $strptr$ 指针指向的字符串，存储在 $addrptr$ 中，成功返回 $1$ ，失败返回 $0$ 。$inet_-pton$ 则进行相反转换，从 $addptr$ 转换到 $strptr$ ，$len$ 标识目的存储单元大小。在 &lt;$netinet/in.h$&gt; 头文件中存在以下两个定义：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#define INET_ADDRSTRLEN   16
-</span><span class="cp">#define INET6_ADDRSTRLEN  46
-</span></code></pre></div><p>        帮助指定大小。如果 $len$ 太小，无法容纳结果，那么就会返回 $NULL$ ，并将 $errno$ 置为 $ENOSPC$ 。</p>
-<h3 id="26-io函数">2.6 <code>I/O</code>函数</h3>
-<p>        字节流套接字上的 $read$ 和 $write$ 函数所表现的行为不同于通常的文件<code>I/O</code>，其输入或输出的字节数可能比请求数量少，原因在于内核中用于套接字的缓冲区可能达到了极限，此时需要再次调用 $read$ 或 $write$ 函数，以输入或输出剩余字节。为了预防这种情况，我们需要改写下原来的<code>I/O</code>函数。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="n">ssize_t</span> <span class="nf">readn</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">vptr</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">n</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">size_t</span> <span class="n">nleft</span> <span class="o">=</span> <span class="n">n</span><span class="p">;</span>
-  <span class="n">ssize_t</span> <span class="n">nread</span><span class="p">;</span>
-  <span class="kt">char</span> <span class="o">*</span><span class="n">ptr</span> <span class="o">=</span> <span class="n">vptr</span><span class="p">;</span>
-
-  <span class="k">while</span> <span class="p">(</span><span class="n">nleft</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="p">((</span><span class="n">nread</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">ptr</span><span class="p">,</span> <span class="n">nleft</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-      <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">==</span> <span class="n">EINTR</span><span class="p">)</span>
-         <span class="n">nread</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-      <span class="k">else</span>
-         <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
-    <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">nread</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
-      <span class="k">break</span><span class="p">;</span>
-    <span class="n">nleft</span> <span class="o">-=</span> <span class="n">nread</span><span class="p">;</span>
-    <span class="n">ptr</span> <span class="o">+=</span> <span class="n">nread</span><span class="p">;</span>
-  <span class="p">}</span>
-  <span class="k">return</span> <span class="n">n</span> <span class="o">-</span> <span class="n">nleft</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="n">ssize_t</span> <span class="nf">writen</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">vptr</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">n</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">size_t</span> <span class="n">nleft</span> <span class="o">=</span> <span class="n">n</span><span class="p">;</span>
-  <span class="n">ssize_t</span> <span class="n">nwritten</span><span class="p">;</span>
-  <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">ptr</span> <span class="o">=</span> <span class="n">vptr</span><span class="p">;</span>
-
-  <span class="k">while</span> <span class="p">(</span><span class="n">nleft</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="p">((</span><span class="n">nwritten</span> <span class="o">=</span> <span class="n">write</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">ptr</span><span class="p">,</span> <span class="n">nleft</span><span class="p">))</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-      <span class="k">if</span> <span class="p">(</span><span class="n">nwriten</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">errno</span> <span class="o">==</span> <span class="n">EINTR</span><span class="p">)</span>
-        <span class="n">nwritten</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-      <span class="k">else</span>
-        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="n">nleft</span> <span class="o">-=</span> <span class="n">nwritten</span><span class="p">;</span>
-    <span class="n">ptr</span> <span class="o">+=</span> <span class="n">nwritten</span><span class="p">;</span>
-  <span class="p">}</span>
-  <span class="k">return</span> <span class="n">n</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div><p>        $EINTR$ 表示系统调用被一个捕获的信号中断，如果发生该错误则继续进行读写操作。</p>
-
-            </div>
-            <div class="meta post-footer"> 
-                <span>2022 Jan 26 17:10</span> 
-                <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B1/"><i class="fas fa-link"></i> link</a>
             </div>
         </div>
         

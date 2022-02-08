@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  
+  <title>z217&#39;s blog</title>
+</head><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+    integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="/friend" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">Unix网络编程（5）：DNS</h1>
+
+
+<h2 id="1-域名系统">1. 域名系统</h2>
+<p>        <code>DNS</code>中的条目称为<strong>资源记录</strong> ( $resource$ $record$ , $RR$ )。</p>
+<ul>
+<li>$A$ ：$A$ 记录把一个主机名映射成一个 $32$ 位的<code>IPv4</code>地址；</li>
+<li>$AAAA$ ：四 $A$ ( $quad$ $A$ ) 记录把一个主机名映射成一个 $128$ 位的<code>IPv6</code>地址；</li>
+<li>$PTR$ ：指针记录 ( $pointer$ $record$ ) 把<code>IP</code>地址映射成主机名。对于<code>IPv4</code>地址，$32$ 地址的 $4$ 字节先反转顺序，每字节都转换成各自的十进制<code>ASCII</code>值后，再添加 $in-addr.arpa$ ；对于<code>IPv6</code>地址，$128$ 位地址中的 $32$ 个四位组先反转顺序，每个四位组都被转换成相应的十六进制<code>ASCII</code>值后，再添加 $ip6.arpa$ ；</li>
+<li>$MX$　：$MX$ 记录把一个主机指定作为给定主机的邮件交换器 ( $mail$ $exchanger$ )；</li>
+<li>$CNAME$ ：$CNAME$ 代表规范名字 ( $canonical$ $name$ )，常见用法是为常用的服务指派 ( 例如 $ftp$ 和 $www$ ) <code>CNAME</code>记录。如果人们使用这些服务名而不是真实的主机名，那么相应的服务挪到另一个主机时他们也不必知道。</li>
+</ul>
+<p>        每个组织往往运行一个或多个<strong>名字服务器</strong> ( $name$ $server$ )，它们通常就是所谓的 $BIND$ ( $Berkeley$ $Internet$ $Name$ $Domain$ ) 程序。诸如我们编写的客户和服务器等应用程序通过调用称为<strong>解析器</strong> ( $resolver$ ) 的函数库中的函数接触<code>DNS</code>服务器。解析器代码通常包含在一个系统函数库中，在构造应用程序时被<em><strong>链编</strong></em> ( $link-editing$ ) 到应用程序中。解析器使用<code>UDP</code>向本地名字服务器发出查询，如果本地名字服务器不知道答案，通常就会使用<code>UDP</code>在整个因特网上查询其他名字服务器。如果答案太常，超出了<code>UDP</code>消息的承载能力，本地名字服务器和解析器会自动切换到<code>TCP</code>。<br>
+        不使用<code>DNS</code>也可能获取名字和地址信息。常用的替代方法有静态主机文件 ( 通常是 $/etc/hosts$ 文件 )、网络信息系统 ( $Network$ $Information$ $System$ , $NIS$ ) 以及轻权目录访问协议 ( $Lightweight$ $Directory$ $Access$ $Protocol$ , $LDAP$ )。不幸的是，系统管理员如何配置一个主机以使用不同类型的名字服务是实现相关的。幸运的是，这些差异对于应用程序开发人员来说通常是透明的，我们只需调用诸如 $gethostbyname$ 和 $gethostbyaddr$ 这样的解析器函数。</p>
+<h2 id="2-gethostbyname-函数">2. <code>gethostbyname</code> 函数</h2>
+<p>        查找主机名最基本的函数是 $gethostbyname$ 。如果调用成功，它就返回一个指向 $hostent$ 结构的指针，该结构中含有所查找主机的所有<code>IPv4</code>地址。这个函数的局限是只能返回<code>IPv4</code>地址。<code>POSIX</code>规范预警可能在将来的某个版本中撤销 $gethostbyname$ 函数。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netdb.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回非空指针，出错返回NULL并设置h_errno
+</span><span class="c1"></span><span class="k">struct</span> <span class="n">hostent</span> <span class="o">*</span><span class="nf">gethostbyname</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">hostname</span><span class="p">);</span>
+
+<span class="k">struct</span> <span class="n">hostent</span> <span class="p">{</span>
+  <span class="kt">char</span> <span class="o">*</span><span class="n">h_name</span><span class="p">;</span>  <span class="c1">// 正式规范主机名
+</span><span class="c1"></span>  <span class="kt">char</span> <span class="o">**</span><span class="n">h_aliases</span><span class="p">;</span>  <span class="c1">// 别名数组，以NULL结尾
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">h_addrtype</span><span class="p">;</span>  <span class="c1">// 主机地址类型：AF_INET
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">h_length</span><span class="p">;</span>  <span class="c1">// 地址长度：4
+</span><span class="c1"></span>  <span class="kt">char</span> <span class="o">**</span><span class="n">h_addr_list</span><span class="p">;</span>  <span class="c1">// IPv4地址指针数组，以NULL结尾
+</span><span class="c1"></span><span class="p">};</span>
+</code></pre></div><p>        按照<code>DNS</code>的说法，$gethostbyname$ 执行的是对 $A$ 记录的查询，只能返回<code>IPv4</code>地址。<br>
+        $gethostbyname$ 与我们介绍过的其他套接字函数的不同之处在于：当发生错误时，它不设置 $errno$ ，而是将 $h_errno$ 设置为在头文件 &lt;$netdb.h$&gt; 中定义的下列常值之一：</p>
+<ul>
+<li>$HOST_-NOT_-FOUND$</li>
+<li>$TRY_-AGAIN$</li>
+<li>$NO_-RECOVERY$</li>
+<li>$NO_-DATA$ ( 等同于 $NO_-ADDRESS$ )</li>
+</ul>
+<p>        $NO_-DATA$ 错误表示指定的名字有效，但是没有 $A$ 记录。如今多数解析器提供名为 $hstrerror$ 的函数，它以某个 $h_-errno$ 值作为唯一的参数，返回的是一个 $const$ $char$ $\star$ 指针，指向相应的错误说明。</p>
+<h2 id="3-gethostbyaddr函数">3. <code>gethostbyaddr</code>函数</h2>
+<p>        $gethostbyaddr$ 函数试图由一个二进制<code>IP</code>地址找到对应的主机名。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netdb.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回非空指针，出错返回NULL并设置h_errno
+</span><span class="c1"></span><span class="k">struct</span> <span class="n">hostent</span> <span class="o">*</span><span class="nf">gethostbyaddr</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">len</span><span class="p">,</span> <span class="kt">int</span> <span class="n">family</span><span class="p">);</span>
+</code></pre></div><p>        $addr$ 参数实际上不是 $char$ $\star$ 类型，而是一个指向存放<code>IPv4</code>地址的某个 $in_-addr$ 结构的指针。按照<code>DNS</code>的说法，$gethostbyaddr$ 在 $in_-addr.arpa$ 域中向一个名字服务器查询 $PTR$ 记录。</p>
+<h2 id="4-getservbyname和getservbyport函数">4. <code>getservbyname</code>和<code>getservbyport</code>函数</h2>
+<p>        像主机一样，服务也通常靠名字来认知。如果我们在程序代码中通过名字而不是端口来代指一个服务，而且从名字到端口的映射关系保存在一个文件中 ( 通常是 $/etc/services$ )，那么即使端口发生改变，我们仅需要修改文件中的一行即可。$getservbyname$ 函数用于根据给定名字查找相应的服务。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netdb.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回非空指针，出错返回NULL
+</span><span class="c1"></span><span class="k">struct</span> <span class="n">servent</span> <span class="o">*</span><span class="nf">getservbyname</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">servname</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">protoname</span><span class="p">);</span>
+
+<span class="k">struct</span> <span class="n">servent</span> <span class="p">{</span>
+  <span class="kt">char</span> <span class="o">*</span><span class="n">s_name</span><span class="p">;</span>  <span class="c1">// 官方服务名
+</span><span class="c1"></span>  <span class="kt">char</span> <span class="o">**</span><span class="n">s_aliases</span><span class="p">;</span>  <span class="c1">// 别名数组
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">s_port</span><span class="p">;</span>  <span class="c1">// 端口号，网络字节序
+</span><span class="c1"></span>  <span class="kt">char</span> <span class="o">*</span><span class="n">s_proto</span><span class="p">;</span>  <span class="c1">// 协议
+</span><span class="c1"></span><span class="p">};</span>
+</code></pre></div><p>        服务名参数 $servname$ 必须指定，如果同时指定了 $protoname$ ，那么指定服务必须有匹配的协议。如果 $protoname$ 未指定而 $servname$ 指定服务支持多个协议，那么返回哪个端口取决于实现。通常情况下这种选择无关紧要，因为支持多个协议的服务往往使用相同的<code>TCP</code>端口号和<code>UDP</code>端口号。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netdb.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回非空指针，出错返回NULL
+</span><span class="c1"></span><span class="k">struct</span> <span class="n">servent</span> <span class="o">*</span><span class="nf">getservbyport</span><span class="p">(</span><span class="kt">int</span> <span class="n">port</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">protoname</span><span class="p">);</span>
+</code></pre></div><p>        $getservbyport$ 用于根据给定端口号和可选协议查找相应服务。$port$ 参数的值必须为网络字节序。</p>
+<h2 id="5-getaddrinfo-函数">5. <code>getaddrinfo</code> 函数</h2>
+<p>        $gethostbyname$ 和 $gethostbyaddr$ 函数仅仅支持<code>IPv4</code>。$getaddrinfo$ 函数能够处理名字到地址以及服务到端口这两种转换，返回的是一个 $sockaddr$ 结构而不是一个地址列表，这些 $sockaddr$ 结构随后可由套接字函数直接使用。该函数在<code>POSIX</code>规范中定义。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netdb.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回0，出错返回非0
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">getaddrinfo</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">hostname</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">service</span><span class="p">,</span>
+  <span class="k">const</span> <span class="k">struct</span> <span class="n">addrinfo</span> <span class="o">*</span><span class="n">hints</span><span class="p">,</span> <span class="k">struct</span> <span class="n">addrinfo</span> <span class="o">**</span><span class="n">result</span><span class="p">);</span>
+
+<span class="k">struct</span> <span class="n">addrinfo</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">ai_flags</span><span class="p">;</span>  <span class="c1">// AI_PASSIVE, AI_CANONNAME
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ai_family</span><span class="p">;</span>  <span class="c1">// AF_xxx
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ai_socktype</span><span class="p">;</span>  <span class="c1">// SOCK_xxx
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ai_protocol</span><span class="p">;</span>  <span class="c1">// 0 或 IPPROTO_xxx
+</span><span class="c1"></span>  <span class="n">socklen_t</span> <span class="n">ai_addrlen</span><span class="p">;</span>  <span class="c1">// ai_addr长度
+</span><span class="c1"></span>  <span class="kt">char</span> <span class="o">*</span><span class="n">ai_canonname</span><span class="p">;</span>  <span class="c1">// 主机规范名称
+</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">ai_addr</span><span class="p">;</span>  <span class="c1">// 套接字地址结构
+</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">addrinfo</span> <span class="o">*</span><span class="n">ai_next</span><span class="p">;</span>  <span class="c1">// 链表后继节点
+</span><span class="c1"></span><span class="p">};</span>
+</code></pre></div><p>        $hostname$ 是一个主机名或地址串，$service$ 参数是一个服务名或十进制端口号。$hints$ 参数可以是一个空指针，也可以是一个指向某个 $addrinfo$ 结构的指针，调用者在这个结构中填入关于期望返回的信息类型的暗示。例如，如果指定的服务既支持<code>TCP</code>也支持<code>UDP</code>，那么调用者可以把 $hints$ 结构中的 $ai_-socktype$ 字段设置为 $SOCK_-DGRAM$ ，使得返回的仅仅是适用于数据报套接字的信息。$hints$ 结构中调用者可以设置的成员有：</p>
+<ul>
+<li>$ai_-flags$</li>
+<li>$ai_-family$</li>
+<li>$ai_-socktype$</li>
+<li>$ai_-protocol$</li>
+</ul>
+<p>        其中 $ai_-flags$ 成员可用的标志值及含义如下：</p>
+<ul>
+<li>$AI_-PASSIVE$ ：套接字被动打开；</li>
+<li>$AI_-CANONNAME$ ：返回主机规范名称；</li>
+<li>$AI_-NUMERICHOST$ ：防止任何类型的名字到地址映射，$hostname$ 参数必须是一个地址串；</li>
+<li>$AI_-NUMERICSERV$ ：防止任何类型的名字到服务映射，$service$ 参数必须是一个十进制端口号；</li>
+<li>$AI_-V4MAPPED$ ：如果同时指定 $ai_-family$ 成员的值为 $AF_-INET6$ ，那么如果没有可用的 $AAAA$ 记录，就返回与 $A$ 记录对应的<code>IPv4</code>映射的<code>IPv6</code>地址；</li>
+<li>$AI_-ALL$ ：如果同时指定 $AI_-V4MAPPED$ 标志，那么除了返回与 $AAAA$ 记录对应的<code>IPv6</code>地址外，还会返回与 $A$ 记录对应的<code>IPv4</code>映射的<code>IPv6</code>地址；</li>
+<li>$AI_-ADDRCONFIG$ ：按照所在主机的配置选择返回地址类型，也就是只查找与所在主机反馈接口以外的网络接口配置的<code>IP</code>地址版本一致的地址。</li>
+</ul>
+<p>        如果 $hints$ 参数是一个空指针，那么就假设 $ai_-flags$ 、$ai_-socktype$ 和 $ai_-protocol$ 的值均为 $0$ ，$ai_-family$ 的值为 $AF_-UNSPEC$ 。如果函数成功返回，那么 $result$ 参数会被填入结果指针，指向一个链表。可导致返回多个 $addrinfo$ 结构的情形有：</p>
+<ol>
+<li>与 $hostname$ 关联的地址有多个，那么适用于所请求地址族的每个地址都返回一个对应的结构；</li>
+<li>如果 $service$ 参数指定的服务支持多个套接字类型，那么每个套接字类型都可能返回一个对应的结构，具体取决于 $hints$ 结构的 $ai_-socktype$ 成员。</li>
+</ol>
+<p>        如果枚举 $getaddrinfo$ 所有可能的 $64$ 种输入，那么许多是无效的。我们只查看一些常见的输入：</p>
+<ul>
+<li>指定 $hostname$ 和 $service$　。这是<code>TCP</code>或<code>UDP</code>客户进程调用 $getaddrinfo$ 的常规输入。该调用返回后，<code>TCP</code>客户在一个循环中针对每个返回的<code>IP</code>地址，逐一调用 $socket$ 和 $connect$ ，直到有一个连接成功，或者所有地址尝试完毕；</li>
+<li>指定 $service$ ，同时在 $hints$ 中指定 $AI_-PASSIVE$ 。这是典型的服务器进程，返回的套接字地址结构中应当只含有一个值为 $INADDR_-ANY$ ( <code>IPv4</code> ) 或 $IN6ADDR_-ANY$ ( <code>IPv6</code> ) 的<code>IP</code>地址。<code>TCP</code>服务器随后调用 $socket$ 、$bind$ 和 $listen$ 。</li>
+</ul>
+<h2 id="6-gai_strerror函数">6. <code>gai_strerror</code>函数</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netdb.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 返回指向错误描述消息字符串的指针
+</span><span class="c1"></span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="nf">gai_strerror</span><span class="p">(</span><span class="kt">int</span> <span class="n">error</span><span class="p">);</span>
+</code></pre></div><table>
+<thead>
+<tr>
+<th style="text-align:center">常值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">$EAI_-AGAIN$</td>
+<td style="text-align:center">名字解析中临时失败</td>
+</tr>
+<tr>
+<td style="text-align:center">$EAI_-BADFLAGS$</td>
+<td style="text-align:center">$ai_-flags$ 的值无效</td>
+</tr>
+<tr>
+<td style="text-align:center">$EAI_-FAIL$</td>
+<td style="text-align:center">名字解析中不可恢复地失败</td>
+</tr>
+<tr>
+<td style="text-align:center">$EAI_-FAMILY$</td>
+<td style="text-align:center">不支持 $ai_-family$</td>
+</tr>
+<tr>
+<td style="text-align:center">$EAI_-MEMORY$</td>
+<td style="text-align:center">内存分配失败</td>
+</tr>
+<tr>
+<td style="text-align:center">$EAI_-NONAME$</td>
+<td style="text-align:center">$hostname$ 或 $service$ 未提供或不可知</td>
+</tr>
+<tr>
+<td style="text-align:center">$EAI_-OVERFLOW$</td>
+<td style="text-align:center">用户参数缓冲区溢出</td>
+</tr>
+<tr>
+<td style="text-align:center">$EAI_-SERVICE$</td>
+<td style="text-align:center">不支持 $ai_-socktype$ 类型的 $service$</td>
+</tr>
+<tr>
+<td style="text-align:center">$EAI_-SYSTEM$</td>
+<td style="text-align:center">在 $errno$ 变量中有系统错误返回</td>
+</tr>
+</tbody>
+</table>
+<h2 id="7-freeaddrinfo函数">7. <code>freeaddrinfo</code>函数</h2>
+<p>        由 $getaddrinfo$ 返回的所有存储空间都是动态获取的，包括 $addrinfo$ 结构、$ai_-addr$ 结构和 $ai_-canonname$ 字符串。这些存储空间通过 $freeaddrinfo$ 返还给系统。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netdb.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">void</span> <span class="nf">freeaddrinfo</span><span class="p">(</span><span class="k">struct</span> <span class="n">addrinfo</span> <span class="o">*</span><span class="n">ai</span><span class="p">);</span>
+</code></pre></div><h2 id="8-getnameinfo函数">8. <code>getnameinfo</code>函数</h2>
+<p>        $getnameinfo$ 函数是 $getaddrinfo$ 的互补函数。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netdb.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回0，出错返回非0
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">getnameinfo</span><span class="p">(</span><span class="k">const</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">sockaddr</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">addrlen</span><span class="p">,</span>
+  <span class="kt">char</span> <span class="o">*</span><span class="n">host</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">hostlen</span><span class="p">,</span>
+  <span class="kt">char</span> <span class="o">*</span><span class="n">serv</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">servlen</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">);</span>
+</code></pre></div><p>        $sockaddr$ 指向一个套接字地址结构，其中包含待转换成直观可读的字符串的协议地址，$addrlen$ 是这个结构的长度，该结构及其长度通常由 $accept$ 、$recvfrom$ 、$getsockname$ 或 $getpeername$ 返回。待返回的 $2$ 个直观可读字符串由调用者预先分配存储空间，$host$ 和 $hostlen$ 指定主机字符串，$serv$ 和 $servlen$ 指定服务字符串。如果调用者不想返回主机字符串，那就指定 $hostlen$ 为 $0$ ，同样的，也可以通过指定 $servlen$ 为 $0$ 来不返回服务字符串。$flags$ 可以改变 $getnameinfo$ 的操作，如下表所示。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">常值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">$NI_-DGRAM$</td>
+<td style="text-align:center">数据报服务</td>
+</tr>
+<tr>
+<td style="text-align:center">$NI_-NAMEREQD$</td>
+<td style="text-align:center">若不能从地址解析出名字则返回错误</td>
+</tr>
+<tr>
+<td style="text-align:center">$NI_-NOFQDN$</td>
+<td style="text-align:center">只返回<code>FQDN</code>的主机名部分</td>
+</tr>
+<tr>
+<td style="text-align:center">$NI_-NUMERICHOST$</td>
+<td style="text-align:center">以数串格式返回主机字符串</td>
+</tr>
+<tr>
+<td style="text-align:center">$NI_-NUMERICSCOPE$</td>
+<td style="text-align:center">以数串格式返回范围标识字符串</td>
+</tr>
+<tr>
+<td style="text-align:center">$NI_-NUMERICSERV$</td>
+<td style="text-align:center">以数串格式返回服务字符串</td>
+</tr>
+</tbody>
+</table>
+<p>        当知道处理的是数据报套接字时，调用者应设置 $NI_-DGRAM$ 标志，因为在套接字地址结构中给出的仅仅是<code>IP</code>地址和端口号，$getnameinfo$ 无法就此确定所使用的协议。</p>
+<h2 id="9-gethostbyname_r和gethostbyaddr_r函数">9. <code>gethostbyname_r</code>和<code>gethostbyaddr_r</code>函数</h2>
+<p>        $gethostbyname$ 等函数是不可重入的，因为他们的返回值结构是一个静态全局变量。有两种方法可以把它们改为可重入函数：</p>
+<ol>
+<li>把不可重入函数填写并返回静态结构的做法改为由调用者分配再由可重入函数填写结构，这是 $gethostbyname_-r$ 使用的技巧。这种方法比较复杂，因为调用者必须显式提供对应字符串数组的大小，此外，作为额外的参数，用于存放错误码的整数常量指针也是必要的，因为不能再使用 $h_-errno$ ；</li>
+<li>由可重入函数调用 $malloc$ 动态分配内存空间，这是 $getaddrinfo$ 使用的技巧。这种方法的问题就是调用者必须调用 $freeaddrinfo$ 释放空间。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;netdb.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="k">struct</span> <span class="n">hostent</span> <span class="o">*</span><span class="nf">gethostbyname_r</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">hostname</span><span class="p">,</span>
+  <span class="k">struct</span> <span class="n">hostent</span> <span class="o">*</span><span class="n">result</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="kt">int</span> <span class="n">buflen</span><span class="p">,</span> <span class="kt">int</span> <span class="o">*</span><span class="n">h_errnop</span><span class="p">);</span>
+<span class="k">struct</span> <span class="n">hostent</span> <span class="o">*</span><span class="nf">gethostbyaddr_r</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="kt">int</span> <span class="n">len</span><span class="p">,</span> <span class="kt">int</span> <span class="n">type</span><span class="p">,</span>
+  <span class="k">struct</span> <span class="n">hostent</span> <span class="o">*</span><span class="n">result</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="kt">int</span> <span class="n">buflen</span><span class="p">,</span> <span class="kt">int</span> <span class="o">*</span><span class="n">h_errnop</span><span class="p">);</span>
+</code></pre></div><p>        上面两个函数每个都需要 $4$ 个额外的参数，其中 $result$ 指向用户分配的用于存储 $hostent$ 结构，$buf$ 指向由调用者分配的大小为 $buflen$ 的缓冲区，用于存放规范主机名、别名指针数组等，$result$ 中所有指针都指向该缓冲区内部。$gethostbyname$ 当前的实现最多能够返回 $35$ 个别名指针和 $35$ 个地址指针，并且内部使用了一个 $8192$ 字节的缓冲区存放，因此大小为 $8192$ 字节的缓冲区应该足够了。</p>
+
+<script src=https://z217blog.cn/js/toc.js></script>
+
+<a href="javascript:void(0);" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+<div id="sidetoc">
+    <header>
+        <h4>Unix网络编程（5）：DNS</h4>
+    </header>
+    <nav id="TableOfContents">
+        <ul></ul>
+    </nav>
+</div>
+<script>
+    tocFlag = true;
+</script>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B4/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+<script type="text/javascript">
+    if (tocFlag) tocInit();
+</script>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2022, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        let all = MathJax.Hub.getAllJax(),
+            i;
+        
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
+</body>
+
+</html>
