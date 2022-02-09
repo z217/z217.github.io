@@ -8,6 +8,19 @@
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2022, z217 and the hugo authors, all rights reserved.</copyright><atom:link href="https://z217blog.cn/tags/c/c++/index.xml" rel="self" type="application/rss+xml" />
     <item>
+      <title>Unix网络编程（6）：守护进程</title>
+      <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B6/</link>
+      <pubDate>Wed, 09 Feb 2022 16:20:07 +0800</pubDate>
+      
+      <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B6/</guid>
+      <description>守护进程 ( $daemon$ ) 是在后台运行且不与任何控制终端关联的进程。Unix系统通常有很多守护进程在后台运行，执行不同的管理任务。守护进程没有控制终端通常源于它们由系统初始化脚本启动，然而守护进程也可能从某个终端由用户在shell提示符下输入命令行启动，这样的守护进程必须亲自脱离与控制终端的关联。
+1. syslogd守护进程  Unix系统中的 $syslogd$ 守护进程通常由某个系统初始化脚本启动，而且在系统工作期间一直运行。Linux系统的不同发行版会使用各自的实现，比如Ubuntu会使用 $rsyslog$ ，Arch使用 $journal$ 。源自 $Berkeley$ 的 $syslogd$ 实现在启动时执行以下步骤：
+ 读取配置文件。通常为 $/etc/syslog.conf$ 的配置文件指定本守护进程可能收取的各种日志消息应该如何处理。这些消息可能被添加到一个文件，或被写到指定用户的登录窗口，或被转发给另一个主机上的 $syslog$ 进程； 创建一个Unix域数据报套接字，给它捆绑路径名 $/var/run/log$ ； 创建一个UDP套接字，给他捆绑端口 $514$ ( $syslog$ 服务使用的端口 )； 打开路径名 $/dev/klog$ ，来自内核中的任何出错消息看着像是这个设备的输入。   此后 $syslog$ 一直在一个无限循环中运行：调用 $select$ 等待 $3$ 个描述符 ( 上述第 $2$ 、$3$ 和 $4$ 步 )，读入日志消息，按照配置文件进行处理。如果接收到 $SIGHUP$ 信号，则重新读取配置文件。
+通过创建一个Unix域数据报套接字，我们就可以从自己的守护进程中通过往 $syslogd$ 绑定的路径名发送我们的消息，从而达到发送日志消息的目的。另外，我们也可以创建一个UDP套接字 ( 较新的实现为防止遭受攻击，会禁止套接字的创建 )，通过往环回地址和端口 $514$ 发送我们的消息达到发送日志消息的目的。
+2. syslog函数 #include &amp;lt;syslog.h&amp;gt; void syslog(int priority, const char *message, .</description>
+    </item>
+    
+    <item>
       <title>Unix网络编程（5）：DNS</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B5/</link>
       <pubDate>Mon, 07 Feb 2022 15:57:58 +0800</pubDate>

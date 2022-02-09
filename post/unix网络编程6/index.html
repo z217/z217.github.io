@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  
+  <title>z217&#39;s blog</title>
+</head><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+    integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="/friend" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">Unix网络编程（6）：守护进程</h1>
+
+
+<p>        <strong>守护进程</strong> ( $daemon$ ) 是在后台运行且不与任何控制终端关联的进程。<code>Unix</code>系统通常有很多守护进程在后台运行，执行不同的管理任务。守护进程没有控制终端通常源于它们由系统初始化脚本启动，然而守护进程也可能从某个终端由用户在<code>shell</code>提示符下输入命令行启动，这样的守护进程必须亲自脱离与控制终端的关联。</p>
+<h2 id="1-syslogd守护进程">1. <code>syslogd</code>守护进程</h2>
+<p>        <code>Unix</code>系统中的 $syslogd$ 守护进程通常由某个系统初始化脚本启动，而且在系统工作期间一直运行。<code>Linux</code>系统的不同发行版会使用各自的实现，比如<code>Ubuntu</code>会使用 $rsyslog$ ，<code>Arch</code>使用 $journal$ 。源自 $Berkeley$ 的 $syslogd$ 实现在启动时执行以下步骤：</p>
+<ol>
+<li>读取配置文件。通常为 $/etc/syslog.conf$ 的配置文件指定本守护进程可能收取的各种日志消息应该如何处理。这些消息可能被添加到一个文件，或被写到指定用户的登录窗口，或被转发给另一个主机上的 $syslog$ 进程；</li>
+<li>创建一个<code>Unix</code>域数据报套接字，给它捆绑路径名 $/var/run/log$ ；</li>
+<li>创建一个<code>UDP</code>套接字，给他捆绑端口 $514$ ( $syslog$ 服务使用的端口 )；</li>
+<li>打开路径名 $/dev/klog$ ，来自内核中的任何出错消息看着像是这个设备的输入。</li>
+</ol>
+<p>        此后 $syslog$ 一直在一个无限循环中运行：调用 $select$ 等待 $3$ 个描述符 ( 上述第 $2$ 、$3$ 和 $4$ 步 )，读入日志消息，按照配置文件进行处理。如果接收到 $SIGHUP$ 信号，则重新读取配置文件。<br>
+        通过创建一个<code>Unix</code>域数据报套接字，我们就可以从自己的守护进程中通过往 $syslogd$ 绑定的路径名发送我们的消息，从而达到发送日志消息的目的。另外，我们也可以创建一个<code>UDP</code>套接字 ( 较新的实现为防止遭受攻击，会禁止套接字的创建 )，通过往环回地址和端口 $514$ 发送我们的消息达到发送日志消息的目的。</p>
+<h2 id="2-syslog函数">2. <code>syslog</code>函数</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;syslog.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">void</span> <span class="nf">syslog</span><span class="p">(</span><span class="kt">int</span> <span class="n">priority</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">message</span><span class="p">,</span> <span class="p">...);</span>
+</code></pre></div><p>        从守护进程中登记消息的常用技巧就是调用 $syslog$ 函数。本函数最初是为<code>BSD</code>系统开发的，不过如今几乎所有<code>Unix</code>厂商都有提供。$priority$ 是<em><strong>级别</strong></em> ( $level$ ) 和<em><strong>设施</strong></em> ( $facility$ ) 两者的组合。$message$ 参数类似于 $printf$ 的格式串，不过增加了 $\%m$ 规范，将 $errno$ 值替换为对应的错误消息，可以在 $message$ 的末尾添加换行符，不过并非必需。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">$level$</th>
+<th style="text-align:center">值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">$LOG_-EMERG$</td>
+<td style="text-align:center">$0$</td>
+<td style="text-align:center">系统不可用 ( 最高优先级 )</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-ALERT$</td>
+<td style="text-align:center">$1$</td>
+<td style="text-align:center">必须立即采取行动</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-CRIT$</td>
+<td style="text-align:center">$2$</td>
+<td style="text-align:center">临界条件</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-ERR$</td>
+<td style="text-align:center">$3$</td>
+<td style="text-align:center">出错条件</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-WARNING$</td>
+<td style="text-align:center">$4$</td>
+<td style="text-align:center">警告条件</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-NOTICE$</td>
+<td style="text-align:center">$5$</td>
+<td style="text-align:center">正常然而重要的条件 ( 默认 )</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-INFO$</td>
+<td style="text-align:center">$6$</td>
+<td style="text-align:center">通告消息</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-DEBUG$</td>
+<td style="text-align:center">$7$</td>
+<td style="text-align:center">调试级消息 ( 最低优先级 )</td>
+</tr>
+</tbody>
+</table>
+<br/>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">$facility$</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">$LOG_-AUTH$</td>
+<td style="text-align:center">安全/授权消息</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-AUTHPRIV$</td>
+<td style="text-align:center">安全/授权消息 ( 私用 )</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-CRON$</td>
+<td style="text-align:center">$cron$ 守护进程</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-DAEMON$</td>
+<td style="text-align:center">系统守护进程</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-FTP$</td>
+<td style="text-align:center"><code>FTP</code>守护进程</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-KERN$</td>
+<td style="text-align:center">内核消息</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-LOCAL0$</td>
+<td style="text-align:center">本地使用</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-LOCAL1$</td>
+<td style="text-align:center">本地使用</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-LOCAL2$</td>
+<td style="text-align:center">本地使用</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-LOCAL3$</td>
+<td style="text-align:center">本地使用</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-LOCAL4$</td>
+<td style="text-align:center">本地使用</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-LOCAL5$</td>
+<td style="text-align:center">本地使用</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-LOCAL6$</td>
+<td style="text-align:center">本地使用</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-LOCAL7$</td>
+<td style="text-align:center">本地使用</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-LPR$</td>
+<td style="text-align:center">行式打印机系统</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-MAIL$</td>
+<td style="text-align:center">邮件系统</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-NEWS$</td>
+<td style="text-align:center">网络新闻系统</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-SYSLOG$</td>
+<td style="text-align:center">由 $syslogd$ 内部产生的消息</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-USER$</td>
+<td style="text-align:center">任意的用户级消息 ( 默认 )</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-UUCP$</td>
+<td style="text-align:center"><code>UUCP</code>系统</td>
+</tr>
+</tbody>
+</table>
+<p>        当 $syslog$ 被应用进程首次调用时，它创建一个<code>Unix</code>域数据报套接字，然后调用 $connect$ 连接到由 $syslogd$ 守护进程创建的<code>Unix</code>域数据报套接字的众所周知路径名 ( 譬如 $/var/run/log$ )。这个套接字一致保持打开，直到进程终止。作为替换，进程也可以调用 $openlog$ 和 $closelog$ 。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;syslog.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">void</span> <span class="nf">openlog</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">ident</span><span class="p">,</span> <span class="kt">int</span> <span class="n">options</span><span class="p">,</span> <span class="kt">int</span> <span class="n">facility</span><span class="p">);</span>
+
+<span class="kt">void</span> <span class="nf">closelog</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
+</code></pre></div><p>        $openlog$ 可以在首次调用 $syslog$ 前调用，$closelog$ 可以在应用程序不再需要发送日志消息时调用。$ident$ 参数是一个由 $syslog$ 冠于每个日志消息之前的字符串，值通常是程序名。$options$ 参数由一个或多个常值的逻辑或构成。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">$options$</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">$LOG_-CONS$</td>
+<td style="text-align:center">若无法发送到 $syslogd$ 守护进程则登记到控制台</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-NDELAY$</td>
+<td style="text-align:center">不延迟打开，立即创建套接字</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-PERROR$</td>
+<td style="text-align:center">既发送到 $syslogd$ 守护进程，由登记到标准错误输出</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-PID$</td>
+<td style="text-align:center">随日志消息登记进程<code>PID</code></td>
+</tr>
+</tbody>
+</table>
+<p>        $openlog$ 被调用时，通常不立即创建<code>Unix</code>域套接字，而是直到首次调用 $syslog$ 时才打开。$openlog$ 的 $facility$ 参数为后续 $syslog$ 调用指定一个默认值，通过该参数，守护进程在后续的调用中只需要指定级别即可。<br>
+        日志消息也可以由 $logger$ 命令产生，例如在<code>shell</code>脚本中通过 $logger$ 命令向 $syslogd$ 发送消息。</p>
+<h2 id="3-daemon_init函数">3. <code>daemon_init</code>函数</h2>
+<p>        通过调用 $daemon_-init$ 函数，我们能够把一个普通进程转换为守护进程。有些<code>Unix</code>变体提供了一个名为 $daemon$ 的<code>C</code>库函数，实现类似的功能，<code>BSD</code>和<code>Linux</code>均提供了 $daemon$ 函数。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;syslog.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="cp">#define MAXFD 64
+</span><span class="cp"></span>
+<span class="k">extern</span> <span class="kt">int</span> <span class="n">daemon_proc</span><span class="p">;</span>  <span class="c1">// defined in error.c
+</span><span class="c1"></span>
+<span class="kt">int</span> <span class="nf">daemon_init</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">pname</span><span class="p">,</span> <span class="kt">int</span> <span class="n">facility</span><span class="p">)</span> <span class="p">{</span> 
+  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+  <span class="n">pid_t</span> <span class="n">pid</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">((</span><span class="n">pid</span> <span class="o">=</span> <span class="n">Fork</span><span class="p">())</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+    <span class="n">_exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>  <span class="c1">// parent terminates
+</span><span class="c1"></span>
+  <span class="c1">// child 1 continues
+</span><span class="c1"></span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">setsid</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+
+  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGHUP</span><span class="p">,</span> <span class="n">SIG_IGN</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">((</span><span class="n">pid</span> <span class="o">=</span> <span class="n">Fork</span><span class="p">())</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+    <span class="n">_exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>  <span class="c1">// child 1 terminates
+</span><span class="c1"></span>
+  <span class="c1">// child 2 continues
+</span><span class="c1"></span>
+  <span class="n">daemon_proc</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>  <span class="c1">// for err_XXX() functions
+</span><span class="c1"></span>
+  <span class="n">chdir</span><span class="p">(</span><span class="s">&#34;/&#34;</span><span class="p">);</span>
+
+  <span class="c1">// close off file descriptors
+</span><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">MAXFD</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+    <span class="n">close</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
+
+  <span class="c1">// redirect stdin, stdout and stderr to /dev/null
+</span><span class="c1"></span>  <span class="n">open</span><span class="p">(</span><span class="s">&#34;/dev/null&#34;</span><span class="p">,</span> <span class="n">O_RDONLY</span><span class="p">);</span>
+  <span class="n">open</span><span class="p">(</span><span class="s">&#34;/dev/null&#34;</span><span class="p">,</span> <span class="n">O_RDWR</span><span class="p">);</span>
+  <span class="n">open</span><span class="p">(</span><span class="s">&#34;/dev/null&#34;</span><span class="p">,</span> <span class="n">O_RDWR</span><span class="p">);</span>
+
+  <span class="n">openlog</span><span class="p">(</span><span class="n">pname</span><span class="p">,</span> <span class="n">LOG_PID</span><span class="p">,</span> <span class="n">facility</span><span class="p">);</span>
+
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div><p>        首先调用 $fork$ ，然后终止父进程。如果本进程是从前台作为一个<code>shell</code>命令启动的，那么当父进程终止时，<code>shell</code>就认为该命令执行完毕，从而子进程自动在后台运行。而且，子进程继承了父进程的进程组<code>ID</code>，从而保证它不是一个进程组的头进程，于是可以调用 $setsid$ ，创建一个新会话，当前进程变为新会话的会话头进程以及新进程组的进程组头进程，从而不再有控制终端。之后忽略 $SIGHUP$ 信号并再次 $fork$ ，目的是确保守护进程将来即使打开了一个终端设备，也不会自动获得控制终端，因为它不是会话头进程。之后会关闭本守护进程从执行它的进程 ( 通常是<code>shell</code> ) 继承而来的所有打开着的描述符。问题是怎样检测正在使用的最大描述符：没有现成的<code>Unix</code>函数提供该值。我们的解决办法是直接关闭前 $64$ 个描述符，即使其中大部分没有打开。最后打开 $/dev/null$ 作为本守护进程的标准输入、标准输出和标准错误输出。这保证了这些描述符处于打开状态，而且针对它们的 $read$ 会返回<code>EOF</code>，$write$ 数据则由内核丢弃，从而防止对守护进程的这些调用的失败。</p>
+<h2 id="4-inetd守护进程">4. <code>inetd</code>守护进程</h2>
+<p>        典型的<code>Unix</code>系统可能存在很多服务器，只是等待客户请求的到达，例如<code>FTP</code>、<code>Telnet</code>等。<code>4.3BSD</code>面世之前的系统，所有这些服务都有一个进程与之关联。这些进程都是在系统自举阶段从 $/etc/rc$ 文件中启动，而且每个进程执行几乎相同的启动任务：创建一个套接字，把本服务器众所周知的端口捆绑到该套接字，等待一个连接或一个数据报，然后派生子进程。子进程为客户提供服务，父进程则继续等待下一个客户请求。这个模型存在两个问题：</p>
+<ol>
+<li>所有这些守护进程含有几乎相同的启动代码，既表现在创建套接字上，也表现在转变为守护进程上；</li>
+<li>每个守护进程在进程表中占据一个表项，然而它们大部分时候处于休眠状态。</li>
+</ol>
+<p>        <code>4.3BSD</code>通过提供一个因特网超级服务器 ( 即<code>inetd</code>守护进程 ) 简化了上述问题：</p>
+<ol>
+<li>通过由<code>inetd</code>处理普通守护进程的大部分启动细节以简化守护程序的编写；</li>
+<li>单个进程 ( <code>inetd</code> ) 就能为多个服务等待外来的客户请求，从而取代每个服务一个进程的做法，减少系统中的进程总数。</li>
+</ol>
+<p>        <code>inetd</code>进程首先将自己变为一个守护进程，接着会读入并处理自己的配置文件，通常是 $/etc/inetd.conf$ 的配置文件，指定本超级服务器处理哪些服务以及当一个服务请求到达时该怎么做。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">字段</th>
+<th style="text-align:left">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">$service-name$</td>
+<td style="text-align:left">必须在 $/etc/services$ 文件中定义</td>
+</tr>
+<tr>
+<td style="text-align:left">$socket-type$</td>
+<td style="text-align:left">$stream$ ( <code>TCP</code> ) 或 $dgram$ ( <code>UDP</code> )</td>
+</tr>
+<tr>
+<td style="text-align:left">$protocol$</td>
+<td style="text-align:left">必须在 $/etc/protocols$ 文件中定义：<code>TCP</code>或<code>UDP</code></td>
+</tr>
+<tr>
+<td style="text-align:left">$wait-flag$</td>
+<td style="text-align:left">对于<code>TCP</code>一般为 $nowait$ ，对于<code>UDP</code>一般为 $wait$</td>
+</tr>
+<tr>
+<td style="text-align:left">$login-name$</td>
+<td style="text-align:left">来自 $/etc/passwd$ 的用户名，一般为 $root$</td>
+</tr>
+<tr>
+<td style="text-align:left">$server-program$</td>
+<td style="text-align:left">调用 $exec$ 指定的完整路径名</td>
+</tr>
+<tr>
+<td style="text-align:left">$server-program-arguments$</td>
+<td style="text-align:left">调用 $exec$ 指定的命令行参数</td>
+</tr>
+</tbody>
+</table>
+<p>        当<code>inetd</code>调用 $exec$ 执行某个服务器程序时，该服务器的真实名字总是作为程序的第一个参数传递。<br>
+        <code>inetd</code>守护进程的工作流程如下：</p>
+<ol>
+<li>在启动阶段，读入配置文件并给该文件中指定的每个服务创建一个适当类型 ( 字节流或数据报 ) 套接字。<code>inetd</code>能够处理的服务器的最大数目取决于其能创建的描述符的最大数量。新创建的每个套接字都被加入将来由 $select$ 调用使用的一个描述符集中；</li>
+<li>为每个套接字调用 $bind$ ，指定捆绑相应服务器的众所周知端口和通配地址。这个<code>TCP</code>或<code>UDP</code>端口号通过 $getservbyname$ 获得，作为函数参数的是配置文件中的 $service-name$ 字段和 $protocol$ 字段；</li>
+<li>对于每个<code>TCP</code>套接字，调用 $listen$ 以接收外来的连接请求，数据报套接字则不执行；</li>
+<li>创建完毕所有套接字后，调用 $select$ 等待其中任何一个套接字变为可读；</li>
+<li>如果可读的套接字是<code>TCP</code>套接字，并且服务器的 $wait-flag$ 值为 $nowait$ ，那么就调用 $accept$ ；</li>
+<li><code>inetd</code>守护进程调用 $fork$ ，交由子进程处理服务请求。子进程会关闭除要处理的套接字描述符之外的所有描述符，然后调用 $exec$ 执行由相应的 $server-program$ 字段指定的程序来具体处理请求，相应的 $server-program-arguments$ 字段则作为命令行参数传递；</li>
+<li>如果第 $5$ 步中返回的是字节流套接字，那么父进程必须关闭已连接套接字，再次调用 $select$ 等待下一个可读套接字。</li>
+</ol>
+<p>        给一个数据报服务指定 $wait$ 标志导致父进程执行的步骤发生变化，这个标志要求<code>inetd</code>必须在这个套接字再次成为 $select$ 调用的候选套接字之前等待为当前服务套接字创建的子进程的终止，发生的变化有：</p>
+<ol>
+<li>$fork$ 返回到父进程时，父进程保存子进程<code>PID</code>，从而之后可以通过 $waitpid$ 返回值确定子进程终止时间；</li>
+<li>父进程通过 $FD_-CLR$ 宏关闭这个套接字在 $select$ 所用描述符集中对应的位，从而在将来的 $select$ 调用中禁止该套接字；</li>
+<li>子进程终止时，父进程会收到 $SIGCHILD$ 信号，父进程通过打开相应的套接字在 $select$ 所用描述符集中对应的位，使得该套接字再次成为 $select$ 的候选套接字。</li>
+</ol>
+<p>        <code>inetd</code>通常不适用于服务密集型服务器，通常有邮件服务器和<code>Web</code>服务器。</p>
+
+<script src=https://z217blog.cn/js/toc.js></script>
+
+<a href="javascript:void(0);" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+<div id="sidetoc">
+    <header>
+        <h4>Unix网络编程（6）：守护进程</h4>
+    </header>
+    <nav id="TableOfContents">
+        <ul></ul>
+    </nav>
+</div>
+<script>
+    tocFlag = true;
+</script>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B5/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+<script type="text/javascript">
+    if (tocFlag) tocInit();
+</script>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2022, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        let all = MathJax.Hub.getAllJax(),
+            i;
+        
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
+</body>
+
+</html>

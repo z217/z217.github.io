@@ -88,6 +88,24 @@
     
     
     <div class="list-item">
+        <a class="entry-title" href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B6/">Unix网络编程（6）：守护进程</a>
+        
+        
+        <p>《Unix网络编程》读书笔记（6）</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2022 Feb 09 16:20
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: Web, C/C++
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
         <a class="entry-title" href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B5/">Unix网络编程（5）：DNS</a>
         
         
@@ -159,24 +177,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B1/">Unix网络编程（1）：套接字编程简介</a>
-        
-        
-        <p>《Unix网络编程》读书笔记（1）</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2022 Jan 26 17:10
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: Web, C/C++
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -185,6 +185,328 @@
     <div class="section-title">μblog</div>
     <div class="posts">
         
+        
+        <div class="post">
+            
+            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B6/">Unix网络编程（6）：守护进程</a></h1>
+            <div class="post-content">
+                <p>        <strong>守护进程</strong> ( $daemon$ ) 是在后台运行且不与任何控制终端关联的进程。<code>Unix</code>系统通常有很多守护进程在后台运行，执行不同的管理任务。守护进程没有控制终端通常源于它们由系统初始化脚本启动，然而守护进程也可能从某个终端由用户在<code>shell</code>提示符下输入命令行启动，这样的守护进程必须亲自脱离与控制终端的关联。</p>
+<h2 id="1-syslogd守护进程">1. <code>syslogd</code>守护进程</h2>
+<p>        <code>Unix</code>系统中的 $syslogd$ 守护进程通常由某个系统初始化脚本启动，而且在系统工作期间一直运行。<code>Linux</code>系统的不同发行版会使用各自的实现，比如<code>Ubuntu</code>会使用 $rsyslog$ ，<code>Arch</code>使用 $journal$ 。源自 $Berkeley$ 的 $syslogd$ 实现在启动时执行以下步骤：</p>
+<ol>
+<li>读取配置文件。通常为 $/etc/syslog.conf$ 的配置文件指定本守护进程可能收取的各种日志消息应该如何处理。这些消息可能被添加到一个文件，或被写到指定用户的登录窗口，或被转发给另一个主机上的 $syslog$ 进程；</li>
+<li>创建一个<code>Unix</code>域数据报套接字，给它捆绑路径名 $/var/run/log$ ；</li>
+<li>创建一个<code>UDP</code>套接字，给他捆绑端口 $514$ ( $syslog$ 服务使用的端口 )；</li>
+<li>打开路径名 $/dev/klog$ ，来自内核中的任何出错消息看着像是这个设备的输入。</li>
+</ol>
+<p>        此后 $syslog$ 一直在一个无限循环中运行：调用 $select$ 等待 $3$ 个描述符 ( 上述第 $2$ 、$3$ 和 $4$ 步 )，读入日志消息，按照配置文件进行处理。如果接收到 $SIGHUP$ 信号，则重新读取配置文件。<br>
+        通过创建一个<code>Unix</code>域数据报套接字，我们就可以从自己的守护进程中通过往 $syslogd$ 绑定的路径名发送我们的消息，从而达到发送日志消息的目的。另外，我们也可以创建一个<code>UDP</code>套接字 ( 较新的实现为防止遭受攻击，会禁止套接字的创建 )，通过往环回地址和端口 $514$ 发送我们的消息达到发送日志消息的目的。</p>
+<h2 id="2-syslog函数">2. <code>syslog</code>函数</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;syslog.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">void</span> <span class="nf">syslog</span><span class="p">(</span><span class="kt">int</span> <span class="n">priority</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">message</span><span class="p">,</span> <span class="p">...);</span>
+</code></pre></div><p>        从守护进程中登记消息的常用技巧就是调用 $syslog$ 函数。本函数最初是为<code>BSD</code>系统开发的，不过如今几乎所有<code>Unix</code>厂商都有提供。$priority$ 是<em><strong>级别</strong></em> ( $level$ ) 和<em><strong>设施</strong></em> ( $facility$ ) 两者的组合。$message$ 参数类似于 $printf$ 的格式串，不过增加了 $\%m$ 规范，将 $errno$ 值替换为对应的错误消息，可以在 $message$ 的末尾添加换行符，不过并非必需。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">$level$</th>
+<th style="text-align:center">值</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">$LOG_-EMERG$</td>
+<td style="text-align:center">$0$</td>
+<td style="text-align:center">系统不可用 ( 最高优先级 )</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-ALERT$</td>
+<td style="text-align:center">$1$</td>
+<td style="text-align:center">必须立即采取行动</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-CRIT$</td>
+<td style="text-align:center">$2$</td>
+<td style="text-align:center">临界条件</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-ERR$</td>
+<td style="text-align:center">$3$</td>
+<td style="text-align:center">出错条件</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-WARNING$</td>
+<td style="text-align:center">$4$</td>
+<td style="text-align:center">警告条件</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-NOTICE$</td>
+<td style="text-align:center">$5$</td>
+<td style="text-align:center">正常然而重要的条件 ( 默认 )</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-INFO$</td>
+<td style="text-align:center">$6$</td>
+<td style="text-align:center">通告消息</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-DEBUG$</td>
+<td style="text-align:center">$7$</td>
+<td style="text-align:center">调试级消息 ( 最低优先级 )</td>
+</tr>
+</tbody>
+</table>
+<br/>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">$facility$</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">$LOG_-AUTH$</td>
+<td style="text-align:center">安全/授权消息</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-AUTHPRIV$</td>
+<td style="text-align:center">安全/授权消息 ( 私用 )</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-CRON$</td>
+<td style="text-align:center">$cron$ 守护进程</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-DAEMON$</td>
+<td style="text-align:center">系统守护进程</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-FTP$</td>
+<td style="text-align:center"><code>FTP</code>守护进程</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-KERN$</td>
+<td style="text-align:center">内核消息</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-LOCAL0$</td>
+<td style="text-align:center">本地使用</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-LOCAL1$</td>
+<td style="text-align:center">本地使用</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-LOCAL2$</td>
+<td style="text-align:center">本地使用</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-LOCAL3$</td>
+<td style="text-align:center">本地使用</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-LOCAL4$</td>
+<td style="text-align:center">本地使用</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-LOCAL5$</td>
+<td style="text-align:center">本地使用</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-LOCAL6$</td>
+<td style="text-align:center">本地使用</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-LOCAL7$</td>
+<td style="text-align:center">本地使用</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-LPR$</td>
+<td style="text-align:center">行式打印机系统</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-MAIL$</td>
+<td style="text-align:center">邮件系统</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-NEWS$</td>
+<td style="text-align:center">网络新闻系统</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-SYSLOG$</td>
+<td style="text-align:center">由 $syslogd$ 内部产生的消息</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-USER$</td>
+<td style="text-align:center">任意的用户级消息 ( 默认 )</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-UUCP$</td>
+<td style="text-align:center"><code>UUCP</code>系统</td>
+</tr>
+</tbody>
+</table>
+<p>        当 $syslog$ 被应用进程首次调用时，它创建一个<code>Unix</code>域数据报套接字，然后调用 $connect$ 连接到由 $syslogd$ 守护进程创建的<code>Unix</code>域数据报套接字的众所周知路径名 ( 譬如 $/var/run/log$ )。这个套接字一致保持打开，直到进程终止。作为替换，进程也可以调用 $openlog$ 和 $closelog$ 。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;syslog.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">void</span> <span class="nf">openlog</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">ident</span><span class="p">,</span> <span class="kt">int</span> <span class="n">options</span><span class="p">,</span> <span class="kt">int</span> <span class="n">facility</span><span class="p">);</span>
+
+<span class="kt">void</span> <span class="nf">closelog</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
+</code></pre></div><p>        $openlog$ 可以在首次调用 $syslog$ 前调用，$closelog$ 可以在应用程序不再需要发送日志消息时调用。$ident$ 参数是一个由 $syslog$ 冠于每个日志消息之前的字符串，值通常是程序名。$options$ 参数由一个或多个常值的逻辑或构成。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">$options$</th>
+<th style="text-align:center">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">$LOG_-CONS$</td>
+<td style="text-align:center">若无法发送到 $syslogd$ 守护进程则登记到控制台</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-NDELAY$</td>
+<td style="text-align:center">不延迟打开，立即创建套接字</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-PERROR$</td>
+<td style="text-align:center">既发送到 $syslogd$ 守护进程，由登记到标准错误输出</td>
+</tr>
+<tr>
+<td style="text-align:center">$LOG_-PID$</td>
+<td style="text-align:center">随日志消息登记进程<code>PID</code></td>
+</tr>
+</tbody>
+</table>
+<p>        $openlog$ 被调用时，通常不立即创建<code>Unix</code>域套接字，而是直到首次调用 $syslog$ 时才打开。$openlog$ 的 $facility$ 参数为后续 $syslog$ 调用指定一个默认值，通过该参数，守护进程在后续的调用中只需要指定级别即可。<br>
+        日志消息也可以由 $logger$ 命令产生，例如在<code>shell</code>脚本中通过 $logger$ 命令向 $syslogd$ 发送消息。</p>
+<h2 id="3-daemon_init函数">3. <code>daemon_init</code>函数</h2>
+<p>        通过调用 $daemon_-init$ 函数，我们能够把一个普通进程转换为守护进程。有些<code>Unix</code>变体提供了一个名为 $daemon$ 的<code>C</code>库函数，实现类似的功能，<code>BSD</code>和<code>Linux</code>均提供了 $daemon$ 函数。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;syslog.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="cp">#define MAXFD 64
+</span><span class="cp"></span>
+<span class="k">extern</span> <span class="kt">int</span> <span class="n">daemon_proc</span><span class="p">;</span>  <span class="c1">// defined in error.c
+</span><span class="c1"></span>
+<span class="kt">int</span> <span class="nf">daemon_init</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">pname</span><span class="p">,</span> <span class="kt">int</span> <span class="n">facility</span><span class="p">)</span> <span class="p">{</span> 
+  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+  <span class="n">pid_t</span> <span class="n">pid</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">((</span><span class="n">pid</span> <span class="o">=</span> <span class="n">Fork</span><span class="p">())</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+    <span class="n">_exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>  <span class="c1">// parent terminates
+</span><span class="c1"></span>
+  <span class="c1">// child 1 continues
+</span><span class="c1"></span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">setsid</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+
+  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGHUP</span><span class="p">,</span> <span class="n">SIG_IGN</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">((</span><span class="n">pid</span> <span class="o">=</span> <span class="n">Fork</span><span class="p">())</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+    <span class="n">_exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>  <span class="c1">// child 1 terminates
+</span><span class="c1"></span>
+  <span class="c1">// child 2 continues
+</span><span class="c1"></span>
+  <span class="n">daemon_proc</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>  <span class="c1">// for err_XXX() functions
+</span><span class="c1"></span>
+  <span class="n">chdir</span><span class="p">(</span><span class="s">&#34;/&#34;</span><span class="p">);</span>
+
+  <span class="c1">// close off file descriptors
+</span><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">MAXFD</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+    <span class="n">close</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
+
+  <span class="c1">// redirect stdin, stdout and stderr to /dev/null
+</span><span class="c1"></span>  <span class="n">open</span><span class="p">(</span><span class="s">&#34;/dev/null&#34;</span><span class="p">,</span> <span class="n">O_RDONLY</span><span class="p">);</span>
+  <span class="n">open</span><span class="p">(</span><span class="s">&#34;/dev/null&#34;</span><span class="p">,</span> <span class="n">O_RDWR</span><span class="p">);</span>
+  <span class="n">open</span><span class="p">(</span><span class="s">&#34;/dev/null&#34;</span><span class="p">,</span> <span class="n">O_RDWR</span><span class="p">);</span>
+
+  <span class="n">openlog</span><span class="p">(</span><span class="n">pname</span><span class="p">,</span> <span class="n">LOG_PID</span><span class="p">,</span> <span class="n">facility</span><span class="p">);</span>
+
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div><p>        首先调用 $fork$ ，然后终止父进程。如果本进程是从前台作为一个<code>shell</code>命令启动的，那么当父进程终止时，<code>shell</code>就认为该命令执行完毕，从而子进程自动在后台运行。而且，子进程继承了父进程的进程组<code>ID</code>，从而保证它不是一个进程组的头进程，于是可以调用 $setsid$ ，创建一个新会话，当前进程变为新会话的会话头进程以及新进程组的进程组头进程，从而不再有控制终端。之后忽略 $SIGHUP$ 信号并再次 $fork$ ，目的是确保守护进程将来即使打开了一个终端设备，也不会自动获得控制终端，因为它不是会话头进程。之后会关闭本守护进程从执行它的进程 ( 通常是<code>shell</code> ) 继承而来的所有打开着的描述符。问题是怎样检测正在使用的最大描述符：没有现成的<code>Unix</code>函数提供该值。我们的解决办法是直接关闭前 $64$ 个描述符，即使其中大部分没有打开。最后打开 $/dev/null$ 作为本守护进程的标准输入、标准输出和标准错误输出。这保证了这些描述符处于打开状态，而且针对它们的 $read$ 会返回<code>EOF</code>，$write$ 数据则由内核丢弃，从而防止对守护进程的这些调用的失败。</p>
+<h2 id="4-inetd守护进程">4. <code>inetd</code>守护进程</h2>
+<p>        典型的<code>Unix</code>系统可能存在很多服务器，只是等待客户请求的到达，例如<code>FTP</code>、<code>Telnet</code>等。<code>4.3BSD</code>面世之前的系统，所有这些服务都有一个进程与之关联。这些进程都是在系统自举阶段从 $/etc/rc$ 文件中启动，而且每个进程执行几乎相同的启动任务：创建一个套接字，把本服务器众所周知的端口捆绑到该套接字，等待一个连接或一个数据报，然后派生子进程。子进程为客户提供服务，父进程则继续等待下一个客户请求。这个模型存在两个问题：</p>
+<ol>
+<li>所有这些守护进程含有几乎相同的启动代码，既表现在创建套接字上，也表现在转变为守护进程上；</li>
+<li>每个守护进程在进程表中占据一个表项，然而它们大部分时候处于休眠状态。</li>
+</ol>
+<p>        <code>4.3BSD</code>通过提供一个因特网超级服务器 ( 即<code>inetd</code>守护进程 ) 简化了上述问题：</p>
+<ol>
+<li>通过由<code>inetd</code>处理普通守护进程的大部分启动细节以简化守护程序的编写；</li>
+<li>单个进程 ( <code>inetd</code> ) 就能为多个服务等待外来的客户请求，从而取代每个服务一个进程的做法，减少系统中的进程总数。</li>
+</ol>
+<p>        <code>inetd</code>进程首先将自己变为一个守护进程，接着会读入并处理自己的配置文件，通常是 $/etc/inetd.conf$ 的配置文件，指定本超级服务器处理哪些服务以及当一个服务请求到达时该怎么做。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">字段</th>
+<th style="text-align:left">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">$service-name$</td>
+<td style="text-align:left">必须在 $/etc/services$ 文件中定义</td>
+</tr>
+<tr>
+<td style="text-align:left">$socket-type$</td>
+<td style="text-align:left">$stream$ ( <code>TCP</code> ) 或 $dgram$ ( <code>UDP</code> )</td>
+</tr>
+<tr>
+<td style="text-align:left">$protocol$</td>
+<td style="text-align:left">必须在 $/etc/protocols$ 文件中定义：<code>TCP</code>或<code>UDP</code></td>
+</tr>
+<tr>
+<td style="text-align:left">$wait-flag$</td>
+<td style="text-align:left">对于<code>TCP</code>一般为 $nowait$ ，对于<code>UDP</code>一般为 $wait$</td>
+</tr>
+<tr>
+<td style="text-align:left">$login-name$</td>
+<td style="text-align:left">来自 $/etc/passwd$ 的用户名，一般为 $root$</td>
+</tr>
+<tr>
+<td style="text-align:left">$server-program$</td>
+<td style="text-align:left">调用 $exec$ 指定的完整路径名</td>
+</tr>
+<tr>
+<td style="text-align:left">$server-program-arguments$</td>
+<td style="text-align:left">调用 $exec$ 指定的命令行参数</td>
+</tr>
+</tbody>
+</table>
+<p>        当<code>inetd</code>调用 $exec$ 执行某个服务器程序时，该服务器的真实名字总是作为程序的第一个参数传递。<br>
+        <code>inetd</code>守护进程的工作流程如下：</p>
+<ol>
+<li>在启动阶段，读入配置文件并给该文件中指定的每个服务创建一个适当类型 ( 字节流或数据报 ) 套接字。<code>inetd</code>能够处理的服务器的最大数目取决于其能创建的描述符的最大数量。新创建的每个套接字都被加入将来由 $select$ 调用使用的一个描述符集中；</li>
+<li>为每个套接字调用 $bind$ ，指定捆绑相应服务器的众所周知端口和通配地址。这个<code>TCP</code>或<code>UDP</code>端口号通过 $getservbyname$ 获得，作为函数参数的是配置文件中的 $service-name$ 字段和 $protocol$ 字段；</li>
+<li>对于每个<code>TCP</code>套接字，调用 $listen$ 以接收外来的连接请求，数据报套接字则不执行；</li>
+<li>创建完毕所有套接字后，调用 $select$ 等待其中任何一个套接字变为可读；</li>
+<li>如果可读的套接字是<code>TCP</code>套接字，并且服务器的 $wait-flag$ 值为 $nowait$ ，那么就调用 $accept$ ；</li>
+<li><code>inetd</code>守护进程调用 $fork$ ，交由子进程处理服务请求。子进程会关闭除要处理的套接字描述符之外的所有描述符，然后调用 $exec$ 执行由相应的 $server-program$ 字段指定的程序来具体处理请求，相应的 $server-program-arguments$ 字段则作为命令行参数传递；</li>
+<li>如果第 $5$ 步中返回的是字节流套接字，那么父进程必须关闭已连接套接字，再次调用 $select$ 等待下一个可读套接字。</li>
+</ol>
+<p>        给一个数据报服务指定 $wait$ 标志导致父进程执行的步骤发生变化，这个标志要求<code>inetd</code>必须在这个套接字再次成为 $select$ 调用的候选套接字之前等待为当前服务套接字创建的子进程的终止，发生的变化有：</p>
+<ol>
+<li>$fork$ 返回到父进程时，父进程保存子进程<code>PID</code>，从而之后可以通过 $waitpid$ 返回值确定子进程终止时间；</li>
+<li>父进程通过 $FD_-CLR$ 宏关闭这个套接字在 $select$ 所用描述符集中对应的位，从而在将来的 $select$ 调用中禁止该套接字；</li>
+<li>子进程终止时，父进程会收到 $SIGCHILD$ 信号，父进程通过打开相应的套接字在 $select$ 所用描述符集中对应的位，使得该套接字再次成为 $select$ 的候选套接字。</li>
+</ol>
+<p>        <code>inetd</code>通常不适用于服务密集型服务器，通常有邮件服务器和<code>Web</code>服务器。</p>
+
+            </div>
+            <div class="meta post-footer"> 
+                <span>2022 Feb 9 16:20</span> 
+                <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B6/"><i class="fas fa-link"></i> link</a>
+            </div>
+        </div>
         
         <div class="post">
             
@@ -795,350 +1117,6 @@
             <div class="meta post-footer"> 
                 <span>2022 Feb 2 15:04</span> 
                 <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B3/"><i class="fas fa-link"></i> link</a>
-            </div>
-        </div>
-        
-        <div class="post">
-            
-            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B2/">Unix网络编程（2）：基本TCP套接字编程</a></h1>
-            <div class="post-content">
-                <h2 id="1-基本tcp套接字编程">1. 基本<code>TCP</code>套接字编程</h2>
-<h3 id="11-socket函数">1.1 <code>socket</code>函数</h3>
-<p>        为了执行网络<code>I/O</code>，进程必须做的第一件事就是调用 $socket$ 函数。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 成功返回套接字描述符，失败返回-1
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">socket</span><span class="p">(</span><span class="kt">int</span> <span class="n">family</span><span class="p">,</span> <span class="kt">int</span> <span class="n">type</span><span class="p">.</span> <span class="kt">int</span> <span class="n">protocol</span><span class="p">);</span>
-</code></pre></div><p>        $family$ 为协议族，由于历史问题，一些实现中还存在以 $PF$ 开头的协议族，但基本等价；$type$ 指明套接字类型；$protocol$ 为某个协议类型常值。</p>
-<table>
-<thead>
-<tr>
-<th style="text-align:center">$family$</th>
-<th style="text-align:center">说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">$AF_-INET$</td>
-<td style="text-align:center"><code>IPv4</code>协议</td>
-</tr>
-<tr>
-<td style="text-align:center">$AF_-INET6$</td>
-<td style="text-align:center"><code>IPv6</code>协议</td>
-</tr>
-<tr>
-<td style="text-align:center">$AF_-LOCAL$</td>
-<td style="text-align:center"><code>Unix</code>域协议</td>
-</tr>
-<tr>
-<td style="text-align:center">$AF_-ROUTE$</td>
-<td style="text-align:center">路由套接字</td>
-</tr>
-<tr>
-<td style="text-align:center">$AF_-KEY$</td>
-<td style="text-align:center">密钥套接字</td>
-</tr>
-</tbody>
-</table>
-<br/>
-<table>
-<thead>
-<tr>
-<th style="text-align:center">$type$</th>
-<th style="text-align:center">说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">$SOCK_-STREAM$</td>
-<td style="text-align:center">字节流套接字</td>
-</tr>
-<tr>
-<td style="text-align:center">$SOCK_-DGRAM$</td>
-<td style="text-align:center">数据报套接字</td>
-</tr>
-<tr>
-<td style="text-align:center">$SOCK_-SEQPACKET$</td>
-<td style="text-align:center">有序分组套接字</td>
-</tr>
-<tr>
-<td style="text-align:center">$SOCK_-RAW$</td>
-<td style="text-align:center">原始套接字</td>
-</tr>
-</tbody>
-</table>
-<br/>
-<table>
-<thead>
-<tr>
-<th style="text-align:center">$protocol$</th>
-<th style="text-align:center">说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">$IPPROTO_-TCP$</td>
-<td style="text-align:center"><code>TCP</code>传输协议</td>
-</tr>
-<tr>
-<td style="text-align:center">$IPPROTO_-UDP$</td>
-<td style="text-align:center"><code>UDP</code>传输协议</td>
-</tr>
-<tr>
-<td style="text-align:center">$IPPROTO_-SCTP$</td>
-<td style="text-align:center"><code>SCTP</code>传输协议</td>
-</tr>
-</tbody>
-</table>
-<br/>
-<table>
-<thead>
-<tr>
-<th style="text-align:left">组合</th>
-<th style="text-align:center">$AF_-INET$</th>
-<th style="text-align:center">$AF_-INET6$</th>
-<th style="text-align:center">$AF_-LOCAL$</th>
-<th style="text-align:center">$AF_-ROUTE$</th>
-<th style="text-align:center">$AF_-KEY$</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left">$SOCK_-STREAM$</td>
-<td style="text-align:center"><code>TCP</code>｜<code>SCTP</code></td>
-<td style="text-align:center"><code>TCP</code>｜<code>SCTP</code></td>
-<td style="text-align:center">有效</td>
-<td style="text-align:center"></td>
-<td style="text-align:center"></td>
-</tr>
-<tr>
-<td style="text-align:left">$SOCK_-DGRAM$</td>
-<td style="text-align:center"><code>UDP</code></td>
-<td style="text-align:center"><code>UDP</code></td>
-<td style="text-align:center">有效</td>
-<td style="text-align:center"></td>
-<td style="text-align:center"></td>
-</tr>
-<tr>
-<td style="text-align:left">$SOCK_-SEQPACKET$</td>
-<td style="text-align:center"><code>SCTP</code></td>
-<td style="text-align:center"><code>SCTP</code></td>
-<td style="text-align:center">有效</td>
-<td style="text-align:center"></td>
-<td style="text-align:center"></td>
-</tr>
-<tr>
-<td style="text-align:left">$SOCK_-RAW$</td>
-<td style="text-align:center"><code>IPv4</code></td>
-<td style="text-align:center"><code>IPv6</code></td>
-<td style="text-align:center"></td>
-<td style="text-align:center">有效</td>
-<td style="text-align:center">有效</td>
-</tr>
-</tbody>
-</table>
-<h3 id="12-connect函数">1.2 <code>connect</code>函数</h3>
-<p>        <code>TCP</code>客户使用 $connect$ 函数来与<code>TCP</code>服务器建立连接。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 成功返回0，否则返回-1
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">connect</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">servaddr</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">addrlen</span><span class="p">);</span>
-</code></pre></div><p>        客户在调用 $connect$ 前不必非得调用 $bind$ 函数，因为如果需要的话，内核会确定源<code>IP</code>地址，并选择一个临时端口作为源端口。如果是<code>TCP</code>套接字，调用 $connect$ 将会触发<code>TCP</code>三次握手。如果客户端没有收到<code>SYN</code>的确认，会设置 $ETIMEDOUT$ ；如果<code>SYN</code>响应为<code>RST</code>，会设置 $ECONNREFUSED$ ；如果<code>SYN</code>数据包引发了 “$destination$ $unreachable$” ( 目的地不可达 ) 的<code>ICMP</code>错误，那么客户内核会保存信息并隔一定时间后重试，如果还是失败，则设置 $EHOSTUNREACH$ 或者 $ENETUNREACH$ 。</p>
-<h3 id="13-bind函数">1.3 <code>bind</code>函数</h3>
-<p>        $bind$ 函数将一个本地协议地址赋予一个套接字。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 成功返回0，否则返回-1
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">bind</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">myaddr</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">addrlen</span><span class="p">);</span>
-</code></pre></div><p>        如果一个<code>TCP</code>客户或服务器未曾调用 $bind$ ，那么当调用 $connect$ 或 $listen$ 时，内核会选择一个临时端口。但是对于<code>TCP</code>服务器，让内核选择端口是极为罕见的，这个规则的例外是<code>RPC</code>服务器。$bind$ 可以指定<code>IP</code>地址和端口中的一个，也可以两个都不指定。</p>
-<table>
-<thead>
-<tr>
-<th style="text-align:center"><code>IP</code>地址</th>
-<th style="text-align:center">端口</th>
-<th style="text-align:center">结果</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">通配地址</td>
-<td style="text-align:center">$0$</td>
-<td style="text-align:center">内核选择<code>IP</code>地址和端口</td>
-</tr>
-<tr>
-<td style="text-align:center">通配地址</td>
-<td style="text-align:center">非 $0$</td>
-<td style="text-align:center">内核选择<code>IP</code>地址，进程指定端口</td>
-</tr>
-<tr>
-<td style="text-align:center">本地<code>IP</code>地址</td>
-<td style="text-align:center">$0$</td>
-<td style="text-align:center">进程指定<code>IP</code>地址，内核选择端口</td>
-</tr>
-<tr>
-<td style="text-align:center">本地<code>IP</code>地址</td>
-<td style="text-align:center">非 $0$</td>
-<td style="text-align:center">进程指定<code>IP</code>地址和端口</td>
-</tr>
-</tbody>
-</table>
-<p>        对于<code>IPv4</code>来说，通配地址通常由常数 $INADDR_-ANY$ 指定，一般为 $0$ 。而对于<code>IPv6</code>，由于其地址存放在结构中，所以系统会预先分配 $in6addr_-any$ 变量并初始化为常值 $IN6ADDR_-ANY_-INIT$ 。如果让内核选择端口号，那么 $bind$ 并不会返回对应值，需要调用 $getsockname$ 返回协议地址。<br>
-        $bind$ 函数的一个常见错误是 $EADDRINUSE$ ，表示地址已被占用。</p>
-<h3 id="14-listen函数">1.4 <code>listen</code>函数</h3>
-<p>        $listen$ 函数仅由<code>TCP</code>服务器调用，</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 成功返回0，否则返回-1
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">listen</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">backlog</span><span class="p">);</span>
-</code></pre></div><p>        当 $socket$ 函数创建一个套接字时，它被假设成一个主动套接字，即负责 $connect$ 的套接字，而 $listen$ 可以把它转换成一个被动套接字，即把<code>TCP</code>状态从 $CLOSED$ 转为 $LISTEN$ 。内核为任何一个给定的监听套接字维护两个队列：<em><strong>未完成队列</strong></em> ( $incomplete$ $connection$ $queue$ ) 和<em><strong>已完成队列</strong></em> ( $completed$ $connection$ $queue$ )，分别存储着未完成三次握手的套接字和已完成三次握手的套接字。$backlog$ 参数是一个因子，与队列长度有关。</p>
-<h3 id="15-accept函数">1.5 <code>accept</code>函数</h3>
-<p>        $accept$ 函数由<code>TCP</code>服务器调用，用于从已连接队列队头取出已完成的连接，如果队列为空，则默认会阻塞。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 成功返回描述符，否则返回-1
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">accept</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">cliaddr</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="o">*</span><span class="n">addrlen</span><span class="p">);</span>
-</code></pre></div><p>        如果 $accept$ 成功，其返回值是一个由内核自动生成的全新描述符，代表与所返回客户的<code>TCP</code>连接。我们称 $accept$ 的第一个参数为监听套接字描述符，返回值为已连接套接字描述符，在服务器生命周期内一直存在。如果对客户协议地址和长度不感兴趣，可以设为 $NULL$ 。</p>
-<h3 id="16-fork和exec函数">1.6 <code>fork</code>和<code>exec</code>函数</h3>
-<p>        $fork$ 是<code>Unix</code>系统提供的函数，是<code>Unix</code>派生新进程的唯一方法。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;unistd.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 子进程中返回值为0，父进程中为子进程PID，出错返回-1
-</span><span class="c1"></span><span class="n">pid_t</span> <span class="nf">fork</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
-</code></pre></div><p>        任何子进程只有一个父进程，子进程可以通过 $getppid$ 函数获取父进程<code>PID</code>。父进程可以有多个子进程，如果父进程想跟踪子进程，就必须记录 $fork$ 函数的返回值。$fork$ 有两个典型用法：</p>
-<ol>
-<li>一个进程创建自身的副本，这样每个副本都可以在另一个副本执行其他任务的同时处理各自的操作，这也是网络服务器的典型用法；</li>
-<li>一个进程想要执行另一个程序，首先调用 $fork$ 创建一个自身的副本，然后副本调用 $exec$ 把自身替换成新的程序，这是诸如<code>shell</code>之类程序的典型用法。</li>
-</ol>
-<p>        存放在硬盘上的可执行程序能够被<code>Unix</code>执行的唯一方法是：由一个现有进程调用 $6$ 个 $exec$ 函数中的某一个，$exec$ 会把当前进程映像替换成新的程序文件，而且该新程序通常从 $main$ 函数开始执行。我们称调用 $exec$ 的进程为<strong>调用进程</strong> ( $calling$ $process$ )，称新执行的程序为<strong>新程序</strong> ( $new$ $program$ )。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;unistd.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="kt">int</span> <span class="nf">execl</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">pathname</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">arg0</span><span class="p">,</span> <span class="p">...);</span>
-
-<span class="kt">int</span> <span class="nf">execv</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">pathname</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="k">const</span> <span class="o">*</span><span class="n">argv</span><span class="p">[]);</span>
-
-<span class="kt">int</span> <span class="nf">execle</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">pathname</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">arg0</span><span class="p">,</span> <span class="p">...);</span>
-
-<span class="kt">int</span> <span class="nf">execve</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">pathname</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="k">const</span> <span class="n">argv</span><span class="p">[],</span> <span class="kt">char</span> <span class="o">*</span><span class="k">const</span> <span class="n">envp</span><span class="p">[]);</span>
-
-<span class="kt">int</span> <span class="nf">execlp</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">filename</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">arg0</span><span class="p">,</span> <span class="p">...);</span>
-
-<span class="kt">int</span> <span class="nf">execvp</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">filename</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="k">const</span> <span class="n">argv</span><span class="p">[]);</span>
-</code></pre></div><p>        这 $6$ 个函数的区别在于：待执行的程序文件是由文件名还是由路径名指定、新程序参数是一一列出还是由一个指针数组引用、是把调用进程的环境传递给新程序还是指定新环境。这些函数只有在出错时才会返回到调用者，否则控制会被传递给新程序的起始点，通常就是 $main$ 函数。</p>
-<p><img src="/image/2022-01-30-1.jpg" alt="6个exec函数的关系"></p>
-<h3 id="17-并发服务器">1.7 并发服务器</h3>
-<p>        <code>Unix</code>中编写并发服务器程序最简单的办法就是 $fork$ 一个子进程来服务每个客户。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="n">pid_t</span> <span class="n">pid</span><span class="p">;</span>
-<span class="kt">int</span> <span class="n">listenfd</span><span class="p">,</span> <span class="n">connfd</span><span class="p">;</span>
-
-<span class="n">listenfd</span> <span class="o">=</span> <span class="n">Socket</span><span class="p">(...);</span>
-<span class="n">Bind</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="p">...);</span>
-<span class="n">Listen</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="n">LISTENQ</span><span class="p">);</span>
-
-<span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
-  <span class="n">connfd</span> <span class="o">=</span> <span class="n">Accept</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="p">...);</span>
-  <span class="k">if</span> <span class="p">((</span><span class="n">pid</span> <span class="o">=</span> <span class="n">Fork</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">Close</span><span class="p">(</span><span class="n">listenfd</span><span class="p">);</span>
-    <span class="n">dosomething</span><span class="p">(</span><span class="n">connfd</span><span class="p">);</span>
-    <span class="n">Close</span><span class="p">(</span><span class="n">connfd</span><span class="p">);</span>
-    <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-  <span class="p">}</span>
-  <span class="n">Close</span><span class="p">(</span><span class="n">connfd</span><span class="p">);</span>
-<span class="p">}</span>
-</code></pre></div><p>        当一个连接建立时，$accept$ 返回，服务器调用 $fork$ ，然后子进程服务客户，父进程则关闭已连接套接字，然后等待另一个连接。由于进程终止前会关闭所有打开的描述符，所以在 $if$ 块内的 $exit$ 函数前的关闭是非必要的。父进程调用 $close$ 后子进程的连接并不会断开，因为每个套接字都有一个引用计数，维护在文件表中，调用 $close$ 会让引用计数减一。</p>
-<h3 id="18-close函数">1.8 <code>close</code>函数</h3>
-<p>        通常的<code>Unix</code> $close$ 函数也用于关闭套接字，终止<code>TCP</code>连接。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;unistd.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 成功返回0，否则返回-1
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">close</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">);</span>
-</code></pre></div><p>        $close$ 一个<code>TCP</code>套接字的默认行为是把该套接字标记成关闭，然后立即返回到调用进程，之后该套接字描述符不能再用于 $read$ 和 $write$　。然而<code>TCP</code>仍然会尝试发送队列中的消息，发送完毕后才会正式关闭连接。如果套接字描述符的引用计数大于 $1$ ，那么 $close$ 不会引发<code>TCP</code>连接的关闭，而是会让引用计数减一。如果确实想在某个<code>TCP</code>连接上发送<code>FIN</code>，可以使用 $shutdown$ 函数。</p>
-<h2 id="9-getsockname和getpeername函数">9. <code>getsockname</code>和<code>getpeername</code>函数</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="kt">int</span> <span class="nf">getsockname</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">localaddr</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="o">*</span><span class="n">addrlen</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">getpeername</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">peeraddr</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="o">*</span><span class="n">addrlen</span><span class="p">);</span>
-</code></pre></div><p>        这两个函数分别返回与某个套接字关联的本地协议地址或者外地协议地址。用途如下：</p>
-<ul>
-<li>在没有 $bind$ 的<code>TCP</code>客户上在 $connect$ 成功返回后，通过 $getsockname$ 返回内核赋予的本地<code>IP</code>地址和端口号；</li>
-<li>在以端口号 $0$ 调用 $bind$ 后，通过 $getsockname$ 返回内核赋予的本地端口号；</li>
-<li>$getsockname$ 可以获取某个套接字的地址族；</li>
-<li>在以通配符调用 $bind$ 后，与某个客户的连接一旦建立，通过 $getsockname$ 返回内核赋予的本地<code>IP</code>地址。注意这时的套接字描述符参数必须是已连接套接字描述符；</li>
-<li>服务器由调用过 $accept$ 的进程调用 $exec$ 后，能够确定客户身份的唯一方式便是调用 $getpeername$ 。</li>
-</ul>
-<h2 id="2-posix信号处理">2. <code>POSIX</code>信号处理</h2>
-<h3 id="21-信号语义">2.1 信号语义</h3>
-<p>        <strong>信号</strong> ( $signal$ ) 就是告知某个进程发生了某个事件的通知，有时也被称为<strong>软件中断</strong> ( $software$ $interrupt$ )。信号通常是异步发生的，也就是说进程预先不知道信号的准确发生时刻。信号可以：</p>
-<ul>
-<li>由一个进程发给另一个进程 ( 或自身 )；</li>
-<li>由内核发给某个进程。</li>
-</ul>
-<p>        每个信号都有一个与之关联的<strong>处置</strong> ( $disposition$ )，也称为<strong>行为</strong> ( $action$ )。一个信号的处置可以有三个选择：</p>
-<ol>
-<li>提供一个函数，只要有特定信号发生就被调用，我们称之为 <strong>信号处理函数</strong> ( $signal$ $handler$ )，这种行为称为<strong>捕获</strong> ( $catching$ ) 信号。有两个信号不能被捕获，分别是 $SIGKILL$ 和 $SIGSTOP$ 。信号处理函数由信号值这单一整型参数调用，没有返回值；</li>
-<li>把某个信号的处置设为 $SIG_-IGN$ 来忽略它，$SIGKILL$ 和 $SIGSTOP$ 不能被忽略；</li>
-<li>把某个信号的处置设定为 $SIG_-DFL$ 来启用它的默认处置，通常是终止进程，其中某些信号还会在当前工作目录产生一个进程的<em><strong>核心映像</strong></em>/<em><strong>内存影像</strong></em> ( $core$ $image$ )，另有个别信号的默认处置是忽略，比如 $SIGCHILD$ 和 $SIGURG$ 。</li>
-</ol>
-<p>        建立信号处置的<code>POSIX</code>方法就是调用 $sigaction$ 函数，但是有些复杂，因为其第一个参数是一个结构。简单些的方法就是调用 $signal$ 函数，第一个参数是信号名，第二个参数或为函数指针，或为常值 $SIG_-IGN$ 和 $SIG_-DFL$ 。然而 $signal$ 是早于 <code>POSIX</code>出现的函数，因此不同的实现会有不同的语义，一种方法是定义自己的 $signal$ 函数。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">typedef</span> <span class="kt">void</span> <span class="nf">Sigfunc</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
-
-<span class="n">Sigfunc</span> <span class="o">*</span><span class="nf">signal</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">,</span> <span class="n">Sigfunc</span> <span class="o">*</span><span class="n">func</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">struct</span> <span class="n">sigaction</span> <span class="n">act</span><span class="p">,</span> <span class="n">oact</span><span class="p">;</span>
-  <span class="n">act</span><span class="p">.</span><span class="n">sa_handler</span> <span class="o">=</span> <span class="n">func</span><span class="p">;</span>
-  <span class="n">sigemptyset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">act</span><span class="p">.</span><span class="n">sa_mask</span><span class="p">);</span>
-  <span class="n">act</span><span class="p">.</span><span class="n">sa_flags</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">signo</span> <span class="o">==</span> <span class="n">SIGALRM</span><span class="p">)</span> <span class="p">{</span>
-<span class="cp">#ifdef SA_INTERRUPT
-</span><span class="cp"></span>    <span class="n">act</span><span class="p">.</span><span class="n">sa_flags</span> <span class="o">|=</span> <span class="n">SA_INTERRUPT</span><span class="p">;</span>
-<span class="cp">#endif
-</span><span class="cp"></span>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-<span class="cp">#ifdef SA_RESTART
-</span><span class="cp"></span>    <span class="n">act</span><span class="p">.</span><span class="n">sa_flags</span> <span class="o">|=</span> <span class="n">SA_RESTART</span><span class="p">;</span>
-<span class="cp">#endif
-</span><span class="cp"></span>  <span class="p">}</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">sigaction</span><span class="p">(</span><span class="n">signo</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">act</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">oact</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">SIG_ERR</span><span class="p">;</span>
-  <span class="k">return</span> <span class="n">oact</span><span class="p">.</span><span class="n">sa_handler</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div><p>        我们把符合<code>POSIX</code>的系统上的信号处理总结为以下几点：</p>
-<ul>
-<li>一旦安装了信号处理函数，便一直存在；</li>
-<li>在一个信号处理函数运行期间，正被递交的信号是阻塞的。而且，安装函数时在传递给 $sigaction$ 函数的 $sa_-mask$ 信号集中指定的额外信号也被阻塞；</li>
-<li>如果一个信号在被阻塞期间产生，那么该信号在被解阻塞后只递交一次，也就是默认不排队；</li>
-<li>可以利用 $sigprocmask$ 函数选择性地阻塞或解阻塞一组信号。</li>
-</ul>
-<h3 id="22-处理sigchild信号">2.2 处理<code>SIGCHILD</code>信号</h3>
-<p>        设置<strong>僵死</strong> ( $zombie$ ) 状态的目的是维护子进程的信息，以便父进程在以后某个时刻获取信息，包括子进程<code>ID</code>、终止状态以及资源利用信息。如果进程终止，但它之前有僵死的子进程，那么这些子进程的父进程<code>ID</code>将会被设置为 $1$ ，即交由 $init$ 进程清理。留存僵死进程会导致内核空间被占用，最终可能会导致进程资源耗尽，为了避免这种情况，我们需要给 $SIGCHILD$ 信号建立一个信号处理函数。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="kt">void</span> <span class="nf">sig_child</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">pid_t</span> <span class="n">pid</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">stat</span><span class="p">;</span>
-  <span class="k">while</span> <span class="p">((</span><span class="n">pid</span> <span class="o">=</span> <span class="n">waitpid</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">stat</span><span class="p">,</span> <span class="n">WNOHANG</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="k">continue</span><span class="p">;</span>
-  <span class="k">return</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div><p>        在上述函数中，我们调用了 $waitpid$ 来处理已终止的子进程。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/wait.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 成功返回进程ID，出错为0或-1
-</span><span class="c1"></span><span class="n">pid_t</span> <span class="nf">wait</span><span class="p">(</span><span class="kt">int</span> <span class="o">*</span><span class="n">statloc</span><span class="p">);</span>
-
-<span class="n">pid_t</span> <span class="nf">waitpid</span><span class="p">(</span><span class="n">pid_t</span> <span class="n">pid</span><span class="p">,</span> <span class="kt">int</span> <span class="o">*</span><span class="n">statloc</span><span class="p">,</span> <span class="kt">int</span> <span class="n">options</span><span class="p">);</span>
-</code></pre></div><p>        这两个函数均返回两个值：已终止子进程<code>ID</code>和子进程终止状态。我们可以调用三个宏来检查终止状态，辨别子进程是正常终止、由某个信号杀死还是仅仅由作业控制停止。另外有些宏用于接着获取子进程的退出状态、杀死子进程的信号或停止子进程的作业控制信号。如果调用 $wait$ 的进程没有已终止的子进程，不过有一个或多个子进程仍在执行，那么 $wait$ 会阻塞到某个子进程终止。$waitpid$ 函数的 $pid$ 参数允许我们指定想要等待的进程<code>ID</code>，$-1$ 则为任意一个子进程，$options$ 参数允许指定附加选项，最常用的选项是 $WNOHANG$ ，告知内核在没有已终止子进程时不要阻塞。</p>
-<h3 id="23-sigpipe信号">2.3 <code>SIGPIPE</code>信号</h3>
-<p>        启动一组客户/服务器对，然后杀死服务器子进程，模拟服务器进程崩溃的情形，所发生的步骤如下所述：</p>
-<ol>
-<li>当服务器的子进程被终止，作为进程终止的部分工作，子进程中所有打开着的描述符都被关闭，导致向客户发送一个<code>FIN</code>，从而客户会响应<code>ACK</code>；</li>
-<li>$SIGCHILD$ 信号会被发送给父进程，交由对应的信号处理函数处理；</li>
-<li>客户可以再向服务器发送消息，当服务器收到消息后，发现原来的进程已经终止，会响应<code>RST</code>；</li>
-<li>客户在等待响应的时候看不到<code>RST</code>，并且由于之前的<code>FIN</code>，客户尝试进行的 $read$ 会返回<code>EOF</code>，于是会报错 “$server$ $terminated$ $prematurely$”；</li>
-<li>客户终止，关闭其打开的描述符。</li>
-</ol>
-<p>        在上述情况中，第 $4$ 步客户收到<code>RST</code>后没有继续发送数据，适用于此的规则是：当一个进程向某个已收到<code>RST</code>的套接字执行写操作时，内核向该进程发送一个 $SIGPIPE$ 信号，该信号默认行为是终止进程。不论该进程是捕获了该信号并从其信号处理函数中返回，还是忽略该信号，写操作都会返回 $EPIPE$ 错误。</p>
-
-            </div>
-            <div class="meta post-footer"> 
-                <span>2022 Jan 29 18:38</span> 
-                <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B2/"><i class="fas fa-link"></i> link</a>
             </div>
         </div>
         
