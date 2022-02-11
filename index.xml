@@ -7,7 +7,18 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2022, z217 and the hugo authors, all rights reserved.</copyright>
-    <lastBuildDate>Wed, 09 Feb 2022 16:20:07 +0800</lastBuildDate><atom:link href="https://z217blog.cn/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Fri, 11 Feb 2022 16:00:04 +0800</lastBuildDate><atom:link href="https://z217blog.cn/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Unix网络编程（7）：高级I/O函数</title>
+      <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B7/</link>
+      <pubDate>Fri, 11 Feb 2022 16:00:04 +0800</pubDate>
+      
+      <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B7/</guid>
+      <description>1. 套接字超时  在涉及套接字的I/O操作上设置超时的办法有以下三种：
+ 调用 $alarm$ ，它在指定超时期满时产生 $SIGALRM$ 信号。这个办法涉及信号处理，而信号处理在不同的实现上存储差异，而且可能干扰进程中现有的 $alarm$ 调用； 在 $select$ 中阻塞等待I/O，以此代替直接阻塞在 $read$ 或 $write$ 调用上； 使用较新的 $SO_-RCVTIMEO$ 和 $SO_-SNDTIMEO$ 套接字选项。这个办法的问题在于并非所有实现都支持这两个套接字选项。   以上三种技术都适用于输入和输出操作，不过我们依然期待可用于 $connect$ 技术，因为TCP内置的 $connect$ 超时时间相当长 ( 典型为 $75$ 秒 )。$select$ 可用来在 $connect$ 上设置超时的先决条件是相应套接字处于非阻塞模式，而那两个套接字选项对 $connect$ 并不适用。还要注意，前两个技术适用于任何描述符，而最后一个只适用于套接字描述符。
+#include &amp;#34;unp.h&amp;#34; static void connect_alarm(int); int connect_timeo(int sockfd, const struct sockaddr *saptr, socklen_t salen, int nsec) { Sigfunc *sigfunc; int n; sigfunc = Signal(SIGALRM, connect_alarm); if (alarm(nsec) != 0) err_msg(&amp;#34;connect_timeo: alarm was already set&amp;#34;); if ((n = connect(sockfd, saptr, salen)) &amp;lt; 0) { close(sockfd); if (errno == EINTR) errno = ETIMEDOUT; } alarm(0); // turn off the alarm  Signal(SIGALRM, sigfunc) // restore previous signal handler  return n; } static void connect_alarm(int signo) { return; // just interrupt the connect() }  上述代码使用第一种方法，通过 $alarm$ 设置秒数，再通过信号处理函数中断 $connect$ 调用，同时关闭套接字。自定义的 $Signal$ 函数也会阻塞 $SA_-RESTART$ 信号。要注意，如果指定 $nsec$ 为一个大于 $75$ 的值，那么函数仍然会在 $75$ 秒时超时并返回。还要注意，虽然通过这种方式实现简单，但是在多线程程序中，正确使用信号是很困难的，所以建议只在未线程化或单线程程序中适用该技术。</description>
+    </item>
+    
     <item>
       <title>Unix网络编程（6）：守护进程</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B6/</link>

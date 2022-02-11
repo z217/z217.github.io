@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  
+  <title>z217&#39;s blog</title>
+</head><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+    integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="/friend" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">Unix网络编程（7）：高级I/O函数</h1>
+
+
+<h2 id="1-套接字超时">1. 套接字超时</h2>
+<p>        在涉及套接字的<code>I/O</code>操作上设置超时的办法有以下三种：</p>
+<ol>
+<li>调用 $alarm$ ，它在指定超时期满时产生 $SIGALRM$ 信号。这个办法涉及信号处理，而信号处理在不同的实现上存储差异，而且可能干扰进程中现有的 $alarm$ 调用；</li>
+<li>在 $select$ 中阻塞等待<code>I/O</code>，以此代替直接阻塞在 $read$ 或 $write$ 调用上；</li>
+<li>使用较新的 $SO_-RCVTIMEO$ 和 $SO_-SNDTIMEO$ 套接字选项。这个办法的问题在于并非所有实现都支持这两个套接字选项。</li>
+</ol>
+<p>        以上三种技术都适用于输入和输出操作，不过我们依然期待可用于 $connect$ 技术，因为<code>TCP</code>内置的 $connect$ 超时时间相当长 ( 典型为 $75$ 秒 )。$select$ 可用来在 $connect$ 上设置超时的先决条件是相应套接字处于非阻塞模式，而那两个套接字选项对 $connect$ 并不适用。还要注意，前两个技术适用于任何描述符，而最后一个只适用于套接字描述符。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">connect_alarm</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">connect_timeo</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">saptr</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">salen</span><span class="p">,</span> <span class="kt">int</span> <span class="n">nsec</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">Sigfunc</span> <span class="o">*</span><span class="n">sigfunc</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">n</span><span class="p">;</span>
+
+  <span class="n">sigfunc</span> <span class="o">=</span> <span class="n">Signal</span><span class="p">(</span><span class="n">SIGALRM</span><span class="p">,</span> <span class="n">connect_alarm</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">alarm</span><span class="p">(</span><span class="n">nsec</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">err_msg</span><span class="p">(</span><span class="s">&#34;connect_timeo: alarm was already set&#34;</span><span class="p">);</span>
+
+  <span class="k">if</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">connect</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">saptr</span><span class="p">,</span> <span class="n">salen</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">close</span><span class="p">(</span><span class="n">sockfd</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">==</span> <span class="n">EINTR</span><span class="p">)</span> <span class="n">errno</span> <span class="o">=</span> <span class="n">ETIMEDOUT</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="n">alarm</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>  <span class="c1">// turn off the alarm
+</span><span class="c1"></span>  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGALRM</span><span class="p">,</span> <span class="n">sigfunc</span><span class="p">)</span>  <span class="c1">// restore previous signal handler
+</span><span class="c1"></span>
+  <span class="k">return</span> <span class="n">n</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">connect_alarm</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span><span class="p">;</span>  <span class="c1">// just interrupt the connect()
+</span><span class="c1"></span><span class="p">}</span>
+</code></pre></div><p>        上述代码使用第一种方法，通过 $alarm$ 设置秒数，再通过信号处理函数中断 $connect$ 调用，同时关闭套接字。自定义的 $Signal$ 函数也会阻塞 $SA_-RESTART$ 信号。要注意，如果指定 $nsec$ 为一个大于 $75$ 的值，那么函数仍然会在 $75$ 秒时超时并返回。还要注意，虽然通过这种方式实现简单，但是在多线程程序中，正确使用信号是很困难的，所以建议只在未线程化或单线程程序中适用该技术。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">int</span> <span class="nf">readable_timeo</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">sec</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">fd_set</span> <span class="n">rset</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">timeval</span> <span class="n">tv</span><span class="p">;</span>
+
+  <span class="n">FD_ZERO</span><span class="p">(</span><span class="o">&amp;</span><span class="n">rset</span><span class="p">);</span>
+  <span class="n">FD_SET</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">);</span>
+
+  <span class="n">tv</span><span class="p">.</span><span class="n">tv_sec</span> <span class="o">=</span> <span class="n">sec</span><span class="p">;</span>
+  <span class="n">tc</span><span class="p">.</span><span class="n">tc_usec</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+  <span class="k">return</span> <span class="p">(</span><span class="n">select</span><span class="p">(</span><span class="n">fd</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">tv</span><span class="p">));</span>
+</code></pre></div><p>        上述代码使用第二种方法，通过 $select$ 等待描述符可读，或发生超时。该函数不执行读操作，只是等待描述符变为可读，因此既适用于<code>TCP</code>也适用于<code>UDP</code>。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">void</span> <span class="nf">dg_cli</span><span class="p">(</span><span class="n">FILE</span> <span class="o">*</span><span class="n">fp</span><span class="p">,</span> <span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">pservaddr</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">servlen</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">n</span><span class="p">;</span>
+  <span class="kt">char</span> <span class="n">sendline</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">],</span> <span class="n">recvline</span><span class="p">[</span><span class="n">MAXLINE</span> <span class="o">+</span> <span class="mi">1</span><span class="p">];</span>
+  <span class="k">struct</span> <span class="n">timeval</span> <span class="n">tv</span><span class="p">;</span>
+
+  <span class="n">tv</span><span class="p">.</span><span class="n">tv_sec</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span>
+  <span class="n">tc</span><span class="p">.</span><span class="n">tc_usec</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="n">Setsockopt</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SOL_SOCKET</span><span class="p">,</span> <span class="n">SO_RCVTIMEO</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">tv</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">tv</span><span class="p">));</span>
+
+  <span class="k">while</span> <span class="p">(</span><span class="n">Fgets</span><span class="p">(</span><span class="n">sendline</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">,</span> <span class="n">fp</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">Sendto</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">sendline</span><span class="p">,</span> <span class="n">strlen</span><span class="p">(</span><span class="n">sendline</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">psevaddr</span><span class="p">,</span> <span class="n">sevlen</span><span class="p">);</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">recvfrom</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">recvline</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">n</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">==</span> <span class="n">EWOULDBLOCK</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&#34;socket timeout</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+        <span class="k">continue</span><span class="p">;</span>
+      <span class="p">}</span> <span class="k">else</span>
+        <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;recvfrom error&#34;</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">recvline</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">Fputs</span><span class="p">(</span><span class="n">recvline</span><span class="p">,</span> <span class="n">stdout</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><p>        上述代码使用第三种办法，通过 $SO_-RECTIMEO$ 套接字选项设置超时。本选项一旦设置到某个描述符 ( 包括指定超时值 )，超时设置将会应用在所有对于该描述符的读操作上面。类似的，$SO_-SNDTIMEO$ 选项则应用于写操作。</p>
+<h2 id="2-recv和send函数">2. <code>recv</code>和<code>send</code>函数</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="n">ssize_t</span> <span class="nf">recv</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">buff</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">nbytes</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">);</span>
+
+<span class="n">ssize_t</span> <span class="nf">send</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">buff</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">nbytes</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">);</span>
+</code></pre></div><p>        $recv$ 和 $send$ 的前 $3$ 个参数等同于 $read$ 和 $write$ 参数，$flags$ 参数的值或为 $0$ ，或为以下一个或多个的逻辑或：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">$flags$</th>
+<th style="text-align:left">说明</th>
+<th style="text-align:center">$recv$</th>
+<th style="text-align:center">$send$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">$MSG_-DONTROUTE$</td>
+<td style="text-align:left">绕过路由表查找</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">$\checkmark$</td>
+</tr>
+<tr>
+<td style="text-align:left">$MSG_-DONTWAIT$</td>
+<td style="text-align:left">仅本操作非阻塞</td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:center">$\checkmark$</td>
+</tr>
+<tr>
+<td style="text-align:left">$MSG_-OOB$</td>
+<td style="text-align:left">发送或接收带外数据</td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:center">$\checkmark$</td>
+</tr>
+<tr>
+<td style="text-align:left">$MSG_-PEEK$</td>
+<td style="text-align:left">窥看外来消息</td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$MSG_-WAITALL$</td>
+<td style="text-align:left">等待所有数据</td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:center"></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>$MSG_-DONTROUTE$ ：告知内核目的主机在某个直接连接的本地网络上，无需执行路由表查找。既可以使用 $MSG_-DONTROUTE$ 标志针对单个输出操作开启，也可以使用 $SO_-DONTROUTE$ 套接字选项针对某个套接字上的所有输出操作开启；</li>
+<li>$MSG_-DONTWAIT$ ：在无需打开相应套接字的非阻塞标志的前提下，把单个<code>I/O</code>操作临时指定为非阻塞，接着执行<code>I/O</code>操作，然后关闭非阻塞标志；</li>
+<li>$MSG_-OOB$ ：对于 $send$ ，指定发送带外数据。对于 $recv$ ，指明即将读入的是带外数据；</li>
+<li>$MSG_-PEEK$ ：适用于 $recv$ 和 $recvfrom$ ，允许查看已经可以读取的数据，并且系统不会在返回后丢弃这些数据；</li>
+<li>$MSG_-WAITALL$ ：告知内核不要在尚未读入请求数目的字节之前让一个读操作返回。要注意，如果(a)捕获信号，(b)连接终止，(c)套接字发生错误时，相应的读函数仍有可能提前返回。</li>
+</ul>
+<h2 id="3-readv和writev函数">3. <code>readv</code>和<code>writev</code>函数</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/uio.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="n">ssize_t</span> <span class="nf">readv</span><span class="p">(</span><span class="kt">int</span> <span class="n">filedes</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">iovec</span> <span class="o">*</span><span class="n">iov</span><span class="p">,</span> <span class="kt">int</span> <span class="n">iovcnt</span><span class="p">);</span>
+
+<span class="n">ssize_t</span> <span class="nf">writev</span><span class="p">(</span><span class="kt">int</span> <span class="n">filedes</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">iovec</span> <span class="o">*</span><span class="n">iov</span><span class="p">,</span> <span class="kt">int</span> <span class="n">iovcnt</span><span class="p">);</span>
+
+<span class="k">struct</span> <span class="n">iovec</span> <span class="p">{</span>
+  <span class="kt">void</span> <span class="o">*</span><span class="n">iov_base</span><span class="p">;</span>  <span class="c1">// 缓冲区开始地址
+</span><span class="c1"></span>  <span class="n">size_t</span> <span class="n">iov_len</span><span class="p">;</span>  <span class="c1">// 缓冲区大小
+</span><span class="c1"></span><span class="p">};</span>
+</code></pre></div><p>        这两个函数类似于 $read$ 和 $write$ ，不过允许单个系统调用读入到或写出自一个或多个缓冲区，称为<strong>分散读</strong> ( $scatter$ $read$ ) 和<strong>集中写</strong> ( $gather$ $write$ )，因为来自读操作的输入数据被分散到多个应用缓冲区中，而来自多个应用缓冲区的输出数据则被集中提供给单个写操作。这两个函数可用于任何描述符，不仅限于套接字，另外 $writev$ 还是一个原子操作，从而一次调用只会产生一个<code>UDP</code>数据报。<br>
+        $iovec$ 结构数组中元素的数目存在某个限制，具体取决于实现，例如<code>4.3BSD</code>和<code>Linux</code>中均最多允许 $1024$ 个。<code>POSIX</code>要求在头文件 &lt;$sys/uio.h$&gt; 中定义<code>IOV_-MAX</code>常值，而且其值至少为 $16$ 。</p>
+<h2 id="4-recvmsg和sendmsg函数">4. <code>recvmsg</code>和<code>sendmsg</code>函数</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="n">ssize_t</span> <span class="nf">recvmsg</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">struct</span> <span class="n">msghdr</span> <span class="o">*</span><span class="n">msg</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">);</span>
+
+<span class="n">ssize_t</span> <span class="nf">sendmsg</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">struct</span> <span class="n">msghdr</span> <span class="o">*</span><span class="n">msg</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">);</span>
+
+<span class="k">struct</span> <span class="n">msghdr</span> <span class="p">{</span>
+  <span class="kt">void</span> <span class="o">*</span><span class="n">msg_name</span><span class="p">;</span>  <span class="c1">// 协议地址
+</span><span class="c1"></span>  <span class="n">socklen_t</span> <span class="n">msg_namelen</span><span class="p">;</span>  <span class="c1">// 协议地址长度
+</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">iovec</span> <span class="o">*</span><span class="n">msg_iov</span><span class="p">;</span>  <span class="c1">// scatter/gather数组
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">msg_iovlen</span><span class="p">;</span>  <span class="c1">// 数组长度
+</span><span class="c1"></span>  <span class="kt">void</span> <span class="o">*</span><span class="n">msg_control</span><span class="p">;</span>  <span class="c1">// 辅助数组，struct cmsghdr
+</span><span class="c1"></span>  <span class="n">socklen_t</span> <span class="n">msg_controllen</span><span class="p">;</span>  <span class="c1">// 辅助数组长度
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">msg_flags</span><span class="p">;</span>  <span class="c1">// recvmsg()返回的flags
+</span><span class="c1"></span><span class="p">};</span>
+</code></pre></div><p>        $msg_-name$ 和 $msg_-namelen$ 用于套接字未连接的场合，譬如未 $connect$ 的<code>UDP</code>套接字。如果无需指明协议地址，$msg_-name$ 应为空指针。对于 $recvmsg$ 函数，$msg_-name$ 参数是一个值-结果参数。$msg_-control$ 和 $msg_-controllen$ 这两个成员指定可选的辅助数据的位置和大小，$msg_-controllen$ 对于 $recvmsg$ 是一个值-结果参数。$recvmsg$ 和 $sendmsg$ 内部有两个 $flags$ ，一个是传递值的 $flags$ 参数，另一个是 $msg_-flags$ 成员，传递的是引用。只有 $recvmsg$ 使用 $msg_-flags$ 成员，$recvmsg$ 被调用时，$flags$ 参数被复制到 $msg_-flags$ 成员，并由内核使用其值驱动接收处理过程，内核还依据 $recvmsg$ 的结果更新 $msg_-flags$ 成员的值。$sendmsg$ 则忽略 $msg_-flags$ 成员，直接使用 $flags$ 参数驱动发送处理过程。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">标志</th>
+<th style="text-align:center">$send$ 、$sendto$ 或 $sendmsg$ 函数的 $flags$ 参数</th>
+<th style="text-align:center">$recv$ 、$recvfrom$ 或 $recvmsg$ 函数的 $flags$ 参数</th>
+<th style="text-align:center">$recvmsg$ 函数的 $msg_-flags$ 结构成员参数返回</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">$MSG_-DONTROUTE$</td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$MSG_-DONTWAIT$</td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$MSG_-PEEK$</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$MSG_-WAITALL$</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$MSG_-EOR$</td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">$\checkmark$</td>
+</tr>
+<tr>
+<td style="text-align:left">$MSG_-OOB$</td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:center">$\checkmark$</td>
+</tr>
+<tr>
+<td style="text-align:left">$MSG_-BCAST$</td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center">$\checkmark$</td>
+</tr>
+<tr>
+<td style="text-align:left">$MSG_-MCAST$</td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center">$\checkmark$</td>
+</tr>
+<tr>
+<td style="text-align:left">$MSG_-TRUNC$</td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center">$\checkmark$</td>
+</tr>
+<tr>
+<td style="text-align:left">$MSG_-CTRUNC$</td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center">$\checkmark$</td>
+</tr>
+<tr>
+<td style="text-align:left">$MSG_-NOTIFICATION$</td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center">$\checkmark$</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>$MSG_-BCAST$ ：返回条件是本数据报作为链路层广播收取或其目的<code>IP</code>地址是一个广播地址。与 $IP_-RECVDSTADDR$ 套接字选项相比，本标志是用于判断一个<code>UDP</code>数据报是否发往某个广播地址的更好办法；</li>
+<li>$MSG_-MCAST$ ：返回条件是本数据报作为链路层多播收取；</li>
+<li>$MSG_-TRUNC$ ：返回条件是本数据报被截断，即内核预备返回的数据超过进程事先分配的空间；</li>
+<li>$MSG_-CTRUNC$ ：返回条件是本数据报的辅助数据被截断，即内核预备返回的辅助数据超过进程事先分配的空间；</li>
+<li>$MSG_-EOR$ ：返回条件是返回数据结束一个逻辑记录。<code>TCP</code>不使用该标志，因为它是一个字节流协议；</li>
+<li>$MSG_-OOB$ ：不为<code>TCP</code>带外数据返回，适用于其他协议族；</li>
+<li>$MSG_-NOTIFICATION$ ：由<code>SCTP</code>接收者返回，指示读入的消息是一个事件通知，而不是数据消息。</li>
+</ul>
+<h2 id="5-辅助数据">5. 辅助数据</h2>
+<p>        <strong>辅助数据</strong> ( $ancillary$ $data$ ) ，另一个名称是<strong>控制信息</strong> ( $control$ $information$ )，可通过调用 $sendmsg$ 和 $recvmsg$ 这两个函数，使用 $msghdr$ 结构中的 $msg_-control$ 和 $msg_-controllen$ 这两个成员发送和接收。</p>
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center;">协议</th>
+      <th style="text-align: center;">$cmsg_-level$</th>
+      <th style="text-align: center;">$cmsg_-type$</th>
+      <th style="text-align: center;">说明</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td rowspan="2" style="text-align: center;"><code>IPv4</code></td>
+      <td rowspan="2" style="text-align: center;">$IPPROTO_-IP$</td>
+      <td style="text-align: left;">$IP_-RECVDSTADDR$</td>
+      <td style="text-align: left;">随<code>UDP</code>数据报接收目的地址</td>
+    </tr>
+    <tr>
+      <td style="text-align: left;">$IP_-RECVIF$</td>
+      <td style="text-align: left;">随<code>UDP</code>数据报接收接口索引</td>
+    </tr>
+    <tr>
+      <td rowspan="7" style="text-align: center;"><code>IPv6</code></td>
+      <td rowspan="7" style="text-align: center;">$IPPROTO_-IPV6$</td>
+      <td style="text-align: left;">$IPV6_-DSTOPTS$</td>
+      <td style="text-align: left;">指定/接收目的地选项</td>
+    </tr>
+    <tr>
+      <td style="text-align: left;">$IPV6_-HOPLIMIT$</td>
+      <td style="text-align: left;">指定/接收跳限</td>
+    </tr>
+    <tr>
+      <td style="text-align: left;">$IPV6_-HOPOPTS$</td>
+      <td style="text-align: left;">指定/接收步跳选项</td>
+    </tr>
+    <tr>
+      <td style="text-align: left;">$IPV6_-NEXTHOP$</td>
+      <td style="text-align: left;">指定下一跳地址</td>
+    </tr>
+    <tr>
+      <td style="text-align: left;">$IPV6_-PKTINFO$</td>
+      <td style="text-align: left;">指定/接收分组信息</td>
+    </tr>
+    <tr>
+      <td style="text-align: left;">$IPV6_-RTHDR$</td>
+      <td style="text-align: left;">指定/接收路由首部</td>
+    </tr>
+    <tr>
+      <td style="text-align: left;">$IPV6_-TCLASS$</td>
+      <td style="text-align: left;">指定/接收分组流通类别</td>
+    </tr>
+    <tr>
+      <td rowspan="2" style="text-align: center;"><code>Unix</code>域</td>
+      <td rowspan="2" style="text-align: center;">$SOL_-SOCKET$</td>
+      <td style="text-align: left;">$SCM_-RIGHTS$</td>
+      <td style="text-align: left;">发送/接收描述符</td>
+    </tr>
+    <tr>
+      <td style="text-align: left;">$SCM_-CREDS$</td>
+      <td style="text-align: left;">发送/接收用户凭证</td>
+    </tr>
+  </tbody>
+</table>
+<p>        辅助数据由一个或多个辅助数据对象组成，每个对象以一个定义在头文件 &lt;$sys/socket.h$&gt; 中的 $cmsghdr$ 结构开头。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="k">struct</span> <span class="n">cmsghdr</span> <span class="p">{</span>
+  <span class="n">socklen_t</span> <span class="n">cmsg_len</span><span class="p">;</span>  <span class="c1">// 数据长度，包含当前结构
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">cmsg_level</span><span class="p">;</span>  <span class="c1">// 原始协议
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">cmsg_type</span><span class="p">;</span>  <span class="c1">// 协议确切类型
+</span><span class="c1"></span>  <span class="c1">// cmsg数据在当前结构之后，由cmsg_len可以计算出长度
+</span><span class="c1"></span><span class="p">};</span>
+</code></pre></div><p>        在每个$cmsg_-type$ 成员和实际数据之间可以有填充字节，从数据结尾处到下一个辅助数据对象之前也可以有填充字节。为了对应用程序屏蔽填充字节，定义了以下几个宏：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;sys/param.h&gt;  // for ALIGN macro</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 返回指向第一个cmsghdr结构的指针，若不存在则返回NULL
+</span><span class="c1"></span><span class="k">struct</span> <span class="n">cmsghdr</span> <span class="o">*</span><span class="nf">CMSG_FIRSTHDR</span><span class="p">(</span><span class="k">struct</span> <span class="n">msghdr</span> <span class="o">*</span><span class="n">mhdrptr</span><span class="p">);</span>
+
+<span class="c1">// 返回指向下一个cmsghdr结构的指针，若不存在则返回NULL
+</span><span class="c1"></span><span class="k">struct</span> <span class="n">cmsghdr</span> <span class="o">*</span><span class="nf">CMSG_NXTHDR</span><span class="p">(</span><span class="k">struct</span> <span class="n">msghdr</span> <span class="o">*</span><span class="n">mhdrptr</span><span class="p">,</span> <span class="k">struct</span> <span class="n">cmsghdr</span> <span class="o">*</span><span class="n">cmsgptr</span><span class="p">);</span>
+
+<span class="c1">// 指向与cmsghdr结构关联的数据的第一个字节的指针
+</span><span class="c1"></span><span class="kt">unsigned</span> <span class="kt">char</span> <span class="o">*</span><span class="nf">CMSG_DATA</span><span class="p">(</span><span class="k">struct</span> <span class="n">cmsghdr</span> <span class="o">*</span><span class="n">cmsgptr</span><span class="p">);</span>
+
+<span class="c1">// 给定数据量下存放到cmsg_len中的值
+</span><span class="c1"></span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="nf">CMSG_LEN</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">length</span><span class="p">);</span>
+
+<span class="c1">// 给定数据量下下一个辅助数据对象总大小
+</span><span class="c1"></span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="nf">CMSG_SPACE</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">length</span><span class="p">);</span>
+</code></pre></div><p>        $CMSG_-LEN$ 和 $CMSG_-SPACE$ 的区别在于，前者不计辅助数据对象中数据部分之后可能的填充字节，返回的是 $cmsg_-len$ 的值，后者则会计算填充字节，返回的是为辅助数据对象动态分配的空间大小。</p>
+<h2 id="6-排队的数据量">6. 排队的数据量</h2>
+<ol>
+<li>如果获知已排队数据量的目的在于避免读操作阻塞在内核中，那么可以使用非阻塞式<code>I/O</code>；</li>
+<li>如果既想查看数据，又想数据仍然留存在接收队列中，那么可以使用 $MSG_-PEEK$ 标志。但是在没有数据可读的情况下，可能会阻塞，可以结合使用非阻塞式套接字避免阻塞，或者组合使用 $MSG_-DONTWAIT$ 和 $MSG_-PEEK$ ；</li>
+<li>一些实现支持 $ioctl$ 的 $FIONREAD$ 命令，该命令的第三个 $ioctl$ 参数是指向某个整数的一个指针，内核通过该整数返回的值就是套接字接收队列的当前字节数。</li>
+</ol>
+<h2 id="7-标准io">7. 标准<code>I/O</code></h2>
+<p>        到目前为止的所有例子中，我们一直使用<code>Unix I/O</code>，这些函数围绕描述符工作，通常作为<code>Unix</code>内核中的系统调用实现。执行<code>I/O</code>的另一个方法是使用标准<code>I/O</code>，由<code>ANSI C</code>标准规范，意在便于移植到支持<code>ANSI C</code>的非<code>Unix</code>系统上。标准<code>I/O</code>函数库处理我们直接使用<code>Unix I/O</code>函数时必须考虑的一些细节，譬如自动缓冲输入流和输出流。不幸的是，它对于流的缓冲处理可能导致我们同样必须考虑的一组新问题。标准<code>I/O</code>函数库可用于套接字，不过需要考虑以下几点：</p>
+<ul>
+<li>调用 $fdopen$ ，可以从任何一个描述符创建出一个标准<code>I/O</code>流。类似地，通过调用 $fileno$ ，可以获取一个给定标准<code>I/O</code>流对应的描述符；</li>
+<li><code>TCP</code>和<code>UDP</code>套接字是全双工的，标准<code>I/O</code>流也可以是全双工的，只要以 $r+$ 类型打开流即可。然而在这样的流上，我们必须在调用一个输出函数之后插入一个 $fflush$ 、$fseek$ 、$fsetpos$ 或 $rewind$ 调用才能接着调用一个输入函数。类似的，调用一个输入函数后也必须调用这些系统调用，除非遇到<code>EOF</code>。$fseek$ 、$fsetpos$ 和 $rewind$ 这 $3$ 个函数的问题是它们都调用 $lseek$ ，而 $lseek$ 调用在套接字上只会失败；</li>
+<li>解决上述读写问题的简单办法是为一个给定套接字打开两个标准<code>I/O</code>流，一个用于写，一个用于读。</li>
+</ul>
+<p>        标准<code>I/O</code>函数库执行以下三类缓冲：</p>
+<ul>
+<li><strong>完全缓冲</strong> ( $fully$ $buffering$ )，意味着只在下列情况发生时才进行<code>I/O</code>：缓冲区满、进程显式调用 $fflush$ 或进程调用 $exit$ 终止。标准<code>I/O</code>缓冲区的大小通常为 $8192$ 字节；</li>
+<li><strong>行缓冲</strong> ( $line$ $buffering$ )，意味着只在下列情况发生时才进行<code>I/O</code>：遇到换行符、进程调用 $fflush$ 或进程调用 $exit$ 终止；</li>
+<li><strong>不缓冲</strong> ( $unbuffering$ )，意味着每次调用标准<code>I/O</code>输出函数都发生<code>I/O</code>。</li>
+</ul>
+<p>        标准<code>I/O</code>函数库的大多数<code>Unix</code>实现使用如下原则：</p>
+<ul>
+<li>标准错误输出不缓冲；</li>
+<li>标准输入和标准输出完全缓冲，除非它们指代终端设备 ( 这种情况下行缓冲 )；</li>
+<li>所有其他<code>I/O</code>流都是完全缓冲，除非它们指代终端设备 ( 这种情况下行缓冲 )。</li>
+</ul>
+<p>        有两种方法可以避免完全缓冲：第一种是通过 $setvbuf$ 迫使输出流变为行缓冲，第二种是在每次调用 $fputs$ 之后通过调用 $fflush$ 强制输出。然而实际上，这两种方法都容易出错，所以在大多数情况下，最好的办法是避免在套接字上使用标准<code>I/O</code>函数库。</p>
+<h2 id="8-ttcp事务目的的tcp">8. <code>T/TCP</code>：事务目的的<code>TCP</code></h2>
+<p>        <code>T/TCP</code>是对<code>TCP</code>进行过修改的一个版本，能够避免近来彼此通信过的主机之间的三次握手。<code>T/TCP</code>能够把<code>SYN</code>、<code>FIN</code>和数据组合到单个分节中，前提是数据的大小小于 $MSS$ 。最小<code>T/TCP</code>事务的时间线由三个分节组成，第一个分节是由客户的单个 $sendto$ 调用产生<code>SYN</code>、<code>FIN</code>和数据，该分节组合了 $connect$ 、$write$ 和 $shutdown$ 共三个调用的功能。服务器执行通常的套接字函数调用步骤：$socket$ 、$bind$ 、$listen$ 和 $accept$ ，其中后者在客户的分节到达时返回。服务器用 $send$ 返回应答并关闭套接字，从而使得服务器在同一个分节中向客户发出<code>SYN</code>、<code>FIN</code>和<code>ACK</code>。通过<code>T/TCP</code>技术，客户从初始化到发送一个请求的再到读取相应应答的所花费的时间少了一个 $RTT$ 。<br>
+        <code>T/TCP</code>的优势在于<code>TCP</code>的所有可靠性 ( 序列号、超时、重传等 ) 得以保留，而不像<code>UDP</code>那样把可靠性推给应用程序。为了处理<code>T/TCP</code>，套接字<code>API</code>需要做些变动：</p>
+<ul>
+<li>客户端调用 $sendto$ ，以便把数据的发送结合到连接的建立中，服务器的协议地址改为传递给 $sendto$ 而不是 $connect$ ；</li>
+<li>新增一个输出标志 $MSG_-EOF$ ，用于指示本套接字上不再有数据待发送。该标志允许我们把 $shutdown$ 调用结合到输出操作之中；</li>
+<li>新定义一个级别为<code>IPPROTO_-TCP</code>的套接字选项 $TCP_-NOPUSH$ ，防止<code>TCP</code>只为腾空套接字发送缓冲区而发送分节。当某个客户准备以单个 $sendto$ 发送一个请求时，如果该请求大小超过 $MSS$ ，它就为相应的套接字设置该选项，以减少所发送的分节数目；</li>
+<li>想跟一个服务器建立连接并且使用<code>T/TCP</code>发送一个请求的客户应该调用 $socket$ 、$setsockopt$ ( 开启 $TCP_-NOPUSH$ 选项 ) 和 $sendto$ ( 若只有一个请求待发送则指定 $MSG_-EOF$ 标志 )。如果 $setsockopt$ 返回 $ENOPROTOOPT$ 错误或者 $sendto$ 返回 $ENOTCONN$ 错误，那么该主机不支持<code>T/TCP</code>；</li>
+<li>服务器如果想要随<code>ACK</code>一起发送<code>FIN</code>，那么就应该调用 $send$ 发送，并指定 $MSG_-EOF$ 标志；</li>
+<li><code>T/TCP</code>的编译时测试可以使用伪代码<code>#ifdef MSG_-EOF</code>。</li>
+</ul>
+
+<script src=https://z217blog.cn/js/toc.js></script>
+
+<a href="javascript:void(0);" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+<div id="sidetoc">
+    <header>
+        <h4>Unix网络编程（7）：高级I/O函数</h4>
+    </header>
+    <nav id="TableOfContents">
+        <ul></ul>
+    </nav>
+</div>
+<script>
+    tocFlag = true;
+</script>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B6/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+<script type="text/javascript">
+    if (tocFlag) tocInit();
+</script>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2022, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        let all = MathJax.Hub.getAllJax(),
+            i;
+        
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
+</body>
+
+</html>
