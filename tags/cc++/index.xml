@@ -7,7 +7,17 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2022, z217 and the hugo authors, all rights reserved.</copyright>
-    <lastBuildDate>Sat, 12 Feb 2022 14:58:42 +0800</lastBuildDate><atom:link href="https://z217blog.cn/tags/cc++/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sat, 12 Feb 2022 17:12:54 +0800</lastBuildDate><atom:link href="https://z217blog.cn/tags/cc++/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Unix网络编程（9）：非阻塞式I/O</title>
+      <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B9/</link>
+      <pubDate>Sat, 12 Feb 2022 17:12:54 +0800</pubDate>
+      
+      <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B9/</guid>
+      <description>套接字的默认状态是阻塞的，这就意味着当发出一个不能立即完成的套接字调用时，其进程将被置于休眠状态，直到相应操作完成。可能阻塞套接字的调用分为以下四类：
+ 输入：$read$ 、$readv$ 、$recv$ 、$recvfrom$ 和 $recvmsg$ 共 $5$ 个函数。如果对阻塞式套接字调用，而且套接字接收缓冲区中没有数据可读，进程将休眠。而对于非阻塞式套接字，如果输入操作不能被满足，调用将返回 $EWOULDBLOCK$ 错误； 输出：$write$ 、$writev$ 、$send$ 、$sendto$ 和 $sendmsg$ 共 $5$ 个函数。如果对阻塞式套接字调用，而且套接字发送缓冲区中没有空间，进程将休眠。对于非阻塞的TCP套接字，如果发送缓冲区中没有空间，输出函数调用将立即返回 $EWOULDBLOCK$ 错误； 接受外来连接，即 $accept$ 函数。如果对一个非阻塞套接字调用 $accept$ 函数，而且无新连接到达，将会立即返回 $EWOULDBLOCK$ 错误； 发起外出连接，即用于TCP的 $connect$ 函数。如果对一个非阻塞套接字调用 $connect$ ，而且连接不能立即建立，那么会立即返回 $EINPROGRESS$ 错误。  1. 非阻塞读和写 #include &amp;#34;unp.h&amp;#34;#include &amp;lt;time.h&amp;gt; char *gf_time(void); void str_cli(FILE *fp, int sockfd) { int maxfdp1, val, stdineof; ssize_t n , nwritten; fd_set rset, wset; char to[MAXLINE], fr[MAXLINE]; char *toiptr, *tooptr, *friptr, *froptr; val = Fcntl(sockfd, F_GETFL, 0); Fcntl(sockfd, F_SETFL, val | O_NONBLOCK); val = Fcntl(STDIN_FILENO, F_GETFL, 0); Fcntl(STDIN_FILENO, F_SETFL, val | O_NONBLOCK); val = Fcntl(STDOUT_FILENO, F_GETFL, 0); Fcntl(STDOUT_FILENO, F_SETFL, val | O_NONBLOCK); toiptr = tooptr = to; friptr = froptr = fr; stdineof = 0; maxfdp1 = max(max(STDIN_FILENO, STDOUT_FILENO), sockfd) + 1; for (;;) { FD_ZERO(&amp;amp;rset); FD_ZERO(&amp;amp;wset); if (stdineof == 0 &amp;amp;&amp;amp; toiptr &amp;lt; &amp;amp;to[MAXLINE]) FD_SET(STDIN_FILENO, &amp;amp;rset); // read from stdin  if (friptr &amp;lt; &amp;amp;fr[MAXLINE]) FD_SET(sockfd, &amp;amp;rset); // read from socket  if (tooptr !</description>
+    </item>
+    
     <item>
       <title>Unix网络编程（8）：Unix域协议</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B8/</link>
