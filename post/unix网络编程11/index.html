@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  
+  <title>z217&#39;s blog</title>
+</head><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+    integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="/friend" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">Unix网络编程（11）：路由套接字</h1>
+
+
+<p><strong>注：以下内容可能不适用于Linux系统</strong></p>
+<p>        内核中的<code>Unix</code>路由表传统上一直使用 $ioctl$ 访问，但是 $ioctl$ 不能输出整个路由表，而诸如 $netstat$ 等程序通过读取内核的内存获取路由表内容。诸如 $gated$ 等路由守护进程需要监视由内核收取的<code>ICMP</code>重定向消息，它们通常创建一个原始<code>ICMP</code>套接字，再在这个套接字上监听所有收到的<code>ICMP</code>消息。在路由域中支持的唯一一种套接字是原始套接字。路由套接字上支持 $3$ 种类型的操作：</p>
+<ol>
+<li>进程可以通过写出到路由套接字而往内核发送消息。路径的增加和删除采用这种操作实现；</li>
+<li>进程可以通过从路由套接字读入而从内核接收消息。内核采用这种操作通知进程已收到并处理一个<code>ICMP</code>重定向消息，或者请求外部路由进程解析一个路径；</li>
+<li>进程可以使用 $sysctl$ 函数输出路由表或者列出所有已配置的接口。</li>
+</ol>
+<p>        前两种操作可以复合使用，需要超级用户权限，最后一种任何进程都可以执行。</p>
+<h2 id="1-数据链路套接字地址结构">1. 数据链路套接字地址结构</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;net/if_dl.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="k">struct</span> <span class="n">sockaddr_dl</span> <span class="p">{</span>
+  <span class="kt">uint8_t</span> <span class="n">sdl_len</span><span class="p">;</span>
+  <span class="n">sa_family_t</span> <span class="n">sdl_family</span><span class="p">;</span>  <span class="c1">// AF_LINK
+</span><span class="c1"></span>  <span class="kt">uint16_t</span> <span class="n">sdl_index</span><span class="p">;</span>  <span class="c1">// 大于0的系统分配的索引
+</span><span class="c1"></span>  <span class="kt">uint8_t</span> <span class="n">sdl_type</span><span class="p">;</span>  <span class="c1">// IFT_ETHER等在&lt;net/if_types.h&gt;中定义的常值
+</span><span class="c1"></span>  <span class="kt">uint8_t</span> <span class="n">sdl_nlen</span><span class="p">;</span>  <span class="c1">// 名字长度，从sdl_data[0]开始
+</span><span class="c1"></span>  <span class="kt">uint8_t</span> <span class="n">sdl_alen</span><span class="p">;</span>  <span class="c1">// 链路层地址长度
+</span><span class="c1"></span>  <span class="kt">uint8_t</span> <span class="n">sdl_slen</span><span class="p">;</span>  <span class="c1">// 链路层选择器长度
+</span><span class="c1"></span>  <span class="kt">char</span> <span class="n">sdl_data</span><span class="p">[</span><span class="mi">12</span><span class="p">];</span>  <span class="c1">// 最小工作区域，可以扩大，包含i/f名称和链路层地址
+</span><span class="c1"></span><span class="p">};</span>
+
+<span class="cp">#define LLADDR(s)  ((caddr_t) ((s)-&gt;sdl_data + (s)-&gt;sdl_nlen))
+</span></code></pre></div><p>        每个接口都有一个唯一的索引。$sdl_-data$ 成员含有名字和链路层地址，名字从 $sdl_-data[0]$ 开始，并且不以空字符结尾。链路层地址从 $sdl_-data[sdl_-nlen]$ 开始，$LLADDR$ 宏返回指向链路层地址的指针。</p>
+<h2 id="2-套接字读写">2. 套接字读写</h2>
+<p>        创建一个路由套接字以后，进程可以通过写到该套接字向内核发送命令，通过从套接字读来从内核接收信息。路由套接字共有 $12$ 个路由消息，定义在 &lt;$net/route.h$&gt; 头文件中。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">消息类型</th>
+<th style="text-align:center">写到内核</th>
+<th style="text-align:center">从内核读</th>
+<th style="text-align:left">说明</th>
+<th style="text-align:left">结构类型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">$RTM_-ADD$</td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:left">增加路径</td>
+<td style="text-align:left">$rt_-msghdr$</td>
+</tr>
+<tr>
+<td style="text-align:left">$RTM_-CHANGE$</td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:left">改动网关、测度或标志</td>
+<td style="text-align:left">$rt_-msghdr$</td>
+</tr>
+<tr>
+<td style="text-align:left">$RTM_-DELADDR$</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:left">地址从接口中删除</td>
+<td style="text-align:left">$ifa_-msghdr$</td>
+</tr>
+<tr>
+<td style="text-align:left">$RTM_-DELETE$</td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:left">删除路径</td>
+<td style="text-align:left">$rt_-msghdr$</td>
+</tr>
+<tr>
+<td style="text-align:left">$RTM_-DELMADDR$</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:left">多播地址从接口中删除</td>
+<td style="text-align:left">$ifma_-msghdr$</td>
+</tr>
+<tr>
+<td style="text-align:left">$RTM_-GET$</td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:left">报告测度及其他路径信息</td>
+<td style="text-align:left">$rt_-msghdr$</td>
+</tr>
+<tr>
+<td style="text-align:left">$RTM_-IFINFO$</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:left">接口可用、不可用等</td>
+<td style="text-align:left">$if_-msghdr$</td>
+</tr>
+<tr>
+<td style="text-align:left">$RTM_-LOCK$</td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:left">锁住给定的测度</td>
+<td style="text-align:left">$rt_-msghdr$</td>
+</tr>
+<tr>
+<td style="text-align:left">$RTM_-LOSING$</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:left">内核怀疑路径即将失效</td>
+<td style="text-align:left">$rt_-msghdr$</td>
+</tr>
+<tr>
+<td style="text-align:left">$RTM_-MISS$</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:left">地址查找失败</td>
+<td style="text-align:left">$rt_-msghdr$</td>
+</tr>
+<tr>
+<td style="text-align:left">$RTM_-NEWADDR$</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:left">地址被添加至接口</td>
+<td style="text-align:left">$ifa_-msghdr$</td>
+</tr>
+<tr>
+<td style="text-align:left">$RTM_-NEWMADDR$</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:left">多播地址被添加至接口</td>
+<td style="text-align:left">$ifa_-msghdr$</td>
+</tr>
+<tr>
+<td style="text-align:left">$RTM_-REDIRECT$</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:left">内核被告知使用另外的路径</td>
+<td style="text-align:left">$rt_-msghdr$</td>
+</tr>
+<tr>
+<td style="text-align:left">$RTM_-RESOLVE$</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">$\checkmark$</td>
+<td style="text-align:left">请求把目的地址解析成链路层地址</td>
+<td style="text-align:left">$rt_-msghdr$</td>
+</tr>
+</tbody>
+</table>
+<p>        通过路由套接字交换的结构有 $5$ 个类型。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">struct</span> <span class="n">rt_msghdr</span> <span class="p">{</span>  <span class="c1">// defined in &lt;net/route.h&gt;
+</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">rtm_msglen</span><span class="p">;</span>  <span class="c1">// to skip over non-understood messages
+</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">rtm_version</span><span class="p">;</span>  <span class="c1">// future binary compatibility
+</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">rtm_type</span><span class="p">;</span>  <span class="c1">// message type
+</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">trm_index</span><span class="p">;</span>  <span class="c1">// index for associated ifp
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">rtm_flags</span><span class="p">;</span>  <span class="c1">// flags, incl . kern &amp;message, e.g., DONE
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">rtm_addrs</span><span class="p">;</span>  <span class="c1">// bitmask identifying sockaddrs in msg
+</span><span class="c1"></span>  <span class="n">pid_t</span> <span class="n">rtm_pid</span><span class="p">;</span>  <span class="c1">// identify sender
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">rtm_seq</span><span class="p">;</span>  <span class="c1">// for sender to identify action
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">rtm_errno</span><span class="p">;</span>  <span class="c1">// why failed
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">rtm_use</span><span class="p">;</span>  <span class="c1">// from rtentry
+</span><span class="c1"></span>  <span class="n">u_long</span> <span class="n">rtm_inits</span><span class="p">;</span>  <span class="c1">// which metrics we are initializing
+</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">rt_metricsrtm_rmx</span><span class="p">;</span>  <span class="c1">// metrics themselves
+</span><span class="c1"></span><span class="p">};</span>
+
+<span class="k">struct</span> <span class="n">if_msghdr</span> <span class="p">{</span>  <span class="c1">// defined in &lt;net/if.h&gt;
+</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifm_msglen</span><span class="p">;</span>  <span class="c1">// to skip over non-understood messages
+</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifm_version</span><span class="p">;</span>  <span class="c1">// future binary compatibility
+</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifm_type</span><span class="p">;</span>  <span class="c1">// message type
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifm_addrs</span><span class="p">;</span>  <span class="c1">// like rtm_addrs
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifm_flags</span><span class="p">;</span>  <span class="c1">// value of if_flags
+</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifm_index</span><span class="p">;</span>  <span class="c1">// index for associated ifp
+</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">if_data</span> <span class="n">ifm_data</span><span class="p">;</span>  <span class="c1">// statistics and other data about if
+</span><span class="c1"></span><span class="p">};</span>
+
+<span class="k">struct</span> <span class="n">ifa_msghdr</span> <span class="p">{</span>  <span class="c1">// defined in &lt;net/if.h&gt;
+</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifam_msglen</span><span class="p">;</span>  <span class="c1">// to skip over non-understood messages
+</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifam_version</span><span class="p">;</span>  <span class="c1">// future binary compatibility
+</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifam_type</span><span class="p">;</span>  <span class="c1">// message type
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifam_addrs</span><span class="p">;</span>  <span class="c1">// like rtm_addrs
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifam_flags</span><span class="p">;</span>  <span class="c1">// value of ifa_flags
+</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifam_index</span><span class="p">;</span>  <span class="c1">// index for associated ifp
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifam_metric</span><span class="p">;</span>  <span class="c1">// value of ifa_metric
+</span><span class="c1"></span><span class="p">};</span>
+
+<span class="k">struct</span> <span class="n">ifma_msghdr</span> <span class="p">{</span>  <span class="c1">// defined in &lt;net/if.h&gt;
+</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifmam_msglen</span><span class="p">;</span>  <span class="c1">// to skip over non-understood messages
+</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifmam_version</span><span class="p">;</span>  <span class="c1">// future binary compatibility
+</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifmam_type</span><span class="p">;</span>  <span class="c1">// message type
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifmam_addrs</span><span class="p">;</span>  <span class="c1">// like rtm_addrs
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifmam_flags</span><span class="p">;</span>  <span class="c1">// value of ifa_flags
+</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifmam_index</span><span class="p">;</span>  <span class="c1">// index for associated ifp
+</span><span class="c1"></span><span class="p">};</span>
+
+<span class="k">struct</span> <span class="n">if_announcemsghdr</span> <span class="p">{</span>  <span class="c1">// defined in &lt;net/if.h&gt;
+</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifan_msglen</span><span class="p">;</span>  <span class="c1">// to skip over non-understood messages
+</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifan_version</span><span class="p">;</span>  <span class="c1">// future binary compatibility
+</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifan_type</span><span class="p">;</span>  <span class="c1">// message type
+</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifan_index</span><span class="p">;</span>  <span class="c1">// index for associated ifp
+</span><span class="c1"></span>  <span class="kt">char</span> <span class="n">ifan_name</span><span class="p">[</span><span class="n">IFNAMSIZ</span><span class="p">];</span>  <span class="c1">// if name, e.g. &#34;en0&#34;
+</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifan_what</span><span class="p">;</span>  <span class="c1">// what type of announcement
+</span><span class="c1"></span><span class="p">};</span>
+</code></pre></div><p>        每个结构都有相同的前 $3$ 个成员：本消息的长度、版本和类型，类型是上表中第一列的常值之一，长度则允许应用程序跳过无法理解的消息类型。$rtm_-addr$ 、$ifm_-addrs$ 和 $ifam_-addrs$ 这 $3$ 个成员是<em><strong>数位掩码</strong></em> ( $bit$ $mask$ )，指明本消息后跟的套接字地址结构是 $8$ 个可能选择中的哪几个。</p>
+<table>
+  <thead>
+    <tr>
+      <th colspan="2" style="text-align: center;">数位掩码</th>
+      <th colspan="2" style="text-align: center;">数组下标</th>
+      <th rowspan="2" style="text-align: center;">套接字地址结构包含</th>
+    </tr>
+    <tr>
+      <th style="text-align: center;">常值</th>
+      <th style="text-align: center;">数值</th>
+      <th style="text-align: center;">常值</th>
+      <th style="text-align: center;">数值</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: left;">$RTA_-DST$</td>
+      <td style="text-align: center;">$0x01$</td>
+      <td style="text-align: left;">$RTAX_-DST$</td>
+      <td style="text-align: center;">$0$</td>
+      <td style="text-align: left;">目的地址</td>
+    </tr>
+    <tr>
+      <td style="text-align: left;">$RTA_-GATEWAY$</td>
+      <td style="text-align: center;">$0x02$</td>
+      <td style="text-align: left;">$RTAX_-GATEWAY$</td>
+      <td style="text-align: center;">$1$</td>
+      <td style="text-align: left;">网关地址</td>
+    </tr>
+    <tr>
+      <td style="text-align: left;">$RTA_-NETMASK$</td>
+      <td style="text-align: center;">$0x04$</td>
+      <td style="text-align: left;">$RTAX_-NETMASK$</td>
+      <td style="text-align: center;">$2$</td>
+      <td style="text-align: left;">网络掩码</td>
+    </tr>
+    <tr>
+      <td style="text-align: left;">$RTA_-GENMASK$</td>
+      <td style="text-align: center;">$0x08$</td>
+      <td style="text-align: left;">$RTAX_-GENMASK$</td>
+      <td style="text-align: center;">$3$</td>
+      <td style="text-align: left;">克隆掩码</td>
+    </tr>
+    <tr>
+      <td style="text-align: left;">$RTA_-IFP$</td>
+      <td style="text-align: center;">$0x10$</td>
+      <td style="text-align: left;">$RTAX_-IFP$</td>
+      <td style="text-align: center;">$4$</td>
+      <td style="text-align: left;">接口名字</td>
+    </tr>
+    <tr>
+      <td style="text-align: left;">$RTA_-IFA$</td>
+      <td style="text-align: center;">$0x20$</td>
+      <td style="text-align: left;">$RTAX_-IFA$</td>
+      <td style="text-align: center;">$5$</td>
+      <td style="text-align: left;">接口地址</td>
+    </tr>
+    <tr>
+      <td style="text-align: left;">$RTA_-AUTHOR$</td>
+      <td style="text-align: center;">$0x40$</td>
+      <td style="text-align: left;">$RTAX_-AUTHOR$</td>
+      <td style="text-align: center;">$6$</td>
+      <td style="text-align: left;">重定向原创者</td>
+    </tr>
+    <tr>
+      <td style="text-align: left;">$RTA_-BRD$</td>
+      <td style="text-align: center;">$0x80$</td>
+      <td style="text-align: left;">$RTAX_-BRD$</td>
+      <td style="text-align: center;">$7$</td>
+      <td style="text-align: left;">广播或点到点目的地址</td>
+    </tr>
+    <tr>
+      <td/>
+      <td/>
+      <td style="text-align: left;">$RTAX_-MAX$</td>
+      <td style="text-align: center;">$8$</td>
+      <td style="text-align: left;">最大元素数目</td>
+    </tr>
+  </tbody>
+</table>
+<p>        上述常值定义在 &lt;$net/route.h$&gt; 头文件中，当存在多个套接字地址结构时，它们总是按照表中所示的顺序排列。</p>
+<h2 id="3-sysctl">3. <code>sysctl</code></h2>
+<p>        使用 $sysctl$ 检查路由表和接口列表的进程不需要超级用户权限。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/param.h&gt;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;sys/sysctl.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回0，出错返回-1
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">sysctl</span><span class="p">(</span><span class="kt">int</span> <span class="o">*</span><span class="n">name</span><span class="p">,</span> <span class="n">u_int</span> <span class="n">namelen</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">oldp</span><span class="p">,</span> <span class="n">size_t</span> <span class="o">*</span><span class="n">oldlenp</span><span class="p">,</span>
+  <span class="kt">void</span> <span class="o">*</span><span class="n">newp</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">newlen</span><span class="p">);</span>
+</code></pre></div><p>        这个函数使用类似简单网络管理协议 ( $Simple$ $Network$ $Management$ $Protocol$ , $SNMP$ ) 中管理信息库 ( $management$ $information$ $base$ , $MIB$ ) 的名字。$name$ 参数是一个整数数组，$namelen$ 指定数组长度。数组的第一个元素指定本请求定向到内核的哪个子系统，第二个及之后元素依次细化指定该子系统的某个部分。为了获取某个值，$oldp$ 参数指向一个供内核存放该值的缓冲区。$oldlenp$ 是一个值-结果参数，函数被调用时，该值表示缓冲区中的数据量，返回时表示内核向该缓冲区存放的数据量。如果缓冲区不够大，就会返回 $ENOMEM$ 错误。特别地，$oldp$ 可以是一个空指针而 $oldlenp$ 是非空指针，这样内核可以确定返回的数据量，并通过 $oldlenp$ 返回。$newp$ 指向一个大小为 $newlen$ 的缓冲区，代表设置新值。如果不想设置新值，那么 $newp$ 应该为空指针，$newlen$ 为 $0$ 。<br>
+        通过 $sysctl$ ，我们可以获取各种系统信息，有文件系统、虚拟内存、内核限制等。我们感兴趣的是网络子系统，通过把 $name$ 数组的第一个元素设置为 $CTL_-NET$ 来指定。这些常值定义在 &lt;$sys/sysctl.h$&gt; 头文件中。第二个元素可以是：</p>
+<ul>
+<li>$AF_-INET$ ：获取或设置影响网际网协议的变量，下一级为使用 $IPPROTO_-xxx$ 指定的具体协议；</li>
+<li>$AF_-LINK$ ：获取或设置链路层信息，譬如<code>PPP</code>接口数量；</li>
+<li>$AF_-ROUTE$ ：返回路由表或接口列表的信息；</li>
+<li>$AF_-UNSPEC$ ：获取或设置一些套接字层变量，譬如套接字发送或接收缓冲区的最大大小。</li>
+</ul>
+<p>        当 $name$ 数组的第二个元素为 $AF_-ROUTE$ 时，第三个元素 ( 协议号 ) 总是为 $0$ ，第四个元素是一个地址族，第五和第六指定做什么。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">$name[\ ]$</th>
+<th style="text-align:center">返回<code>IPv4</code>路由表</th>
+<th style="text-align:center">返回<code>IPv4</code> <code>ARP</code>高速缓存</th>
+<th style="text-align:center">返回<code>IPv6</code>路由表</th>
+<th style="text-align:center">返回接口清单</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">$0$</td>
+<td style="text-align:center">$CTL_-NET$</td>
+<td style="text-align:center">$CTL_-NET$</td>
+<td style="text-align:center">$CTL_-NET$</td>
+<td style="text-align:center">$CTL_-NET$</td>
+</tr>
+<tr>
+<td style="text-align:center">$1$</td>
+<td style="text-align:center">$AF_-ROUTE$</td>
+<td style="text-align:center">$AF_-ROUTE$</td>
+<td style="text-align:center">$AF_-ROUTE$</td>
+<td style="text-align:center">$AF_-ROUTE$</td>
+</tr>
+<tr>
+<td style="text-align:center">$2$</td>
+<td style="text-align:center">$0$</td>
+<td style="text-align:center">$0$</td>
+<td style="text-align:center">$0$</td>
+<td style="text-align:center">$0$</td>
+</tr>
+<tr>
+<td style="text-align:center">$3$</td>
+<td style="text-align:center">$AF_-INET$</td>
+<td style="text-align:center">$AF_-INET$</td>
+<td style="text-align:center">$AF_-INET6$</td>
+<td style="text-align:center">$0$</td>
+</tr>
+<tr>
+<td style="text-align:center">$4$</td>
+<td style="text-align:center">$NET_-RT_-DUMP$</td>
+<td style="text-align:center">$NET_-RT_-FLAGS$</td>
+<td style="text-align:center">$NET_-RT_-DUMP$</td>
+<td style="text-align:center">$NET_-RT_-IFLIST$</td>
+</tr>
+<tr>
+<td style="text-align:center">$5$</td>
+<td style="text-align:center">$0$</td>
+<td style="text-align:center">$RTF_-LLINFO$</td>
+<td style="text-align:center">$0$</td>
+<td style="text-align:center">$0$</td>
+</tr>
+</tbody>
+</table>
+<p>        路由域支持 $3$ 种操作，由 $name[4]$ 指定，这些常值定义在 &lt;$sys/socket.h$&gt; 头文件中。这 $3$ 种操作返回的信息通过 $oldp$ 指针返回，$oldp$ 指向的缓冲区中含有可变数目的 $RTM_-xxx$ 消息。</p>
+<ol>
+<li>$NET_-RT_-DUMP$ 返回由 $name[3]$ 指定地址族的路由表，如果指定地址族为 $0$ ，则返回所有地址族的路由表。</li>
+</ol>
+<ul>
+<li>路由表作为可变数目的 $RTM_-GET$ 消息返回，每个消息后跟最多 $4$ 个套接字地址结构：路由表项的目的地址、网关、网络掩码和克隆掩码。相比于直接读写路由套接字的操作，$sysctl$ 操作所有改动仅仅体现在内核通过后者返回一个或多个 $RTM_-GET$ 信息；</li>
+</ul>
+<ol start="2">
+<li>$NET_-RT_-FLAGS$ 返回由 $name[3]$ 指定的地址族的路由表，但是仅限于那些所带标志与由 $name[5]$ 指定的标志相匹配的路由表项。路由表中所有<code>ARP</code>高速缓存均设置了 $RTF_-LLINFO$ 标志；</li>
+</ol>
+<ul>
+<li>这种操作返回的信息与上一种一致；</li>
+</ul>
+<ol start="3">
+<li>$NET_-RT_-IFLIST$ 返回所有已配置接口的信息。如果 $name[5]$ 不为 $0$ ，它就是某个接口的索引号，仅仅返回该接口的信息。已赋予每个接口的所有地址也同时返回，不过如果 $name[3]$ 不为 $0$ ，那么仅限于返回指定地址族的地址；</li>
+</ol>
+<ul>
+<li>每个接口的返回信息包括一个 $RTM_-IFINFO$ 消息和后跟零个或多个 $RTM_-NEWADDR$ 消息，其中每个 $RTM_-NEWADDR$ 消息对应已赋予该接口的一个地址。接在 $RTM_-IFINFO$ 消息首部之后的是一个数据链路套接字地址结构，接在每个 $RTM_-NEWADDR$ 消息首部之后的则是最多 $3$ 个套接字地址结构：接口地址、网络掩码和广播地址。</li>
+</ul>
+<h2 id="4-接口名字和索引函数">4. 接口名字和索引函数</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;net/if.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回接口索引，出错返回0
+</span><span class="c1"></span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="nf">if_nametoindex</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">ifname</span><span class="p">);</span>
+
+<span class="c1">// 成功返回接口名指针，出错返回NULL
+</span><span class="c1"></span><span class="kt">char</span> <span class="o">*</span><span class="nf">if_indextoname</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">ifindex</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">ifname</span><span class="p">);</span>
+
+<span class="c1">// 成功返回非空指针，出错返回NULL
+</span><span class="c1"></span><span class="k">struct</span> <span class="n">if_nameindex</span> <span class="o">*</span><span class="nf">if_nameindex</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
+
+<span class="kt">void</span> <span class="nf">if_freenameindex</span><span class="p">(</span><span class="k">struct</span> <span class="n">if_nameindex</span> <span class="o">*</span><span class="n">ptr</span><span class="p">);</span>
+
+<span class="k">struct</span> <span class="n">if_nameindex</span> <span class="p">{</span>
+  <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">if_index</span><span class="p">;</span>
+  <span class="kt">char</span> <span class="o">*</span><span class="n">if_name</span><span class="p">;</span>  <span class="c1">// null-terminated name
+</span><span class="c1"></span><span class="p">};</span>
+</code></pre></div><p>        上面 $4$ 个函数用于需要描述一个接口的场合，并且是为<code>IPv6</code> <code>API</code>引入的，不过也适用于<code>IPv4</code> <code>API</code>。这里存在一个基本概念，即每个接口都有一个唯一的名字和一个唯一的索引 ( 从 $1$ 开始 )。$if_-nametoindex$ 返回名字为 $ifname$ 的接口的索引。$if_-indextoname$ 返回索引为 $ifindex$ 的接口的名字。$ifname$ 参数指向一个大小为 $IFNAMSIZ$ 的缓冲区，调用者必须分配这个缓冲区以保存结果，调用成功时这个指针也是函数的返回值。$if_-nameindex$ 返回一个 $if_-namindex$ 结构数组，数组最后一个元素的 $if_-index$ 为 $0$ 且 $if_-name$ 为 $NULL$ 。该数组本身以及数组中各个元素指向的名字所用的内存空间由该函数动态获取，然后由 $if_-freenameindex$ 函数释放。</p>
+
+<script src=https://z217blog.cn/js/toc.js></script>
+
+<div>
+    <a href="javascript:void(0);" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+    <div id="sidetoc">
+        <header>
+            <h4>Unix网络编程（11）：路由套接字</h4>
+        </header>
+        <nav id="TableOfContents">
+            <ul></ul>
+        </nav>
+    </div>
+    <script>
+        isTocOpen = true;
+    </script>
+</div>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B10/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+<script type="text/javascript">
+    if (isTocOpen) tocInit();
+</script>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2022, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        let all = MathJax.Hub.getAllJax(),
+            i;
+        
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
+</body>
+
+</html>

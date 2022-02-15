@@ -7,7 +7,19 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2022, z217 and the hugo authors, all rights reserved.</copyright>
-    <lastBuildDate>Mon, 14 Feb 2022 15:10:53 +0800</lastBuildDate><atom:link href="https://z217blog.cn/tags/web/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Mon, 14 Feb 2022 19:31:39 +0800</lastBuildDate><atom:link href="https://z217blog.cn/tags/web/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Unix网络编程（11）：路由套接字</title>
+      <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B11/</link>
+      <pubDate>Mon, 14 Feb 2022 19:31:39 +0800</pubDate>
+      
+      <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B11/</guid>
+      <description>注：以下内容可能不适用于Linux系统
+ 内核中的Unix路由表传统上一直使用 $ioctl$ 访问，但是 $ioctl$ 不能输出整个路由表，而诸如 $netstat$ 等程序通过读取内核的内存获取路由表内容。诸如 $gated$ 等路由守护进程需要监视由内核收取的ICMP重定向消息，它们通常创建一个原始ICMP套接字，再在这个套接字上监听所有收到的ICMP消息。在路由域中支持的唯一一种套接字是原始套接字。路由套接字上支持 $3$ 种类型的操作：
+ 进程可以通过写出到路由套接字而往内核发送消息。路径的增加和删除采用这种操作实现； 进程可以通过从路由套接字读入而从内核接收消息。内核采用这种操作通知进程已收到并处理一个ICMP重定向消息，或者请求外部路由进程解析一个路径； 进程可以使用 $sysctl$ 函数输出路由表或者列出所有已配置的接口。   前两种操作可以复合使用，需要超级用户权限，最后一种任何进程都可以执行。
+1. 数据链路套接字地址结构 #include &amp;lt;net/if_dl.h&amp;gt; struct sockaddr_dl { uint8_t sdl_len; sa_family_t sdl_family; // AF_LINK  uint16_t sdl_index; // 大于0的系统分配的索引  uint8_t sdl_type; // IFT_ETHER等在&amp;lt;net/if_types.h&amp;gt;中定义的常值  uint8_t sdl_nlen; // 名字长度，从sdl_data[0]开始  uint8_t sdl_alen; // 链路层地址长度  uint8_t sdl_slen; // 链路层选择器长度  char sdl_data[12]; // 最小工作区域，可以扩大，包含i/f名称和链路层地址 }; #define LLADDR(s) ((caddr_t) ((s)-&amp;gt;sdl_data + (s)-&amp;gt;sdl_nlen))  每个接口都有一个唯一的索引。$sdl_-data$ 成员含有名字和链路层地址，名字从 $sdl_-data[0]$ 开始，并且不以空字符结尾。链路层地址从 $sdl_-data[sdl_-nlen]$ 开始，$LLADDR$ 宏返回指向链路层地址的指针。</description>
+    </item>
+    
     <item>
       <title>Unix网络编程（10）：ioctl</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B10/</link>
