@@ -7,7 +7,22 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2022, z217 and the hugo authors, all rights reserved.</copyright>
-    <lastBuildDate>Tue, 15 Feb 2022 17:50:04 +0800</lastBuildDate><atom:link href="https://z217blog.cn/tags/web/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Wed, 16 Feb 2022 16:55:21 +0800</lastBuildDate><atom:link href="https://z217blog.cn/tags/web/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Unix网络编程（13）：信号驱动式I/O</title>
+      <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B13/</link>
+      <pubDate>Wed, 16 Feb 2022 16:55:21 +0800</pubDate>
+      
+      <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B13/</guid>
+      <description>信号驱动式I/O是指进程预先告知内核，使得当某个描述符上发生某事时，内核使用信号通知相关进程。
+1. 套接字的信号驱动式I/O  针对一个套接字使用信号驱动式I/O ( $SIGIO$ ) 要求进程执行以下 $3$ 个步骤：
+ 创建 $SIGIO$ 信号的信号处理函数； 设置该套接字的属主； 开启该套接字的信号驱动式I/O，通常通过使用 $fcntl$ 的 $F_-SETFL$ 命令打开 $O_-ASYNC$ 标志。  1.1 对于UDP套接字的SIGIO信号  在UDP上使用信号驱动式I/O是简单的。$SIGIO$ 信号在发生以下事件时产生：
+ 数据报到达套接字； 套接字上发生异步错误。   因此当捕获对于某个UDP套接字的 $SIGIO$ 信号时，我们调用 $recvfrom$ 或者读入到达的数据报，或者获取发生的异步错误。
+1.2 对于TCP套接字的SIGIO信号  信号驱动式I/O对于TCP套接字近乎无用，因为该信号产生得过于频繁，并且信号出现并没有告诉我们发生了什么事。下列条件均导致TCP套接字产生 $SIGIO$ 信号：
+ 监听套接字上某个连接请求已经完成； 某个断连的请求已经发起； 某个断连的请求已经完成； 某个连接已经半关闭； 数据到达套接字； 数据已经从套接字发送走 ( 即输出缓冲区有空闲空间 )； 发生异步错误。   我们应该只考虑对监听套接字使用 $SIGIO$ ，因为监听套接字产生 $SIGIO$ 的唯一条件是某个新连接的完成。
+2. 使用SIGIO的UDP回射服务器程序  使用 $SIGIO$ 的UDP回射程序可以设计为这种形式：当一个数据报到达时，$SIGIO$ 处理函数读入数据报，同时记录到达时刻，然后将它置于进程内的另一个队列中，主服务器循环从队列中取出数据并处理。相比起不使用 $SIGIO$ 而是简单使用一个服务器循环处理的程序，这种形式可以精确的获知数据报到达时间戳。</description>
+    </item>
+    
     <item>
       <title>Unix网络编程（12）：带外数据</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B12/</link>

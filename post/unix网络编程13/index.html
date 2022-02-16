@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  
+  <title>z217&#39;s blog</title>
+</head><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+    integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="/friend" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">Unix网络编程（13）：信号驱动式I/O</h1>
+
+
+<p>        信号驱动式<code>I/O</code>是指进程预先告知内核，使得当某个描述符上发生某事时，内核使用信号通知相关进程。</p>
+<h2 id="1-套接字的信号驱动式io">1. 套接字的信号驱动式<code>I/O</code></h2>
+<p>        针对一个套接字使用信号驱动式<code>I/O</code> ( $SIGIO$ ) 要求进程执行以下 $3$ 个步骤：</p>
+<ol>
+<li>创建 $SIGIO$ 信号的信号处理函数；</li>
+<li>设置该套接字的属主；</li>
+<li>开启该套接字的信号驱动式<code>I/O</code>，通常通过使用 $fcntl$ 的 $F_-SETFL$ 命令打开 $O_-ASYNC$ 标志。</li>
+</ol>
+<h3 id="11-对于udp套接字的sigio信号">1.1 对于<code>UDP</code>套接字的<code>SIGIO</code>信号</h3>
+<p>        在<code>UDP</code>上使用信号驱动式<code>I/O</code>是简单的。$SIGIO$ 信号在发生以下事件时产生：</p>
+<ul>
+<li>数据报到达套接字；</li>
+<li>套接字上发生异步错误。</li>
+</ul>
+<p>        因此当捕获对于某个<code>UDP</code>套接字的 $SIGIO$ 信号时，我们调用 $recvfrom$ 或者读入到达的数据报，或者获取发生的异步错误。</p>
+<h3 id="12-对于tcp套接字的sigio信号">1.2 对于<code>TCP</code>套接字的<code>SIGIO</code>信号</h3>
+<p>        信号驱动式<code>I/O</code>对于<code>TCP</code>套接字近乎无用，因为该信号产生得过于频繁，并且信号出现并没有告诉我们发生了什么事。下列条件均导致<code>TCP</code>套接字产生 $SIGIO$ 信号：</p>
+<ul>
+<li>监听套接字上某个连接请求已经完成；</li>
+<li>某个断连的请求已经发起；</li>
+<li>某个断连的请求已经完成；</li>
+<li>某个连接已经半关闭；</li>
+<li>数据到达套接字；</li>
+<li>数据已经从套接字发送走 ( 即输出缓冲区有空闲空间 )；</li>
+<li>发生异步错误。</li>
+</ul>
+<p>        我们应该只考虑对监听套接字使用 $SIGIO$ ，因为监听套接字产生 $SIGIO$ 的唯一条件是某个新连接的完成。</p>
+<h2 id="2-使用sigio的udp回射服务器程序">2. 使用<code>SIGIO</code>的<code>UDP</code>回射服务器程序</h2>
+<p>        使用 $SIGIO$ 的<code>UDP</code>回射程序可以设计为这种形式：当一个数据报到达时，$SIGIO$ 处理函数读入数据报，同时记录到达时刻，然后将它置于进程内的另一个队列中，主服务器循环从队列中取出数据并处理。相比起不使用 $SIGIO$ 而是简单使用一个服务器循环处理的程序，这种形式可以精确的获知数据报到达时间戳。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="k">static</span> <span class="kt">int</span> <span class="n">sockfd</span><span class="p">;</span>
+
+<span class="cp">#define QSIZE 8 </span><span class="c1">// size of input queue
+</span><span class="c1"></span><span class="cp">#define MAXDG 4096
+</span><span class="cp"></span>
+<span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
+  <span class="kt">void</span> <span class="o">*</span><span class="n">dg_data</span><span class="p">;</span>  <span class="c1">// ptr to actual datagram
+</span><span class="c1"></span>  <span class="n">size_t</span> <span class="n">dg_len</span><span class="p">;</span>  <span class="c1">// length of datagram
+</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">dg_sa</span><span class="p">;</span>  <span class="c1">// ptr to sockaddr{} w/client&#39;s address
+</span><span class="c1"></span>  <span class="n">socklen_t</span> <span class="n">dg_salen</span><span class="p">;</span>  <span class="c1">// length of sockaddr
+</span><span class="c1"></span><span class="p">}</span> <span class="n">DG</span><span class="p">;</span>
+
+<span class="k">static</span> <span class="n">DG</span> <span class="n">dg</span><span class="p">[</span><span class="n">QSIZE</span><span class="p">];</span>  <span class="c1">// queue of datagrams to process
+</span><span class="c1"></span><span class="k">static</span> <span class="kt">long</span> <span class="n">cntread</span><span class="p">[</span><span class="n">QSIZE</span> <span class="o">+</span> <span class="mi">1</span><span class="p">];</span>  <span class="c1">// diagnostic counter
+</span><span class="c1"></span>
+<span class="k">static</span> <span class="kt">int</span> <span class="n">iget</span><span class="p">;</span>  <span class="c1">// next one for main loop to process
+</span><span class="c1"></span><span class="k">static</span> <span class="kt">int</span> <span class="n">iput</span><span class="p">;</span>  <span class="c1">// next one for signal handler to read into
+</span><span class="c1"></span><span class="k">static</span> <span class="kt">int</span> <span class="n">nqueue</span><span class="p">;</span>  <span class="c1">// # on queue for main loop to process
+</span><span class="c1"></span><span class="k">static</span> <span class="n">socklen_t</span> <span class="n">clilen</span><span class="p">;</span>  <span class="c1">// max length of sockaddr{}
+</span><span class="c1"></span>
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_io</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_hup</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+
+<span class="kt">void</span> <span class="nf">dg_echo</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd_arg</span><span class="p">,</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">pcliaddr</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">clilen_arg</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+  <span class="k">const</span> <span class="kt">int</span> <span class="n">on</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="n">sigset_t</span> <span class="n">zeromask</span><span class="p">,</span> <span class="n">newmask</span><span class="p">,</span> <span class="n">oldmask</span><span class="p">;</span>
+
+  <span class="n">sockfd</span> <span class="o">=</span> <span class="n">sockfd_arg</span><span class="p">;</span>
+  <span class="n">clilen</span> <span class="o">=</span> <span class="n">clilen_arg</span><span class="p">;</span>
+
+  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">QSIZE</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// init queue of buffers
+</span><span class="c1"></span>    <span class="n">dg</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">dg_data</span> <span class="o">=</span> <span class="n">Malloc</span><span class="p">(</span><span class="n">MAXDG</span><span class="p">);</span>
+    <span class="n">dg</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">dg_sa</span> <span class="o">=</span> <span class="n">Malloc</span><span class="p">(</span><span class="n">clilen</span><span class="p">);</span>
+    <span class="n">dg</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">dg_salen</span> <span class="o">=</span> <span class="n">clilen</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="n">iget</span> <span class="o">=</span> <span class="n">iput</span> <span class="o">=</span> <span class="n">nqueue</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGHUP</span><span class="p">,</span> <span class="n">sig_hup</span><span class="p">);</span>
+  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGIO</span><span class="p">,</span> <span class="n">sig_io</span><span class="p">);</span>
+  <span class="n">Fcntl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">F_SETOWN</span><span class="p">,</span> <span class="n">getpid</span><span class="p">());</span>
+  <span class="n">Ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">FIOASYNC</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">on</span><span class="p">);</span>
+  <span class="n">Ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">FIONBIO</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">on</span><span class="p">);</span>
+
+  <span class="n">Sigemptyset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">zeromask</span><span class="p">);</span>  <span class="c1">// init three signal sets
+</span><span class="c1"></span>  <span class="n">Sigemptyset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">oldmask</span><span class="p">);</span>
+  <span class="n">Sigemptyset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">newmask</span><span class="p">);</span>
+  <span class="n">Sigaddset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">newmask</span><span class="p">,</span> <span class="n">SIGIO</span><span class="p">);</span>  <span class="c1">// signal we want to block
+</span><span class="c1"></span>
+  <span class="n">Sigprocmask</span><span class="p">(</span><span class="n">SIG_BLOCK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">newmask</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">oldmask</span><span class="p">);</span>
+  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+    <span class="k">while</span> <span class="p">(</span><span class="n">nqueue</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">sigsuspend</span><span class="p">(</span><span class="o">&amp;</span><span class="n">zeromask</span><span class="p">);</span>  <span class="c1">// wait for datagram to process
+</span><span class="c1"></span>    <span class="c1">// unblock SIGIO
+</span><span class="c1"></span>    <span class="n">Sigprocmask</span><span class="p">(</span><span class="n">SIG_SETMASK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">oldmask</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+    <span class="n">Sendto</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">dg</span><span class="p">[</span><span class="n">iget</span><span class="p">].</span><span class="n">dg_data</span><span class="p">,</span> <span class="n">dg</span><span class="p">[</span><span class="n">iget</span><span class="p">].</span><span class="n">dg_len</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+      <span class="n">dg</span><span class="p">[</span><span class="n">iget</span><span class="p">].</span><span class="n">dg_sa</span><span class="p">,</span> <span class="n">dg</span><span class="p">[</span><span class="n">iget</span><span class="p">].</span><span class="n">dg_salen</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">++</span><span class="n">iget</span> <span class="o">&gt;=</span> <span class="n">QSIZE</span><span class="p">)</span>
+      <span class="n">iget</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="c1">// block SIGIO
+</span><span class="c1"></span>    <span class="n">Sigprocmask</span><span class="p">(</span><span class="n">SIG_BLOCK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">newmask</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">oldmask</span><span class="p">);</span>
+    <span class="n">nqueue</span><span class="o">--</span><span class="p">;</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><ul>
+<li>$SIGIO$ 信号处理函数把数据报放入一个 $DG$ 数组，我们把它作为环形缓冲区处理；</li>
+<li>$iget$ 指向下一个待处理的数组元素下标，$iput$ 指向下一个可存放数据的数组下标，$nqueue$ 是数组中待处理的数据报总数；</li>
+<li>初始化三个信号集：$zeromask$ ( 从不改变 )、$oldmask$ ( 记录阻塞 $SIGIO$ 时原来的掩码 ) 和 $newmask$ ；</li>
+<li>首次调用 $sigprocmask$ 会把进程的当前信号掩码保存到 $oldmask$ 中，然后把 $newmask$ 逻辑或到当前信号掩码，这将阻塞 $SIGIO$ 并返回当前信号掩码；</li>
+<li>当 $nqueue$ 为 $0$ 时，代表没有数据到达，调用 $sigsuspend$ 。该函数会先内部保存当前信号掩码，再设置当前信号掩码为它的参数 ( $zeromask$ )，该函数总是返回 $EINTR$ 错误。因为 $zeromask$ 是一个空信号集，所以所有信号都可以被捕获，$sigsuspend$ 捕获一个信号，并且等待该信号的处理函数返回后才会返回。在返回之前，$sigsuspend$ 会恢复当前信号掩码，在本例中是 $newmask$ ；</li>
+<li>调用 $sigprocmask$ 解除 $SIGIO$ 的阻塞状态，然后调用 $sendto$ 发送回复，递增 $iget$ ，表示该数据报已经被处理；</li>
+<li>再次调用 $sigprocmask$ ，重新阻塞 $SIGIO$ ，最后递减 $nqueue$ 。</li>
+</ul>
+<p>        在上述函数中，我们在一个循环内不断地阻塞和解阻塞 $SIGIO$ ，是为了保证安全地修改和判断 $nqueue$ ，因为相应的信号处理函数也会修改 $nqueue$ 。另一种方法是让 $SIGIO$ 一直阻塞，但是这样做降低了信号处理函数的及时性，因为直到 $sigsuspend$ 被调用时信号处理函数才会被调用。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_io</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">ssize_t</span> <span class="n">len</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">nread</span><span class="p">;</span>
+  <span class="n">DG</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span>
+
+  <span class="k">for</span> <span class="p">(</span><span class="n">nread</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="p">;</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">nqueue</span> <span class="o">&gt;=</span> <span class="n">QSIZE</span><span class="p">)</span>
+      <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;receive overflow&#34;</span><span class="p">);</span>
+
+    <span class="n">ptr</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">dg</span><span class="p">[</span><span class="n">iput</span><span class="p">];</span>
+    <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">dg_salen</span> <span class="o">=</span> <span class="n">clilen</span><span class="p">;</span>
+    <span class="n">len</span> <span class="o">=</span> <span class="n">recvfrom</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">dg_data</span><span class="p">,</span> <span class="n">MAXDG</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+                  <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">dg_sa</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">dg_salen</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">len</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">==</span> <span class="n">EWOULDBLOCK</span><span class="p">)</span>
+        <span class="k">break</span><span class="p">;</span>  <span class="c1">// all done, no more queued to read
+</span><span class="c1"></span>      <span class="k">else</span>
+        <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;recvfrom error&#34;</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">dg_len</span> <span class="o">=</span> <span class="n">len</span><span class="p">;</span>
+
+    <span class="n">nread</span><span class="o">++</span><span class="p">;</span>
+    <span class="n">nqueue</span><span class="o">++</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">++</span><span class="n">iput</span> <span class="o">&gt;=</span> <span class="n">QSIZE</span><span class="p">)</span>
+      <span class="n">iput</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="n">cntread</span><span class="p">[</span><span class="n">nread</span><span class="p">]</span><span class="o">++</span><span class="p">;</span>  <span class="c1">// histgram of # datagrams read per signal
+</span><span class="c1"></span><span class="p">}</span>
+</code></pre></div><p>        <code>POSIX</code>信号通常不排队，开启信号驱动式<code>I/O</code>的描述符通常也被设置为非阻塞式。在这个前提下，我们的 $SIGIO$ 信号处理函数会一直读入，直到返回 $EWOULDBLOCK$ 错误。$nread$ 是一个计算每次信号递交读入数据报数目的诊断计数器，在信号处理函数返回前，我们会统计每次读入数据报数目，通过 $SIGHUP$ 信号处理函数输出。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_hup</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">QSIZE</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;cntread[%d] = %ld</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">cntread</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+<span class="p">}</span>
+</code></pre></div>
+<script src=https://z217blog.cn/js/toc.js></script>
+
+<div>
+    <a href="javascript:void(0);" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+    <div id="sidetoc">
+        <header>
+            <h4>Unix网络编程（13）：信号驱动式I/O</h4>
+        </header>
+        <nav id="TableOfContents">
+            <ul></ul>
+        </nav>
+    </div>
+    <script>
+        isTocOpen = true;
+    </script>
+</div>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B12/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+<script type="text/javascript">
+    if (isTocOpen) tocInit();
+</script>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2022, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        let all = MathJax.Hub.getAllJax(),
+            i;
+        
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
+</body>
+
+</html>
