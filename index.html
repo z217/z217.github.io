@@ -88,6 +88,24 @@
     
     
     <div class="list-item">
+        <a class="entry-title" href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B14/">Unix网络编程（14）：线程</a>
+        
+        
+        <p>《Unix网络编程》读书笔记（14）</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2022 Feb 17 14:28
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: Web, C&C++
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
         <a class="entry-title" href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B13/">Unix网络编程（13）：信号驱动式I/O</a>
         
         
@@ -159,24 +177,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B9/">Unix网络编程（9）：非阻塞式I/O</a>
-        
-        
-        <p>《Unix网络编程》读书笔记（9）</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2022 Feb 12 17:12
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: Web, C&C++
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -185,6 +185,444 @@
     <div class="section-title">μblog</div>
     <div class="posts">
         
+        
+        <div class="post">
+            
+            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B14/">Unix网络编程（14）：线程</a></h1>
+            <div class="post-content">
+                <p>        在传统的<code>Unix</code>模型中，当一个进程需要另一个实体来完成某事时，它就 $fork$ 一个子进程并让子进程去处理。尽管这种范式多年来一直应用得挺好，但是 $fork$ 调用却存在一些问题：</p>
+<ul>
+<li>$fork$ 是重量级调用。$fork$ 调用要把父进程的内存映射到子进程，并在子进程中复制所有描述符等。当今的实现使用<strong>写时复制</strong> ( $copy-on-write$ ) 技术，只有子进程需要时才会复制数据。然而，即使存在这样的优化，$fork$ 依然是重量级调用；</li>
+<li>$fork$ 返回之后父子进程之间的信息传递需要进程间通信机制。</li>
+</ul>
+<p>        线程有助于解决这两个问题，它的创建可能比进程快 $10 \sim 100$ 倍，而且同一进程内的线程共享相同的全局内存。然而，线程的引入也会带来<strong>同步</strong> ( $synchronization$ ) 问题。同一进程内的所有线程除了共享全局变量之外还共享：</p>
+<ul>
+<li>进程指令；</li>
+<li>大多数数据；</li>
+<li>打开的文件 ( 描述符 )；</li>
+<li>信号处理函数和信号处置；</li>
+<li>当前工作目录；</li>
+<li>用户<code>ID</code>和组<code>ID</code>。</li>
+</ul>
+<p>        每个线程也有各自的：</p>
+<ul>
+<li>线程<code>ID</code> ( <code>TID</code> )；</li>
+<li>寄存器集合，包括程序计数器和栈指针；</li>
+<li>栈 ( 存放局部变量和返回地址 )；</li>
+<li>$errno$ ；</li>
+<li>信号掩码；</li>
+<li>优先级。</li>
+</ul>
+<h2 id="1-创建和终止">1. 创建和终止</h2>
+<h3 id="11-pthread_create函数">1.1 <code>pthread_create</code>函数</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回0，出错返回非负错误码
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">pthread_create</span><span class="p">(</span><span class="n">pthread_t</span> <span class="o">*</span><span class="n">tid</span><span class="p">,</span> <span class="k">const</span> <span class="n">pthread_attr_t</span> <span class="o">*</span><span class="n">attr</span><span class="p">,</span>
+  <span class="kt">void</span> <span class="o">*</span><span class="p">(</span><span class="o">*</span><span class="n">func</span><span class="p">)(</span><span class="kt">void</span> <span class="o">*</span><span class="p">),</span> <span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">);</span>
+</code></pre></div><p>        当一个程序由 $exec$ 启动时，称为<strong>初始线程</strong> ( $initial$ $thread$ ) 或<strong>主线程</strong> ( $main$ $thread$ ) 的单个线程就创建了，其余线程则由 $pthread_-create$ 函数创建。一个进程内每个线程都由线程<code>ID</code>标识，数据类型为 $pthread_-t$ 。如果新线程成功创建，<code>ID</code>会通过 $tid$ 返回。每个线程都有属性：优先级、初始栈大小、是否应该成为守护线程等，可以通过 $attr$ 参数指定。通常情况下我们采取默认配置，这时会把 $attr$ 设置为 $NULL$ 。最后两个参数是线程执行的函数以及参数，线程通过调用这个函数开始执行，然后显式终止 ( $pthread_-exit$ ) 或者隐式终止 ( 函数返回 ) 。如果我们需要传递多个参数，需要把它们打包成一个结构，通过结构指针传递。</p>
+<h3 id="12-pthread_join函数">1.2 <code>pthread_join</code>函数</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回0，出错返回非负错误码
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">pthread_join</span><span class="p">(</span><span class="n">pthread_t</span> <span class="o">*</span><span class="n">tid</span><span class="p">,</span> <span class="kt">void</span> <span class="o">**</span><span class="n">status</span><span class="p">);</span>
+</code></pre></div><p>        $pthread_-join$ 等待一个给定线程的终止，$tid$ 指定线程<code>ID</code>。$pthread_-join$ 不能像 $waitpid$ 那样等待任意一个线程终止。如果 $status$ 非空，来自所等待线程的返回值将存入 $status$ 指向的位置。</p>
+<h3 id="13-pthread_self函数">1.3 <code>pthread_self</code>函数</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 返回调用线程的线程ID
+</span><span class="c1"></span><span class="n">pthread_t</span> <span class="nf">pthread_self</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
+</code></pre></div><p>        每个线程都有一个在所属进程内标识自身的<code>ID</code>，由 $pthread_-create$ 返回。每个线程通过 $pthread_-self$ 可以获取自身<code>ID</code>。</p>
+<h3 id="14-pthread_detach函数">1.4 <code>pthread_detach</code>函数</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回0，出错返回非负错误码
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">pthread_detach</span><span class="p">(</span><span class="n">pthread_t</span> <span class="n">tid</span><span class="p">);</span>
+</code></pre></div><p>        一个线程或者是<strong>可汇合的</strong> ( $joinable$ )，或者是<strong>脱离的</strong> ( $datached$ )，默认情况下是可汇合的。当一个可汇合的线程终止时，它的线程<code>ID</code>和退出状态将留存到另一个线程对它调用 $pthread_-join$ 。脱离的线程像守护进程，终止时所有资源都被释放，不能通过 $pthread_-join$ 等待终止。$pthread_-detach$ 函数负责将指定线程变为脱离状态。</p>
+<h3 id="15-pthread_exit函数">1.5 <code>pthread_exit</code>函数</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">void</span> <span class="nf">pthread_exit</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">status</span><span class="p">);</span>
+</code></pre></div><p>        $pthread_-exit$ 让一个线程终止。如果线程可汇合，它的线程<code>ID</code>和退出状态将保持到调用进程内某个其他线程对它调用 $pthread_-join$ 。</p>
+<h2 id="2-使用线程的tcp回射服务器程序">2. 使用线程的<code>TCP</code>回射服务器程序</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpthread.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="k">static</span> <span class="kt">void</span> <span class="o">*</span><span class="nf">doit</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">);</span>  <span class="c1">// each thread executes this function
+</span><span class="c1"></span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">listenfd</span><span class="p">,</span> <span class="n">connfd</span><span class="p">;</span>
+  <span class="n">pthread_t</span> <span class="n">tid</span><span class="p">;</span>
+  <span class="n">socklen_t</span> <span class="n">addrlen</span><span class="p">,</span> <span class="n">len</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">cliaddr</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">listenfd</span> <span class="o">=</span> <span class="n">Tcp_listen</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">addrlen</span><span class="p">);</span>
+  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">listenfd</span> <span class="o">==</span> <span class="n">Tcp_listen</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">addrlen</span><span class="p">);</span>
+  <span class="k">else</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: tcpserv01 [ &lt;host&gt; ] &lt;service or port&gt;&#34;</span><span class="p">);</span>
+
+  <span class="n">cliaddr</span> <span class="o">=</span> <span class="n">Malloc</span><span class="p">(</span><span class="n">addrlen</span><span class="p">);</span>
+  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+    <span class="n">len</span> <span class="o">=</span> <span class="n">addrlen</span><span class="p">;</span>
+    <span class="n">connfd</span> <span class="o">=</span> <span class="n">Accept</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="n">cliaddr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">len</span><span class="p">);</span>
+    <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">doit</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span> <span class="n">connfd</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="n">stativ</span> <span class="kt">void</span> <span class="o">*</span><span class="nf">doit</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">Pthread_detach</span><span class="p">(</span><span class="n">pthrea_self</span><span class="p">());</span>
+  <span class="n">str_echo</span><span class="p">((</span><span class="kt">int</span><span class="p">)</span> <span class="n">arg</span><span class="p">);</span>  <span class="c1">// same function as before
+</span><span class="c1"></span>  <span class="n">Close</span><span class="p">((</span><span class="kt">int</span><span class="p">)</span> <span class="n">arg</span><span class="p">);</span>  <span class="c1">// done with connected socket
+</span><span class="c1"></span>  <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div><p>        $accept$ 返回后，不是使用 $fork$ 而是使用 $pthread_-create$ ，传递给 $doit$ 函数的是已连接套接字描述符 $connfd$ 。在 $doit$ 函数中，线程先让自身脱离，因为主线程不会等待其创建的线程。函数返回后，我们就 $close$ 已连接套接字。因为线程共享描述符，所以需要主动 $close$ 已连接描述符；使用 $fork$ 时，由于创建的是进程，进程会在退出时关闭所有打开的描述符，所以使用 $fork$ 时不必手动关闭已连接描述符。还要注意，线程不会 $close$ 监听套接字，因为线程间描述符都是共享的。<br>
+        在 $doit$ 函数中，我们简单地把 $connfd$ 传递给新线程。从<code>ANSI C</code>的角度来看是可以的，<code>ANSI C</code>保证我们能够把一个整数指针类型强制转为 $void$ $\star$ 并重新转回来。但是要注意的是，主线程中只有一个 $connfd$ 变量，每次调用 $accept$ 都会产生一个新值。为了解决这个问题，我们修改程序：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpthread.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="k">static</span> <span class="kt">void</span> <span class="o">*</span><span class="nf">doit</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">);</span>  <span class="c1">// each thread executes this function
+</span><span class="c1"></span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">listenfd</span><span class="p">,</span> <span class="n">connfd</span><span class="p">;</span>
+  <span class="n">pthread_t</span> <span class="n">tid</span><span class="p">;</span>
+  <span class="n">socklen_t</span> <span class="n">addrlen</span><span class="p">,</span> <span class="n">len</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">cliaddr</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">listenfd</span> <span class="o">=</span> <span class="n">Tcp_listen</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">addrlen</span><span class="p">);</span>
+  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">listenfd</span> <span class="o">==</span> <span class="n">Tcp_listen</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">addrlen</span><span class="p">);</span>
+  <span class="k">else</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: tcpserv01 [ &lt;host&gt; ] &lt;service or port&gt;&#34;</span><span class="p">);</span>
+
+  <span class="n">cliaddr</span> <span class="o">=</span> <span class="n">Malloc</span><span class="p">(</span><span class="n">addrlen</span><span class="p">);</span>
+  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+    <span class="n">len</span> <span class="o">=</span> <span class="n">addrlen</span><span class="p">;</span>
+    <span class="n">iptr</span> <span class="o">=</span> <span class="n">Malloc</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">));</span>
+    <span class="o">*</span><span class="n">iptr</span> <span class="o">=</span> <span class="n">Accept</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="n">cliaddr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">len</span><span class="p">);</span>
+    <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">doit</span><span class="p">,</span> <span class="n">iptr</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="n">stativ</span> <span class="kt">void</span> <span class="o">*</span><span class="nf">doit</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">connfd</span><span class="p">;</span>
+
+  <span class="n">connfd</span> <span class="o">=</span> <span class="o">*</span><span class="p">((</span><span class="kt">int</span> <span class="o">*</span><span class="p">)</span> <span class="n">arg</span><span class="p">);</span>
+  <span class="n">free</span><span class="p">(</span><span class="n">arg</span><span class="p">);</span>
+
+  <span class="n">Pthread_detach</span><span class="p">(</span><span class="n">pthrea_self</span><span class="p">());</span>
+  <span class="n">str_echo</span><span class="p">((</span><span class="kt">int</span><span class="p">)</span> <span class="n">arg</span><span class="p">);</span>  <span class="c1">// same function as before
+</span><span class="c1"></span>  <span class="n">Close</span><span class="p">((</span><span class="kt">int</span><span class="p">)</span> <span class="n">arg</span><span class="p">);</span>  <span class="c1">// done with connected socket
+</span><span class="c1"></span>  <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="p">}</span>
+
+</code></pre></div><p>        $malloc$ 和 $free$ 是不可重入的。换句话说，在主线程正处于这两个函数之一的内部处理期间，从某个信号处理函数中调用这两个函数之一有可能导致不可预知的后果。</p>
+<h3 id="21-线程安全函数">2.1 线程安全函数</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">不必线程安全的版本</th>
+<th style="text-align:left">必须线程安全的版本</th>
+<th style="text-align:center">备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">$asctime$</td>
+<td style="text-align:left">$asctime_-r$</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left"></td>
+<td style="text-align:left">$ctermid$</td>
+<td style="text-align:center">仅当参数非空时才是线程安全的</td>
+</tr>
+<tr>
+<td style="text-align:left">$ctime$</td>
+<td style="text-align:left">$ctime_-r$</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$getc_-unlocked$</td>
+<td style="text-align:left"></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$getchar_-unlocked$</td>
+<td style="text-align:left"></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$getgrid$</td>
+<td style="text-align:left">$getgrid_-r$</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$getgrnam$</td>
+<td style="text-align:left">$getgrnam_-r$</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$getlogin$</td>
+<td style="text-align:left">$getlogin_-r$</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$getpwnam$</td>
+<td style="text-align:left">$getpwnam_-r$</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$getpwuid$</td>
+<td style="text-align:left">$getpwuid_-r$</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$gmtime$</td>
+<td style="text-align:left">$gmtime_-r$</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$localtime$</td>
+<td style="text-align:left">$localtime_-r$</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$putc_-unlocked$</td>
+<td style="text-align:left"></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$putchar_-unlocked$</td>
+<td style="text-align:left"></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$rand$</td>
+<td style="text-align:left">$rand_-r$</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$readdir$</td>
+<td style="text-align:left">$readdir_-r$</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$strtok$</td>
+<td style="text-align:left">$strtok_-r$</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left"></td>
+<td style="text-align:left">$tmpnam$</td>
+<td style="text-align:center">仅当参数非空时才是线程安全的</td>
+</tr>
+<tr>
+<td style="text-align:left">$ttyname$</td>
+<td style="text-align:left">$ttyname_-r$</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$gethostXXX$</td>
+<td style="text-align:left"></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$getnetXXX$</td>
+<td style="text-align:left"></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$getprotoXXX$</td>
+<td style="text-align:left"></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$getservXXX$</td>
+<td style="text-align:left"></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">$inet_-ntoa$</td>
+<td style="text-align:left"></td>
+<td style="text-align:center"></td>
+</tr>
+</tbody>
+</table>
+<p>        $ctermid$ 和 $tmpnam$ 的线程安全条件是：调用者为返回结果预先分配空间，并把指向该空间的指针作为参数传递给函数。</p>
+<h2 id="3-线程特定数据">3. 线程特定数据</h2>
+<p>        把一个未线程化的程序转换成使用线程的版本时，有时会碰到因其中有函数使用静态变量而引起的错误。这个错误是在将现有的函数转换成在线程环境中运行时常碰到的问题，并有多个解决办法。</p>
+<ul>
+<li>使用线程特定数据。本办法的优点是调用顺序无需变动，所有变动都体现在库函数中而非调用这些函数的应用程序中；</li>
+<li>改变调用顺序，由调用者把函数的所有调用参数封装在一个结构中，并在该结构中存入静态变量；</li>
+<li>改变接口结构，避免使用静态变量。</li>
+</ul>
+<p>        使用线程特定数据是使得现有函数变为线程安全的一个常用技巧。每个系统支持有限数量的线程特定数据元素，<code>POSIX</code>要求这个限制不少于 $128$ ( 每个进程 )。系统 ( 可能是线程函数库 ) 为每个进程维护一个我们称之为 $Key$ 结构的结构体数组。$Key$ 结构的标志指示这个数组元素是否正在被使用，所有的标志初始值都是不被使用。当一个线程调用 $pthread_-key_-create$ 创建一个新的线程特定数据元素时，系统搜索其 $Key$ 结构数组找出第一个不在使用的元素，返回给调用线程该元素的索引。除了进程范围的 $Key$ 结构数组之外，系统还在进程内维护关于每个线程的多条信息，我们称为 $Pthread$ 结构，其部分内容是名为 $pkey$ 的一个 $128$ 个元素的指针数组。$pkey$ 数组的所有元素都被初始化为空指针，这 $128$ 个指针和进程内 $Key$ 结构数组的 $128$ 个键关联。<br>
+        我们调用 $pthread_-key_-create$ 创建一个键，系统会告诉我们这个键的索引。每个线程随后为该键存储一个值 ( 指针 )，这个指针通常又是每个线程通过调用 $malloc$ 获得的。线程特定数据中容易混淆的地方之一是：该指针是键-值对中的值，但是真正的线程特定数据可以是该指针指向的任意内容。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回0，出错返回非负错误码
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">pthread_key_create</span><span class="p">(</span><span class="n">pthread_key_t</span> <span class="o">*</span><span class="n">keyptr</span><span class="p">,</span> <span class="kt">void</span> <span class="p">(</span><span class="o">*</span><span class="n">destructor</span><span class="p">)</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">value</span><span class="p">));</span>
+
+<span class="c1">// 成功返回0，出错返回非负错误码
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">pthread_once</span><span class="p">(</span><span class="n">pthread_once_t</span> <span class="o">*</span><span class="n">onceptr</span><span class="p">,</span> <span class="kt">void</span> <span class="p">(</span><span class="o">*</span><span class="n">init</span><span class="p">)</span> <span class="p">(</span><span class="kt">void</span><span class="p">));</span>
+
+<span class="c1">// 返回指向线程特定数据的指针，可能为空
+</span><span class="c1"></span><span class="kt">void</span> <span class="o">*</span><span class="nf">pthread_getspecific</span><span class="p">(</span><span class="n">pthread_key_t</span> <span class="n">key</span><span class="p">);</span>
+
+<span class="c1">// 成功返回0，出错返回非负错误码
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">pthread_setspecific</span><span class="p">(</span><span class="n">pthread_key_t</span> <span class="n">key</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">value</span><span class="p">);</span>
+</code></pre></div><p>        $pthread_-once$ 使用 $onceptr$ 参数指向的变量中的值，确保 $init$ 参数所指的函数在进程内只被调用一次。在进程范围内对于一个给定的键，$pthread_-key_-create$ 只能被调用一次，所创建的键通过 $keyptr$ 返回，如果 $destructor$ 不为空，它所指的函数将由为该键存放过某个值的每个线程在终止时调用。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpthread.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="k">static</span> <span class="n">pthread_key_t</span> <span class="n">rl_key</span><span class="p">;</span>
+<span class="k">static</span> <span class="n">pthread_once_t</span> <span class="n">rl_once</span> <span class="o">=</span> <span class="n">PTHREAD_ONCE_INIT</span><span class="p">;</span>  <span class="c1">// 0
+</span><span class="c1"></span>
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">readline_desctructor</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">ptr</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">free</span><span class="p">(</span><span class="n">ptr</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">readline_once</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">Pthread_key_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">rl_key</span><span class="p">,</span> <span class="n">readline_destructor</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">rl_cntl</span><span class="p">;</span>  <span class="c1">// initialize to 0
+</span><span class="c1"></span>  <span class="kt">char</span> <span class="o">*</span><span class="n">rl_bufptr</span><span class="p">;</span>  <span class="c1">// initialize to rl_buf
+</span><span class="c1"></span>  <span class="kt">char</span> <span class="n">rl_buf</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">];</span>
+<span class="p">}</span> <span class="n">Rline</span><span class="p">;</span>
+
+<span class="k">static</span> <span class="n">ssize_t</span> <span class="nf">my_read</span><span class="p">(</span><span class="n">Rline</span> <span class="o">*</span><span class="n">tsd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">ptr</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">tsd</span><span class="o">-&gt;</span><span class="n">rl_cnt</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+<span class="nl">again</span><span class="p">:</span>
+    <span class="k">if</span> <span class="p">((</span><span class="n">tsd</span><span class="o">-&gt;</span><span class="n">rl_cnt</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">tsd</span><span class="o">-&gt;</span><span class="n">rl_buf</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">==</span> <span class="n">EINTR</span><span class="p">)</span>
+        <span class="k">goto</span> <span class="n">again</span><span class="p">;</span>
+      <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">tsd</span><span class="o">-&gt;</span><span class="n">rl_cnt</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">tsd</span><span class="o">-&gt;</span><span class="n">rl_bufptr</span> <span class="o">=</span> <span class="n">tsd</span><span class="o">-&gt;</span><span class="n">rl_buf</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">tsd</span><span class="o">-&gt;</span><span class="n">rl_cnt</span><span class="o">--</span><span class="p">;</span>
+  <span class="o">*</span><span class="n">ptr</span> <span class="o">=</span> <span class="o">*</span><span class="n">tsd</span><span class="o">-&gt;</span><span class="n">rl_bufptr</span><span class="o">++</span><span class="p">;</span>
+  <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">ssize_t</span> <span class="nf">readline</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">vptr</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">maxlen</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">size_t</span> <span class="n">n</span><span class="p">,</span> <span class="n">rc</span><span class="p">;</span>
+  <span class="kt">char</span> <span class="n">c</span><span class="p">,</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span>
+  <span class="n">Rline</span> <span class="o">*</span><span class="n">tsd</span><span class="p">;</span>
+
+  <span class="n">Pthread_once</span><span class="p">(</span><span class="o">&amp;</span><span class="n">rl_once</span><span class="p">,</span> <span class="n">readline_once</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">((</span><span class="n">tsd</span> <span class="o">=</span> <span class="n">pthread_getspecific</span><span class="p">(</span><span class="n">rl_key</span><span class="p">))</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">tsd</span> <span class="o">=</span> <span class="n">Calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">Rline</span><span class="p">));</span>  <span class="c1">// init to 0
+</span><span class="c1"></span>    <span class="n">Pthread_setspecific</span><span class="p">(</span><span class="n">rl_key</span><span class="p">,</span> <span class="n">tsd</span><span class="p">);</span>
+  <span class="p">}</span>
+  <span class="n">ptr</span> <span class="o">=</span> <span class="n">vptr</span><span class="p">;</span>
+  <span class="k">for</span> <span class="p">(</span><span class="n">n</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="n">maxlen</span><span class="p">;</span> <span class="n">n</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">((</span><span class="n">rc</span> <span class="o">=</span> <span class="n">my_read</span><span class="p">(</span><span class="n">tsd</span><span class="p">,</span> <span class="n">fd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">c</span><span class="p">))</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+      <span class="o">*</span><span class="n">ptr</span><span class="o">++</span> <span class="o">=</span> <span class="n">c</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">c</span> <span class="o">==</span> <span class="sc">&#39;\n&#39;</span><span class="p">)</span>
+        <span class="k">break</span><span class="p">;</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">rc</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+      <span class="o">*</span><span class="n">ptr</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="k">return</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>  <span class="c1">// EOF, n - 1 bytes read
+</span><span class="c1"></span>    <span class="p">}</span> <span class="k">else</span>
+      <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>  <span class="c1">// error, errno set by read()
+</span><span class="c1"></span>  <span class="p">}</span>
+  <span class="o">*</span><span class="n">ptr</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="k">return</span> <span class="n">n</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div><p>        在这个程序中，我们通过线程特定数据的方式解决了多线程中共享静态变量带来的问题。我们为每个线程都创建一个 $Rline$ 结构，存储读取的数据。虽然这个程序也存在共享变量 $rl_-key$ ，但是该变量只会被 $readline_-once$ 调用，而且在调用前通过 $pthread_-once$ 保证了其线程安全性。</p>
+<h2 id="4-互斥锁">4. 互斥锁</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回0，出错返回非负错误码
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">pthread_mutex_lock</span><span class="p">(</span><span class="n">pthread_mutex_t</span> <span class="o">*</span><span class="n">mptr</span><span class="p">);</span>
+
+<span class="c1">// 成功返回0，出错返回非负错误码
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">pthread_mutext_unlock</span><span class="p">(</span><span class="n">pthread_mutex_t</span> <span class="o">*</span><span class="n">mptr</span><span class="p">);</span>
+</code></pre></div><p>        在多线程环境下，使一个共享变量被安全地修改的办法是使用<strong>互斥锁</strong> ( $mutex$ ) 保护这个共享变量。如果试图上锁一个已经被另外某个线程锁住的互斥锁，线程将阻塞，直到互斥锁被解锁。如果某个互斥锁变量是静态分配的，我们就必须把它初始化为常值 $PTHREAD_-MUTEXT_-INITIALIZER$ 。如果我们在共享内存区中分配一个互斥锁，那么必须通过调用 $pthread_-mutex_-init$ 函数在运行时初始化。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpthread.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="cp">#define NLOOP 5000
+</span><span class="cp"></span>
+<span class="kt">int</span> <span class="n">counter</span><span class="p">;</span>  <span class="c1">// incremented by threads
+</span><span class="c1"></span><span class="n">pthread_mutext_t</span> <span class="n">counter_mutex</span> <span class="o">=</span> <span class="n">PTHREAD_MUTEX_INITIALIZER</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="o">*</span><span class="nf">doit</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">pthread_t</span> <span class="n">tidA</span><span class="p">,</span> <span class="n">tidB</span><span class="p">;</span>
+
+  <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tidA</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">doit</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+  <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tidB</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">doit</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="c1">// wait for both threads to terminate
+</span><span class="c1"></span>  <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tidA</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+  <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tidB</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="o">*</span><span class="nf">doit</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">vptr</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="n">val</span><span class="p">;</span>
+
+  <span class="cm">/*
+</span><span class="cm">  * Each thread fetches, prints and increments the counter NLOOP times.
+</span><span class="cm">  * The value of the counter should increase monotonically.
+</span><span class="cm">  */</span>
+  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span> <span class="n">NLOOP</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">Pthread_mutex_lock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">counter_mutex</span><span class="p">);</span>
+
+    <span class="n">val</span> <span class="o">=</span> <span class="n">counter</span><span class="p">;</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;%d: %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">pthread_self</span><span class="p">(),</span> <span class="n">val</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="n">counter</span> <span class="o">=</span> <span class="n">val</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+
+    <span class="n">Pthread_mutex_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">counter_mutex</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div><h2 id="5-条件变量">5. 条件变量</h2>
+<p>        互斥锁适用于防止同时访问某个共享变量，但是我们需要另外某种在等待某个条件发生时能让我们进入休眠状态，然后在有事件发生时通知我们的东西。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回0，出错返回非负错误码
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">pthread_cond_wait</span><span class="p">(</span><span class="n">pthread_cond_t</span> <span class="o">*</span><span class="n">cptr</span><span class="p">,</span> <span class="n">pthread_mutex_t</span> <span class="o">*</span><span class="n">mptr</span><span class="p">);</span>
+
+<span class="c1">// 成功返回0，出错返回非负错误码
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">pthread_cond_signal</span><span class="p">(</span><span class="n">pthread_cond_t</span> <span class="o">*</span><span class="n">cptr</span><span class="p">);</span>
+</code></pre></div><p>        与互斥锁一样，使用条件变量时，如果是静态分配的，需要初始化为 $PTHREAD_-COND_-INITIALIZER$ 。条件变量与互斥锁配合使用：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="n">Pthread_mutex_lock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">mutex</span><span class="p">);</span>
+<span class="n">n</span><span class="o">--</span><span class="p">;</span>
+<span class="n">Pthread_cond_signal</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ndone_cond</span><span class="p">);</span>
+<span class="n">Pthread_mutex_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">mutex</span><span class="p">);</span>
+
+<span class="c1">// 或者
+</span><span class="c1"></span>
+<span class="n">Pthread_mutex_lock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">mutex</span><span class="p">);</span>
+<span class="k">while</span> <span class="p">(</span><span class="n">n</span><span class="p">)</span>
+  <span class="n">Pthread_cond_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">cond</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">mutex</span><span class="p">);</span>
+<span class="n">Pthread_mutex_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">mutex</span><span class="p">);</span>
+</code></pre></div><p>        可以看到我们总是先上锁再使用条件变量，因为条件变量本身并不会上锁，为了在休眠或者唤醒的时候保证变量的安全性，我们需要配合互斥锁使用条件变量。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回0，出错返回非负错误码
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">pthread_cond_broadcast</span><span class="p">(</span><span class="n">pthread_cond_t</span> <span class="o">*</span><span class="n">cptr</span><span class="p">);</span>
+
+<span class="c1">// 成功返回0，出错返回非负错误码
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">pthread_cond_timedwait</span><span class="p">(</span><span class="n">pthread_cond_t</span> <span class="o">*</span><span class="n">cptr</span><span class="p">,</span> <span class="n">pthread_mutex_t</span> <span class="o">*</span><span class="n">mptr</span><span class="p">,</span>
+  <span class="k">const</span> <span class="k">struct</span> <span class="n">timespec</span> <span class="o">*</span><span class="n">abstime</span><span class="p">);</span>
+</code></pre></div><p>        $pthread_-cond_-broadcast$ 可以唤醒在条件上等待的所有线程。$pthread_-cond_-timedwait$ 允许线程设置一个阻塞时间，指定该函数必须返回时刻的系统时间，如果发生超时，就设置 $ETIME$ 错误。$abstime$ 是一个绝对时间，而不是时间增量。通常通过 $gettimeofday$ 获取当前时间后加上时间增量的形式创建。</p>
+
+            </div>
+            <div class="meta post-footer"> 
+                <span>2022 Feb 17 14:28</span> 
+                <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B14/"><i class="fas fa-link"></i> link</a>
+            </div>
+        </div>
         
         <div class="post">
             
@@ -859,538 +1297,6 @@
             <div class="meta post-footer"> 
                 <span>2022 Feb 14 19:31</span> 
                 <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B11/"><i class="fas fa-link"></i> link</a>
-            </div>
-        </div>
-        
-        <div class="post">
-            
-            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B10/">Unix网络编程（10）：ioctl</a></h1>
-            <div class="post-content">
-                <p>        $ioctl$ 函数传统上一直作为那些不适合归入其他精细定义类别的特性的系统接口。<code>POSIX</code>致力于摆脱处于标准化过程的特定功能的 $ioctl$ 接口，办法是为它们创造一些特殊的函数以取代 $ioctl$ 请求，办法是为它们创造一些特殊的函数以取代 $ioctl$ 请求。网络层程序经常在程序启动执行后使用 $ioctl$ 获取所在主机全部网络接口的信息，包括：接口地址、是否支持广播、是否支持多播等。</p>
-<h2 id="1-ioctl函数">1. <code>ioctl</code>函数</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;unistd.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 成功返回 $0$ ，出错返回-1
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">ioctl</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">request</span><span class="p">,</span> <span class="p">...</span> <span class="cm">/* void *arg */</span><span class="p">);</span>
-</code></pre></div><p>        第三个参数是一个指针，类型依赖于 $request$ 参数。我们可以把和网络相关的请求分为 $6$ 类：</p>
-<table>
-  <thead>
-    <tr>
-      <th style="text-align: center;">类别</td>
-      <th style="text-align: center;">$request$</td>
-      <th style="text-align: center;">说明</td>
-      <th style="text-align: center;">数据类型</td>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td rowspan="3" style="text-align: center;">套接字</td>
-      <td style="text-align: left;">$SIOCATMARK$</td>
-      <td style="text-align: left;">是否位于带外标记</td>
-      <td style="text-align: center;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SIOCSPGRP$</td>
-      <td style="text-align: left;">设置套接字的进程<code>ID</code>或进程组<code>ID</code></td>
-      <td style="text-align: center;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SIOCGPGRP$</td>
-      <td style="text-align: left;">获取套接字的进程<code>ID</code>或进程组<code>ID</code></td>
-      <td style="text-align: center;">$int$</td>
-    </tr>
-    <tr>
-      <td rowspan="5" style="text-align: center;">文件</td>
-      <td style="text-align: left;">$FIONBIO$</td>
-      <td style="text-align: left;">设置/清除非阻塞式<code>I/O</code>标志</td>
-      <td style="text-align: center;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$FIOASYNC$</td>
-      <td style="text-align: left;">设置/清除信号驱动异步<code>I/O</code>标志</td>
-      <td style="text-align: center;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$FIONREAD$</td>
-      <td style="text-align: left;">获取接收缓冲区的字节数</td>
-      <td style="text-align: center;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$FIOSETOWN$</td>
-      <td style="text-align: left;">设置文件的进程<code>ID</code>或进程组<code>ID</code></td>
-      <td style="text-align: center;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$FIOGETOWN$</td>
-      <td style="text-align: left;">获取文件的进程<code>ID</code>或进程组<code>ID</code></td>
-      <td style="text-align: center;">$int$</td>
-    </tr>
-    <tr>
-      <td rowspan="15" style="text-align: center;">接口</td>
-      <td style="text-align: left;">$SIOCGIFCONF$</td>
-      <td style="text-align: left;">获取所有接口的列表</td>
-      <td style="text-align: center;">$struct$ $ifconf$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SIOCSIFADDR$</td>
-      <td style="text-align: left;">设置接口地址</td>
-      <td style="text-align: center;">$struct$ $ifreq$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SIOCGIFADDR$</td>
-      <td style="text-align: left;">获取接口地址</td>
-      <td style="text-align: center;">$struct$ $ifreq$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SIOCGIFADDR$</td>
-      <td style="text-align: left;">获取接口地址</td>
-      <td style="text-align: center;">$struct$ $ifreq$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SIOCSIFFLAGS$</td>
-      <td style="text-align: left;">设置接口标志</td>
-      <td style="text-align: center;">$struct$ $ifreq$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SIOCGIFFLAGS$</td>
-      <td style="text-align: left;">获取接口标志</td>
-      <td style="text-align: center;">$struct$ $ifreq$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SIOCSIFDSTADDR$</td>
-      <td style="text-align: left;">设置点到点地址</td>
-      <td style="text-align: center;">$struct$ $ifreq$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SIOCGIFDSTADDR$</td>
-      <td style="text-align: left;">获取点到点标志</td>
-      <td style="text-align: center;">$struct$ $ifreq$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SIOCGIFBRDADDR$</td>
-      <td style="text-align: left;">获取广播地址</td>
-      <td style="text-align: center;">$struct$ $ifreq$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SIOCSIFBRDADDR$</td>
-      <td style="text-align: left;">设置广播地址</td>
-      <td style="text-align: center;">$struct$ $ifreq$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SIOCGIFNETMASK$</td>
-      <td style="text-align: left;">获取子网掩码</td>
-      <td style="text-align: center;">$struct$ $ifreq$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SIOCSIFNETMASK$</td>
-      <td style="text-align: left;">设置子网掩码</td>
-      <td style="text-align: center;">$struct$ $ifreq$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SIOCGIFMETRIC$</td>
-      <td style="text-align: left;">获取接口的测度</td>
-      <td style="text-align: center;">$struct$ $ifreq$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SIOCSIFMETRIC$</td>
-      <td style="text-align: left;">设置接口的测度</td>
-      <td style="text-align: center;">$struct$ $ifreq$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SIOCGIFMTU$</td>
-      <td style="text-align: left;">获取接口 $MTU$ </td>
-      <td style="text-align: center;">$struct$ $ifreq$</td>
-    </tr>
-    <tr>
-      <td rowspan="3" style="text-align: center;"><code>ARP</code></td>
-      <td style="text-align: left;">$SIOCSARP$</td>
-      <td style="text-align: left;">创建/修改<code>ARP</code>表项</td>
-      <td style="text-align: center;">$struct$ $arpreq$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SIOCGARP$</td>
-      <td style="text-align: left;">获取<code>ARP</code>表项</td>
-      <td style="text-align: center;">$struct$ $arpreq$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SIOCDARP$</td>
-      <td style="text-align: left;">删除<code>ARP</code>表项</td>
-      <td style="text-align: center;">$struct$ $arpreq$</td>
-    </tr>
-    <tr>
-      <td rowspan="2" style="text-align: center;">路由</td>
-      <td style="text-align: left;">$SIOCADDRT$</td>
-      <td style="text-align: left;">增加路径</td>
-      <td style="text-align: center;">$struct$ $rtentry$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SIOCDELRT$</td>
-      <td style="text-align: left;">删除路径</td>
-      <td style="text-align: center;">$struct$ $rtentry$</td>
-    </tr>
-    <tr>
-      <td style="text-align: center;">流</td>
-      <td style="text-align: left;">$I_-xxx$</td>
-      <td style="text-align: left;">以后说明</td>
-    </tr>
-  </tbody>
-</table>
-<h2 id="2-套接字操作">2. 套接字操作</h2>
-<ul>
-<li>$SIOCATMARK$ ：如果本套接字的读指针当前位于带外标记，那就通过第三个参数指向的整数值返回一个非 $0$ 值；否则返回一个 $0$ 值；</li>
-<li>$SIOCGPGRP$ ：通过第三个参数指向的整数返回本套接字的进程<code>ID</code>或进程组<code>ID</code>，该<code>ID</code>指定针对本套接字的 $SIGIO$ 或 $SIGURG$ 信号的接收过程。本请求和 $fcntl$ 的 $F_-GETOWN$ 命令等效；</li>
-<li>$SIOCSPGRP$ ：把本套接字的进程<code>ID</code>或进程组<code>ID</code>设置成由第三个参数指向的整数，该<code>ID</code>指定针对本套接字的 $SIGIO$ 或 $SIGURG$ 信号的接收过程。本请求和 $fcntl$ 的 $F_-SETOWN$ 命令等效。</li>
-</ul>
-<h2 id="3-文件操作">3. 文件操作</h2>
-<ul>
-<li>$FIONBIO$ ：根据 $ioctl$ 的第三个参数指向一个 $0$ 值或非 $0$ 值，可清除或设置本套接字的非阻塞式<code>I/O</code>标志。本请求和 $O_-NONBLOCK$ 文件状态标志等效，而可以通过 $fcntl$ 的 $F_-SETFK$ 命令清除或设置该标志；</li>
-<li>$FIOASYNC$ ：根据 $ioctl$ 的第三个参数指向一个 $0$ 值或非 $0$ 值，可清除或设置针对本套接字的信号驱动异步<code>I/O</code>标志，它决定是否收取针对本套接字的异步<code>I/O</code>信号 ( $SIGIO$ )。本请求和 $O_-ASYNC$ 文件状态标志等效，可以通过 $fcntl$ 清除或设置该标志；</li>
-<li>$FIONREAD$ ：通过由 $ioctl$ 的第三个参数指向的整数返回当前在本套接字接收缓冲区中的字节数。本特性同样适用于文件、管道和终端；</li>
-<li>$FIOSETOWN$ / $FIOGETOWN$ ：对于套接字和 $SIOCGPGRP$ 等效。</li>
-</ul>
-<h2 id="4-接口配置">4. 接口配置</h2>
-<p>        处理网络接口的许多程序沿用的初始步骤之一就是从内核获取配置在系统中的所有接口。本任务由 $SIOCGIFCONF$ 请求完成，使用 $ifconf$ 结构，$ifconf$ 又使用 $ifreq$ 结构。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">struct</span> <span class="n">ifconf</span> <span class="p">{</span>
-  <span class="n">lint</span> <span class="n">ifc_len</span><span class="p">;</span>  <span class="c1">// 缓冲区大小
-</span><span class="c1"></span>  <span class="k">union</span> <span class="p">{</span>
-    <span class="n">caddr_t</span> <span class="n">ifcu_buf</span><span class="p">;</span>  <span class="c1">// 用户空间到内核空间的输入
-</span><span class="c1"></span>    <span class="k">struct</span> <span class="n">ifreq</span> <span class="o">*</span><span class="n">ifcu_req</span><span class="p">;</span>  <span class="c1">// 内核空间到用户空间的返回
-</span><span class="c1"></span>  <span class="p">}</span> <span class="n">ifc_ifcu</span><span class="p">;</span>
-<span class="p">};</span>
-
-<span class="cp">#define ifc_buf ifc_ifcu.ifcu_buf  </span><span class="c1">// 缓冲区地址
-</span><span class="c1"></span><span class="cp">#define ifc_req ifc_ifcu.ifcu_req  </span><span class="c1">// 返回的数组结构
-</span><span class="c1"></span>
-<span class="cp">#define IFNAMSIZ 16
-</span><span class="cp"></span>
-<span class="k">struct</span> <span class="n">ifreq</span> <span class="p">{</span>
-  <span class="kt">char</span> <span class="n">ifr_name</span><span class="p">[</span><span class="n">IFNAMSIZ</span><span class="p">];</span>  <span class="c1">// 接口名
-</span><span class="c1"></span>  <span class="k">union</span> <span class="p">{</span>
-    <span class="k">struct</span> <span class="n">sockaddr</span> <span class="n">ifru_addr</span><span class="p">;</span>
-    <span class="k">struct</span> <span class="n">sockaddr</span> <span class="n">ifru_dstaddr</span><span class="p">;</span>
-    <span class="k">struct</span> <span class="n">sockaddr</span> <span class="n">ifru_broadaddr</span><span class="p">;</span>
-    <span class="kt">short</span> <span class="n">ifru_flags</span><span class="p">;</span>
-    <span class="kt">int</span> <span class="n">ifru_metric</span><span class="p">;</span>
-    <span class="n">caddr_t</span> <span class="n">ifru_data</span><span class="p">;</span>
-  <span class="p">}</span> <span class="n">ifr_ifru</span><span class="p">;</span>
-<span class="p">};</span>
-
-<span class="cp">#define ifr_addr if_ifru.ifru_addr  </span><span class="c1">// 地址
-</span><span class="c1"></span><span class="cp">#define ifr_dstaddr ifr_ifru.ifru_dstaddr  </span><span class="c1">// p2p连接的对端
-</span><span class="c1"></span><span class="cp">#define ifr_broadaddr ifr_ifru.ifru_broadaddr  </span><span class="c1">// 广播地址
-</span><span class="c1"></span><span class="cp">#define ifr_flags ifr_ifru.ifru_flags  </span><span class="c1">// 标志
-</span><span class="c1"></span><span class="cp">#define ifr_metric ifr_ifru.ifru_metric  </span><span class="c1">// 测度
-</span><span class="c1"></span><span class="cp">#define ifr_data ifr_ifru.ifru_data  </span><span class="c1">// 接口使用数据
-</span></code></pre></div><p>        在调用 $ioctl$ 之前需要先分配一个缓冲区和一个 $ifconf$ 结构，然后初始化后者，$ioctl$ 的第三个参数指向 $ifconf$ 结构。假设内核返回 $2$ 个 $ifreq$ 结构，在 $ioctl$ 返回时通过同一个 $ifconf$ 结构返回，并修改 $ifc_-len$ 和 $ifcu_-req$ 字段，$ifreq$ 结构会被填入缓冲区中。</p>
-<h2 id="5-get_ifi_info函数">5. <code>get_ifi_info</code>函数</h2>
-<p>        很多程序需要直到系统中的所有接口偶，于是可以开发一个名为 $get_-ifi_-info$ 的函数，它返回一个结构链表，其中每个结构对应一个当前处于 $up$ 状态的接口。首先实现 $unpifi.h$ 头文件。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="c1">// Out own header for the programs that need interface configuration info.
-</span><span class="c1"></span><span class="cp">#ifndef __unp_ifi_h
-</span><span class="cp">#define __unp_ifi_h
-</span><span class="cp"></span>
-<span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
-</span><span class="cp">#include</span> <span class="cpf">&lt;net/if.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cp">#define IFI_NAME 16  </span><span class="c1">// same as IFNAMSIZ in &lt;net/if.h&gt;
-</span><span class="c1"></span><span class="cp">#define IFI_HADDR 8  </span><span class="c1">// allow for 64-bit EUI-64 in future
-</span><span class="c1"></span>
-<span class="k">struct</span> <span class="n">ifi_info</span> <span class="p">{</span>
-  <span class="kt">char</span> <span class="n">ifi_name</span><span class="p">[</span><span class="n">IFI_NAME</span><span class="p">];</span>  <span class="c1">// interface name, null-terminated
-</span><span class="c1"></span>  <span class="kt">short</span> <span class="n">ifi_index</span><span class="p">;</span>  <span class="c1">// interface index
-</span><span class="c1"></span>  <span class="kt">short</span> <span class="n">iff_mtu</span><span class="p">;</span>  <span class="c1">// interface MTU
-</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifi_haddr</span><span class="p">[</span><span class="n">IFI_HADDR</span><span class="p">];</span>  <span class="c1">// hadrware address
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifi_hlen</span><span class="p">;</span>  <span class="c1">// bytes in hardware address
-</span><span class="c1"></span>  <span class="kt">short</span> <span class="n">ifi_flags</span><span class="p">;</span>  <span class="c1">// IFF_xxx constants from &lt;net/if.h&gt;
-</span><span class="c1"></span>  <span class="kt">short</span> <span class="n">ifi_myflags</span><span class="p">;</span>  <span class="c1">// our own IFI_xxx flags
-</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">ifi_addr</span><span class="p">;</span>  <span class="c1">// primary address
-</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">ifi_brdaddr</span><span class="p">;</span>  <span class="c1">// broadcast address
-</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">ifi_dstaddr</span><span class="p">;</span>  <span class="c1">// destination address
-</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="n">ifi_next</span><span class="p">;</span>  <span class="c1">// next of these structures
-</span><span class="c1"></span><span class="p">};</span>
-
-<span class="cp">#define IFI_ALIAS 1  </span><span class="c1">// ifi_addr is an alias
-</span><span class="c1"></span>
-<span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="nf">get_ifi_info</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">);</span>
-<span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="nf">Get_ifi_info</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">);</span>
-<span class="kt">void</span> <span class="nf">free_ifi_info</span><span class="p">(</span><span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="p">);</span>
-
-<span class="cp">#endif  </span><span class="c1">// __unp_ifi_h
-</span></code></pre></div><p>        本函数返回一个本结构的链表，结构中包括了典型的应用程序可能关注的信息：接口名、接口索引、$MTU$ 、硬件地址、接口标志、接口地址、广播地址、点到点链路的目的地址。$free_-ifi_-info$ 负责释放空间。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpifi.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="n">ifi</span><span class="p">,</span> <span class="o">*</span><span class="n">ifihead</span><span class="p">;</span>
-  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">sa</span><span class="p">;</span>
-  <span class="n">u_char</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="n">family</span><span class="p">,</span> <span class="n">doaliases</span><span class="p">;</span>
-
-  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">)</span>
-    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: prifinfo &lt;inet4|inet6&gt; &lt;doaliases&gt;&#34;</span><span class="p">);</span>
-
-  <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">&#34;inet4&#34;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="n">family</span> <span class="o">=</span> <span class="n">AF_INET</span><span class="p">;</span>
-  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">&#34;inet6&#34;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="n">family</span> <span class="o">=</span> <span class="n">AF_INET6</span><span class="p">;</span>
-  <span class="k">else</span>
-    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;invalid &lt;address-family&gt;&#34;</span><span class="p">);</span>
-  <span class="n">doaliases</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
-
-  <span class="k">for</span> <span class="p">(</span><span class="n">ifihead</span> <span class="o">=</span> <span class="n">ifi</span> <span class="o">=</span> <span class="n">Get_ifi_info</span><span class="p">(</span><span class="n">family</span><span class="p">,</span> <span class="n">doaliases</span><span class="p">);</span>
-    <span class="n">ifi</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">;</span> <span class="n">ifi</span> <span class="o">=</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_next</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;%s: &#34;</span><span class="p">,</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_name</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_index</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
-      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;(%d) &#34;</span><span class="p">,</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_index</span><span class="p">);</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;&lt;&#34;</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_flags</span> <span class="o">&amp;</span> <span class="n">IFF_UP</span><span class="p">)</span> <span class="n">printf</span><span class="p">(</span><span class="s">&#34;UP &#34;</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_flags</span> <span class="o">&amp;</span> <span class="n">IFF_BROADCAST</span><span class="p">)</span> <span class="n">printf</span><span class="p">(</span><span class="s">&#34;BCAST &#34;</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_flags</span> <span class="o">&amp;</span> <span class="n">IFF_MULTICAST</span><span class="p">)</span> <span class="n">printf</span><span class="p">(</span><span class="s">&#34;MCAST &#34;</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_flags</span> <span class="o">&amp;</span> <span class="n">IFF_LOOPBACK</span><span class="p">)</span> <span class="n">printf</span><span class="p">(</span><span class="s">&#34;LOOP &#34;</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_flags</span> <span class="o">&amp;</span> <span class="n">IFF_POINTOPOINT</span><span class="p">)</span> <span class="n">printf</span><span class="p">(</span><span class="s">&#34;P2P &#34;</span><span class="p">);</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;&gt;</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
-
-    <span class="k">if</span> <span class="p">((</span><span class="n">i</span> <span class="o">=</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_hlen</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-      <span class="n">ptr</span> <span class="o">=</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_haddr</span><span class="p">;</span>
-      <span class="k">do</span> <span class="p">{</span>
-        <span class="n">printf</span><span class="p">(</span><span class="s">&#34;%s%x&#34;</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_hlen</span><span class="p">)</span> <span class="o">&gt;</span> <span class="s">&#34;  &#34;</span> <span class="o">:</span> <span class="s">&#34;:&#34;</span><span class="p">,</span> <span class="o">*</span><span class="n">ptr</span><span class="o">++</span><span class="p">);</span>
-      <span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="o">--</span><span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">);</span>
-      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
-    <span class="p">}</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_mtu</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
-      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;  MTU: %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_mtu</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">((</span><span class="n">sa</span> <span class="o">=</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_addr</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
-      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;  IP addr: %s</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">Sock_ntop_host</span><span class="p">(</span><span class="n">sa</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="o">*</span><span class="n">sa</span><span class="p">)));</span>
-    <span class="k">if</span> <span class="p">((</span><span class="n">sa</span> <span class="o">=</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_brdaddr</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
-      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;  broadcast addr: %s</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">Sock_ntop_host</span><span class="p">(</span><span class="n">sa</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="o">*</span><span class="n">sa</span><span class="p">)));</span>
-    <span class="k">if</span> <span class="p">((</span><span class="n">sa</span> <span class="o">=</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_dstaddr</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
-      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;  destination addr: %s</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">Sock_ntop_host</span><span class="p">(</span><span class="n">sa</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="o">*</span><span class="n">sa</span><span class="p">)));</span>
-  <span class="p">}</span>
-
-  <span class="n">free_ifi_info</span><span class="p">(</span><span class="n">ifihead</span><span class="p">);</span>
-  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-<span class="p">}</span>
-</code></pre></div><p>        第一命令行参数指定<code>IPv4</code>/<code>IPv6</code>地址，第二个命令行参数 $0$ 指定不返回地址别名。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpifi.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="nf">get_ifi_info</span><span class="p">(</span><span class="kt">int</span> <span class="n">family</span><span class="p">,</span> <span class="kt">int</span> <span class="n">doaliases</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="n">ifi</span><span class="p">,</span> <span class="n">ifihead</span><span class="p">,</span> <span class="o">**</span><span class="n">ifipnext</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="n">len</span><span class="p">,</span> <span class="n">lastlen</span><span class="p">,</span> <span class="n">flags</span><span class="p">,</span> <span class="n">myflags</span><span class="p">,</span> <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">hlen</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="kt">char</span> <span class="o">*</span><span class="n">ptr</span><span class="p">,</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="n">lastname</span><span class="p">[</span><span class="n">IFNAMSIZ</span><span class="p">],</span> <span class="o">*</span><span class="n">cptr</span><span class="p">,</span> <span class="o">*</span><span class="n">haddr</span><span class="p">,</span> <span class="o">*</span><span class="n">sdlname</span><span class="p">;</span>
-  <span class="k">struct</span> <span class="n">ifconf</span> <span class="n">ifc</span><span class="p">;</span>
-  <span class="k">struct</span> <span class="n">ifreq</span> <span class="o">*</span><span class="n">ifr</span><span class="p">,</span> <span class="n">ifrcopy</span><span class="p">;</span>
-  <span class="k">struct</span> <span class="n">sockaddr_in</span> <span class="o">*</span><span class="n">sinptr</span><span class="p">;</span>
-  <span class="k">struct</span> <span class="n">sockaddr_in6</span> <span class="o">*</span><span class="n">sin6ptr</span><span class="p">;</span>
-
-  <span class="n">sockfd</span> <span class="o">=</span> <span class="n">Socket</span><span class="p">(</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">SOCK_DGRAM</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-  <span class="n">lastlen</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="n">len</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">ifreq</span><span class="p">);</span>  <span class="c1">// initial buffer size guess
-</span><span class="c1"></span>  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
-    <span class="n">buf</span> <span class="o">=</span> <span class="n">Malloc</span><span class="p">(</span><span class="n">len</span><span class="p">);</span>
-    <span class="n">ifc</span><span class="p">.</span><span class="n">ifc_len</span> <span class="o">=</span> <span class="n">len</span><span class="p">;</span>
-    <span class="n">ifc</span><span class="p">.</span><span class="n">ifc_buf</span> <span class="o">=</span> <span class="n">buf</span><span class="p">;</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SIOCGIFCONF</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ifc</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-      <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EINVAL</span> <span class="o">||</span> <span class="n">lastlen</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
-        <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;ioctl error&#34;</span><span class="p">);</span>
-    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-      <span class="k">if</span> <span class="p">(</span><span class="n">ifc</span><span class="p">.</span><span class="n">ifc_len</span> <span class="o">==</span> <span class="n">lastlen</span><span class="p">)</span>
-        <span class="k">break</span><span class="p">;</span>  <span class="c1">// success, len has not changed
-</span><span class="c1"></span>      <span class="n">lastlen</span> <span class="o">=</span> <span class="n">ifc</span><span class="p">.</span><span class="n">ifc_len</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="n">len</span> <span class="o">+=</span> <span class="mi">10</span> <span class="o">*</span><span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">ifreq</span><span class="p">);</span>  <span class="c1">// increment
-</span><span class="c1"></span>    <span class="n">free</span><span class="p">(</span><span class="n">buf</span><span class="p">);</span>
-  <span class="p">}</span>
-
-  <span class="n">ifihead</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-  <span class="n">ifipnext</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">ifihead</span><span class="p">;</span>
-  <span class="n">lastname</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="n">sdlname</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-
-  <span class="k">for</span> <span class="p">(</span><span class="n">ptr</span> <span class="o">=</span> <span class="n">buf</span><span class="p">;</span> <span class="n">ptr</span> <span class="o">&lt;</span> <span class="n">buf</span> <span class="o">+</span> <span class="n">ifc</span><span class="p">.</span><span class="n">ifc_len</span><span class="p">;</span> <span class="p">)</span> <span class="p">{</span>
-    <span class="n">ifr</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">ifreq</span> <span class="o">*</span><span class="p">)</span> <span class="n">ptr</span><span class="p">;</span>
-
-<span class="cp">#ifdef HAVE_SOCKADDR_SA_LEN
-</span><span class="cp"></span>    <span class="n">len</span> <span class="o">=</span> <span class="n">max</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr</span><span class="p">),</span> <span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">.</span><span class="n">sa_len</span><span class="p">);</span>
-<span class="cp">#else
-</span><span class="cp"></span>    <span class="k">switch</span><span class="p">(</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">.</span><span class="n">sa_family</span><span class="p">)</span> <span class="p">{</span>
-<span class="cp">#ifdef IPV6
-</span><span class="cp"></span>    <span class="k">case</span> <span class="nl">AF_INET6</span><span class="p">:</span>
-      <span class="n">len</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in6</span><span class="p">);</span>
-      <span class="k">break</span><span class="p">;</span>
-<span class="cp">#endif
-</span><span class="cp"></span>    <span class="k">case</span> <span class="nl">AF_INET</span><span class="p">:</span>
-    <span class="k">default</span><span class="o">:</span>
-      <span class="n">len</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr</span><span class="p">);</span>
-      <span class="k">break</span><span class="p">;</span>
-    <span class="p">}</span>
-<span class="cp">#endif  </span><span class="c1">// HAVE_SOCKADDR_SA_LEN
-</span><span class="c1"></span>
-    <span class="n">ptr</span> <span class="o">+=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_name</span><span class="p">)</span> <span class="o">+</span> <span class="n">len</span><span class="p">;</span>  <span class="c1">// for next one in buffer
-</span><span class="c1"></span>
-<span class="cp">#ifdef HAVE_SOCKADDR_DL_STRUCT
-</span><span class="cp"></span>    <span class="c1">// assume that AF_LINK precedes AF_INET or AF_INET6
-</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">.</span><span class="n">sa_family</span> <span class="o">==</span> <span class="n">AF_LINK</span><span class="p">)</span> <span class="p">{</span>
-      <span class="k">struct</span> <span class="n">sockaddr_dl</span> <span class="o">*</span><span class="n">sal</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_dl</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">;</span>
-      <span class="n">sdlname</span> <span class="o">=</span> <span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_name</span><span class="p">;</span>
-      <span class="n">idx</span> <span class="o">=</span> <span class="n">sdl</span><span class="o">-&gt;</span><span class="n">sdl_index</span><span class="p">;</span>
-      <span class="n">haddr</span> <span class="o">=</span> <span class="n">sdl</span><span class="o">-&gt;</span><span class="n">sdl_data</span> <span class="o">+</span> <span class="n">sdl</span><span class="o">-&gt;</span><span class="n">sdl_nlen</span><span class="p">;</span>
-      <span class="n">hlen</span> <span class="o">=</span> <span class="n">sdl</span><span class="o">-&gt;</span><span class="n">sdl_alen</span><span class="p">;</span>
-    <span class="p">}</span>
-<span class="cp">#endif
-</span><span class="cp"></span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">.</span><span class="n">sa_family</span> <span class="o">!=</span> <span class="n">family</span><span class="p">)</span>
-      <span class="k">continue</span><span class="p">;</span>  <span class="c1">// ignore if not desired address family
-</span><span class="c1"></span>
-    <span class="n">myflags</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="k">if</span> <span class="p">((</span><span class="n">cptr</span> <span class="o">=</span> <span class="n">strchr</span><span class="p">(</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_name</span><span class="p">,</span> <span class="sc">&#39;:&#39;</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
-      <span class="o">*</span><span class="n">cptr</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// replace colon with null
-</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">strncmp</span><span class="p">(</span><span class="n">lastname</span><span class="p">,</span> <span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_name</span><span class="p">,</span> <span class="n">IFNAMSIZ</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-      <span class="k">if</span> <span class="p">(</span><span class="n">doaliases</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
-        <span class="k">continue</span><span class="p">;</span>  <span class="c1">// already processed this interface
-</span><span class="c1"></span>      <span class="n">myflags</span> <span class="o">=</span> <span class="n">IFI_ALIAS</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="n">memcpy</span><span class="p">(</span><span class="n">lastname</span><span class="p">,</span> <span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_name</span><span class="p">,</span> <span class="n">IFNAMSIZ</span><span class="p">);</span>
-
-    <span class="n">ifrcopy</span> <span class="o">=</span> <span class="o">*</span><span class="n">ifr</span><span class="p">;</span>
-    <span class="n">Ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SIOCGIFFLAGS</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">);</span>
-    <span class="n">flags</span> <span class="o">=</span> <span class="n">ifrcopy</span><span class="p">.</span><span class="n">ifr_flags</span><span class="p">;</span>
-    <span class="k">if</span> <span class="p">((</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">IFF_UP</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
-      <span class="k">continue</span><span class="p">;</span>  <span class="c1">// ignore if interface not up
-</span><span class="c1"></span>
-    <span class="n">ifi</span> <span class="o">=</span> <span class="n">Calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">ifi_info</span><span class="p">));</span>
-    <span class="o">*</span><span class="n">ifipnext</span> <span class="o">=</span> <span class="n">ifi</span><span class="p">;</span>  <span class="c1">// prev points to this new one
-</span><span class="c1"></span>    <span class="n">ifipnext</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_next</span><span class="p">;</span>  <span class="c1">// pointer to next one goes here
-</span><span class="c1"></span>
-    <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_flags</span> <span class="o">=</span> <span class="n">flags</span><span class="p">;</span>  <span class="c1">// IFF_xxx values
-</span><span class="c1"></span>    <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_myflags</span> <span class="o">=</span> <span class="n">myflags</span><span class="p">;</span>  <span class="c1">// IFI_xxx values
-</span><span class="c1"></span>
-<span class="cp">#if defined(SIOCGIFMTU) &amp;&amp; defined(HAVE_STRUCT_IFREQ_IFR_MTU)
-</span><span class="cp"></span>    <span class="n">Ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SIOCGIFMTU</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">);</span>
-    <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_mtu</span> <span class="o">=</span> <span class="n">ifrcopy</span><span class="p">.</span><span class="n">ifr_mtu</span><span class="p">;</span>
-<span class="cp">#else
-</span><span class="cp"></span>    <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_mtu</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-<span class="cp">#endif
-</span><span class="cp"></span>
-    <span class="n">memcpy</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_name</span><span class="p">,</span> <span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_name</span><span class="p">,</span> <span class="n">IFI_NAME</span><span class="p">);</span>
-    <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_name</span><span class="p">[</span><span class="n">IFI_NAME</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="sc">&#39;\0&#39;</span><span class="p">;</span>
-    <span class="c1">// If the sockaddr_dl is from a different interface, ignore it
-</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">sdlname</span> <span class="o">==</span> <span class="nb">NULL</span> <span class="o">||</span> <span class="n">strcmp</span><span class="p">(</span><span class="n">sdlname</span><span class="p">,</span> <span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_name</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
-      <span class="n">idx</span> <span class="o">=</span> <span class="n">hlen</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_index</span> <span class="o">=</span> <span class="n">idx</span><span class="p">;</span>
-    <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_hlen</span> <span class="o">=</span> <span class="n">hlen</span><span class="p">;</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_hlen</span> <span class="o">&gt;</span> <span class="n">IFI_HADDR</span><span class="p">)</span>
-      <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_hlen</span> <span class="o">=</span> <span class="n">IFI_HADDR</span><span class="p">;</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">hlen</span><span class="p">)</span>
-      <span class="n">memcpy</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_haddr</span><span class="p">,</span> <span class="n">haddr</span><span class="p">,</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_hlen</span><span class="p">);</span>
-
-    <span class="k">switch</span> <span class="p">(</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">.</span><span class="n">sa_family</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">case</span> <span class="nl">AF_INET</span><span class="p">:</span>
-      <span class="n">sinptr</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">;</span>
-      <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_addr</span> <span class="o">=</span> <span class="n">Calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span> <span class="k">struct</span> <span class="n">sockaddr_in</span><span class="p">));</span>
-      <span class="n">memcpy</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_addr</span><span class="p">,</span> <span class="n">sinptr</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span><span class="p">));</span>
-
-<span class="cp">#ifdef SIOCGIFBRDADDR
-</span><span class="cp"></span>      <span class="k">if</span> <span class="p">(</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">IFF_BROADCAST</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">Ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SIOCGIFBRDADDR</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">);</span>
-        <span class="n">sinptr</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">.</span><span class="n">ifr_broadaddr</span><span class="p">;</span>
-        <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_brdaddr</span> <span class="o">=</span> <span class="n">Calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span><span class="p">));</span>
-        <span class="n">memcpy</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_brdaddr</span><span class="p">,</span> <span class="n">sinptr</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span><span class="p">));</span>
-      <span class="p">}</span>
-<span class="cp">#endif
-</span><span class="cp"></span>
-<span class="cp">#ifdef SIOCGIFDSTADDR
-</span><span class="cp"></span>      <span class="k">if</span> <span class="p">(</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">IFF_POINTOPOINT</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">Ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">sIOCGIFDSTADDR</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">);</span>
-        <span class="n">sinptr</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">.</span><span class="n">ifr_dstaddr</span><span class="p">;</span>
-        <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_dstaddr</span> <span class="o">=</span> <span class="n">Calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span><span class="p">));</span>
-        <span class="n">memcpy</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_dstaddr</span><span class="p">,</span> <span class="n">sinptr</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span><span class="p">));</span>
-      <span class="p">}</span>
-<span class="cp">#endif
-</span><span class="cp"></span>
-      <span class="k">break</span><span class="p">;</span>
-
-    <span class="n">cast</span> <span class="nl">AF_INET6</span><span class="p">:</span>
-      <span class="n">sin6ptr</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in6</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">;</span>
-      <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_addr</span> <span class="o">=</span> <span class="n">Calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in6</span><span class="p">));</span>
-      <span class="n">memcpy</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_addr</span><span class="p">,</span> <span class="n">sin6ptr</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in6</span><span class="p">));</span>
-
-<span class="cp">#ifdef SIOCGIFDSTADDR
-</span><span class="cp"></span>      <span class="k">if</span> <span class="p">(</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">IFF_POINTOPOINT</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">Ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SIOCGIFDSTADDR</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">);</span>
-        <span class="n">sin6ptr</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in6</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">.</span><span class="n">ifr_dstaddr</span><span class="p">;</span>
-        <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_dstaddr</span> <span class="o">=</span> <span class="n">Calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in6</span><span class="p">));</span>
-        <span class="n">memcpy</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_dstaddr</span><span class="p">,</span> <span class="n">sin6ptr</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in6</span><span class="p">));</span>
-<span class="cp">#endif
-</span><span class="cp"></span>
-      <span class="k">break</span><span class="p">;</span>
-
-    <span class="k">default</span><span class="o">:</span>
-      <span class="k">break</span><span class="p">;</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-  <span class="n">free</span><span class="p">(</span><span class="n">buf</span><span class="p">);</span>
-  <span class="k">return</span> <span class="n">ifihead</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="kt">void</span> <span class="n">free_ifi_info</span><span class="p">(</span><span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="n">ifihead</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="n">ifi</span><span class="p">,</span> <span class="o">*</span><span class="n">ifinext</span><span class="p">;</span>
-  <span class="k">for</span> <span class="p">(</span><span class="n">ifi</span> <span class="o">=</span> <span class="n">ifihead</span><span class="p">;</span> <span class="n">ifi</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">;</span> <span class="n">ifi</span> <span class="o">=</span> <span class="n">ifinext</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_addr</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
-      <span class="n">free</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_addr</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_brdaddr</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
-      <span class="n">free</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_brdaddr</span><span class="p">;</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_dstaddr</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
-      <span class="n">free</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_dstaddr</span><span class="p">);</span>
-    <span class="n">ifinext</span> <span class="o">=</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_next</span><span class="p">;</span>  <span class="c1">// can&#39;t fetch ifi_next after free()
-</span><span class="c1"></span>    <span class="n">free</span><span class="p">(</span><span class="n">ifi</span><span class="p">);</span>  <span class="c1">// the ifi_info{} itself
-</span><span class="c1"></span>  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div><p>        首先创建一个用于 $ioctl$ 的<code>UDP</code>套接字。$SIOCGIFCONF$ 请求存在的一个严重问题是，在缓冲区的大小不足以存放结果时，一些实现不返回错误，而是截断结果并返回成功 ( 即 $ioctl$ 返回值为 $0$ )。这意味着，要知道缓冲区是否足够大的唯一方法是：发出请求，记下返回的长度，用更大的缓冲区发出请求，比较之前记下的长度和返回的长度，当两个长度相同时，代表缓冲区足够大。</p>
-<h2 id="6-接口操作">6. 接口操作</h2>
-<p>        $SIOCGIFCONF$ 请求为每个已配置的接口返回其名字以及一个套接字地址结构。我们接着可以发出多个接口类其他请求以设置或获取每个接口的其他特征。这些请求获取版本通常由 $netstat$ 程序发出，设置版本通常由 $ifconfig$ 程序发出。任何用户都可以获取接口信息，设置接口信息却要求具备超级用户权限。这些请求接受或返回一个 $ifreq$ 结构中的信息，而这个结构的地址则作为 $ioctl$ 调用的第三个参数指定。接口总是以其名字标识，在 $ifreq$ 结构的 $ifr_-name$ 成员中指定，如 $leo$ 、$lo0$ 和 $ppp0$ 等。</p>
-<ul>
-<li>$SIOCGIFADDR$ ：在 $ifr_-addr$ 成员中返回单播地址；</li>
-<li>$SIOCSIFADDR$ ：用 $ifr_-addr$ 成员设置接口地址，这个接口的初始化函数也被调用；</li>
-<li>$SIOCGIFFLAGS$ ：在 $ifr_-flags$ 成员中返回接口标志，名字格式为 $IFF_-xxx$ ，在 &lt;$net/if.h$&gt; 头中定义；</li>
-<li>$SIOCSIFFLAGS$ ：用 $ifr_-flags$ 成员设置接口标志；</li>
-<li>$SIOCGIFDSTADDR$ ：在 $ifr_-dstaddr$ 成员中返回点到点地址；</li>
-<li>$SIOCSIFDSTADDR$ ：用 $ifr_-dstaddr$ 成员设置点到点地址；</li>
-<li>$SIOCGIFBRDADDR$ ：在 $ifr_-broadaddr$ 成员中返回广播地址。应用程序必须首先获取接口标志，然后发出正确的请求；</li>
-<li>$SIOCSIFBRDADDR$ ：用 $ifr_-broadaddr$ 成员设置广播地址；</li>
-<li>$SIOCGIFNETMASK$ ：在 $ifr_-addr$ 成员中返回子网掩码；</li>
-<li>$SIOCSIFNETMASK$ ：用 $ifr_-addr$ 成员设置子网掩码；</li>
-<li>$SIOCGIFMETRIC$ ：用 $ifr_-metric$ 成员返回接口测度。接口测度由内核为每个接口维护，不过使用它的是路由守护进程 $routed$ ，接口测度被 $routed$ 加到跳数上，使得某个接口更不被看好；</li>
-<li>$SIOCSIFMETRIC$ ：用 $ifr_-metric$ 成员设置接口的路由测度。</li>
-</ul>
-<h2 id="7-arp高速缓存操作">7. <code>ARP</code>高速缓存操作</h2>
-<p>        使用路由域套接字的系统往往改用路由套接字访问<code>ARP</code>高速缓存。这些请求使用 $arpreq$ 结构。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;net/if_arp.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="k">struct</span> <span class="n">arpreq</span> <span class="p">{</span>
-  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="n">arp_pa</span><span class="p">;</span>  <span class="c1">// protocol address
-</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="n">arp_ha</span><span class="p">;</span>  <span class="c1">// hadrware address
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">arp_flags</span><span class="p">;</span>  <span class="c1">// flags
-</span><span class="c1"></span><span class="p">};</span>
-
-<span class="cp">#define ATF_INUSE 0x01  </span><span class="c1">// entry in use
-</span><span class="c1"></span><span class="cp">#define ATF_COM 0x02  </span><span class="c1">// completed entry (hardware addr valid)
-</span><span class="c1"></span><span class="cp">#define ATF_PERM 0x04  </span><span class="c1">// permanent entry
-</span><span class="c1"></span><span class="cp">#define ATF_PUBL 0x08  </span><span class="c1">// published entry (respond for other host)
-</span></code></pre></div><p>        操纵<code>ARP</code>高速缓存的 $ioctl$ 请求有 $3$ 个：</p>
-<ul>
-<li>$SIOCSARP$ ：把一个新的表项加到<code>ARP</code>高速缓存，或者修改其中已经存在的一个表项。其中 $arp_-pa$ 是一个含有<code>IP</code>地址的网际网套接字地址结构，$arp_-ha$ 则是一个通用套接字地址结构，它的 $sa_-family$ 值为 $AF_-UNSPEC$ ，$sa_-data$ 中含有硬件地址。$ATF_-PERM$ 和 $ATF_-PUBL$ 这两个标志也可以由应用程序指定，另外两个标志由内核设置；</li>
-<li>$SIOCDARP$ ：从<code>ARP</code>高速缓存删除一个表项，调用者指定要删除表项的网际网地址；</li>
-<li>$SIOCGARP$ ：从<code>ARP</code>高速缓存获取一个表项，调用者指定网际网地址，相应的硬件地址 ( 例如以太网地址 ) 随标志一起返回。</li>
-</ul>
-<h2 id="8-路由表操作">8. 路由表操作</h2>
-<p>        有些系统提供 $2$ 个用于操纵路由表的 $ioctl$ 请求，这 $2$ 个请求要求 $ioctl$ 的第三个参数是指向某个 $rtentry$ 结构的一个指针，该结构定义在 &lt;$net/route.h$&gt; 中。这些请求通常由 $route$ 发出，并且只有超级用户才能发出。在支持路由域套接字的系统中，这些请求由路由套接字而不是 $ioctl$ 执行。</p>
-<ul>
-<li>$SIOCADDRT$ ：往路由表添加一个表项；</li>
-<li>$SIOCDELRT$ ：从路由表删除一个表项。</li>
-</ul>
-
-            </div>
-            <div class="meta post-footer"> 
-                <span>2022 Feb 14 15:10</span> 
-                <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B10/"><i class="fas fa-link"></i> link</a>
             </div>
         </div>
         

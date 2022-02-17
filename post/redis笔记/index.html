@@ -288,8 +288,12 @@ dir /data
 </ol>
 <p>执行 $info\ \ Persistence$ 指令可以查询持久化信息。<br>
 当</p>
-<p>$aof_-current_-size&gt;auto-aof-rewrite-min-size\
-\Large\frac{aof_-current_-size-aof_-base_-size}{aof_-base_-size}\normalsize&gt;=auto-aof-rewrite-percentage$,</p>
+<p>$$
+aof_-current_-size &gt; \\
+auto-aof-rewrite-min-size \times \\
+\frac{aof_-current_-size\ - \ aof_-base_-base_-size}{aof_-base_-size} &gt;= \\
+auto-aof-rewrite-percentage
+$$</p>
 <p>时触发自动重写。</p>
 <h3 id="65-对比">6.5 对比</h3>
 <table>
@@ -456,11 +460,11 @@ dir /data
 </ol>
 <h4 id="1111-授权访问">11.1.1 授权访问</h4>
 <ol>
-<li>$master$ 配置文件中设置密码 $requirepass\ \ [password]$,</li>
-<li>$master$ 客户端发送命令设置密码 $config\ \ set\ \ requirepass\ \ [password]/config\ \ get\ \ requirepass$,</li>
-<li>$slave$ 配置文件设置密码 $masterauth\ \ [password]$,</li>
-<li>$slave$ 客户端发送命令设置密码 $auth\ \ [password]$,</li>
-<li>启动客户端设置密码 $redis-cli\ \ -a\ \ [password]$.</li>
+<li>$master$ 配置文件中设置密码 $requirepass$ $[password]$,</li>
+<li>$master$ 客户端发送命令设置密码 $config$ $set$ $requirepass$ $[password]$ / $config$ $get$ $requirepass$,</li>
+<li>$slave$ 配置文件设置密码 $masterauth$ $[password]$,</li>
+<li>$slave$ 客户端发送命令设置密码 $auth$ $[password]$,</li>
+<li>启动客户端设置密码 $redis-cli$ $-a$ $[password]$.</li>
 </ol>
 <h3 id="112-数据同步">11.2 数据同步</h3>
 <ol>
@@ -478,7 +482,7 @@ dir /data
 <ol>
 <li>测算 $master$ 和 $slave$ 的重连时长 $second$,</li>
 <li>获取 $master$ 的 $write_-size_-per_-second$,</li>
-<li>$repl-backlog-size = 2 \times second \times write_-size_-per_-second$.</li>
+<li>$repl-backlog-size$ $=$ $2$ $\times$ $second$ $\times$ $write_-size_-per_-second$.</li>
 </ol>
 <p>在复制过程中，通过设置 $slave-serve-stale-data$ 来令 $slave$ 关闭对外服务。如果 $slave$ 过多导致 $master$ 带宽不足，应调整结构，最好为树状结构。</p>
 <h3 id="113-命令传播">11.3 命令传播</h3>
@@ -587,7 +591,8 @@ cluster-node-timeout 30000
 # master 连接的 slave 的最小数量
 # cluster-migration-barrier 1
 </code></pre><h3 id="132-启动">13.2 启动</h3>
-<p>$redis-cli\ \ &ndash;cluster\ \ create\ \ &ndash;replicas\ \ [num]\ \ [master_-host:ip]&hellip;\ \ [slave_-host:ip]$ 开启集群，可以通过 $&ndash;replicas$ 指定内部结构，$num$ 代表一台 $master$ 有 $num$ 台 $slave$ ，后续输入的主从地址要符合结构，先输入所有的 $master$ ，再按序输入所有的 $slave$ 。<br>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash">redis-cli --cluster create --replicas <span class="o">[</span>num<span class="o">]</span> <span class="o">[</span>master_host:ip<span class="o">]</span>... <span class="o">[</span>slave_host:ip<span class="o">]</span>
+</code></pre></div><p>开启集群，可以通过 $&ndash;replicas$ 指定内部结构，$num$ 代表一台 $master$ 有 $num$ 台 $slave$ ，后续输入的主从地址要符合结构，先输入所有的 $master$ ，再按序输入所有的 $slave$ 。<br>
 在连接集群服务器时，使用 $redis-cli\ \ -c$ ，会将不属于当前服务器管理的槽的数据自动转到其他服务器或者从其他服务器取出当前服务器管理的槽的数据。</p>
 <h3 id="133-操作">13.3 操作</h3>
 <ol>
@@ -670,7 +675,7 @@ cluster-node-timeout 30000
 </ol>
 <p>监控命令：</p>
 <ol>
-<li>$redis-benchmark\ \ -h\ \ [host]\ \ -p\ \ [port]\ \ -c\ \ [connect]\ \ -n[request]$,<br>
+<li>$redis-benchmark$ $-h$ $[host]$ $-p$ $[port]$ $-c$ $[connect]$ $-n[request]$,<br>
 $-c$ 指定连接数，$-n$ 指定请求数.</li>
 <li>$redis-cli$,
 <ol>
