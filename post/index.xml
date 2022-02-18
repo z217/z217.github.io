@@ -7,7 +7,19 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2022, z217 and the hugo authors, all rights reserved.</copyright>
-    <lastBuildDate>Thu, 17 Feb 2022 14:28:16 +0800</lastBuildDate><atom:link href="https://z217blog.cn/post/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Fri, 18 Feb 2022 14:37:07 +0800</lastBuildDate><atom:link href="https://z217blog.cn/post/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Unix网络编程（15）：程序设计范式</title>
+      <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B15/</link>
+      <pubDate>Fri, 18 Feb 2022 14:37:07 +0800</pubDate>
+      
+      <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B15/</guid>
+      <description>开发一个Unix服务器程序时，我们有如下类型的进程控制可选：
+ 迭代服务器 ( $iterative$ $server$ ) 程序，在一个主循环内处理所有客户服务。这种类型的适用情形极为有限，因为这样的服务器在完成当前客户的服务之前无法处理后续等待的客户； 并发服务器 ( $concurrent$ $server$ ) 程序，它为每个客户调用 $fork$ 派生一个子进程。传统上大多数Unix服务器程序属于这种类型； 通过 $select$ 处理任意多个客户的服务器； 预先派生子进程 ( $preforking$ ) 程序，它让服务器在启动阶段调用 $fork$ 创建一个子进程池，每个客户请求由当前可用子进程池中的某个闲置子进程处理； 预先创建线程 ( $prethreading$ ) 程序，它让服务器在启动阶段创建一个线程池，每个客户由当前可用线程池中的某个闲置线程处理。   TCP客户程序则有以下范式：
+ 以停-等方式运作的客户程序，进程在被阻塞以等待用户输入期间，看不到诸如对端关闭连接等网络事件，而且批处理效率极低； 调用 $select$ 监听的客户程序，可以得到网络事件通知； 非阻塞式I/O客户程序； 多进程客户程序； 多线程客户程序。  1. TCP预先派生子进程服务器程序，accept无上锁保护  这种技术的优点在于无须引入父进程执行 $fork$ 的开销就能处理新客户，缺点是父进程必须在服务器启动阶段配置预先派生子进程数量。可选的改进方案是增加一些代码，让父进程监听可用子进程数，一旦降低到某个阈值就派生额外的子进程；同样的，一旦可用子进程数增加到某个阈值就终止一些过剩的子进程。
+#include &amp;#34;unp.h&amp;#34; #define MAXN 16384 // max # bytes client can request  static int nchildren; static pid_t *pids; int main(int argc, char **argv) { int listenfd, i; socklen_t addrlen; void sig_int(int); pid_t child_make(int, int, int); if (argc == 3) listenfd = Tcp_listen(NULL.</description>
+    </item>
+    
     <item>
       <title>Unix网络编程（14）：线程</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B14/</link>

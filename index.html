@@ -88,6 +88,24 @@
     
     
     <div class="list-item">
+        <a class="entry-title" href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B15/">Unix网络编程（15）：程序设计范式</a>
+        
+        
+        <p>《Unix网络编程》读书笔记（15）</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2022 Feb 18 14:37
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: Web, C&C++
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
         <a class="entry-title" href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B14/">Unix网络编程（14）：线程</a>
         
         
@@ -159,24 +177,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B10/">Unix网络编程（10）：ioctl</a>
-        
-        
-        <p>《Unix网络编程》读书笔记（10）</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2022 Feb 14 15:10
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: Web, C&C++
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -185,6 +185,542 @@
     <div class="section-title">μblog</div>
     <div class="posts">
         
+        
+        <div class="post">
+            
+            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B15/">Unix网络编程（15）：程序设计范式</a></h1>
+            <div class="post-content">
+                <p>        开发一个<code>Unix</code>服务器程序时，我们有如下类型的进程控制可选：</p>
+<ul>
+<li><strong>迭代服务器</strong> ( $iterative$ $server$ ) 程序，在一个主循环内处理所有客户服务。这种类型的适用情形极为有限，因为这样的服务器在完成当前客户的服务之前无法处理后续等待的客户；</li>
+<li><strong>并发服务器</strong> ( $concurrent$ $server$ ) 程序，它为每个客户调用 $fork$ 派生一个子进程。传统上大多数<code>Unix</code>服务器程序属于这种类型；</li>
+<li>通过 $select$ 处理任意多个客户的服务器；</li>
+<li><strong>预先派生子进程</strong> ( $preforking$ ) 程序，它让服务器在启动阶段调用 $fork$ 创建一个子进程池，每个客户请求由当前可用子进程池中的某个闲置子进程处理；</li>
+<li><strong>预先创建线程</strong> ( $prethreading$ ) 程序，它让服务器在启动阶段创建一个线程池，每个客户由当前可用线程池中的某个闲置线程处理。</li>
+</ul>
+<p>        <code>TCP</code>客户程序则有以下范式：</p>
+<ul>
+<li>以停-等方式运作的客户程序，进程在被阻塞以等待用户输入期间，看不到诸如对端关闭连接等网络事件，而且批处理效率极低；</li>
+<li>调用 $select$ 监听的客户程序，可以得到网络事件通知；</li>
+<li>非阻塞式<code>I/O</code>客户程序；</li>
+<li>多进程客户程序；</li>
+<li>多线程客户程序。</li>
+</ul>
+<h2 id="1-tcp预先派生子进程服务器程序accept无上锁保护">1. <code>TCP</code>预先派生子进程服务器程序，<code>accept</code>无上锁保护</h2>
+<p>        这种技术的优点在于无须引入父进程执行 $fork$ 的开销就能处理新客户，缺点是父进程必须在服务器启动阶段配置预先派生子进程数量。可选的改进方案是增加一些代码，让父进程监听可用子进程数，一旦降低到某个阈值就派生额外的子进程；同样的，一旦可用子进程数增加到某个阈值就终止一些过剩的子进程。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="cp">#define MAXN 16384  </span><span class="c1">// max # bytes client can request
+</span><span class="c1"></span>
+<span class="k">static</span> <span class="kt">int</span> <span class="n">nchildren</span><span class="p">;</span>
+<span class="k">static</span> <span class="n">pid_t</span> <span class="o">*</span><span class="n">pids</span><span class="p">;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">listenfd</span><span class="p">,</span> <span class="n">i</span><span class="p">;</span>
+  <span class="n">socklen_t</span> <span class="n">addrlen</span><span class="p">;</span>
+  <span class="kt">void</span> <span class="n">sig_int</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+  <span class="n">pid_t</span> <span class="n">child_make</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">);</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">listenfd</span> <span class="o">=</span> <span class="n">Tcp_listen</span><span class="p">(</span><span class="nb">NULL</span><span class="p">.</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">addrlen</span><span class="p">);</span>
+  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">==</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">listenfd</span> <span class="o">=</span> <span class="n">Tcp_listen</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">addrlen</span><span class="p">);</span>
+  <span class="k">else</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: serv02 [ &lt;host&gt; ] &lt;port#&gt; &lt;#children&gt;&#34;</span><span class="p">);</span>
+  <span class="n">nchildren</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="n">argc</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]);</span>
+  <span class="n">pids</span> <span class="o">=</span> <span class="n">Calloc</span><span class="p">(</span><span class="n">nchildren</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">pid_t</span><span class="p">));</span>
+
+  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nchildren</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+    <span class="n">pids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">child_make</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">listendfd</span><span class="p">,</span> <span class="n">addrlen</span><span class="p">);</span>  <span class="c1">// parent returns
+</span><span class="c1"></span>
+  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">sig_int</span><span class="p">);</span>
+
+  <span class="k">for</span> <span class="p">(;;)</span>
+    <span class="n">pause</span><span class="p">();</span>  <span class="c1">// everything done by children
+</span><span class="c1"></span><span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">sig_int</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+
+  <span class="c1">// terminate all children
+</span><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nchildren</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+    <span class="n">kill</span><span class="p">(</span><span class="n">pids</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">SIGTERM</span><span class="p">);</span>
+  <span class="k">while</span> <span class="p">(</span><span class="n">wait</span><span class="p">(</span><span class="nb">NULL</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1">// wait for all children
+</span><span class="c1"></span>    <span class="k">continue</span><span class="p">;</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">ECHILD</span><span class="p">)</span>
+    <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;wait error&#34;</span><span class="p">);</span>
+
+  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="n">pid_t</span> <span class="nf">child_make</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="kt">int</span> <span class="n">listenfd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">addrlen</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">pid_t</span> <span class="n">pid</span><span class="p">;</span>
+  <span class="kt">void</span> <span class="n">child_main</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">);</span>
+
+  <span class="k">if</span> <span class="p">((</span><span class="n">pid</span> <span class="o">=</span> <span class="n">Fork</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pid</span><span class="p">;</span>  <span class="c1">// parent
+</span><span class="c1"></span>
+  <span class="n">child_main</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">listenfd</span><span class="p">,</span> <span class="n">addrlen</span><span class="p">);</span>  <span class="c1">// never returns
+</span><span class="c1"></span><span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">child_main</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="kt">int</span> <span class="n">listenfd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">addrlen</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">connfd</span><span class="p">;</span>
+  <span class="kt">void</span> <span class="n">web_child</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+  <span class="n">socklen_t</span> <span class="n">clilen</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">cliaddr</span><span class="p">;</span>
+
+  <span class="n">cliaddr</span> <span class="o">=</span> <span class="n">Malloc</span><span class="p">(</span><span class="n">addrlen</span><span class="p">);</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;child %ld starting</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span> <span class="n">getpid</span><span class="p">());</span>
+  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+    <span class="n">clilen</span> <span class="o">=</span> <span class="n">addrlen</span><span class="p">;</span>
+    <span class="n">connfd</span> <span class="o">=</span> <span class="n">Accept</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="n">cliaddr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">clilen</span><span class="p">);</span>
+    <span class="n">web_child</span><span class="p">(</span><span class="n">connfd</span><span class="p">);</span>  <span class="c1">// process the request
+</span><span class="c1"></span>    <span class="n">Close</span><span class="p">(</span><span class="n">connfd</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">web_child</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">ntowrite</span><span class="p">;</span>
+  <span class="n">ssize_t</span> <span class="n">nread</span><span class="p">;</span>
+  <span class="kt">char</span> <span class="n">line</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="n">MAXN</span><span class="p">];</span>
+
+  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">((</span><span class="n">nread</span> <span class="o">=</span> <span class="n">Realine</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="k">return</span><span class="p">;</span>  <span class="c1">// connection closed by other end
+</span><span class="c1"></span>
+    <span class="c1">// line from client specifies #bytes to write back
+</span><span class="c1"></span>    <span class="n">ntowrite</span> <span class="o">=</span> <span class="n">atol</span><span class="p">(</span><span class="n">line</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">((</span><span class="n">ntowrite</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">||</span> <span class="p">(</span><span class="n">ntowrite</span> <span class="o">&gt;</span> <span class="n">MAXN</span><span class="p">))</span>
+      <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;client request for %d bytes&#34;</span><span class="p">,</span> <span class="n">ntowrite</span><span class="p">);</span>
+
+    <span class="n">Writen</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">result</span><span class="p">,</span> <span class="n">ntowrite</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><p>        父进程在派生任何子进程之前创建监听套接字，从而每次 $fork$ 时，所有描述符也被复制。服务器进程在程序启动阶段派生 $N$ 个子进程，它们各自调用 $accept$ 并处于休眠状态。当客户连接到达时，所有子进程均被唤醒，因为它们使用同一个监听描述符，但是只有最先运行的子进程会获得连接，其余子进程会重新休眠。这就是<em><strong>惊群</strong></em> ( $thundering$ $herd$ ) 问题，尽管只有一个子进程获得连接，所有的子进程却都被唤醒了，这样会导致性能受损。<br>
+        与这个例子相关的另一种现象是 $select$ 冲突。如果我们通过 $select$ 来 $accept$ 新客户，那么内核会唤醒所有在阻塞在 $select$ 并且等待同一个监听套接字的进程，从而产生冲突。从以上问题，我们可以得出：如果有多个进程阻塞在引用同一个实体的描述符上，最好直接阻塞在 $accept$ 等函数中，而不是 $select$ 上。</p>
+<h2 id="2-tcp预先派生子进程服务器程序accept使用文件上锁保护">2. <code>TCP</code>预先派生子进程服务器程序，<code>accept</code>使用文件上锁保护</h2>
+<p>        允许多个进程在引用同一个监听套接字的描述上调用 $accept$ 仅适用于在内核中实现 $accept$ 的源自 $Berkeley$ 的内核。在其他内核，解决办法是让应用程序在调用 $accept$ 前后使用锁，从而在任意时刻最多只有一个进程阻塞在 $accept$ 调用上。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="c1">// 派生子进程之前初始化锁
+</span><span class="c1"></span><span class="n">my_lock_init</span><span class="p">(</span><span class="s">&#34;/tmp/lock.XXXXXX&#34;</span><span class="p">);</span>  <span class="c1">// one lock file for all children
+</span><span class="c1"></span><span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nchildren</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+  <span class="n">pids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">child_make</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">listenfd</span><span class="p">,</span> <span class="n">addrlen</span><span class="p">);</span>  <span class="c1">// parent returns
+</span><span class="c1"></span>
+<span class="c1">// 子进程调用accept前后加锁
+</span><span class="c1"></span><span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+  <span class="n">clilen</span> <span class="o">=</span> <span class="n">addrlen</span><span class="p">;</span>
+  <span class="n">my_lock_wait</span><span class="p">();</span>
+  <span class="n">connfd</span> <span class="o">=</span> <span class="n">Accept</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="n">cliaddr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">clilen</span><span class="p">);</span>
+  <span class="n">my_lock_release</span><span class="p">();</span>
+
+  <span class="n">web_child</span><span class="p">(</span><span class="n">connfd</span><span class="p">);</span>  <span class="c1">// process request
+</span><span class="c1"></span>  <span class="n">Close</span><span class="p">(</span><span class="n">connfd</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="k">static</span> <span class="k">struct</span> <span class="n">flock</span> <span class="n">lock_it</span><span class="p">,</span> <span class="n">unlock_it</span><span class="p">;</span>
+<span class="k">static</span> <span class="kt">int</span> <span class="n">lock_fd</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+
+<span class="c1">// fcntl() will fail if my_lock_init() not called
+</span><span class="c1"></span><span class="kt">void</span> <span class="nf">my_lock_init</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">pathname</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">char</span> <span class="n">lock_file</span><span class="p">[</span><span class="mi">1024</span><span class="p">];</span>
+
+  <span class="c1">// must copy caller&#39;s string, incase is&#39;s a constant
+</span><span class="c1"></span>  <span class="n">strncpy</span><span class="p">(</span><span class="n">lock_file</span><span class="p">,</span> <span class="n">pathname</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">lock_file</span><span class="p">));</span>
+  <span class="n">lock_fd</span> <span class="o">=</span> <span class="n">Mkstemp</span><span class="p">(</span><span class="n">lock_file</span><span class="p">);</span>
+
+  <span class="n">Unlink</span><span class="p">(</span><span class="n">lock_file</span><span class="p">);</span>  <span class="c1">// but lock_fd remains open
+</span><span class="c1"></span>
+  <span class="n">lock_it</span><span class="p">.</span><span class="n">l_type</span> <span class="o">=</span> <span class="n">F_WRLCK</span><span class="p">;</span>
+  <span class="n">lock_it</span><span class="p">.</span><span class="n">l_whence</span> <span class="o">=</span> <span class="n">SEEK_SET</span><span class="p">;</span>
+  <span class="n">lock_it</span><span class="p">.</span><span class="n">l_start</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="n">lock_it</span><span class="p">.</span><span class="n">l_len</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+  <span class="n">unlock_it</span><span class="p">.</span><span class="n">l_type</span> <span class="o">=</span> <span class="n">F_UNLCK</span><span class="p">;</span>
+  <span class="n">unlock_it</span><span class="p">.</span><span class="n">l_whence</span> <span class="o">=</span> <span class="n">SEEK_SET</span><span class="p">;</span>
+  <span class="n">unlock_it</span><span class="p">.</span><span class="n">l_start</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="n">unlock_it</span><span class="p">.</span><span class="n">l_len</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div><p>        调用者将一个路径名模版指定为 $my_-lock_-init$ 函数的参数，$mktemp$ 函数根据该模版创建一个唯一路径名。本函数随后创建一个具备该路径名的文件并立即 $unlink$ 掉，这样以后程序崩溃，这个临时文件也会消失。然而只要有一个进程打开着这个文件，这个文件就不会消失。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="kt">void</span> <span class="nf">my_lock_wait</span><span class="p">()</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">rc</span><span class="p">;</span>
+
+  <span class="k">while</span> <span class="p">((</span><span class="n">rc</span> <span class="o">=</span> <span class="n">fcntl</span><span class="p">(</span><span class="n">lock_fd</span><span class="p">,</span> <span class="n">F_SETLKW</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">lock_it</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">==</span> <span class="n">EINTR</span><span class="p">)</span>
+      <span class="k">continue</span><span class="p">;</span>
+    <span class="k">else</span>
+      <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;fcntl error for my_lock_wait&#34;</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">my_lock_release</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">fcntl</span><span class="p">(</span><span class="n">lock_fd</span><span class="p">,</span> <span class="n">F_SETLKW</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">unlock_it</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;fcntl error for my_lock_release&#34;</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><h2 id="3-tcp预先派生子进程服务器程序accept使用线程上锁保护">3. <code>TCP</code>预先派生子进程服务器程序，<code>accept</code>使用线程上锁保护</h2>
+<p>        我们有多种方法实现进程上锁，<code>POSIX</code>文件上锁方法可移植到所有<code>POSIX</code>兼容系统，不过因为涉及文件操作，可能比较耗时。在不同进程之间使用线程上锁，要求：(a)互斥锁变量必须存放在由所有进程共享的内存中；(b)必须告知线程函数库这是在不同进程之间共享的互斥锁。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpthread.h&#34;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;sys/mman.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="k">static</span> <span class="n">pthread_mutex_t</span> <span class="o">*</span><span class="n">mptr</span><span class="p">;</span>  <span class="c1">// actual mutex will be in shared memory
+</span><span class="c1"></span>
+<span class="kt">void</span> <span class="nf">my_lock_init</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">pathname</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">fd</span><span class="p">;</span>
+  <span class="n">pthread_mutexattr_t</span> <span class="n">mattr</span><span class="p">;</span>
+
+  <span class="n">fd</span> <span class="o">=</span> <span class="n">Open</span><span class="p">(</span><span class="s">&#34;/dev/zero&#34;</span><span class="p">,</span> <span class="n">O_RDWR</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+  <span class="n">mptr</span> <span class="o">=</span> <span class="n">Mmap</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">pthread_mutex_t</span><span class="p">),</span> <span class="n">PROT_READ</span> <span class="o">|</span> <span class="n">PROT_WRITE</span><span class="p">,</span>
+              <span class="n">MAP_SHARED</span><span class="p">,</span> <span class="n">fd</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="n">Close</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
+
+  <span class="n">Pthread_mutexattr_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">mattr</span><span class="p">);</span>
+  <span class="n">Pthread_mutexattr_setpshared</span><span class="p">(</span><span class="o">&amp;</span><span class="n">mattr</span><span class="p">,</span> <span class="n">PTHREAD_PROCESS_SHARED</span><span class="p">);</span>
+  <span class="n">Pthread_mutex_init</span><span class="p">(</span><span class="n">mptr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">mattr</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><p>        打开 $/dev/zero$ 然后调用 $mmap$ ，映射的字节数是一个 $pthread_-mutex_-t$ 类型的变量大小。随后关闭描述，因为该描述符已经被内存映射了。在先前的互斥锁中，我们使用 $PTHREAD_-MUTEX_-INTIALIZER$ 初始化全局或静态互斥锁变量。然而对于一个存放在共享内存区的互斥锁，必须调用一些 $pthread$ 库函数告知该函数库这是一个位于共享内存区的互斥锁，用于不同进程间上锁。我们首先为该互斥锁以默认属性初始化一个 $pthread_-mutexattr_-t$ 结构，然后赋予该结构 $PTHREAD_-PROCESS_-SHARED$ 属性 ( 该结构默认属性为 $PTHREAD_-PROCESS_-PRIVATE$ ，即只能在进程内使用 )。最后调用 $pthread_-mutex_-init$ 函数初始化共享内存区的互斥锁。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="kt">void</span> <span class="nf">my_lock_wait</span><span class="p">()</span> <span class="p">{</span>
+  <span class="n">Pthread_mutex_lock</span><span class="p">(</span><span class="n">mptr</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">my_lock_release</span><span class="p">()</span> <span class="p">{</span>
+  <span class="n">Pthread_mutex_unlock</span><span class="p">(</span><span class="n">mptr</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><h2 id="4-tcp预先派生子进程服务器程序传递描述符">4. <code>TCP</code>预先派生子进程服务器程序，传递描述符</h2>
+<p>        这个版本是让父进程调用 $accept$ ，然后将描述符传递给子进程。这种技术会使代码变得有点复杂，因为父进程必须跟踪子进程的忙闲状态。为了实现这个机制，我们必须为每个子进程维护一个信息结构。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
+  <span class="n">pid_t</span> <span class="n">child_pid</span><span class="p">;</span>  <span class="c1">// process ID;
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">child_pipefd</span><span class="p">;</span>  <span class="c1">// parent&#39;s stream pipe to/from child
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">child_status</span><span class="p">;</span>  <span class="c1">// 0 = ready
+</span><span class="c1"></span>  <span class="kt">long</span> <span class="n">child_count</span><span class="p">;</span>  <span class="c1">// # connections handled
+</span><span class="c1"></span><span class="p">}</span> <span class="n">Child</span><span class="p">;</span>
+
+  <span class="n">Child</span> <span class="o">*</span><span class="n">cptr</span><span class="p">;</span>  <span class="c1">// array of Child structures; calloc&#39; ed
+</span></code></pre></div><p>        我们在该结构中存放子进程<code>ID</code>、父进程中连接到子进程的字节流管道描述符、子进程状态和子进程已处理客户的计数。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="n">pid_t</span> <span class="nf">child_make</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="kt">int</span> <span class="n">listenfd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">addrlen</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">sockfd</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+  <span class="n">pid_t</span> <span class="n">pid</span><span class="p">;</span>
+  <span class="kt">void</span> <span class="n">child_main</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">);</span>
+
+  <span class="n">Socketpair</span><span class="p">(</span><span class="n">AF_LOCAL</span><span class="p">,</span> <span class="n">SOCK_STREAM</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">sockfd</span><span class="p">);</span>
+
+  <span class="k">if</span> <span class="p">((</span><span class="n">pid</span> <span class="o">=</span> <span class="n">Fork</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">Close</span><span class="p">(</span><span class="n">sockfd</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+    <span class="n">cptr</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">child_pid</span> <span class="o">=</span> <span class="n">pid</span><span class="p">;</span>
+    <span class="n">cptr</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">child_pipefd</span> <span class="o">=</span> <span class="n">sockfd</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+    <span class="n">cptr</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">child_status</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">pid</span><span class="p">;</span>  <span class="c1">// parent
+</span><span class="c1"></span>  <span class="p">}</span>
+
+  <span class="n">Dup2</span><span class="p">(</span><span class="n">sockfd</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">STDERR_FILENO</span><span class="p">);</span>  <span class="c1">// child&#39;s stream pipe to parent
+</span><span class="c1"></span>  <span class="n">Close</span><span class="p">(</span><span class="n">sockfd</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+  <span class="n">Close</span><span class="p">(</span><span class="n">sockfd</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+  <span class="n">Close</span><span class="p">(</span><span class="n">listenfd</span><span class="p">);</span>  <span class="c1">// child does not need this open
+</span><span class="c1"></span>  <span class="n">child_main</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">listenfd</span><span class="p">,</span> <span class="n">addrlen</span><span class="p">);</span>  <span class="c1">// never returns
+</span><span class="c1"></span><span class="p">}</span>
+</code></pre></div><p>        $child_-make$ 函数在调用 $fork$ 前先创建一个字节流管道。派生出子进程后，父进程关闭其中一个描述符 $sockfd[1]$ ，子进程关闭另一个描述符 $sockfd[0]$ 。子进程还把流管道的自身拥有端 $sockfd[1]$ 复制到标准错误输出，这样每个子进程就通过读写标准错误输出和父进程通信。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&#34;child.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="k">static</span> <span class="kt">int</span> <span class="n">nchildren</span><span class="p">;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">listenfd</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">navail</span><span class="p">,</span> <span class="n">maxfd</span><span class="p">,</span> <span class="n">nsel</span><span class="p">,</span> <span class="n">connfd</span><span class="p">,</span> <span class="n">rc</span><span class="p">;</span>
+  <span class="kt">void</span> <span class="n">sig_int</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+  <span class="n">pid_t</span> <span class="n">child_make</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">);</span>
+  <span class="n">ssize_t</span> <span class="n">n</span><span class="p">;</span>
+  <span class="n">fd_set</span> <span class="n">rset</span><span class="p">,</span> <span class="n">masterset</span><span class="p">;</span>
+  <span class="n">socklen_t</span> <span class="n">addrlen</span><span class="p">,</span> <span class="n">clilen</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">cliaddr</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">listenfd</span> <span class="o">=</span> <span class="n">Tcp_listen</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">addrlen</span><span class="p">);</span>
+  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">==</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">listenfd</span> <span class="o">=</span> <span class="n">Tcp_listen</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">addrlen</span><span class="p">);</span>
+  <span class="k">else</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: serv05 [ &lt;host&gt; ] &lt;potr#&gt; &lt;#children&gt;&#34;</span><span class="p">);</span>
+
+  <span class="n">FD_ZERO</span><span class="p">(</span><span class="o">&amp;</span><span class="n">masterset</span><span class="p">);</span>
+  <span class="n">FD_SET</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">masterset</span><span class="p">);</span>
+  <span class="n">maxfd</span> <span class="o">=</span> <span class="n">listenfd</span><span class="p">;</span>
+  <span class="n">cliaddr</span> <span class="o">=</span> <span class="n">Malloc</span><span class="p">(</span><span class="n">addrlen</span><span class="p">);</span>
+
+  <span class="n">nchildren</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="n">argc</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]);</span>
+  <span class="n">navail</span> <span class="o">=</span> <span class="n">nchildren</span><span class="p">;</span>
+  <span class="n">cptr</span> <span class="o">=</span> <span class="n">Calloc</span><span class="p">(</span><span class="n">nchildren</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">Child</span><span class="p">));</span>
+
+  <span class="c1">// prefork all the children
+</span><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nchildren</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">child_make</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">listenfd</span><span class="p">,</span> <span class="n">addrlen</span><span class="p">);</span>  <span class="c1">// parent returns
+</span><span class="c1"></span>    <span class="n">FD_SET</span><span class="p">(</span><span class="n">cptr</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">child_pipefd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">masterset</span><span class="p">);</span>
+    <span class="n">maxfd</span> <span class="o">=</span> <span class="n">max</span><span class="p">(</span><span class="n">maxfd</span><span class="p">,</span> <span class="n">cptr</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">child_pipefd</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">sig_int</span><span class="p">);</span>
+
+  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+    <span class="n">rset</span> <span class="o">=</span> <span class="n">masterset</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">navail</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">FD_CLR</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">);</span>  <span class="c1">// turn off if no available children
+</span><span class="c1"></span>    <span class="n">nsel</span> <span class="o">=</span> <span class="n">Select</span><span class="p">(</span><span class="n">maxfd</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+
+    <span class="c1">// check for new connections
+</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">FD_ISSET</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">))</span> <span class="p">{</span>
+      <span class="n">clilen</span> <span class="o">=</span> <span class="n">addrlen</span><span class="p">;</span>
+      <span class="n">connfd</span> <span class="o">=</span> <span class="n">Accept</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="n">cliaddr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">clilen</span><span class="p">);</span>
+
+      <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nchildren</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">cptr</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">child_status</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+          <span class="k">break</span><span class="p">;</span>  <span class="c1">// available
+</span><span class="c1"></span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="n">nchildren</span><span class="p">)</span>
+        <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;no available children&#34;</span><span class="p">);</span>
+      <span class="n">cptr</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">child_status</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>  <span class="c1">// mark child as busy
+</span><span class="c1"></span>      <span class="n">cptr</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">child_count</span><span class="o">++</span><span class="p">;</span>
+      <span class="n">navail</span><span class="o">--</span><span class="p">;</span>
+
+      <span class="n">n</span> <span class="o">=</span> <span class="n">Write_fd</span><span class="p">(</span><span class="n">cptr</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">child_pipefd</span><span class="p">,</span> <span class="s">&#34;&#34;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">connfd</span><span class="p">);</span>
+      <span class="n">Close</span><span class="p">(</span><span class="n">connfd</span><span class="p">);</span>
+
+      <span class="k">if</span> <span class="p">(</span><span class="o">--</span><span class="n">nsel</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">continue</span><span class="p">;</span>  <span class="c1">// all done with select() results
+</span><span class="c1"></span>    <span class="p">}</span>
+
+    <span class="c1">// find any newly-available children
+</span><span class="c1"></span>    <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nchildren</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">FD_ISSET</span><span class="p">(</span><span class="n">cptr</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">child_pipefd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">))</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">Read</span><span class="p">(</span><span class="n">cptr</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">child_pipefd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rc</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+          <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;child %d terminated unexpectedly&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">);</span>
+        <span class="n">cptr</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">child_status</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="n">navail</span><span class="o">++</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="o">--</span><span class="n">nsel</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+          <span class="k">break</span><span class="p">;</span>  <span class="c1">// all done with select() results
+</span><span class="c1"></span>      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><p>        $navail$ 跟踪当前可用的子进程数，如果为 $0$ ，关闭 $select$ 读描述符集中监听套接字对应的位。这种情况下，内核仍然会处理外来连接，将它们入队，直到达到 $backlog$ 。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="kt">void</span> <span class="nf">child_main</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="kt">int</span> <span class="n">listenfd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">addrlen</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">char</span> <span class="n">c</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">connfd</span><span class="p">;</span>
+  <span class="n">ssize_t</span> <span class="n">n</span><span class="p">;</span>
+  <span class="kt">void</span> <span class="n">web_child</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;child %ld starting</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span> <span class="n">getpid</span><span class="p">());</span>
+  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">Read_fd</span><span class="p">(</span><span class="n">STDERR_FILENO</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">c</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">connfd</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;read_fd returned 0&#34;</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">connfd</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;no descriptor from read_fd&#34;</span><span class="p">);</span>
+
+    <span class="n">web_child</span><span class="p">(</span><span class="n">connfd</span><span class="p">);</span>  <span class="c1">// process request
+</span><span class="c1"></span>    <span class="n">Close</span><span class="p">(</span><span class="n">connfd</span><span class="p">);</span>
+
+    <span class="n">Write</span><span class="p">(</span><span class="n">STDERR_FILENO</span><span class="p">,</span> <span class="s">&#34;&#34;</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>  <span class="c1">// tell parent we&#39;re ready again
+</span><span class="c1"></span>  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><p>        $child_-main$ 在处理完一个客户后，通过该子进程的字节流管道拥有端向父进程写回单个字节。父进程读入这单个字节，把子进程标记为可用，并递增 $navail$ 。当子进程意外终止，它的字节流管道拥有端会被关闭，从而 $read$ 会返回 $0$ 。父进程察觉到之后就会停止运行，不过更好的办法是登记这个错误并重新派生一个子进程。</p>
+<h2 id="5-tcp并发服务器程序每个客户一个线程">5. <code>TCP</code>并发服务器程序，每个客户一个线程</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpthread.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">listenfd</span><span class="p">,</span> <span class="n">connfd</span><span class="p">;</span>
+  <span class="kt">void</span> <span class="n">sig_int</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+  <span class="kt">void</span> <span class="o">*</span><span class="n">doit</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">);</span>
+  <span class="n">pthread_t</span> <span class="n">pid</span><span class="p">;</span>
+  <span class="n">socklen_t</span> <span class="n">clilen</span><span class="p">,</span> <span class="n">addrlen</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">cliaddr</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">listenfd</span> <span class="o">=</span> <span class="n">Tcp_listen</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">addrlen</span><span class="p">);</span>
+  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">listenfd</span> <span class="o">=</span> <span class="n">Tcp_listen</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">addrlen</span><span class="p">);</span>
+  <span class="k">else</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: serv06 [ &lt;host&gt; ] &lt;port#&gt;&#34;</span><span class="p">);</span>
+  <span class="n">cliaddr</span> <span class="o">=</span> <span class="n">Malloc</span><span class="p">(</span><span class="n">addrlen</span><span class="p">);</span>
+
+  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">sig_int</span><span class="p">);</span>
+
+  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+    <span class="n">clilen</span> <span class="o">=</span> <span class="n">addrlen</span><span class="p">;</span>
+    <span class="n">connfd</span> <span class="o">=</span> <span class="n">Accept</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="n">cliaddr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">clilen</span><span class="p">);</span>
+    <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">doit</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span> <span class="n">connfd</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="o">*</span><span class="nf">doit</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">void</span> <span class="n">web_child</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+
+  <span class="n">Pthread_detach</span><span class="p">(</span><span class="n">pthread_self</span><span class="p">());</span>
+  <span class="n">web_child</span><span class="p">((</span><span class="kt">int</span><span class="p">)</span> <span class="n">arg</span><span class="p">);</span>
+  <span class="n">Close</span><span class="p">((</span><span class="kt">int</span><span class="p">)</span> <span class="n">arg</span><span class="p">);</span>
+  <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div><h2 id="6-tcp预先创建线程服务器程序每个线程各自accept">6. <code>TCP</code>预先创建线程服务器程序，每个线程各自<code>accept</code></h2>
+<p>        在支持线程的系统上，我们有理由在服务器启动阶段先创建一个线程池。本服务器的基本设计是预先创建一个线程池，并让每个线程各自调用 $accept$ ，同时使用互斥锁保证任何时刻只有一个线程在调用 $accept$ 。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
+  <span class="n">pthread_t</span> <span class="n">thread_tid</span><span class="p">;</span>  <span class="c1">// thread id
+</span><span class="c1"></span>  <span class="kt">long</span> <span class="n">thread_count</span><span class="p">;</span>  <span class="c1">// # connections handled
+</span><span class="c1"></span><span class="p">}</span> <span class="n">Thread</span><span class="p">;</span>
+<span class="n">Thread</span> <span class="o">*</span><span class="n">tptr</span><span class="p">;</span>  <span class="c1">// array of Thread structures; calloc &#39;ed
+</span><span class="c1"></span>
+<span class="kt">int</span> <span class="n">listenfd</span><span class="p">,</span> <span class="n">nthreads</span><span class="p">;</span>
+<span class="n">socklen_t</span> <span class="n">addrlen</span><span class="p">;</span>
+<span class="n">pthread_mutex_t</span> <span class="n">mlock</span><span class="p">;</span>
+</code></pre></div><hr>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpthread.h&#34;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&#34;pthread07.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="n">pthread_mutex_t</span> <span class="n">mlock</span> <span class="o">=</span> <span class="n">PTHREAD_MUTEX_INITIALIZER</span><span class="p">;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+  <span class="kt">void</span> <span class="n">sig_int</span><span class="p">(</span><span class="kt">int</span><span class="p">),</span> <span class="n">thread_make</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">listenfd</span> <span class="o">=</span> <span class="n">Tcp_listen</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">addrlen</span><span class="p">);</span>
+  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">==</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">listenfd</span> <span class="o">=</span> <span class="n">Tcp_listen</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">addrlen</span><span class="p">);</span>
+  <span class="k">else</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: serv07 [ &lt;host&gt; ] &lt;port#&gt; &lt;#threads&gt;&#34;</span><span class="p">);</span>
+  <span class="n">nthreads</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="n">argc</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]);</span>
+  <span class="n">tprt</span> <span class="o">=</span> <span class="n">Calloc</span><span class="p">(</span><span class="n">nthreads</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">Thread</span><span class="p">));</span>
+
+  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span> <span class="n">nthreads</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+    <span class="n">thread_make</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>  <span class="c1">// only main thread returns
+</span><span class="c1"></span>
+  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">sig_int</span><span class="p">);</span>
+
+  <span class="k">for</span> <span class="p">(;;)</span>
+    <span class="n">pause</span><span class="p">();</span>  <span class="c1">// everything done by threads
+</span><span class="c1"></span><span class="p">}</span>
+</code></pre></div><hr>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpthread.h&#34;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&#34;pthread07.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">void</span> <span class="nf">thread_make</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">void</span> <span class="o">*</span><span class="n">thread_main</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">);</span>
+
+  <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tptr</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">thread_tid</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">thread_main</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span> <span class="n">i</span><span class="p">);</span>
+  <span class="k">return</span><span class="p">;</span>  <span class="c1">// main thread returns
+</span><span class="c1"></span><span class="p">}</span>
+
+<span class="kt">void</span> <span class="o">*</span><span class="nf">thread_main</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">connfd</span><span class="p">;</span>
+  <span class="kt">void</span> <span class="n">web_child</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+  <span class="n">socklen_t</span> <span class="n">clilen</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">cliaddr</span><span class="p">;</span>
+
+  <span class="n">cliaddr</span> <span class="o">=</span> <span class="n">Malloc</span><span class="p">(</span><span class="n">addrlen</span><span class="p">);</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;thread %d starting</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span> <span class="n">arg</span><span class="p">);</span>
+  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+    <span class="n">clilen</span> <span class="o">=</span> <span class="n">addrlen</span><span class="p">;</span>
+    <span class="n">Pthread_mutex_lock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">mlock</span><span class="p">);</span>
+    <span class="n">connfd</span> <span class="o">=</span> <span class="n">Accept</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="n">cliaddr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">clilen</span><span class="p">);</span>
+    <span class="n">Pthread_mutex_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">mlock</span><span class="p">);</span>
+    <span class="n">tprt</span><span class="p">[(</span><span class="kt">int</span><span class="p">)</span> <span class="n">arg</span><span class="p">].</span><span class="n">thread_count</span><span class="o">++</span><span class="p">;</span>
+
+    <span class="n">web_child</span><span class="p">(</span><span class="n">connfd</span><span class="p">);</span>  <span class="c1">// process request
+</span><span class="c1"></span>    <span class="n">Close</span><span class="p">(</span><span class="n">connfd</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><h2 id="7-tcp预先创建线程服务器程序主线程统一accept">7. <code>TCP</code>预先创建线程服务器程序，主线程统一<code>accept</code></h2>
+<p>        本设计范式的问题在于主线程如何把一个已连接套接字传递给线程池中某个可用线程。这里有多个实现手段。可以像之前那样使用描述符传递，但是没有必要，因为多个线程之间描述符是共享的，接收线程只需要知道已连接套接字描述符的值即可。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
+  <span class="n">pthread_t</span> <span class="n">thread_tid</span><span class="p">;</span>  <span class="c1">// thread id
+</span><span class="c1"></span>  <span class="kt">long</span> <span class="n">thread_count</span><span class="p">;</span>  <span class="c1">// # connections handled
+</span><span class="c1"></span><span class="p">}</span> <span class="n">Thread</span><span class="p">;</span>
+<span class="n">Thread</span> <span class="o">*</span><span class="n">tptr</span><span class="p">;</span>  <span class="c1">// array of Thread structures; calloc&#39;ed
+</span><span class="c1"></span>
+<span class="cp">#define MAXNCLI 32
+</span><span class="cp"></span><span class="kt">int</span> <span class="n">clifd</span><span class="p">[</span><span class="n">MAXNCLT</span><span class="p">],</span> <span class="n">iget</span><span class="p">,</span> <span class="n">iput</span><span class="p">;</span>
+<span class="n">pthread_mutex_t</span> <span class="n">clifd_mutex</span><span class="p">;</span>
+<span class="n">pthread_cond_t</span> <span class="n">clifd_cond</span><span class="p">;</span>
+</code></pre></div><p>        $clifd$ 数组会存储线程已经接受的已连接套接字描述符，$iget$ 为下一个待取出描述符元素所在的下标，$iput$ 为下一个待写入描述符元素所在的下标。我们使用互斥锁和条件变量确保这个数组被安全地修改。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpthread.h&#34;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&#34;pthread08.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="k">static</span> <span class="kt">int</span> <span class="n">nthreads</span><span class="p">;</span>
+<span class="n">pthread_mutex_t</span> <span class="n">clifd_mutex</span> <span class="o">=</span> <span class="n">PTHREAD_MUTEX_INITIALIZER</span><span class="p">;</span>
+<span class="n">pthread_cond_t</span> <span class="n">clifd_cond</span> <span class="o">=</span> <span class="n">PTHREAD_COND_INTIALIZER</span><span class="p">;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="n">listenfd</span><span class="p">,</span> <span class="n">connfd</span><span class="p">;</span>
+  <span class="kt">void</span> <span class="n">sig_int</span><span class="p">(</span><span class="kt">int</span><span class="p">),</span> <span class="n">thread_make</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+  <span class="n">socklen_t</span> <span class="n">addrlen</span><span class="p">,</span> <span class="n">clilen</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">cliaddr</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">listenfd</span> <span class="o">=</span> <span class="n">Tcp_listen</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">addrlen</span><span class="p">);</span>
+  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">==</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">listenfd</span> <span class="o">=</span> <span class="n">Tcp_listen</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">addrlen</span><span class="p">);</span>
+  <span class="k">else</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: serv08 [ &lt;host&gt; ] &lt;port#&gt; &lt;#threads&gt;&#34;</span><span class="p">);</span>
+  <span class="n">cliaddr</span> <span class="o">=</span> <span class="n">Malloc</span><span class="p">(</span><span class="n">addrlen</span><span class="p">);</span>
+
+  <span class="n">nthreads</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="n">argc</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]);</span>
+  <span class="n">tprt</span> <span class="o">=</span> <span class="n">Calloc</span><span class="p">(</span><span class="n">nthreads</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">Thread</span><span class="p">));</span>
+  <span class="n">iget</span> <span class="o">=</span> <span class="n">iput</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+  <span class="c1">// create all the threads
+</span><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nthreads</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+    <span class="n">thread_make</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>  <span class="c1">// only main thread returns
+</span><span class="c1"></span>
+  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">sig_int</span><span class="p">);</span>
+
+  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+    <span class="n">clilen</span> <span class="o">=</span> <span class="n">addrlen</span><span class="p">;</span>
+    <span class="n">connfd</span> <span class="o">=</span> <span class="n">Accept</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="n">cliaddr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">clilen</span><span class="p">);</span>
+
+    <span class="n">Pthread_mutex_lock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">clifd_mutex</span><span class="p">);</span>
+    <span class="n">clifd</span><span class="p">[</span><span class="n">iput</span><span class="p">]</span> <span class="o">=</span> <span class="n">connfd</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">++</span><span class="n">iput</span> <span class="o">==</span> <span class="n">MAXNCLI</span><span class="p">)</span>
+      <span class="n">iput</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">iput</span> <span class="o">==</span> <span class="n">iget</span><span class="p">)</span>
+      <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;iput = iget = %d&#34;</span><span class="p">,</span> <span class="n">iput</span><span class="p">);</span>
+    <span class="n">Pthread_cond_signal</span><span class="p">(</span><span class="o">&amp;</span><span class="n">clifd_cond</span><span class="p">);</span>
+    <span class="n">Pthread_mutex_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">clifd_mutex</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><hr>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpthread.h&#34;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&#34;pthread08.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">void</span> <span class="nf">thread_make</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">void</span> <span class="o">*</span><span class="n">thread_main</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">);</span>
+
+  <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tptr</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">thread_tid</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">thread_main</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span> <span class="n">i</span><span class="p">);</span>
+  <span class="k">return</span><span class="p">;</span>  <span class="c1">// main thread returns
+</span><span class="c1"></span><span class="p">}</span>
+
+<span class="kt">void</span> <span class="o">*</span><span class="nf">thread_main</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">connfd</span><span class="p">;</span>
+  <span class="kt">void</span> <span class="n">web_child</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;thread %d starting</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span> <span class="n">arg</span><span class="p">);</span>
+  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+    <span class="n">Pthread_mutex_lock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">clifd_mutex</span><span class="p">);</span>
+    <span class="k">while</span><span class="p">(</span><span class="n">iget</span> <span class="o">==</span> <span class="n">iput</span><span class="p">)</span>
+      <span class="n">Pthread_cond_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">clifd_cond</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">clifd_mutex</span><span class="p">);</span>
+    <span class="n">connfd</span> <span class="o">=</span> <span class="n">clifd</span><span class="p">[</span><span class="n">iget</span><span class="p">];</span>  <span class="c1">// connected socket to service
+</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="o">++</span><span class="n">iget</span> <span class="o">==</span> <span class="n">MAXNCLI</span><span class="p">)</span>
+      <span class="n">iget</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">Pthread_mutex_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">clifd_mutex</span><span class="p">);</span>
+    <span class="n">tptr</span><span class="p">[(</span><span class="kt">int</span><span class="p">)</span> <span class="n">arg</span><span class="p">].</span><span class="n">thread_count</span><span class="o">++</span><span class="p">;</span>
+
+    <span class="n">web_child</span><span class="p">(</span><span class="n">connfd</span><span class="p">);</span>  <span class="c1">// process request
+</span><span class="c1"></span>    <span class="n">Close</span><span class="p">(</span><span class="n">connfd</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><p>        这个版本的慢于之前的每个线程各自 $accept$ 的版本，因为同时需要互斥锁和条件变量。</p>
+
+            </div>
+            <div class="meta post-footer"> 
+                <span>2022 Feb 18 14:37</span> 
+                <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B15/"><i class="fas fa-link"></i> link</a>
+            </div>
+        </div>
         
         <div class="post">
             
@@ -903,400 +1439,6 @@
             <div class="meta post-footer"> 
                 <span>2022 Feb 15 17:50</span> 
                 <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B12/"><i class="fas fa-link"></i> link</a>
-            </div>
-        </div>
-        
-        <div class="post">
-            
-            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B11/">Unix网络编程（11）：路由套接字</a></h1>
-            <div class="post-content">
-                <p><strong>注：以下内容可能不适用于Linux系统</strong></p>
-<p>        内核中的<code>Unix</code>路由表传统上一直使用 $ioctl$ 访问，但是 $ioctl$ 不能输出整个路由表，而诸如 $netstat$ 等程序通过读取内核的内存获取路由表内容。诸如 $gated$ 等路由守护进程需要监视由内核收取的<code>ICMP</code>重定向消息，它们通常创建一个原始<code>ICMP</code>套接字，再在这个套接字上监听所有收到的<code>ICMP</code>消息。在路由域中支持的唯一一种套接字是原始套接字。路由套接字上支持 $3$ 种类型的操作：</p>
-<ol>
-<li>进程可以通过写出到路由套接字而往内核发送消息。路径的增加和删除采用这种操作实现；</li>
-<li>进程可以通过从路由套接字读入而从内核接收消息。内核采用这种操作通知进程已收到并处理一个<code>ICMP</code>重定向消息，或者请求外部路由进程解析一个路径；</li>
-<li>进程可以使用 $sysctl$ 函数输出路由表或者列出所有已配置的接口。</li>
-</ol>
-<p>        前两种操作可以复合使用，需要超级用户权限，最后一种任何进程都可以执行。</p>
-<h2 id="1-数据链路套接字地址结构">1. 数据链路套接字地址结构</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;net/if_dl.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="k">struct</span> <span class="n">sockaddr_dl</span> <span class="p">{</span>
-  <span class="kt">uint8_t</span> <span class="n">sdl_len</span><span class="p">;</span>
-  <span class="n">sa_family_t</span> <span class="n">sdl_family</span><span class="p">;</span>  <span class="c1">// AF_LINK
-</span><span class="c1"></span>  <span class="kt">uint16_t</span> <span class="n">sdl_index</span><span class="p">;</span>  <span class="c1">// 大于0的系统分配的索引
-</span><span class="c1"></span>  <span class="kt">uint8_t</span> <span class="n">sdl_type</span><span class="p">;</span>  <span class="c1">// IFT_ETHER等在&lt;net/if_types.h&gt;中定义的常值
-</span><span class="c1"></span>  <span class="kt">uint8_t</span> <span class="n">sdl_nlen</span><span class="p">;</span>  <span class="c1">// 名字长度，从sdl_data[0]开始
-</span><span class="c1"></span>  <span class="kt">uint8_t</span> <span class="n">sdl_alen</span><span class="p">;</span>  <span class="c1">// 链路层地址长度
-</span><span class="c1"></span>  <span class="kt">uint8_t</span> <span class="n">sdl_slen</span><span class="p">;</span>  <span class="c1">// 链路层选择器长度
-</span><span class="c1"></span>  <span class="kt">char</span> <span class="n">sdl_data</span><span class="p">[</span><span class="mi">12</span><span class="p">];</span>  <span class="c1">// 最小工作区域，可以扩大，包含i/f名称和链路层地址
-</span><span class="c1"></span><span class="p">};</span>
-
-<span class="cp">#define LLADDR(s)  ((caddr_t) ((s)-&gt;sdl_data + (s)-&gt;sdl_nlen))
-</span></code></pre></div><p>        每个接口都有一个唯一的索引。$sdl_-data$ 成员含有名字和链路层地址，名字从 $sdl_-data[0]$ 开始，并且不以空字符结尾。链路层地址从 $sdl_-data[sdl_-nlen]$ 开始，$LLADDR$ 宏返回指向链路层地址的指针。</p>
-<h2 id="2-套接字读写">2. 套接字读写</h2>
-<p>        创建一个路由套接字以后，进程可以通过写到该套接字向内核发送命令，通过从套接字读来从内核接收信息。路由套接字共有 $12$ 个路由消息，定义在 &lt;$net/route.h$&gt; 头文件中。</p>
-<table>
-<thead>
-<tr>
-<th style="text-align:left">消息类型</th>
-<th style="text-align:center">写到内核</th>
-<th style="text-align:center">从内核读</th>
-<th style="text-align:left">说明</th>
-<th style="text-align:left">结构类型</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left">$RTM_-ADD$</td>
-<td style="text-align:center">$\checkmark$</td>
-<td style="text-align:center">$\checkmark$</td>
-<td style="text-align:left">增加路径</td>
-<td style="text-align:left">$rt_-msghdr$</td>
-</tr>
-<tr>
-<td style="text-align:left">$RTM_-CHANGE$</td>
-<td style="text-align:center">$\checkmark$</td>
-<td style="text-align:center">$\checkmark$</td>
-<td style="text-align:left">改动网关、测度或标志</td>
-<td style="text-align:left">$rt_-msghdr$</td>
-</tr>
-<tr>
-<td style="text-align:left">$RTM_-DELADDR$</td>
-<td style="text-align:center"></td>
-<td style="text-align:center">$\checkmark$</td>
-<td style="text-align:left">地址从接口中删除</td>
-<td style="text-align:left">$ifa_-msghdr$</td>
-</tr>
-<tr>
-<td style="text-align:left">$RTM_-DELETE$</td>
-<td style="text-align:center">$\checkmark$</td>
-<td style="text-align:center">$\checkmark$</td>
-<td style="text-align:left">删除路径</td>
-<td style="text-align:left">$rt_-msghdr$</td>
-</tr>
-<tr>
-<td style="text-align:left">$RTM_-DELMADDR$</td>
-<td style="text-align:center"></td>
-<td style="text-align:center">$\checkmark$</td>
-<td style="text-align:left">多播地址从接口中删除</td>
-<td style="text-align:left">$ifma_-msghdr$</td>
-</tr>
-<tr>
-<td style="text-align:left">$RTM_-GET$</td>
-<td style="text-align:center">$\checkmark$</td>
-<td style="text-align:center">$\checkmark$</td>
-<td style="text-align:left">报告测度及其他路径信息</td>
-<td style="text-align:left">$rt_-msghdr$</td>
-</tr>
-<tr>
-<td style="text-align:left">$RTM_-IFINFO$</td>
-<td style="text-align:center"></td>
-<td style="text-align:center">$\checkmark$</td>
-<td style="text-align:left">接口可用、不可用等</td>
-<td style="text-align:left">$if_-msghdr$</td>
-</tr>
-<tr>
-<td style="text-align:left">$RTM_-LOCK$</td>
-<td style="text-align:center">$\checkmark$</td>
-<td style="text-align:center">$\checkmark$</td>
-<td style="text-align:left">锁住给定的测度</td>
-<td style="text-align:left">$rt_-msghdr$</td>
-</tr>
-<tr>
-<td style="text-align:left">$RTM_-LOSING$</td>
-<td style="text-align:center"></td>
-<td style="text-align:center">$\checkmark$</td>
-<td style="text-align:left">内核怀疑路径即将失效</td>
-<td style="text-align:left">$rt_-msghdr$</td>
-</tr>
-<tr>
-<td style="text-align:left">$RTM_-MISS$</td>
-<td style="text-align:center"></td>
-<td style="text-align:center">$\checkmark$</td>
-<td style="text-align:left">地址查找失败</td>
-<td style="text-align:left">$rt_-msghdr$</td>
-</tr>
-<tr>
-<td style="text-align:left">$RTM_-NEWADDR$</td>
-<td style="text-align:center"></td>
-<td style="text-align:center">$\checkmark$</td>
-<td style="text-align:left">地址被添加至接口</td>
-<td style="text-align:left">$ifa_-msghdr$</td>
-</tr>
-<tr>
-<td style="text-align:left">$RTM_-NEWMADDR$</td>
-<td style="text-align:center"></td>
-<td style="text-align:center">$\checkmark$</td>
-<td style="text-align:left">多播地址被添加至接口</td>
-<td style="text-align:left">$ifa_-msghdr$</td>
-</tr>
-<tr>
-<td style="text-align:left">$RTM_-REDIRECT$</td>
-<td style="text-align:center"></td>
-<td style="text-align:center">$\checkmark$</td>
-<td style="text-align:left">内核被告知使用另外的路径</td>
-<td style="text-align:left">$rt_-msghdr$</td>
-</tr>
-<tr>
-<td style="text-align:left">$RTM_-RESOLVE$</td>
-<td style="text-align:center"></td>
-<td style="text-align:center">$\checkmark$</td>
-<td style="text-align:left">请求把目的地址解析成链路层地址</td>
-<td style="text-align:left">$rt_-msghdr$</td>
-</tr>
-</tbody>
-</table>
-<p>        通过路由套接字交换的结构有 $5$ 个类型。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">struct</span> <span class="n">rt_msghdr</span> <span class="p">{</span>  <span class="c1">// defined in &lt;net/route.h&gt;
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">rtm_msglen</span><span class="p">;</span>  <span class="c1">// to skip over non-understood messages
-</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">rtm_version</span><span class="p">;</span>  <span class="c1">// future binary compatibility
-</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">rtm_type</span><span class="p">;</span>  <span class="c1">// message type
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">trm_index</span><span class="p">;</span>  <span class="c1">// index for associated ifp
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">rtm_flags</span><span class="p">;</span>  <span class="c1">// flags, incl . kern &amp;message, e.g., DONE
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">rtm_addrs</span><span class="p">;</span>  <span class="c1">// bitmask identifying sockaddrs in msg
-</span><span class="c1"></span>  <span class="n">pid_t</span> <span class="n">rtm_pid</span><span class="p">;</span>  <span class="c1">// identify sender
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">rtm_seq</span><span class="p">;</span>  <span class="c1">// for sender to identify action
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">rtm_errno</span><span class="p">;</span>  <span class="c1">// why failed
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">rtm_use</span><span class="p">;</span>  <span class="c1">// from rtentry
-</span><span class="c1"></span>  <span class="n">u_long</span> <span class="n">rtm_inits</span><span class="p">;</span>  <span class="c1">// which metrics we are initializing
-</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">rt_metricsrtm_rmx</span><span class="p">;</span>  <span class="c1">// metrics themselves
-</span><span class="c1"></span><span class="p">};</span>
-
-<span class="k">struct</span> <span class="n">if_msghdr</span> <span class="p">{</span>  <span class="c1">// defined in &lt;net/if.h&gt;
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifm_msglen</span><span class="p">;</span>  <span class="c1">// to skip over non-understood messages
-</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifm_version</span><span class="p">;</span>  <span class="c1">// future binary compatibility
-</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifm_type</span><span class="p">;</span>  <span class="c1">// message type
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifm_addrs</span><span class="p">;</span>  <span class="c1">// like rtm_addrs
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifm_flags</span><span class="p">;</span>  <span class="c1">// value of if_flags
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifm_index</span><span class="p">;</span>  <span class="c1">// index for associated ifp
-</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">if_data</span> <span class="n">ifm_data</span><span class="p">;</span>  <span class="c1">// statistics and other data about if
-</span><span class="c1"></span><span class="p">};</span>
-
-<span class="k">struct</span> <span class="n">ifa_msghdr</span> <span class="p">{</span>  <span class="c1">// defined in &lt;net/if.h&gt;
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifam_msglen</span><span class="p">;</span>  <span class="c1">// to skip over non-understood messages
-</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifam_version</span><span class="p">;</span>  <span class="c1">// future binary compatibility
-</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifam_type</span><span class="p">;</span>  <span class="c1">// message type
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifam_addrs</span><span class="p">;</span>  <span class="c1">// like rtm_addrs
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifam_flags</span><span class="p">;</span>  <span class="c1">// value of ifa_flags
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifam_index</span><span class="p">;</span>  <span class="c1">// index for associated ifp
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifam_metric</span><span class="p">;</span>  <span class="c1">// value of ifa_metric
-</span><span class="c1"></span><span class="p">};</span>
-
-<span class="k">struct</span> <span class="n">ifma_msghdr</span> <span class="p">{</span>  <span class="c1">// defined in &lt;net/if.h&gt;
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifmam_msglen</span><span class="p">;</span>  <span class="c1">// to skip over non-understood messages
-</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifmam_version</span><span class="p">;</span>  <span class="c1">// future binary compatibility
-</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifmam_type</span><span class="p">;</span>  <span class="c1">// message type
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifmam_addrs</span><span class="p">;</span>  <span class="c1">// like rtm_addrs
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifmam_flags</span><span class="p">;</span>  <span class="c1">// value of ifa_flags
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifmam_index</span><span class="p">;</span>  <span class="c1">// index for associated ifp
-</span><span class="c1"></span><span class="p">};</span>
-
-<span class="k">struct</span> <span class="n">if_announcemsghdr</span> <span class="p">{</span>  <span class="c1">// defined in &lt;net/if.h&gt;
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifan_msglen</span><span class="p">;</span>  <span class="c1">// to skip over non-understood messages
-</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifan_version</span><span class="p">;</span>  <span class="c1">// future binary compatibility
-</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifan_type</span><span class="p">;</span>  <span class="c1">// message type
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifan_index</span><span class="p">;</span>  <span class="c1">// index for associated ifp
-</span><span class="c1"></span>  <span class="kt">char</span> <span class="n">ifan_name</span><span class="p">[</span><span class="n">IFNAMSIZ</span><span class="p">];</span>  <span class="c1">// if name, e.g. &#34;en0&#34;
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifan_what</span><span class="p">;</span>  <span class="c1">// what type of announcement
-</span><span class="c1"></span><span class="p">};</span>
-</code></pre></div><p>        每个结构都有相同的前 $3$ 个成员：本消息的长度、版本和类型，类型是上表中第一列的常值之一，长度则允许应用程序跳过无法理解的消息类型。$rtm_-addr$ 、$ifm_-addrs$ 和 $ifam_-addrs$ 这 $3$ 个成员是<em><strong>数位掩码</strong></em> ( $bit$ $mask$ )，指明本消息后跟的套接字地址结构是 $8$ 个可能选择中的哪几个。</p>
-<table>
-  <thead>
-    <tr>
-      <th colspan="2" style="text-align: center;">数位掩码</th>
-      <th colspan="2" style="text-align: center;">数组下标</th>
-      <th rowspan="2" style="text-align: center;">套接字地址结构包含</th>
-    </tr>
-    <tr>
-      <th style="text-align: center;">常值</th>
-      <th style="text-align: center;">数值</th>
-      <th style="text-align: center;">常值</th>
-      <th style="text-align: center;">数值</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td style="text-align: left;">$RTA_-DST$</td>
-      <td style="text-align: center;">$0x01$</td>
-      <td style="text-align: left;">$RTAX_-DST$</td>
-      <td style="text-align: center;">$0$</td>
-      <td style="text-align: left;">目的地址</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$RTA_-GATEWAY$</td>
-      <td style="text-align: center;">$0x02$</td>
-      <td style="text-align: left;">$RTAX_-GATEWAY$</td>
-      <td style="text-align: center;">$1$</td>
-      <td style="text-align: left;">网关地址</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$RTA_-NETMASK$</td>
-      <td style="text-align: center;">$0x04$</td>
-      <td style="text-align: left;">$RTAX_-NETMASK$</td>
-      <td style="text-align: center;">$2$</td>
-      <td style="text-align: left;">网络掩码</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$RTA_-GENMASK$</td>
-      <td style="text-align: center;">$0x08$</td>
-      <td style="text-align: left;">$RTAX_-GENMASK$</td>
-      <td style="text-align: center;">$3$</td>
-      <td style="text-align: left;">克隆掩码</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$RTA_-IFP$</td>
-      <td style="text-align: center;">$0x10$</td>
-      <td style="text-align: left;">$RTAX_-IFP$</td>
-      <td style="text-align: center;">$4$</td>
-      <td style="text-align: left;">接口名字</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$RTA_-IFA$</td>
-      <td style="text-align: center;">$0x20$</td>
-      <td style="text-align: left;">$RTAX_-IFA$</td>
-      <td style="text-align: center;">$5$</td>
-      <td style="text-align: left;">接口地址</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$RTA_-AUTHOR$</td>
-      <td style="text-align: center;">$0x40$</td>
-      <td style="text-align: left;">$RTAX_-AUTHOR$</td>
-      <td style="text-align: center;">$6$</td>
-      <td style="text-align: left;">重定向原创者</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$RTA_-BRD$</td>
-      <td style="text-align: center;">$0x80$</td>
-      <td style="text-align: left;">$RTAX_-BRD$</td>
-      <td style="text-align: center;">$7$</td>
-      <td style="text-align: left;">广播或点到点目的地址</td>
-    </tr>
-    <tr>
-      <td/>
-      <td/>
-      <td style="text-align: left;">$RTAX_-MAX$</td>
-      <td style="text-align: center;">$8$</td>
-      <td style="text-align: left;">最大元素数目</td>
-    </tr>
-  </tbody>
-</table>
-<p>        上述常值定义在 &lt;$net/route.h$&gt; 头文件中，当存在多个套接字地址结构时，它们总是按照表中所示的顺序排列。</p>
-<h2 id="3-sysctl">3. <code>sysctl</code></h2>
-<p>        使用 $sysctl$ 检查路由表和接口列表的进程不需要超级用户权限。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/param.h&gt;</span><span class="cp">
-</span><span class="cp">#include</span> <span class="cpf">&lt;sys/sysctl.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 成功返回0，出错返回-1
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">sysctl</span><span class="p">(</span><span class="kt">int</span> <span class="o">*</span><span class="n">name</span><span class="p">,</span> <span class="n">u_int</span> <span class="n">namelen</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">oldp</span><span class="p">,</span> <span class="n">size_t</span> <span class="o">*</span><span class="n">oldlenp</span><span class="p">,</span>
-  <span class="kt">void</span> <span class="o">*</span><span class="n">newp</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">newlen</span><span class="p">);</span>
-</code></pre></div><p>        这个函数使用类似简单网络管理协议 ( $Simple$ $Network$ $Management$ $Protocol$ , $SNMP$ ) 中管理信息库 ( $management$ $information$ $base$ , $MIB$ ) 的名字。$name$ 参数是一个整数数组，$namelen$ 指定数组长度。数组的第一个元素指定本请求定向到内核的哪个子系统，第二个及之后元素依次细化指定该子系统的某个部分。为了获取某个值，$oldp$ 参数指向一个供内核存放该值的缓冲区。$oldlenp$ 是一个值-结果参数，函数被调用时，该值表示缓冲区中的数据量，返回时表示内核向该缓冲区存放的数据量。如果缓冲区不够大，就会返回 $ENOMEM$ 错误。特别地，$oldp$ 可以是一个空指针而 $oldlenp$ 是非空指针，这样内核可以确定返回的数据量，并通过 $oldlenp$ 返回。$newp$ 指向一个大小为 $newlen$ 的缓冲区，代表设置新值。如果不想设置新值，那么 $newp$ 应该为空指针，$newlen$ 为 $0$ 。<br>
-        通过 $sysctl$ ，我们可以获取各种系统信息，有文件系统、虚拟内存、内核限制等。我们感兴趣的是网络子系统，通过把 $name$ 数组的第一个元素设置为 $CTL_-NET$ 来指定。这些常值定义在 &lt;$sys/sysctl.h$&gt; 头文件中。第二个元素可以是：</p>
-<ul>
-<li>$AF_-INET$ ：获取或设置影响网际网协议的变量，下一级为使用 $IPPROTO_-xxx$ 指定的具体协议；</li>
-<li>$AF_-LINK$ ：获取或设置链路层信息，譬如<code>PPP</code>接口数量；</li>
-<li>$AF_-ROUTE$ ：返回路由表或接口列表的信息；</li>
-<li>$AF_-UNSPEC$ ：获取或设置一些套接字层变量，譬如套接字发送或接收缓冲区的最大大小。</li>
-</ul>
-<p>        当 $name$ 数组的第二个元素为 $AF_-ROUTE$ 时，第三个元素 ( 协议号 ) 总是为 $0$ ，第四个元素是一个地址族，第五和第六指定做什么。</p>
-<table>
-<thead>
-<tr>
-<th style="text-align:center">$name[\ ]$</th>
-<th style="text-align:center">返回<code>IPv4</code>路由表</th>
-<th style="text-align:center">返回<code>IPv4</code> <code>ARP</code>高速缓存</th>
-<th style="text-align:center">返回<code>IPv6</code>路由表</th>
-<th style="text-align:center">返回接口清单</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">$0$</td>
-<td style="text-align:center">$CTL_-NET$</td>
-<td style="text-align:center">$CTL_-NET$</td>
-<td style="text-align:center">$CTL_-NET$</td>
-<td style="text-align:center">$CTL_-NET$</td>
-</tr>
-<tr>
-<td style="text-align:center">$1$</td>
-<td style="text-align:center">$AF_-ROUTE$</td>
-<td style="text-align:center">$AF_-ROUTE$</td>
-<td style="text-align:center">$AF_-ROUTE$</td>
-<td style="text-align:center">$AF_-ROUTE$</td>
-</tr>
-<tr>
-<td style="text-align:center">$2$</td>
-<td style="text-align:center">$0$</td>
-<td style="text-align:center">$0$</td>
-<td style="text-align:center">$0$</td>
-<td style="text-align:center">$0$</td>
-</tr>
-<tr>
-<td style="text-align:center">$3$</td>
-<td style="text-align:center">$AF_-INET$</td>
-<td style="text-align:center">$AF_-INET$</td>
-<td style="text-align:center">$AF_-INET6$</td>
-<td style="text-align:center">$0$</td>
-</tr>
-<tr>
-<td style="text-align:center">$4$</td>
-<td style="text-align:center">$NET_-RT_-DUMP$</td>
-<td style="text-align:center">$NET_-RT_-FLAGS$</td>
-<td style="text-align:center">$NET_-RT_-DUMP$</td>
-<td style="text-align:center">$NET_-RT_-IFLIST$</td>
-</tr>
-<tr>
-<td style="text-align:center">$5$</td>
-<td style="text-align:center">$0$</td>
-<td style="text-align:center">$RTF_-LLINFO$</td>
-<td style="text-align:center">$0$</td>
-<td style="text-align:center">$0$</td>
-</tr>
-</tbody>
-</table>
-<p>        路由域支持 $3$ 种操作，由 $name[4]$ 指定，这些常值定义在 &lt;$sys/socket.h$&gt; 头文件中。这 $3$ 种操作返回的信息通过 $oldp$ 指针返回，$oldp$ 指向的缓冲区中含有可变数目的 $RTM_-xxx$ 消息。</p>
-<ol>
-<li>$NET_-RT_-DUMP$ 返回由 $name[3]$ 指定地址族的路由表，如果指定地址族为 $0$ ，则返回所有地址族的路由表。</li>
-</ol>
-<ul>
-<li>路由表作为可变数目的 $RTM_-GET$ 消息返回，每个消息后跟最多 $4$ 个套接字地址结构：路由表项的目的地址、网关、网络掩码和克隆掩码。相比于直接读写路由套接字的操作，$sysctl$ 操作所有改动仅仅体现在内核通过后者返回一个或多个 $RTM_-GET$ 信息；</li>
-</ul>
-<ol start="2">
-<li>$NET_-RT_-FLAGS$ 返回由 $name[3]$ 指定的地址族的路由表，但是仅限于那些所带标志与由 $name[5]$ 指定的标志相匹配的路由表项。路由表中所有<code>ARP</code>高速缓存均设置了 $RTF_-LLINFO$ 标志；</li>
-</ol>
-<ul>
-<li>这种操作返回的信息与上一种一致；</li>
-</ul>
-<ol start="3">
-<li>$NET_-RT_-IFLIST$ 返回所有已配置接口的信息。如果 $name[5]$ 不为 $0$ ，它就是某个接口的索引号，仅仅返回该接口的信息。已赋予每个接口的所有地址也同时返回，不过如果 $name[3]$ 不为 $0$ ，那么仅限于返回指定地址族的地址；</li>
-</ol>
-<ul>
-<li>每个接口的返回信息包括一个 $RTM_-IFINFO$ 消息和后跟零个或多个 $RTM_-NEWADDR$ 消息，其中每个 $RTM_-NEWADDR$ 消息对应已赋予该接口的一个地址。接在 $RTM_-IFINFO$ 消息首部之后的是一个数据链路套接字地址结构，接在每个 $RTM_-NEWADDR$ 消息首部之后的则是最多 $3$ 个套接字地址结构：接口地址、网络掩码和广播地址。</li>
-</ul>
-<h2 id="4-接口名字和索引函数">4. 接口名字和索引函数</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;net/if.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 成功返回接口索引，出错返回0
-</span><span class="c1"></span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="nf">if_nametoindex</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">ifname</span><span class="p">);</span>
-
-<span class="c1">// 成功返回接口名指针，出错返回NULL
-</span><span class="c1"></span><span class="kt">char</span> <span class="o">*</span><span class="nf">if_indextoname</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">ifindex</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">ifname</span><span class="p">);</span>
-
-<span class="c1">// 成功返回非空指针，出错返回NULL
-</span><span class="c1"></span><span class="k">struct</span> <span class="n">if_nameindex</span> <span class="o">*</span><span class="nf">if_nameindex</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
-
-<span class="kt">void</span> <span class="nf">if_freenameindex</span><span class="p">(</span><span class="k">struct</span> <span class="n">if_nameindex</span> <span class="o">*</span><span class="n">ptr</span><span class="p">);</span>
-
-<span class="k">struct</span> <span class="n">if_nameindex</span> <span class="p">{</span>
-  <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">if_index</span><span class="p">;</span>
-  <span class="kt">char</span> <span class="o">*</span><span class="n">if_name</span><span class="p">;</span>  <span class="c1">// null-terminated name
-</span><span class="c1"></span><span class="p">};</span>
-</code></pre></div><p>        上面 $4$ 个函数用于需要描述一个接口的场合，并且是为<code>IPv6</code> <code>API</code>引入的，不过也适用于<code>IPv4</code> <code>API</code>。这里存在一个基本概念，即每个接口都有一个唯一的名字和一个唯一的索引 ( 从 $1$ 开始 )。$if_-nametoindex$ 返回名字为 $ifname$ 的接口的索引。$if_-indextoname$ 返回索引为 $ifindex$ 的接口的名字。$ifname$ 参数指向一个大小为 $IFNAMSIZ$ 的缓冲区，调用者必须分配这个缓冲区以保存结果，调用成功时这个指针也是函数的返回值。$if_-nameindex$ 返回一个 $if_-namindex$ 结构数组，数组最后一个元素的 $if_-index$ 为 $0$ 且 $if_-name$ 为 $NULL$ 。该数组本身以及数组中各个元素指向的名字所用的内存空间由该函数动态获取，然后由 $if_-freenameindex$ 函数释放。</p>
-
-            </div>
-            <div class="meta post-footer"> 
-                <span>2022 Feb 14 19:31</span> 
-                <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B11/"><i class="fas fa-link"></i> link</a>
             </div>
         </div>
         
