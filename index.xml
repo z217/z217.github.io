@@ -7,7 +7,20 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2022, z217 and the hugo authors, all rights reserved.</copyright>
-    <lastBuildDate>Fri, 18 Feb 2022 18:28:56 +0800</lastBuildDate><atom:link href="https://z217blog.cn/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sat, 19 Feb 2022 14:31:35 +0800</lastBuildDate><atom:link href="https://z217blog.cn/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Unix网络编程（16）：管道和FIFO</title>
+      <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B16/</link>
+      <pubDate>Sat, 19 Feb 2022 14:31:35 +0800</pubDate>
+      
+      <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B16/</guid>
+      <description>1. 管道 #include &amp;lt;unistd.h&amp;gt; // 成功返回0，出错返回-1 int pipe(int fd[2]);  该函数返回两个文件描述符 $fd[0]$ 和 $fd[1]$ ，前者用于读，后者用于写。宏 $S_-IFFIFO$ 可用于确定一个描述符是文件、管道还是FIFO，它的唯一参数是 $stat$ 结构的 $st_-mode$ 成员，计算结果或为真 ( 非零值 )，或为假 ( $0$ )。对于管道来说，这个 $stat$ 结构是由 $fstat$ 函数填写的；对于FIFO来说，这个结构是由 $fstat$ 、$lstat$ 或 $stat$ 函数填写的。
+管道的典型用途是为两个不同的进程 ( 父进程和子进程 ) 提供进程间通信。首先，由一个进程 ( 父进程 ) 创建一个管道，然后调用 $fork$ 派生一个副本 ( 子进程 )。接着，父进程关闭这个管道的读端 ( $fd[0]$ )，子进程关闭管道的写端 ( $fd[1]$ )，这样就在父子进程间建立了一个单向数据流。我们在Unix shell中输入如下命令时：
+who | sort  将会创建一个管道，$who$ 进程通过输出端将数据发送给 $sort$ 进程，$sort$ 进程通过读入端读入 $who$ 进程发送的数据。
+管道是单向的，如果需要双向传输数据，我们必须创建两个管道，每个方向一个：
+ 创建管道 $fd1$ 和管道 $fd2$ ，并 $fork$ 一个子进程； 父进程关闭 $fd1[0]$ 和 $fd2[1]$ ； 子进程关闭 $fd1[1]$ 和 $fd2[0]$ 。  #include &amp;#34;unpipc.</description>
+    </item>
+    
     <item>
       <title>Unix网络编程补充：套接字选项</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85%E5%A5%97%E6%8E%A5%E5%AD%97%E9%80%89%E9%A1%B9/</link>
