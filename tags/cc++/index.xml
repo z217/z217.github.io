@@ -7,7 +7,18 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2022, z217 and the hugo authors, all rights reserved.</copyright>
-    <lastBuildDate>Sat, 19 Feb 2022 14:31:35 +0800</lastBuildDate><atom:link href="https://z217blog.cn/tags/cc++/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sun, 20 Feb 2022 14:01:51 +0800</lastBuildDate><atom:link href="https://z217blog.cn/tags/cc++/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Unix网络编程（17）：消息队列</title>
+      <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B17/</link>
+      <pubDate>Sun, 20 Feb 2022 14:01:51 +0800</pubDate>
+      
+      <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B17/</guid>
+      <description>消息队列可认为是一个消息链表，有足够写权限的线程可往队列中放置消息，有足够读权限的线程可从队列中取走消息。每个消息都是一个记录，它由发送者赋予一个优先级。与管道和FIFO不同，在某个进程往一个队列写入消息前，并不需要另外某个进程在该队列上等待消息到达。
+1. mq_open、mq_close和mq_unlink函数 #include &amp;lt;mqueue.h&amp;gt; // 成功返回消息队列描述符，出错返回-1 mqd_t mq_open(const char *name, int oflag, ... /* mode_t mode, struct aq_attr *attr */ ); // 成功返回0，出错返回-1 int mq_close(mqd_t mqdes); // 成功返回0，出错返回-1 int mq_unlink(const char *name);  $oflag$ 参数是 $O_-RDONLY$ 、$O_-WRONLY$ 或 $O_-RDWR$ 之一，并且可以按位或 $O_-CREAT$ 、$O_-EXCL$ 或 $O_-NONBLOCK$ 。当实际操作是创建一个新队列时 ( 指定 $O_-CREAT$ 且请求的消息队列不存在 )，需要 $mode$ 和 $attr$ 参数。$mq_-close$ 调用类似于 $close$ 调用，调用之后消息队列不会从系统中删除。当一个进程终止时，它的所有打开着的消息队列会被关闭。如果要从系统中删除一个消息队列，则需要调用 $mq_-unlink$ ，类似于 $unlink$ ，当一个消息队列的打开计数大于 $0$ 时，不会立即删除，而是直到该消息队列真正被关闭时才会删除。POSIX消息队列至少具备随内核的持续性，这意味着即使当前没有进程打开着消息队列，其中的消息也将一直存在，直到被删除。
+#include &amp;#34;unpipc.h&amp;#34; int main(int argc, char **argv) { int c, flags; mqd_t mqd; flags = O_RDWR | O_CREAT; while ((c = Getopt(argc, argv, &amp;#34;e&amp;#34;)) !</description>
+    </item>
+    
     <item>
       <title>Unix网络编程（16）：管道和FIFO</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B16/</link>

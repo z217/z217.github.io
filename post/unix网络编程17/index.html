@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  
+  <title>z217&#39;s blog</title>
+</head><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+    integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="/friend" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">Unix网络编程（17）：消息队列</h1>
+
+
+<p>        消息队列可认为是一个消息链表，有足够写权限的线程可往队列中放置消息，有足够读权限的线程可从队列中取走消息。每个消息都是一个记录，它由发送者赋予一个优先级。与管道和<code>FIFO</code>不同，在某个进程往一个队列写入消息前，并不需要另外某个进程在该队列上等待消息到达。</p>
+<h2 id="1-mq_openmq_close和mq_unlink函数">1. <code>mq_open</code>、<code>mq_close</code>和<code>mq_unlink</code>函数</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;mqueue.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回消息队列描述符，出错返回-1
+</span><span class="c1"></span><span class="n">mqd_t</span> <span class="nf">mq_open</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">,</span> <span class="kt">int</span> <span class="n">oflag</span><span class="p">,</span> <span class="p">...</span>
+  <span class="cm">/* mode_t mode, struct aq_attr *attr */</span> <span class="p">);</span>
+
+<span class="c1">// 成功返回0，出错返回-1
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">mq_close</span><span class="p">(</span><span class="n">mqd_t</span> <span class="n">mqdes</span><span class="p">);</span>
+
+<span class="c1">// 成功返回0，出错返回-1
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">mq_unlink</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">);</span>
+</code></pre></div><p>        $oflag$ 参数是 $O_-RDONLY$ 、$O_-WRONLY$ 或 $O_-RDWR$ 之一，并且可以按位或 $O_-CREAT$ 、$O_-EXCL$ 或 $O_-NONBLOCK$ 。当实际操作是创建一个新队列时 ( 指定 $O_-CREAT$ 且请求的消息队列不存在 )，需要 $mode$ 和 $attr$ 参数。$mq_-close$ 调用类似于 $close$ 调用，调用之后消息队列不会从系统中删除。当一个进程终止时，它的所有打开着的消息队列会被关闭。如果要从系统中删除一个消息队列，则需要调用 $mq_-unlink$ ，类似于 $unlink$ ，当一个消息队列的打开计数大于 $0$ 时，不会立即删除，而是直到该消息队列真正被关闭时才会删除。<code>POSIX</code>消息队列至少具备随内核的持续性，这意味着即使当前没有进程打开着消息队列，其中的消息也将一直存在，直到被删除。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">c</span><span class="p">,</span> <span class="n">flags</span><span class="p">;</span>
+  <span class="n">mqd_t</span> <span class="n">mqd</span><span class="p">;</span>
+
+  <span class="n">flags</span> <span class="o">=</span> <span class="n">O_RDWR</span> <span class="o">|</span> <span class="n">O_CREAT</span><span class="p">;</span>
+  <span class="k">while</span> <span class="p">((</span><span class="n">c</span> <span class="o">=</span> <span class="n">Getopt</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span> <span class="n">argv</span><span class="p">,</span> <span class="s">&#34;e&#34;</span><span class="p">))</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">switch</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">case</span> <span class="sc">&#39;e&#39;</span><span class="o">:</span>
+      <span class="n">flags</span> <span class="o">|=</span> <span class="n">O_EXCL</span><span class="p">;</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">optind</span> <span class="o">!=</span> <span class="n">argc</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: mqcreate [ -e ] &lt;name&gt;&#34;</span><span class="p">);</span>
+
+  <span class="n">mql</span> <span class="o">=</span> <span class="n">Mq_open</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="n">optind</span><span class="p">],</span> <span class="n">flags</span><span class="p">,</span> <span class="n">FILE_MODE</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="n">Mq_close</span><span class="p">(</span><span class="n">mqd</span><span class="p">);</span>
+  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><p>        允许有一个排他选项 $-e$ 创建消息队列。通过 $getopt$ 获取这个选项，$getopt$ 会在 $optind$ 中存放待处理的下一个参数的下标。</p>
+<h2 id="2-mq_getattr和mq_setattr函数">2. <code>mq_getattr</code>和<code>mq_setattr</code>函数</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;mqueue.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回0，出错返回-1
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">mq_getattr</span><span class="p">(</span><span class="n">mqd_t</span> <span class="n">mqdes</span><span class="p">,</span> <span class="k">struct</span> <span class="n">mq_attr</span> <span class="o">*</span><span class="n">attr</span><span class="p">);</span>
+
+<span class="c1">// 成功返回0，出错返回-1
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">mq_setattr</span><span class="p">(</span><span class="n">mqd_t</span> <span class="n">mqdes</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">mq_attr</span> <span class="o">*</span><span class="n">attr</span><span class="p">,</span> <span class="k">struct</span> <span class="n">mq_attr</span> <span class="o">*</span><span class="n">oattr</span><span class="p">);</span>
+
+<span class="k">struct</span> <span class="n">mq_attr</span> <span class="p">{</span>
+  <span class="kt">long</span> <span class="n">mq_flags</span><span class="p">;</span>  <span class="c1">// message queue flag: 0, O_NONBLOCK
+</span><span class="c1"></span>  <span class="kt">long</span> <span class="n">mq_maxmsg</span><span class="p">;</span>  <span class="c1">// max number of messages allowed on queue
+</span><span class="c1"></span>  <span class="kt">long</span> <span class="n">mq_msgsize</span><span class="p">;</span>  <span class="c1">// max size of a message (in bytes)
+</span><span class="c1"></span>  <span class="kt">long</span> <span class="n">mq_curmsgs</span><span class="p">;</span>  <span class="c1">// number of messages currently on queue
+</span><span class="c1"></span><span class="p">};</span>
+</code></pre></div><p>        $mq_-attr$ 结构指针可以作为 $mq_-open$ 的第四个参数传递，从而允许我们在该函数的实际操作是创建一个新队列时，为它指定 $mq_-maxmsg$ 和 $mq_-msgsize$ 属性，其他两个属性会被忽略。$mq_-setattr$ 为所指队列设置属性，但是只使用 $mq_-flags$ ，用于设置或清除非阻塞标志。另外，如果 $oattr$ 非空，当前队列的先前属性会返回到 $oattr$ 中。</p>
+<h2 id="3-mq_send和mq_receive函数">3. <code>mq_send</code>和<code>mq_receive</code>函数</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;mqueue.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回0，出错返回-1
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">mq_send</span><span class="p">(</span><span class="n">mqd_t</span> <span class="n">mqdes</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">ptr</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">len</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">prio</span><span class="p">);</span>
+
+<span class="c1">// 成功返回消息字节数，出错返回-1
+</span><span class="c1"></span><span class="n">ssize_t</span> <span class="nf">mq_receive</span><span class="p">(</span><span class="n">mqd_t</span> <span class="n">mqdes</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">ptr</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">len</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="o">*</span><span class="n">priop</span><span class="p">);</span>
+</code></pre></div><p>        这两个函数分别用于往消息队列放置一个消息和从消息队列中取出一个消息。每个消息都对应一个优先级 $prio$ ，它是一个小于 $MQ_-PRIO_-MAX$ 的无符号整数，<code>POSIX</code>要求这个上限最小为 $32$ 。$mq_-receive$ 总是会取出队列中优先级最高的最早发送的消息，并且该优先级会和消息长度一起返回。$mq_-receive$ 的 $len$ 不能小于消息队列中的消息最大大小，如果小于，会返回 $EMSGSIZE$ 错误。如果应用不必使用优先级不同的消息，可以统一将优先级指定为 $0$ ，并将 $mq_-receive$ 的最后一个参数指定为 $NULL$ 。</p>
+<h2 id="4-消息队列限制">4. 消息队列限制</h2>
+<p>        消息队列存在两个限制，都是在创建队列时指定的：</p>
+<ul>
+<li>$mq_-mqxmsg$ ：队列中的最大消息数；</li>
+<li>$mq_-msgsize$ ：给定消息的最大字节数。</li>
+</ul>
+<p>        消息队列的实现定义了另外两个限制：</p>
+<ul>
+<li>$MQ_-OPEN_-MAX$ ：一个进程能够同时拥有的打开着的消息队列的最大数目 ( <code>POSIX</code>要求至少为 $8$ )；</li>
+<li>$MQ_-PRIO_-MAX$ ：任意消息的最大优先级加 $1$ ( <code>POSIX</code>要求至少为 $32$ )。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argc</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;MQ_OPEN_MAX = %ld, MQ_PRIO_MAX = %ld</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span>
+    <span class="n">Sysconf</span><span class="p">(</span><span class="n">_SC_MQ_OPEN_MAX</span><span class="p">),</span> <span class="n">Sysconf</span><span class="p">(</span><span class="n">_SC_MQ_PRIO_MAX</span><span class="p">));</span>
+  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><h2 id="5-mq_notify函数">5. <code>mq_notify</code>函数</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;mqueue.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回0，出错返回-1
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">mq_notify</span><span class="p">(</span><span class="n">mqd_t</span> <span class="n">mqdes</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">sigevent</span> <span class="o">*</span><span class="n">notification</span><span class="p">);</span>
+</code></pre></div><p>        <code>POSIX</code>消息队列允许<strong>异步事件通知</strong> ( $asynchronous$ $event$ $notification$ )，用于告知何时有一个消息被放置到空的消息队列中。这种通知有两种方式可以选择：</p>
+<ul>
+<li>产生一个信号；</li>
+<li>创建一个线程来执行一个指定的函数。</li>
+</ul>
+<p>        $mq_-notify$ 为指定的消息队列建立或删除异步事件通知。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;signal.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="k">union</span> <span class="n">sigval</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">sival_int</span><span class="p">;</span>  <span class="c1">// integer value
+</span><span class="c1"></span>  <span class="kt">void</span> <span class="o">*</span><span class="n">sival_ptr</span><span class="p">;</span>  <span class="c1">// pointer value
+</span><span class="c1"></span><span class="p">};</span>
+
+<span class="k">struct</span> <span class="n">sigevent</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">sigev_notify</span><span class="p">;</span>  <span class="c1">// SIGEV_{NONE, SIGNAL, THREAD}
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">sigev_signo</span><span class="p">;</span>  <span class="c1">// signal number if SIGEV_SIGNAL
+</span><span class="c1"></span>  <span class="k">union</span> <span class="n">sigval</span> <span class="n">sigev_value</span><span class="p">;</span>  <span class="cm">/* passed to signal handler or thread
+</span><span class="cm">                                following two if SIGEV_THREAD */</span>
+  <span class="kt">void</span> <span class="p">(</span><span class="o">*</span><span class="n">sigev_notifiy_function</span><span class="p">)(</span><span class="k">union</span> <span class="n">sigval</span><span class="p">);</span>
+  <span class="n">pthread_attr_t</span> <span class="o">*</span><span class="n">sigev_notify_attributes</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div><ol>
+<li>如果 $notification$ 非空，那么当前进程希望在有一个消息到达前得到通知；</li>
+<li>如果 $notification$ 为空，而且当前进程已被注册接收指定队列的通知，那么撤销先前的注册；</li>
+<li>任意时刻只有一个进程可以被注册接收某个指定队列的通知；</li>
+<li>当有一个消息到达某个先前为空的队列，而且已有一个进程被注册为接收该队列的通知时，只有在没有任何线程阻塞在该队列的 $mq_-receive$ 调用的前提下，通知才会发出。即，$mq_-receive$ 优于注册通知；</li>
+<li>当通知被发送给注册进程时，注册即被撤销。如果想要再次接收通知，需要再次注册。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="n">mqd_t</span> <span class="n">mqd</span><span class="p">;</span>
+<span class="kt">void</span> <span class="o">*</span><span class="n">buff</span><span class="p">;</span>
+<span class="k">struct</span> <span class="n">mq_attr</span> <span class="n">attr</span><span class="p">;</span>
+<span class="k">struct</span> <span class="n">sigevent</span> <span class="n">sigev</span><span class="p">;</span>
+
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_usr1</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: mqnotifysig1 &lt;name&gt;&#34;</span><span class="p">);</span>
+
+  <span class="c1">// open queue, get attributes, allocate read buffer
+</span><span class="c1"></span>  <span class="n">mqd</span> <span class="o">=</span> <span class="n">Mq_open</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">O_RDONLY</span><span class="p">);</span>
+  <span class="n">Mq_getattr</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">attr</span><span class="p">);</span>
+  <span class="n">buff</span> <span class="o">=</span> <span class="n">Malloc</span><span class="p">(</span><span class="n">attr</span><span class="p">.</span><span class="n">mq_msgsize</span><span class="p">);</span>
+
+  <span class="c1">// establish signal handler, enable notification
+</span><span class="c1"></span>  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGUSR1</span><span class="p">,</span> <span class="n">sig_usr1</span><span class="p">);</span>
+  <span class="n">sigev</span><span class="p">.</span><span class="n">sigev_notify</span> <span class="o">=</span> <span class="n">SIGEV_SIGNAL</span><span class="p">;</span>
+  <span class="n">sigev</span><span class="p">.</span><span class="n">sigev_signo</span> <span class="o">=</span> <span class="n">SIGUSR1</span><span class="p">;</span>
+  <span class="n">Mq_notify</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sigev</span><span class="p">);</span>
+
+  <span class="k">for</span> <span class="p">(;;)</span>
+    <span class="n">pause</span><span class="p">();</span>  <span class="c1">// signal hadler does everything
+</span><span class="c1"></span>  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">static</span> <span class="n">vodi</span> <span class="nf">sig_usr1</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">ssize_t</span> <span class="n">n</span><span class="p">;</span>
+
+  <span class="n">Mq_notify</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sigev</span><span class="p">);</span>  <span class="c1">// reregister first
+</span><span class="c1"></span>  <span class="n">n</span> <span class="o">=</span> <span class="n">Mq_receive</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">attr</span><span class="p">.</span><span class="n">mq_msgsize</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;SIGUSR1 received, read %ld bytes</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span> <span class="n">n</span><span class="p">);</span>
+  <span class="k">return</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div><h3 id="51-异步信号安全函数">5.1 异步信号安全函数</h3>
+<p>        上述程序的问题是它在信号处理程序中调用 $mq_-notify$ 、$mq_-receive$ 和 $printf$ 。这些函数实际上都不可以在信号处理程序中调用。<code>POSIX</code>使用<strong>异步信号安全</strong> ( $async-signal-safe$ ) 这个术语描述可以在信号处理函数中调用的函数。</p>
+<p>$$
+\begin{array}{|c|c|c|c|}
+\hline
+access &amp; fpathconf &amp; rename &amp; sysconf\\
+aio_-return &amp; fstat &amp; rmdir &amp; tcdrian \\
+aio_-suspend &amp; fsync &amp; sem_-post &amp; tcflow \\
+alarm &amp; getegid &amp; setgit &amp; tcflush \\
+cfgetispeed &amp; geteuid &amp; setpgid &amp; tcgetattr \\
+cfgetospeed &amp; getpgrp &amp; sigaction &amp; tcsetattr \\
+chdir &amp; getpid &amp; sigaddset &amp; tcsetpgrp \\
+chmod &amp; getppid &amp; sigdelset &amp; time \\
+chown &amp; getuid &amp; sigemptyset &amp; timer_-getoverrun \\
+clock_-gettime &amp; kill &amp; sigfillset &amp; timer_-gettime \\
+close &amp; link &amp; sigismember &amp; timer_-settime \\
+creat &amp; lseek &amp; signal &amp; times \\
+dup &amp; mkdir &amp; sigpause &amp; umask \\
+dup2 &amp; mkfifo &amp; sigpending &amp; uname \\
+execle &amp; open &amp; sigprocmask &amp; unlink \\
+execve &amp; pathconf &amp; sigqueue &amp; utim \\
+_-exit &amp; pause &amp; sigset &amp; wait \\
+fcntl &amp; pipe &amp; sigsuspend &amp; waitpid \\
+fdatasync &amp; raise &amp; sleep &amp; write \\
+fork &amp; read &amp; stat \\
+\hline
+\end{array}
+$$</p>
+<p>        没有列在上表中的函数不能在信号处理函数中调用。注意所有标准<code>I/O</code>函数和 $pthread_-XXX$ 函数都没有列在其中。<code>IPC</code>相关函数只有 $sem_-post$ 、$read$ 和 $write$ 在其中。<br>
+        避免从信号处理程序中掉哟该任何函数的办法之一是让处理函数仅仅设置一个全局标志，再由某个线程检查该标志以确定何时收到消息。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="k">volatile</span> <span class="n">sig_atomic_t</span> <span class="n">mqflag</span><span class="p">;</span> <span class="c1">// set nonzero by signal handler
+</span><span class="c1"></span><span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_usr1</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">mqd_t</span> <span class="n">mqd</span><span class="p">;</span>
+  <span class="kt">void</span> <span class="o">*</span><span class="n">buff</span><span class="p">;</span>
+  <span class="n">ssize_t</span> <span class="n">n</span><span class="p">;</span>
+  <span class="n">sigset_t</span> <span class="n">zeromask</span><span class="p">,</span> <span class="n">newmask</span><span class="p">,</span> <span class="n">oldmask</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">mq_attr</span> <span class="n">attr</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">sigevent</span> <span class="n">sigev</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: mqnotifysig2 &lt;name&gt;&#34;</span><span class="p">);</span>
+
+  <span class="c1">// open queue, get attributes, allocate read buffer
+</span><span class="c1"></span>  <span class="n">mqd</span> <span class="o">=</span> <span class="n">Mq_open</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">O_RDONLY</span><span class="p">);</span>
+  <span class="n">Mq_getattr</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">attr</span><span class="p">);</span>
+  <span class="n">buff</span> <span class="o">=</span> <span class="n">Malloc</span><span class="p">(</span><span class="n">attr</span><span class="p">.</span><span class="n">mq_msgsize</span><span class="p">);</span>
+
+  <span class="n">Sigemptyset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">zeromask</span><span class="p">);</span>  <span class="c1">// no signals block
+</span><span class="c1"></span>  <span class="n">Sigemptyset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">newmask</span><span class="p">);</span>
+  <span class="n">Sigemptyset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">oldmask</span><span class="p">);</span>
+  <span class="n">Sigaddset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">newmask</span><span class="p">,</span> <span class="n">SIGUSR1</span><span class="p">);</span>
+
+  <span class="c1">// establish signal handler, enable notification
+</span><span class="c1"></span>  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGUSR1</span><span class="p">,</span> <span class="n">sig_usr1</span><span class="p">);</span>
+  <span class="n">sigev</span><span class="p">.</span><span class="n">sigev_notify</span> <span class="o">=</span> <span class="n">SIGEV_SIGNAL</span><span class="p">;</span>
+  <span class="n">sigev</span><span class="p">.</span><span class="n">sigev_signo</span> <span class="o">=</span> <span class="n">SIGUSR1</span><span class="p">;</span>
+  <span class="n">Mq_notify</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sigev</span><span class="p">);</span>
+
+  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+    <span class="n">Sigprocmask</span><span class="p">(</span><span class="n">SIG_BLOCK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">newmask</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">oldmask</span><span class="p">);</span>  <span class="c1">// block SIGUSR1
+</span><span class="c1"></span>    <span class="k">while</span> <span class="p">(</span><span class="n">mqflag</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">sigsuspend</span><span class="p">(</span><span class="o">&amp;</span><span class="n">zeromask</span><span class="p">);</span>
+    <span class="n">mqflag</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// reset flag
+</span><span class="c1"></span>
+    <span class="n">Mq_notify</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sigev</span><span class="p">);</span>  <span class="c1">// reregister first
+</span><span class="c1"></span>    <span class="n">n</span> <span class="o">=</span> <span class="n">Mq_receive</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">attr</span><span class="p">.</span><span class="n">mq_msgsize</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;read %ld bytes</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span> <span class="n">n</span><span class="p">);</span>
+    <span class="n">Sigprocmask</span><span class="p">(</span><span class="n">SIG_UNBLOCK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">newmask</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>  <span class="c1">// unblock SIGUSR1
+</span><span class="c1"></span>  <span class="p">}</span>
+  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_usr1</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">mqflag</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="k">return</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div><h3 id="52-非阻塞的信号通知">5.2 非阻塞的信号通知</h3>
+<p>        上面的程序还存在一个问题，那就是<code>Unix</code>的信号是不排队的，如果有两个消息到达，我们的程序只会处理一个。解决办法是使用非阻塞模式读取消息。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">mqd_t</span> <span class="n">mqd</span><span class="p">;</span>
+  <span class="kt">void</span> <span class="o">*</span><span class="n">buff</span><span class="p">;</span>
+  <span class="n">ssize_t</span> <span class="n">n</span><span class="p">;</span>
+  <span class="n">sigset_t</span> <span class="n">zeromask</span><span class="p">,</span> <span class="n">newmask</span><span class="p">,</span> <span class="n">oldmask</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">mq_attr</span> <span class="n">attr</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">sigevent</span> <span class="n">sigev</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: mqnotifysig3 &lt;name&gt;&#34;</span><span class="p">);</span>
+
+  <span class="c1">// open queue, get attributes, allocate read buffer
+</span><span class="c1"></span>  <span class="n">mqd</span> <span class="o">=</span> <span class="n">Mq_open</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">O_RDONLY</span> <span class="o">|</span> <span class="n">O_NONBLOCK</span><span class="p">);</span>
+  <span class="n">Mq_getattr</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">attr</span><span class="p">);</span>
+  <span class="n">buff</span> <span class="o">=</span> <span class="n">Malloc</span><span class="p">(</span><span class="n">attr</span><span class="p">.</span><span class="n">mq_msgsize</span><span class="p">);</span>
+
+  <span class="n">Sigemptyset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">zeromask</span><span class="p">);</span>  <span class="c1">// no signals blocked
+</span><span class="c1"></span>  <span class="n">Sigemptyset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">newmask</span><span class="p">);</span>
+  <span class="n">Sigemptyset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">oldmask</span><span class="p">);</span>
+  <span class="n">Sigaddset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">newmask</span><span class="p">,</span> <span class="n">SIGUSR1</span><span class="p">);</span>
+
+  <span class="c1">// establish signal handler, enable notification
+</span><span class="c1"></span>  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGUSR1</span><span class="p">,</span> <span class="n">sig_usr1</span><span class="p">);</span>
+  <span class="n">sigev</span><span class="p">.</span><span class="n">sigev_notify</span> <span class="o">=</span> <span class="n">SIGEV_SIGNAL</span><span class="p">;</span>
+  <span class="n">sigev</span><span class="p">.</span><span class="n">sigev_signo</span> <span class="o">=</span> <span class="n">SIGUSR1</span><span class="p">;</span>
+  <span class="n">Mq_notify</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sigev</span><span class="p">);</span>
+
+  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+    <span class="n">Sigprocmask</span><span class="p">(</span><span class="n">SIG_BLOCK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">newmask</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">oldmask</span><span class="p">);</span>  <span class="c1">// block SIGUSR1
+</span><span class="c1"></span>    <span class="k">while</span> <span class="p">(</span><span class="n">mqflag</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">sigsuspend</span><span class="p">(</span><span class="o">&amp;</span><span class="n">zeromask</span><span class="p">);</span>
+    <span class="n">mqflag</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// reset flag
+</span><span class="c1"></span>
+    <span class="n">Mq_notify</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sigev</span><span class="p">);</span>  <span class="c1">// reregister first
+</span><span class="c1"></span>    <span class="k">while</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">mq_receive</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">attr</span><span class="p">.</span><span class="n">mq_msgsize</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">))</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;read %ld bytes</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span> <span class="n">n</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EAGAIN</span><span class="p">)</span>
+      <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;mq_receive error&#34;</span><span class="p">);</span>
+    <span class="n">Sigprocmask</span><span class="p">(</span><span class="n">SIG_UNBLOCK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">newmask</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>  <span class="c1">// unblock SIGUSR1
+</span><span class="c1"></span>  <span class="p">}</span>
+  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><h3 id="53-sigwait函数">5.3 <code>sigwait</code>函数</h3>
+<p>        上述程序尽管正确，但是效率还可以更高。因为我们的程序是通过 $sigsuspend$ 阻塞的，直到 $mqflag$ 非零，更高效的办法是只等待 $SIGUSR1$ 而不是任意一个信号。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;signal.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回0，出错返回非负错误码
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">sigwait</span><span class="p">(</span><span class="k">const</span> <span class="n">sigset_t</span> <span class="o">*</span><span class="n">set</span><span class="p">,</span> <span class="kt">int</span> <span class="o">*</span><span class="n">sig</span><span class="p">);</span>
+</code></pre></div><p>        $sigwait$ 会阻塞等待信号集 $set$ 中的某个信号返回，返回时设置 $sig$ ，标识产生的信号。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">signo</span><span class="p">;</span>
+  <span class="n">mqd_t</span> <span class="n">mqd</span><span class="p">;</span>
+  <span class="kt">void</span> <span class="o">*</span><span class="n">buff</span><span class="p">;</span>
+  <span class="n">ssize_t</span> <span class="n">n</span><span class="p">;</span>
+  <span class="n">sigset_t</span> <span class="n">newmask</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">mq_attr</span> <span class="n">attr</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">sigevent</span> <span class="n">sigev</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: mqnotifysig4 &lt;name&gt;&#34;</span><span class="p">);</span>
+
+  <span class="c1">// open queue, get attributes, allocate read buffer
+</span><span class="c1"></span>  <span class="n">mqd</span> <span class="o">=</span> <span class="n">Mq_open</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">O_RDONLY</span> <span class="o">|</span> <span class="n">O_NONBLOCK</span><span class="p">;</span>
+  <span class="n">Mq_getattr</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">attr</span><span class="p">);</span>
+  <span class="n">buff</span> <span class="o">=</span> <span class="n">Malloc</span><span class="p">(</span><span class="n">attr</span><span class="p">.</span><span class="n">mq_msgsize</span><span class="p">);</span>
+
+  <span class="n">Sigemptyset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">newmask</span><span class="p">);</span>
+  <span class="n">Sigaddset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">newmask</span><span class="p">,</span> <span class="n">SIGUSR1</span><span class="p">);</span>
+  <span class="n">Sigprocmask</span><span class="p">(</span><span class="n">SIG_BLOCK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">newmask</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>  <span class="c1">// block SIGUSR1
+</span><span class="c1"></span>
+  <span class="c1">// establish signal handler, enable notification
+</span><span class="c1"></span>  <span class="n">sigev</span><span class="p">.</span><span class="n">sigev_notify</span> <span class="o">=</span> <span class="n">SIGEV_SIGNAL</span><span class="p">;</span>
+  <span class="n">sigev</span><span class="p">.</span><span class="n">sigev_signo</span> <span class="o">=</span> <span class="n">SIGUSR1</span><span class="p">;</span>
+  <span class="n">Mq_notify</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sigev</span><span class="p">);</span>
+
+  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+    <span class="n">Sigwait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">newmask</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">signo</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">signo</span> <span class="o">==</span> <span class="n">SIGUSR1</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">Mq_notify</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sigev</span><span class="p">);</span>  <span class="c1">// reregister first
+</span><span class="c1"></span>      <span class="k">while</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">mq_receive</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">attr</span><span class="p">.</span><span class="n">mq_msgsize</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">))</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">&#34;read %ld bytes</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span> <span class="n">n</span><span class="p">);</span>
+      <span class="p">}</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EAGAIN</span><span class="p">)</span>
+        <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;mq_receive error&#34;</span><span class="p">);</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><h3 id="54-select函数">5.4 <code>select</code>函数</h3>
+<p>        消息队列描述符 $mqd_-t$ 不能用于 $select$ 或 $poll$ 。然而我们可以通过管道结合 $mq_-notify$ 使用。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">int</span> <span class="n">pipefd</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_usr1</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">nfds</span><span class="p">;</span>
+  <span class="kt">char</span> <span class="n">c</span><span class="p">;</span>
+  <span class="n">fd_set</span> <span class="n">rset</span><span class="p">;</span>
+  <span class="n">mqd_t</span> <span class="n">mqd</span><span class="p">;</span>
+  <span class="kt">void</span> <span class="o">*</span><span class="n">buff</span><span class="p">;</span>
+  <span class="n">ssize_t</span> <span class="n">n</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">mq_attr</span> <span class="n">attr</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">sigevent</span> <span class="n">sigev</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: mqnotifysig5 &lt;name&gt;&#34;</span><span class="p">);</span>
+
+  <span class="c1">// open queue, get attributes, allocate read buffer
+</span><span class="c1"></span>  <span class="n">mqd</span> <span class="o">=</span> <span class="n">Mq_open</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">O_RDONLY</span> <span class="o">|</span> <span class="n">O_NONBLOCK</span><span class="p">);</span>
+  <span class="n">Mq_getattr</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">attr</span><span class="p">);</span>
+  <span class="n">buff</span> <span class="o">=</span> <span class="n">Malloc</span><span class="p">(</span><span class="n">attr</span><span class="p">.</span><span class="n">mq_msgsize</span><span class="p">);</span>
+
+  <span class="n">Pipe</span><span class="p">(</span><span class="n">pipefd</span><span class="p">);</span>
+
+  <span class="c1">// establish signal handler, enable notification
+</span><span class="c1"></span>  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGUSR1</span><span class="p">,</span> <span class="n">sig_usr1</span><span class="p">);</span>
+  <span class="n">sigev</span><span class="p">.</span><span class="n">sigev_notify</span> <span class="o">=</span> <span class="n">SIGEV_SIGNAL</span><span class="p">;</span>
+  <span class="n">sigev</span><span class="p">.</span><span class="n">sigev_signo</span> <span class="o">=</span> <span class="n">SIGUSR1</span><span class="p">;</span>
+  <span class="n">Mq_notify</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sigev</span><span class="p">);</span>
+
+  <span class="n">FD_ZERO</span><span class="p">(</span><span class="o">&amp;</span><span class="n">rset</span><span class="p">);</span>
+  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+    <span class="n">FD_SET</span><span class="p">(</span><span class="n">pipefd</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">);</span>
+    <span class="n">nfds</span> <span class="o">=</span> <span class="n">Select</span><span class="p">(</span><span class="n">pipefd</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">FD_ISSET</span><span class="p">(</span><span class="n">pipefd</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">))</span> <span class="p">{</span>
+      <span class="n">Read</span><span class="p">(</span><span class="n">pipefd</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">c</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+      <span class="n">Mq_notify</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sigev</span><span class="p">);</span>  <span class="c1">// reregister first
+</span><span class="c1"></span>      <span class="k">while</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">mq_receive</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">attr</span><span class="p">.</span><span class="n">mq_msgsize</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">))</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">&#34;read %ld bytes</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span> <span class="n">n</span><span class="p">);</span>
+      <span class="p">}</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EAGAIN</span><span class="p">)</span>
+        <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;mq_receive error&#34;</span><span class="p">);</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_usr1</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">Write</span><span class="p">(</span><span class="n">pipefd</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">&#34;&#34;</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>  <span class="c1">// one byte of 0
+</span><span class="c1"></span>  <span class="k">return</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div><h3 id="55-线程">5.5 线程</h3>
+<p>        异步事件通知的另一种方式是把 $sigev_-notify$ 指定为 $SIGEV_-THREAD$ ，这会创建一个新线程。线程属性由 $sigev_-notify_-attributes$ 指定，调用 $sigev_-notify_-function$ 函数，参数为 $sigev_-value$ 。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="n">mqd_t</span> <span class="n">mqd</span><span class="p">;</span>
+<span class="k">struct</span> <span class="n">mq_attr</span> <span class="n">attr</span><span class="p">;</span>
+<span class="k">struct</span> <span class="n">sigevent</span> <span class="n">sigev</span><span class="p">;</span>
+
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">notify_thread</span><span class="p">(</span><span class="k">union</span> <span class="n">sigval</span><span class="p">);</span>  <span class="c1">// our thread function
+</span><span class="c1"></span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: mqnotifythread1 &lt;name&gt;&#34;</span><span class="p">);</span>
+
+  <span class="n">mqd</span> <span class="o">=</span> <span class="n">Mq_open</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">O_RDONLY</span> <span class="o">|</span> <span class="n">O_NONBLOCK</span><span class="p">);</span>
+  <span class="n">Mq_getattr</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">attr</span><span class="p">);</span>
+
+  <span class="n">sigev</span><span class="p">.</span><span class="n">sigev_notify</span> <span class="o">=</span> <span class="n">SIGEV_THREAD</span><span class="p">;</span>
+  <span class="n">sigev</span><span class="p">.</span><span class="n">sigev_value</span><span class="p">.</span><span class="n">sival_ptr</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+  <span class="n">sigev</span><span class="p">.</span><span class="n">sigev_notify_function</span> <span class="o">=</span> <span class="n">notify_thread</span><span class="p">;</span>
+  <span class="n">sigev</span><span class="p">.</span><span class="n">sigev_notify_attributes</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+  <span class="n">Mq_notify</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sigev</span><span class="p">);</span>
+
+  <span class="k">for</span> <span class="p">(;;)</span>
+    <span class="n">pause</span><span class="p">();</span>  <span class="c1">// each new thread does everything
+</span><span class="c1"></span>  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">notify_thread</span><span class="p">(</span><span class="k">union</span> <span class="n">sigval</span> <span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">ssize_t</span> <span class="n">n</span><span class="p">;</span>
+  <span class="kt">void</span> <span class="o">*</span><span class="n">buff</span><span class="p">;</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;notify_thread started</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+  <span class="n">buff</span> <span class="o">=</span> <span class="n">Malloc</span><span class="p">(</span><span class="n">attr</span><span class="p">.</span><span class="n">mq_msgsize</span><span class="p">);</span>
+  <span class="n">Mq_notify</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sigev</span><span class="p">);</span>  <span class="c1">// reregister
+</span><span class="c1"></span>
+  <span class="k">while</span> <span class="p">((</span><span class="n">m</span> <span class="o">=</span> <span class="n">mq_receive</span><span class="p">(</span><span class="n">mqd</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">attr</span><span class="p">.</span><span class="n">mq_msgsize</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">))</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;read %ld bytes</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span> <span class="n">n</span><span class="p">);</span>
+  <span class="p">}</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EAGAIN</span><span class="p">)</span>
+    <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;mq_receive error&#34;</span><span class="p">);</span>
+
+  <span class="n">free</span><span class="p">(</span><span class="n">buf</span><span class="p">);</span>
+  <span class="n">pthread_exit</span><span class="p">(</span><span class="nb">NULL</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><h2 id="6-posix实时信号">6. <code>POSIX</code>实时信号</h2>
+<p>        信号可划分为两组：</p>
+<ol>
+<li>值在 $SIGRTMIN$ 和 $SIGTRMAX$ 之间 ( 包括两者 ) 的实时信号，<code>POSIX</code>要求至少提供 $RTSIG_-MAX$ 种实时信号，最小为 $8$ ；</li>
+<li>其他信号，比如 $SIGALRM$ 、$SIGINT$ 和 $SIGKILL$ 等。</li>
+</ol>
+<p>        接收某个信号的进程的 $sigaction$ 调用中是否制定了新的 $SA_-SIGINFO$ 标志会带来差异。</p>
+<table>
+  <thead>
+    <tr>
+      <th rowspan="2" style="text-align: center;">信号</th>
+      <th colspan="2" style="text-align: center;">$sigaction$ 调用</th>
+    </tr>
+    <tr>
+      <th style="text-align: center;">指定 $SA_-SIGINFO$</th>
+      <th style="text-align: center;">未指定 $SA_-SIGINFO$</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center;">$SIGRTMIN$ $\sim$ $SIGRTMAX$</td>
+      <td style="text-align: center;">已指定实时行为</td>
+      <td style="text-align: center;">未指定实时行为</td>
+    </tr>
+    <tr>
+      <td style="text-align: center;">其他信号</td>
+      <td style="text-align: center;">未指定实时行为</td>
+      <td style="text-align: center;">未指定实时行为</td>
+    </tr>
+  </tbody>
+</table>
+<p>        未指定实时行为意味着有些实现可能提供实时行为，有些不提供。如果需要实时行为，我们必须使用 $SIGRTMIN$ $\sim$ $SIGRTMAX$ 之间的信号，并且在调用 $sigaction$ 时指定 $SA_-SIGINFO$ 。实时行为意味着：</p>
+<ul>
+<li>信号是排队的；</li>
+<li>当有多个解阻塞信号排队时，值较小的信号优于值较大信号递交；</li>
+<li>某个非实时信号递交时，传递给它的信号处理程序的唯一参数是信号值。而实时信号可以传递更多信息。</li>
+<li>一些新信号定义成使用实时信号工作。例如，$sigqueue$ 函数代替 $kill$ 函数向某个进程发送信号，该新函数允许发送者随所发送信号传递一个 $sigval$ 。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="kt">void</span> <span class="nf">func</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">,</span> <span class="n">siginfo_t</span> <span class="o">*</span><span class="n">info</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">context</span><span class="p">);</span>
+
+<span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">si_signo</span><span class="p">;</span>  <span class="c1">// same value as signo argument
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">si_code</span><span class="p">;</span>  <span class="c1">// SI_{USER, QUEUE, TIMER, ASYNCIO, MEGEQ}
+</span><span class="c1"></span>  <span class="k">union</span> <span class="n">sigval</span> <span class="n">si_value</span><span class="p">;</span>  <span class="c1">// integer or pointer value from sender
+</span><span class="c1"></span><span class="p">}</span> <span class="n">siginfo_t</span><span class="p">;</span>
+</code></pre></div><p>        $context$ 参数所指的内容依赖于具体实现。</p>
+<ul>
+<li>$SI_-ASYNCIO$ ：信号由某个异步<code>I/O</code>请求产生，即<code>POSIX</code>的 $aio_-XXX$ 函数；</li>
+<li>$SI_-MESGQ$ ：信号在有一个消息被放置到某个空消息队列时产生；</li>
+<li>$SI_-QUEUE$ ：信号由 $timer_-settime$ 函数设置的定时器产生；</li>
+<li>$SI_-USER$ ：信号由 $kill$ 函数产生。</li>
+</ul>
+<p>        如果信号由其他事件产生，$si_-code$ 的值就会被设置成不同于上述的值。而 $siginfo_-t$ 结构的 $si_-value$ 成员只有 $si_-code$ 是上述所列的值之一时才启用。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="k">static</span> <span class="k">volatile</span> <span class="n">siginfo_t</span> <span class="n">arrival</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span>
+<span class="k">static</span> <span class="k">volatile</span> <span class="kt">int</span> <span class="n">nsig</span><span class="p">;</span>
+
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_rt</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="n">siginfo_t</span> <span class="o">*</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">;</span>
+  <span class="n">pid_t</span> <span class="n">pid</span><span class="p">;</span>
+  <span class="n">sigset_t</span> <span class="n">newset</span><span class="p">;</span>
+  <span class="k">union</span> <span class="n">sigval</span> <span class="n">val</span><span class="p">;</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;SIGRTMIN = %d, SIGRTMAX = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span> <span class="n">SIGRTMIN</span><span class="p">,</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span> <span class="n">SIGRTMAX</span><span class="p">);</span>
+
+  <span class="k">if</span> <span class="p">((</span><span class="n">pid</span> <span class="o">=</span> <span class="n">Fork</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// child: block three realtime signals
+</span><span class="c1"></span>    <span class="n">Sigemptyset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">newset</span><span class="p">);</span>
+    <span class="n">Sigaddset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">newset</span><span class="p">,</span> <span class="n">SIGRTMAX</span><span class="p">);</span>
+    <span class="n">Sigaddset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">newset</span><span class="p">,</span> <span class="n">SIGRTMAX</span> <span class="o">-</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="n">Sigaddset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">newset</span><span class="p">,</span> <span class="n">SIGRTMAX</span> <span class="o">-</span> <span class="mi">2</span><span class="p">);</span>
+    <span class="n">Sigprocmask</span><span class="p">(</span><span class="n">SIG_BLOCK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">newset</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+
+    <span class="c1">// establish signal handler with SA_SIGINFO set
+</span><span class="c1"></span>    <span class="n">Signal_rt</span><span class="p">(</span><span class="n">SIGRTMAX</span><span class="p">,</span> <span class="n">sig_rt</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">newset</span><span class="p">);</span>
+    <span class="n">Signal_rt</span><span class="p">(</span><span class="n">SIGRTMAX</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">sig_rt</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">newset</span><span class="p">);</span>
+    <span class="n">Signal_rt</span><span class="p">(</span><span class="n">SIGRTMAX</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="n">sig_rt</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">newset</span><span class="p">);</span>
+
+    <span class="n">sleep</span><span class="p">(</span><span class="mi">6</span><span class="p">);</span>  <span class="c1">// let parent send all the signals
+</span><span class="c1"></span>
+    <span class="n">Sigprocmask</span><span class="p">(</span><span class="n">SIG_UNBLOCK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">newset</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>  <span class="c1">// unblock
+</span><span class="c1"></span>    <span class="n">sleep</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>  <span class="c1">// let all queued signals be delivered
+</span><span class="c1"></span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nsig</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;received signal #%d, code = %d, ival = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span>
+        <span class="n">arrival</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">si_signo</span><span class="p">,</span> <span class="n">arrival</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">si_code</span><span class="p">,</span>
+        <span class="n">arrival</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">si_value</span><span class="p">.</span><span class="n">sival_int</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="c1">// parent sends nine signals to child
+</span><span class="c1"></span>  <span class="n">sleep</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>  <span class="c1">// let child block add signals
+</span><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="n">SIGRTMAX</span><span class="p">;</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="n">SIGRTMAX</span> <span class="o">-</span> <span class="mi">2</span><span class="p">;</span> <span class="n">i</span><span class="o">--</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">j</span> <span class="o">&lt;=</span> <span class="mi">2</span><span class="p">;</span> <span class="n">j</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">val</span><span class="p">.</span><span class="n">sival_int</span> <span class="o">=</span> <span class="n">j</span><span class="p">;</span>
+      <span class="n">Sigqueue</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">val</span><span class="p">);</span>
+      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;sent signal %d, val = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">);</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_rt</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">,</span> <span class="n">siginfo_t</span> <span class="o">*</span><span class="n">info</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">context</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">arrival</span><span class="p">[</span><span class="n">nsig</span><span class="o">++</span><span class="p">]</span> <span class="o">=</span> <span class="o">*</span><span class="n">info</span><span class="p">;</span>  <span class="c1">// save info for child to print
+</span><span class="c1"></span><span class="p">}</span>
+</code></pre></div><p>        首先输出最小和最大实时信号值，查看系统支持的实时信号数量。然后派生一个子进程，阻塞我们需要的实时信号。接着子进程调用 $signal_-rt$ 函数建立信号处理程序，父进程则等待 $6$ 秒后发送信号，最后子进程输出接收到的所有信号。</p>
+<h3 id="61-sinal_rt函数">6.1 <code>sinal_rt</code>函数</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="k">typedef</span> <span class="kt">void</span> <span class="nf">Sigfunc_rt</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="n">siginfo_t</span> <span class="o">*</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="p">);</span>
+
+<span class="n">Sigfunc_rt</span> <span class="o">*</span><span class="nf">signal_rt</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">,</span> <span class="n">Sigfunc_rt</span> <span class="o">*</span><span class="n">func</span><span class="p">,</span> <span class="n">sigset_t</span> <span class="o">*</span><span class="n">mask</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">struct</span> <span class="n">sigaction</span> <span class="n">act</span><span class="p">,</span> <span class="n">oact</span><span class="p">;</span>
+
+  <span class="n">act</span><span class="p">.</span><span class="n">sa_sigaction</span> <span class="o">=</span> <span class="n">func</span><span class="p">;</span>  <span class="c1">// must store function addr here
+</span><span class="c1"></span>  <span class="n">act</span><span class="p">.</span><span class="n">sa_mask</span> <span class="o">=</span> <span class="o">*</span><span class="n">mask</span><span class="p">;</span>  <span class="c1">// signals to block
+</span><span class="c1"></span>  <span class="n">act</span><span class="p">.</span><span class="n">sa_flags</span> <span class="o">=</span> <span class="n">SA_SIGINFO</span><span class="p">;</span>  <span class="c1">// must specify this for realtime
+</span><span class="c1"></span>  <span class="k">if</span> <span class="p">(</span><span class="n">signo</span> <span class="o">==</span> <span class="n">SIGALRM</span><span class="p">)</span> <span class="p">{</span>
+<span class="cp">#ifdef SA_INTERRUPT
+</span><span class="cp"></span>    <span class="n">act</span><span class="p">.</span><span class="n">sa_flags</span> <span class="o">|=</span> <span class="n">SA_INTERRUPT</span><span class="p">;</span>  <span class="c1">// SunOS 4.x
+</span><span class="c1"></span><span class="cp">#endif
+</span><span class="cp"></span>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<span class="cp">#ifdef SA_RESTART
+</span><span class="cp"></span>    <span class="n">act</span><span class="p">.</span><span class="n">sa_flags</span> <span class="o">|=</span> <span class="n">SA_RESTART</span><span class="p">;</span>  <span class="c1">// SVR4, 44BSD
+</span><span class="c1"></span><span class="cp">#endif
+</span><span class="cp"></span>  <span class="p">}</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">sigaction</span><span class="p">(</span><span class="n">signo</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">act</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">oact</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">Sigfunc_rt</span> <span class="o">*</span><span class="p">)</span> <span class="n">SIG_ERR</span><span class="p">;</span>
+  <span class="k">return</span> <span class="n">oact</span><span class="p">.</span><span class="n">sa_sigaction</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div><p>        加入实时信号支持后，$sigaction$ 发生了变化，添加了 $sa_-sigaction$ 成员。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">struct</span> <span class="n">sigaction</span> <span class="p">{</span>
+  <span class="kt">void</span> <span class="p">(</span><span class="o">*</span><span class="n">sa_handler</span><span class="p">)();</span>  <span class="c1">// SIG_DFL, SIG_IGN or add of signal handler
+</span><span class="c1"></span>  <span class="n">sigset_t</span> <span class="n">sa_mask</span><span class="p">;</span>  <span class="c1">// additional signals to block
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">sa_flags</span><span class="p">;</span>  <span class="c1">// signal options: SA_xxx
+</span><span class="c1"></span>  <span class="kt">void</span> <span class="p">(</span><span class="o">*</span><span class="n">sa_sigaction</span><span class="p">)(</span><span class="kt">int</span><span class="p">,</span> <span class="n">siginfo_t</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="p">);</span>  <span class="c1">// addr of signal handler if SA_SIGINFO set
+</span><span class="c1"></span><span class="p">};</span>
+</code></pre></div><ul>
+<li>如果 $sa_-flags$ 成员设置了 $SA_-SIGINFO$ 标志，那么 $sa_-sigaction$ 成员会指定信号处理函数地址；</li>
+<li>如果 $sa_-flags$ 成员没有设置 $SA_-SIGINFO$ 标志，那么 $sa_-handler$ 成员会指定信号处理函数地址；</li>
+<li>给某个信号指定默认行为或忽略信号，应该把 $sa_-handler$ 设置为 $SIG_-DFL$ 或 $SIG_-IGN$ 并不设置 $SA_-SIGINFO$ 标志。</li>
+</ul>
+
+<script src=https://z217blog.cn/js/toc.js></script>
+
+<div>
+    <a href="javascript:void(0);" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+    <div id="sidetoc">
+        <header>
+            <h4>Unix网络编程（17）：消息队列</h4>
+        </header>
+        <nav id="TableOfContents">
+            <ul></ul>
+        </nav>
+    </div>
+    <script>
+        isTocOpen = true;
+    </script>
+</div>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B16/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+<script type="text/javascript">
+    if (isTocOpen) tocInit();
+</script>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2022, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        let all = MathJax.Hub.getAllJax(),
+            i;
+        
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
+</body>
+
+</html>
