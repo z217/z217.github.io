@@ -7,7 +7,18 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2022, z217 and the hugo authors, all rights reserved.</copyright>
-    <lastBuildDate>Mon, 21 Feb 2022 14:36:08 +0800</lastBuildDate><atom:link href="https://z217blog.cn/tags/cc++/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Mon, 21 Feb 2022 16:43:12 +0800</lastBuildDate><atom:link href="https://z217blog.cn/tags/cc++/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Unix网络编程（19）：信号量</title>
+      <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B19/</link>
+      <pubDate>Mon, 21 Feb 2022 16:43:12 +0800</pubDate>
+      
+      <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B19/</guid>
+      <description>信号量 ( $semaphore$ ) 是一种用于不同进程间或一个进程内的不同线程间同步的原语。POSIX信号量不必在内核中维护，可能使用文件系统中的某个文件来标识。
+1. 有名信号量操作 #include &amp;lt;semaphore.h&amp;gt; // 成功返回信号量指针，出错返回SEM_FAILED sem_t *sem_open(const char *name, int oflag, ... /* mode_t mode, unsigned int value */ );  $sem_-open$ 创建一个有名信号量或者打开一个有名信号量。有名信号量既可以用于线程间同步，又可以用于进程间同步。$oflag$ 参数可以是 $0$ 、$O_-CREAT$ 或 $O_-CREAT$ | $O_-EXCL$ 。如果指定了 $O_-CREAT$ ，那么也要指定权限位 $mode$ 和信号量初始值 $value$ 。信号量初始值不能超过 $SEM_-VALUE_-MAX$ ( 这个常值至少为 $32767$ )。
+#include &amp;lt;semaphore.h&amp;gt; /* 成功返回0，出错返回-1 */ int sem_close(sem_t *sem); int sem_unlink(sem_t *sem);  当进程终止时，内核会对仍然打开着的有名信号量执行关闭操作。关闭一个信号量只是减少其引用计数，并不会删除。如果想要删除一个信号量，需要调用 $sem_-unlink$ 函数。类似于 $unlink$ ，如果在调用 $sem_-unlink$ 时该信号量引用计数不为 $0$ ，依然会进行删除，但是析构会等到引用计数为 $0$ 时才会发生。</description>
+    </item>
+    
     <item>
       <title>Unix网络编程（18）：锁</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B18/</link>

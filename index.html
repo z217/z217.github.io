@@ -88,6 +88,24 @@
     
     
     <div class="list-item">
+        <a class="entry-title" href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B19/">Unix网络编程（19）：信号量</a>
+        
+        
+        <p>《Unix网络编程》读书笔记（19）</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2022 Feb 21 16:43
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: Web, C&C++
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
         <a class="entry-title" href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B18/">Unix网络编程（18）：锁</a>
         
         
@@ -159,24 +177,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B15/">Unix网络编程（15）：程序设计范式</a>
-        
-        
-        <p>《Unix网络编程》读书笔记（15）</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2022 Feb 18 14:37
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: Web, C&C++
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -185,6 +185,466 @@
     <div class="section-title">μblog</div>
     <div class="posts">
         
+        
+        <div class="post">
+            
+            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B19/">Unix网络编程（19）：信号量</a></h1>
+            <div class="post-content">
+                <p>        <strong>信号量</strong> ( $semaphore$ ) 是一种用于不同进程间或一个进程内的不同线程间同步的原语。<code>POSIX</code>信号量不必在内核中维护，可能使用文件系统中的某个文件来标识。</p>
+<h2 id="1-有名信号量操作">1. 有名信号量操作</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;semaphore.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回信号量指针，出错返回SEM_FAILED
+</span><span class="c1"></span><span class="n">sem_t</span> <span class="o">*</span><span class="nf">sem_open</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">,</span> <span class="kt">int</span> <span class="n">oflag</span><span class="p">,</span> <span class="p">...</span>
+  <span class="cm">/* mode_t mode, unsigned int value */</span> <span class="p">);</span>
+</code></pre></div><p>        $sem_-open$ 创建一个有名信号量或者打开一个有名信号量。有名信号量既可以用于线程间同步，又可以用于进程间同步。$oflag$ 参数可以是 $0$ 、$O_-CREAT$ 或 $O_-CREAT$ | $O_-EXCL$ 。如果指定了 $O_-CREAT$ ，那么也要指定权限位 $mode$ 和信号量初始值 $value$ 。信号量初始值不能超过 $SEM_-VALUE_-MAX$ ( 这个常值至少为 $32767$ )。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;semaphore.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="cm">/* 成功返回0，出错返回-1 */</span>
+
+<span class="kt">int</span> <span class="nf">sem_close</span><span class="p">(</span><span class="n">sem_t</span> <span class="o">*</span><span class="n">sem</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">sem_unlink</span><span class="p">(</span><span class="n">sem_t</span> <span class="o">*</span><span class="n">sem</span><span class="p">);</span>
+</code></pre></div><p>        当进程终止时，内核会对仍然打开着的有名信号量执行关闭操作。关闭一个信号量只是减少其引用计数，并不会删除。如果想要删除一个信号量，需要调用 $sem_-unlink$ 函数。类似于 $unlink$ ，如果在调用 $sem_-unlink$ 时该信号量引用计数不为 $0$ ，依然会进行删除，但是析构会等到引用计数为 $0$ 时才会发生。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;semaphore.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="cm">/* 成功返回0，出错返回-1 */</span>
+
+<span class="kt">int</span> <span class="nf">sem_wait</span><span class="p">(</span><span class="n">sem_t</span> <span class="o">*</span><span class="n">sem</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">sem_trywait</span><span class="p">(</span><span class="n">sem_t</span> <span class="o">*</span><span class="n">sem</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">sem_post</span><span class="p">(</span><span class="n">sem_t</span> <span class="o">*</span><span class="n">sem</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">sem_getvalue</span><span class="p">(</span><span class="n">sem_t</span> <span class="o">*</span><span class="n">sem</span><span class="p">,</span> <span class="kt">int</span> <span class="o">*</span><span class="n">valp</span><span class="p">);</span>
+</code></pre></div><p>        $sem_-wait$ 测试指定信号量的值，如果大于 $0$ ，就将其减 $1$ 并返回；如果不大于 $0$ ，就会阻塞直到该值大于 $0$ ，然后减 $1$ 并返回。如果在阻塞的过程中被中断，$sem_-wait$ 会返回并设置 $EINTR$ 错误。考虑到可能使用同一信号量的其他线程的存在，测试并减 $1$ 这个过程是原子的。$sem_-trywait$ 是 $sem_-wait$ 的非阻塞版本，如果值不大于 $0$ ，它会返回并设置 $EAGAIN$ 错误。<br>
+        当一个线程使用完信号量后，应该调用 $sem_-post$ 函数将信号值加 $1$ 。$sem_-getvalue$ 会在 $valp$ 中返回信号量的当前值。如果信号量非正值，那么返回值可能是 $0$ ，也可能是一个负数，其绝对值为阻塞在该信号量上的线程数。</p>
+<h2 id="2-生产者-消费者问题">2. 生产者-消费者问题</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="cp">#define NBUFF 10
+</span><span class="cp">#define SEM_MUTEX &#34;mutex&#34;
+</span><span class="cp">#define SEM_NEMPTY &#34;nempty&#34;
+</span><span class="cp">#define SEM_NSTORED &#34;nstored&#34;
+</span><span class="cp"></span>
+<span class="kt">int</span> <span class="n">nitems</span><span class="p">;</span>  <span class="c1">// read-only by producer and consumer
+</span><span class="c1"></span><span class="k">struct</span> <span class="p">{</span>  <span class="c1">// data shared by producer and consumer
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">buff</span><span class="p">[</span><span class="n">NBUFF</span><span class="p">];</span>
+  <span class="n">sem_t</span> <span class="o">*</span><span class="n">mutex</span><span class="p">,</span> <span class="o">*</span><span class="n">nempty</span><span class="p">,</span> <span class="o">*</span><span class="n">nstored</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">shared</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="o">*</span><span class="nf">produce</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">);</span>
+<span class="kt">void</span> <span class="o">*</span><span class="nf">consume</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">pthread_t</span> <span class="n">tid_produce</span><span class="p">,</span> <span class="n">tid_consume</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: prodcons1 &lt;#items&gt;&#34;</span><span class="p">);</span>
+  <span class="n">nitems</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+
+  <span class="c1">// create three semaphores
+</span><span class="c1"></span>  <span class="n">shared</span><span class="p">.</span><span class="n">mutex</span> <span class="o">=</span> <span class="n">Sem_open</span><span class="p">(</span><span class="n">SEM_MUTEX</span><span class="p">,</span> <span class="n">O_CREAT</span> <span class="o">|</span> <span class="n">O_EXCL</span><span class="p">,</span>
+                          <span class="n">FILE_MODE</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+  <span class="n">shared</span><span class="p">.</span><span class="n">nempty</span> <span class="o">=</span> <span class="n">Sem_open</span><span class="p">(</span><span class="n">SEM_NEMPTY</span><span class="p">,</span> <span class="n">O_CREAT</span> <span class="o">|</span> <span class="n">O_EXCL</span><span class="p">,</span>
+                           <span class="n">FILE_MODE</span><span class="p">,</span> <span class="n">NBUFF</span><span class="p">);</span>
+  <span class="n">shared</span><span class="p">.</span><span class="n">nstored</span> <span class="o">=</span> <span class="n">Sem_open</span><span class="p">(</span><span class="n">SEM_NSTORED</span><span class="p">,</span> <span class="n">O_CREAT</span> <span class="o">|</span> <span class="n">O_EXCL</span><span class="p">,</span>
+                            <span class="n">FILE_MODE</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+  <span class="c1">// create one producer thread and one consumer thread
+</span><span class="c1"></span>  <span class="n">Set_concurrency</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+  <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_produce</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">produce</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+  <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="c1">// wait for the two threads
+</span><span class="c1"></span>  <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_produce</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+  <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="c1">// remove the semaphores
+</span><span class="c1"></span>  <span class="n">Sem_unlink</span><span class="p">(</span><span class="n">SEM_MUTEX</span><span class="p">);</span>
+  <span class="n">Sem_unlink</span><span class="p">(</span><span class="n">SEM_NEMPTY</span><span class="p">);</span>
+  <span class="n">Sem_unlink</span><span class="p">(</span><span class="n">SEM_NSTORED</span><span class="p">);</span>
+  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="o">*</span><span class="nf">produce</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+
+  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nitems</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">Sem_wait</span><span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>  <span class="c1">// wait for at least 1 empty slot
+</span><span class="c1"></span>    <span class="n">Sem_wait</span><span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
+    <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="n">NBUFF</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span><span class="p">;</span>  <span class="c1">// store i into circular buffer
+</span><span class="c1"></span>    <span class="n">Sem_post</span><span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
+    <span class="n">Sem_post</span><span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>  <span class="c1">// 1 more stored item
+</span><span class="c1"></span>  <span class="p">}</span>
+  <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="o">*</span><span class="nf">consume</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+
+  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nitems</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">Sem_wait</span><span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>  <span class="c1">// wait for at least 1 stored item
+</span><span class="c1"></span>    <span class="n">Sem_wait</span><span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="n">NBUFF</span><span class="p">[</span> <span class="o">!=</span> <span class="n">i</span><span class="p">)</span>
+      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;buff[%d] = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="n">NBUFF</span><span class="p">]);</span>
+    <span class="n">Sem_post</span><span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
+    <span class="n">Sem_post</span><span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>  <span class="c1">// 1 more empty slot
+</span><span class="c1"></span>  <span class="p">}</span>
+  <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div><p>        上述程序声明 $3$ 个信号量。$mutex$ 保护共享缓冲区；$nempty$ 统计共享缓冲区中的空槽数；$nstored$ 统计共享缓冲区中的元素数。</p>
+<h2 id="3-匿名信号量操作">3. 匿名信号量操作</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;semaphore.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="cm">/* 成功返回0，出错返回-1 */</span>
+
+<span class="kt">int</span> <span class="nf">sem_init</span><span class="p">(</span><span class="n">sem_t</span> <span class="o">*</span><span class="n">sem</span><span class="p">,</span> <span class="kt">int</span> <span class="n">shared</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">value</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">sem_destroy</span><span class="p">(</span><span class="n">sem_t</span> <span class="o">*</span><span class="n">sem</span><span class="p">);</span>
+</code></pre></div><p>        匿名信号量是存储在内存中的信号量。匿名信号量通过 $sem_-init$ 初始化，如果 $shared$ 为 $0$ ，那么待初始化的信号量是在同一进程的各个线程间共享的，否则该信号量是在进程间共享的。当 $shared$ 为非零值时，信号量必须存放在某种类型的共享内存区中，从而能让多个进程访问。与 $sem_-open$ 一样，$value$ 指定信号量初始值。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="cp">#define NBUFF 10
+</span><span class="cp"></span>
+<span class="kt">int</span> <span class="n">nitems</span><span class="p">;</span>  <span class="c1">// read-only by producer and consumer
+</span><span class="c1"></span><span class="k">struct</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">buff</span><span class="p">[</span><span class="n">NBUFF</span><span class="p">];</span>
+  <span class="n">sem_t</span> <span class="n">mutex</span><span class="p">,</span> <span class="n">nempty</span><span class="p">,</span> <span class="n">nstored</span><span class="p">;</span>  <span class="c1">// semaphores, not pointers
+</span><span class="c1"></span><span class="p">}</span> <span class="n">shared</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="o">*</span><span class="nf">producer</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">),</span> <span class="o">*</span><span class="n">consume</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argc</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">pthread_t</span> <span class="n">tid_produce</span><span class="p">,</span> <span class="n">tid_consume</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: prodcons2 &lt;#items&gt;&#34;</span><span class="p">);</span>
+  <span class="n">nitems</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+
+  <span class="c1">// initialize three semaphores
+</span><span class="c1"></span>  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">NBUFF</span><span class="p">);</span>
+  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+  <span class="n">Set_concurrency</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+  <span class="n">Pthread_join</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_produce</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">produce</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+  <span class="n">Pthread_join</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_produce</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+  <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
+  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>
+  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>
+  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><h2 id="4-生产者-消费者问题多生产者和单个消费者">4. 生产者-消费者问题：多生产者和单个消费者</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="cp">#define NBUFF 10
+</span><span class="cp">#define MAXNTHREADS 100
+</span><span class="cp"></span>
+<span class="kt">int</span> <span class="n">nitems</span><span class="p">,</span> <span class="n">nproducers</span><span class="p">;</span>  <span class="c1">// read-only by producer and consumer
+</span><span class="c1"></span>
+<span class="k">struct</span> <span class="p">{</span>  <span class="c1">// data shared by producers and consumer
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">buff</span><span class="p">[</span><span class="n">NBUFF</span><span class="p">];</span>
+  <span class="kt">int</span> <span class="n">nput</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">nputval</span><span class="p">;</span>
+  <span class="n">sem_t</span> <span class="n">mutex</span><span class="p">,</span> <span class="n">nempty</span><span class="p">,</span> <span class="n">nstored</span><span class="p">;</span>  <span class="c1">// semaphores, not pointers
+</span><span class="c1"></span><span class="p">}</span> <span class="n">shared</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="o">*</span><span class="nf">produce</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">),</span> <span class="o">*</span><span class="n">consume</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="n">count</span><span class="p">[</span><span class="n">MAXNTHREADS</span><span class="p">];</span>
+  <span class="n">pthread_t</span> <span class="n">tid_produce</span><span class="p">[</span><span class="n">MAXNTHREADS</span><span class="p">],</span> <span class="n">tid_consume</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: prodcons3 &lt;#items&gt; &lt;#producers&gt;&#34;</span><span class="p">);</span>
+  <span class="n">nitems</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+  <span class="n">nproducers</span> <span class="o">=</span> <span class="n">mi</span><span class="p">(</span><span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">MAXNTHREADS</span><span class="p">);</span>
+
+  <span class="c1">// initialize three semaphores
+</span><span class="c1"></span>  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">NBUFF</span><span class="p">);</span>
+  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+  <span class="c1">// create all producers and one consumer
+</span><span class="c1"></span>  <span class="n">Set_concurrency</span><span class="p">(</span><span class="n">nproducers</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
+  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nproducers</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">count</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_produce</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">produce</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">count</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+  <span class="p">}</span>
+  <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="c1">// wait for all producers and the consumer
+</span><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nproducers</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_produce</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;count[%d] = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">count</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+  <span class="p">}</span>
+  <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
+  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>
+  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>
+  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="o">*</span><span class="nf">produce</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>  <span class="c1">// wait for at least 1 empty slot
+</span><span class="c1"></span>    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">nput</span> <span class="o">&gt;=</span> <span class="n">nitems</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>
+      <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
+      <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>  <span class="c1">// all done
+</span><span class="c1"></span>    <span class="p">}</span>
+
+    <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">shared</span><span class="p">.</span><span class="n">nput</span> <span class="o">%</span> <span class="n">NBUFF</span><span class="p">]</span> <span class="o">=</span> <span class="n">shared</span><span class="p">.</span><span class="n">nputval</span><span class="p">;</span>
+    <span class="n">shared</span><span class="p">.</span><span class="n">nput</span><span class="o">++</span><span class="p">;</span>
+    <span class="n">shared</span><span class="p">.</span><span class="n">nputval</span><span class="p">;</span>
+
+    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
+    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>  <span class="c1">// 1 more stored item
+</span><span class="c1"></span>    <span class="o">*</span><span class="p">((</span><span class="kt">int</span> <span class="o">*</span><span class="p">)</span> <span class="n">arg</span><span class="p">)</span> <span class="o">+=</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="o">*</span><span class="nf">consume</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+
+  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nitems</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>  <span class="c1">// wait for at least 1 stored item
+</span><span class="c1"></span>    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="n">NBUFF</span><span class="p">]</span> <span class="o">!=</span> <span class="n">i</span><span class="p">)</span>
+      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;error: buff[%d] = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="n">NBUFF</span><span class="p">]);</span>
+
+    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
+    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>  <span class="c1">// 1 more empty slot
+</span><span class="c1"></span>  <span class="p">}</span>
+  <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div><p>        相较于单生产者单消费者的情况，生产者的循环会在放置了 $nitems$ 个值后终止。</p>
+<h2 id="5-生产者-消费者问题多生产者和多消费者">5. 生产者-消费者问题：多生产者和多消费者</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="cp">#define NBUFF 10
+</span><span class="cp">#define MAXNTHREADS 100
+</span><span class="cp"></span>
+<span class="kt">int</span> <span class="n">nitems</span><span class="p">,</span> <span class="n">nproducers</span><span class="p">,</span> <span class="n">nconsumers</span><span class="p">;</span>  <span class="c1">// read-only
+</span><span class="c1"></span>
+<span class="k">struct</span> <span class="p">{</span>  <span class="c1">// data shared by producers and consumers
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">buff</span><span class="p">[</span><span class="n">NBUFF</span><span class="p">];</span>
+  <span class="kt">int</span> <span class="n">nput</span><span class="p">;</span>  <span class="c1">// item number
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">nputval</span><span class="p">;</span>  <span class="c1">// value to store in buff[]
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">nget</span><span class="p">;</span>  <span class="c1">// item number
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ngetval</span><span class="p">;</span>  <span class="c1">// value fetched from buff[]
+</span><span class="c1"></span>  <span class="n">sem_t</span> <span class="n">mutex</span><span class="p">,</span> <span class="n">nempty</span><span class="p">,</span> <span class="n">nstored</span><span class="p">;</span>  <span class="c1">// semaphores
+</span><span class="c1"></span><span class="p">}</span> <span class="n">shared</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="o">*</span><span class="nf">produce</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">),</span> <span class="o">*</span><span class="n">consume</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="n">prodcount</span><span class="p">[</span><span class="n">MAXNTHREADS</span><span class="p">],</span> <span class="n">conscount</span><span class="p">[</span><span class="n">MAXNTHREADS</span><span class="p">];</span>
+  <span class="n">pthread_t</span> <span class="n">tid_produce</span><span class="p">[</span><span class="n">MAXNTHREADS</span><span class="p">],</span> <span class="n">tid_consume</span><span class="p">[</span><span class="n">MAXNTHREADS</span><span class="p">];</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: prodcons4 &lt;#items&gt; &lt;#producers&gt; &lt;#consumers&gt;&#34;</span><span class="p">);</span>
+  <span class="n">nitems</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+  <span class="n">nproducers</span> <span class="o">=</span> <span class="n">min</span><span class="p">(</span><span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">MAXNTHREADS</span><span class="p">);</span>
+  <span class="n">nconsumers</span> <span class="o">=</span> <span class="n">min</span><span class="p">(</span><span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span> <span class="n">MAXNTHREADS</span><span class="p">);</span>
+
+  <span class="c1">// initalize three semaphores
+</span><span class="c1"></span>  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">NBUFF</span><span class="p">);</span>
+  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+  <span class="c1">// create all producers and all consumers
+</span><span class="c1"></span>  <span class="n">Set_concurrency</span><span class="p">(</span><span class="n">nproducers</span> <span class="o">+</span> <span class="n">nconsumers</span><span class="p">);</span>
+  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nproducers</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">prodcount</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_produce</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">produce</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">prodcount</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+  <span class="p">}</span>
+  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nconsumers</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">conscount</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_consume</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">consume</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">conscont</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+  <span class="p">}</span>
+
+  <span class="c1">// wait for all producers and all consumers
+</span><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span> <span class="n">nproducers</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_produce</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;producer count[%d] = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">prodcount</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+  <span class="p">}</span>
+  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nconsumers</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_consume</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;consumer count[%d] = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">conscount</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+  <span class="p">}</span>
+
+  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
+  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>
+  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>
+  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="o">*</span><span class="nf">produce</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>  <span class="c1">// wait for at least 1 empty slot
+</span><span class="c1"></span>    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">nput</span> <span class="o">&gt;=</span> <span class="n">nitems</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>  <span class="c1">// let consumers terminate
+</span><span class="c1"></span>      <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>
+      <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
+      <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>  <span class="c1">// all done
+</span><span class="c1"></span>    <span class="p">}</span>
+
+    <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">shared</span><span class="p">.</span><span class="n">nput</span> <span class="o">%</span> <span class="n">NBUFF</span><span class="p">]</span> <span class="o">=</span> <span class="n">shared</span><span class="p">.</span><span class="n">nputval</span><span class="p">;</span>
+    <span class="n">shared</span><span class="p">.</span><span class="n">nput</span><span class="o">++</span><span class="p">;</span>
+    <span class="n">shared</span><span class="p">.</span><span class="n">nputval</span><span class="o">++</span><span class="p">;</span>
+
+    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
+    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>  <span class="c1">// 1 more stored item
+</span><span class="c1"></span>    <span class="o">*</span><span class="p">((</span><span class="kt">int</span> <span class="o">*</span><span class="p">)</span> <span class="n">arg</span><span class="p">)</span> <span class="o">+=</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="o">*</span><span class="nf">consume</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+
+  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>  <span class="c1">// wait for at least 1 stored item
+</span><span class="c1"></span>    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shard</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">nget</span> <span class="o">&gt;=</span> <span class="n">nitems</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>
+      <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
+      <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>  <span class="c1">// all done
+</span><span class="c1"></span>    <span class="p">}</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="n">shared</span><span class="p">.</span><span class="n">nget</span> <span class="o">%</span> <span class="n">NBUFF</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="n">shared</span><span class="p">.</span><span class="n">ngetval</span><span class="p">)</span>
+      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;error: buff[%d] = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+    <span class="n">shared</span><span class="p">.</span><span class="n">nget</span><span class="o">++</span><span class="p">;</span>
+    <span class="n">shared</span><span class="p">.</span><span class="n">ngetval</span><span class="o">++</span><span class="p">;</span>
+
+    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
+    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>  <span class="c1">// 1 more empty slot
+</span><span class="c1"></span>    <span class="o">*</span><span class="p">((</span><span class="kt">int</span> <span class="o">*</span><span class="p">)</span> <span class="n">arg</span><span class="p">)</span> <span class="o">+=</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><p>        这里的生产者函数增添了一行，在检测到已经生产了 $nitems$ 个数据后，为了唤醒阻塞在 $nstored$ 上的线程，会在线程终止前递增 $nstored$ 信号值。同时我们修改消费者函数，每次消费前比较 $nget$ 和 $nitems$ ，确定是否完成所有消费。</p>
+<h2 id="6-多缓冲区">6. 多缓冲区</h2>
+<p>        在一些处理数据的程序中，我们可能会用到以下形式的循环：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">while</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="n">fdin</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">BUFFSIZE</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+  <span class="cm">/* process the data */</span>
+  <span class="n">write</span><span class="p">(</span><span class="n">fdout</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">n</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><p>        以上循环读入一行文件，并对其处理，然后写回一行输出。我们可以考虑将这个操作分为两个线程，一个线程负责读，另一个负责写。表面上看这可以改善程序的运行，其实不然，因为我们使用的还是同一个缓冲区，写线程还是要等待读线程完成。为了解决这个问题，我们可以使用两个缓冲区。同时，要注意大多数<code>Unix</code>内核检测出对一个文件的顺序读之后，不仅会读出我们需要的磁盘块的内容，还会顺便读取下一个磁盘块的内容，从而可以改善下次读取的操作时间。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="cp">#define NBUFF 8
+</span><span class="cp"></span>
+<span class="k">struct</span> <span class="p">{</span>  <span class="c1">// data shared by producer and consumer
+</span><span class="c1"></span>  <span class="k">struct</span> <span class="p">{</span>
+    <span class="kt">char</span> <span class="n">data</span><span class="p">[</span><span class="n">BUFFSIZE</span><span class="p">];</span>  <span class="c1">// a buffer
+</span><span class="c1"></span>    <span class="n">ssize_t</span> <span class="n">n</span><span class="p">;</span>  <span class="c1">// count of #bytes in the buffer
+</span><span class="c1"></span>  <span class="p">}</span> <span class="n">buff</span> <span class="p">[</span><span class="n">NBUFF</span><span class="p">];</span>  <span class="c1">// NBUFF of these buffers/counts
+</span><span class="c1"></span>  <span class="n">sem_t</span> <span class="n">mutex</span><span class="p">,</span> <span class="n">nempty</span><span class="p">,</span> <span class="n">nstored</span><span class="p">;</span>  <span class="c1">// semaphores
+</span><span class="c1"></span><span class="p">}</span> <span class="n">shared</span><span class="p">;</span>
+
+<span class="kt">int</span> <span class="n">fd</span><span class="p">;</span>  <span class="c1">// input file to copy to stdout
+</span><span class="c1"></span><span class="kt">void</span> <span class="o">*</span><span class="nf">produce</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">),</span> <span class="o">*</span><span class="n">consume</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">pthread_t</span> <span class="n">tid_produce</span><span class="p">,</span> <span class="n">tid_consume</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: mycat2 &lt;pathname&gt;&#34;</span><span class="p">);</span>
+
+  <span class="n">fd</span> <span class="o">=</span> <span class="n">Open</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">O_RDONLY</span><span class="p">);</span>
+
+  <span class="c1">// initalize three semaphores
+</span><span class="c1"></span>  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">NBUFF</span><span class="p">);</span>
+  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+  <span class="c1">// one producer thread, one consumer thread
+</span><span class="c1"></span>  <span class="n">Set_concurrency</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+  <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_produce</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">produce</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>  <span class="c1">// reader thread
+</span><span class="c1"></span>  <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>  <span class="c1">// writer thread
+</span><span class="c1"></span>
+  <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_produce</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+  <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_consume</span><span class="p">.</span> <span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
+  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>
+  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>
+  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="o">*</span><span class="nf">produce</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+
+  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="p">;</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>  <span class="c1">// wait for at least 1 empty slot
+</span><span class="c1"></span>    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
+    <span class="c1">// critical region
+</span><span class="c1"></span>    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
+
+    <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">n</span> <span class="o">=</span> <span class="n">Read</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">data</span><span class="p">,</span> <span class="n">BUFFSIZE</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>  <span class="c1">// 1 more stored item
+</span><span class="c1"></span>      <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">++</span><span class="n">i</span> <span class="o">&gt;=</span> <span class="n">NBUFF</span><span class="p">)</span>
+      <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// circular buffer
+</span><span class="c1"></span>
+    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>  <span class="c1">// 1 more stored item
+</span><span class="c1"></span>  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="o">*</span><span class="nf">consume</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+
+  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="p">;</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>  <span class="c1">// wait for at least 1 stored item
+</span><span class="c1"></span>    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
+    <span class="c1">// critical region
+</span><span class="c1"></span>    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
+    <span class="n">Write</span><span class="p">(</span><span class="n">STDOUT_FILENO</span><span class="p">,</span> <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">data</span><span class="p">,</span> <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">n</span><span class="p">);</span>
+    <span class="k">if</span><span class="p">(</span><span class="o">++</span><span class="n">i</span> <span class="o">&gt;=</span> <span class="n">NBUFF</span><span class="p">)</span>
+      <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// circular buffer
+</span><span class="c1"></span>
+    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>  <span class="c1">// 1 more empty slot
+</span><span class="c1"></span>  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><p>        本例子中由 $mutex$ 锁住的临界区是空的，如果我们的数据以链表形式而不是数组形式存储，那么这块区域可用于操作链表。</p>
+<h2 id="7-信号量限制">7. 信号量限制</h2>
+<p>        <code>POSIX</code>定义了两个信号量限制：</p>
+<ul>
+<li>$SEM_-NSEMS_-MAX$ ：一个进程可同时打开着的最大信号量 ( <code>POSIX</code>要求至少为 $256$ )；</li>
+<li>$SEM_-VALUE_-MAX$ ：一个信号量的最大值 ( <code>POSIX</code>要求至少为 $32767$ )。</li>
+</ul>
+<p>        这两个常值通常定义在 &lt;$unistd.h$&gt; 头文件中。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;SEM_NSEMS_MAX = %ld, SEM_VALUE_MAX = %ld</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span>
+    <span class="n">Sysconf</span><span class="p">(</span><span class="n">_SC_SEM_NSEMS_MAX</span><span class="p">),</span> <span class="n">Sysconf</span><span class="p">(</span><span class="n">_SC_SEM_VALUE_MAX</span><span class="p">));</span>
+  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+            </div>
+            <div class="meta post-footer"> 
+                <span>2022 Feb 21 16:43</span> 
+                <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B19/"><i class="fas fa-link"></i> link</a>
+            </div>
+        </div>
         
         <div class="post">
             
@@ -1614,703 +2074,6 @@ $$</p>
             <div class="meta post-footer"> 
                 <span>2022 Feb 19 14:31</span> 
                 <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B16/"><i class="fas fa-link"></i> link</a>
-            </div>
-        </div>
-        
-        <div class="post">
-            
-            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85%E5%A5%97%E6%8E%A5%E5%AD%97%E9%80%89%E9%A1%B9/">Unix网络编程补充：套接字选项</a></h1>
-            <div class="post-content">
-                <h2 id="1-getsockopt和setsockop函数">1. <code>getsockopt</code>和<code>setsockop</code>函数</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 成功返回0，出错返回-1
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">getsockopt</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">level</span><span class="p">,</span> <span class="kt">int</span> <span class="n">optname</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">optval</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="o">*</span><span class="n">optlen</span><span class="p">);</span>
-
-<span class="c1">// 成功返回0，出错返回-1
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">setsockopt</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">level</span><span class="p">,</span> <span class="kt">int</span> <span class="n">optname</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">optval</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">optlen</span><span class="p">);</span>
-</code></pre></div><p>        这两个函数仅适用于套接字。$sockfd$ 指向一个打开的套接字描述符，$level$ 指定系统中解释选项的代码或为通用套接字代码，或为某个特定于协议的代码。$optval$ 是一个指向某个变量的指针，$setsockopt$ 从 $optval$ 中获取设置，$getoptval$ 向 $optval$ 中写入设置。$optval$ 的大小由 $optlen$ 指定。套接字选项粗分为两大基本类型：一是启用或禁用某个特性的二元选项 ( 标志选项 )，二是取得并返回我们可以设置或检查的特定值的选项 ( 值选项 )。对于标志选项，$optval$ 是一个整数，$1$ 标识启用，$0$ 表示禁用。</p>
-<table>
-  <thead>
-    <tr>
-      <th style="text-align: center;">$level$</th>
-      <th style="text-align: center;">$optname$</th>
-      <th style="text-align: center;">$get$</th>
-      <th style="text-align: center;">$set$</th>
-      <th style="text-align: center;">说明</th>
-      <th style="text-align: center;">标志选项</th>
-      <th style="text-align: center;">数据类型</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td rowspan="17" style="text-align: left;">$SOL_-SOCKET$</td>
-      <td style="text-align: left;">$SO_-BROADCAST$</td>
-      <td style="text-algin: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">允许发送广播数据报</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SO_-DEBUG$</td>
-      <td style="text-algin: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">开启调试跟踪</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SO_-DONTROUTE$</td>
-      <td style="text-algin: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">绕过外出路由表查询</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SO_-ERROR$</td>
-      <td style="text-algin: center;">$\checkmark$</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">获取待处理错误并清除</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SO_-KEEPALIVE$</td>
-      <td style="text-algin: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">周期性测试连接是否仍存活</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SO_-LINGER$</td>
-      <td style="text-algin: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">若有数据待发送则延迟关闭</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$linger\{\}$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SO_-OOBINLINE$</td>
-      <td style="text-algin: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">让接收到的带外数据在线存留</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SO_-RCVBUF$</td>
-      <td style="text-algin: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">接收缓冲区大小</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SO_-SNDBUF$</td>
-      <td style="text-algin: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">发送缓冲区大小</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SO_-RCVLOWAT$</td>
-      <td style="text-algin: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">接收缓冲区低水位标记</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SO_-SNDLOWAT$</td>
-      <td style="text-algin: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">发送缓冲区低水位标记</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SO_-RCVTIMEO$</td>
-      <td style="text-algin: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">接收超时</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$timeval\{\}$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SO_-SNDTIMEO$</td>
-      <td style="text-algin: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">发送超时</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$timeval\{\}$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SO_-REUSEADDR$</td>
-      <td style="text-algin: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">允许重用本地地址</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SO_-REUSEPORT$</td>
-      <td style="text-algin: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">允许重用本地端口</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SO_-TYPE$</td>
-      <td style="text-algin: center;">$\checkmark$</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">取得套接字类型</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$SO_-USELOOPBACK$</td>
-      <td style="text-algin: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">路由套接字取得所发送数据的副本</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td rowspan="15" style="text-align: left;">$IPPROTO_-IP$</td>
-      <td style="text-align: left;">$IP_-HDRINCL$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">随数据包含的<code>IP</code>首部</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IP_-OPTIONS$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;"><code>IP</code>首部选项</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">见后续</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IP_-RECVDSTADDR$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">返回目的<code>IP</code>地址</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IP_-RCVIF$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">返回接收接口索引</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IP_-TOS$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">服务类型和优先权</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IP_-TTL$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">存活时间</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IP_-MULTICAST_-IF$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">指定外出接口</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$in_-addr\{\}$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IP_-MULTICAST_-TTL$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">指定外出 $TTL$</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$u_-char$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IP_-MULTICAST_-LOOP$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">指定是否环回</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$u_-char$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IP_-ADD_-MEMBERSHIP$</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">加入多播组</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$ip_-mreq\{\}$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IP_-DROP_-MEMBERSHIP$</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">离开多播组</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$ip_-mreq\{\}$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IP_-BLOCK_-SOURCE$</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">阻塞多播源</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$ip_-mreq_-source\{\}$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IP_-UNBLOCK_-SOURCE$</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">开通多播源</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$ip_-mreq_-source\{\}$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IP_-ADD_-SOURCE_-MEMBERSHIP$</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">加入源特定多播组</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$ip_-mreq_-source\{\}$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IP_-DROP_-SOURCE_-MEMBERSHIP$</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">离开源特定多播组</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$ip_-mreq_-source\{\}$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IPPROTO_-ICMPV6$</td>
-      <td style="text-align: left;">$ICMP6_-FILTER$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">指定待传递的<code>ICMPv6</code>消息类型</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$icmp6_-filter\{\}$</td>
-    </tr>
-    <tr>
-      <td rowspan="21" style="text-align: left;">$IPPROTO_-IPV6$</td>
-      <td style="text-align: left;">$IPV6_-CHECKSUM$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">用于原始套接字的校验和字段偏移</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IPV6_-CHECKSUM$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">用于原始套接字的校验和字段偏移</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IPV6_-DONTFRAG$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">丢弃大的分组而将其分片</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IPV6_-NEXTHOP$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">指定下一跳地址</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$sockaddr_-in6\{\}$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IPV6_-PATHMTU$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">获取当前路径 $MTU$</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$ip6_-mtuinfo\{\}$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IPV6_-RECVDSTOPTS$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">接收目的地选项</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IPV6_-RECVHOPLIMIT$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">接收单播跳限</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IPV6_-RECVHOPOPTS$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">接收步跳选项</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IPV6_-RECVPATHMTU$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">接收路径 $MTU$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IPV6_-RECVPKTINFO$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">接收分组信息</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IPV6_-RECVRTHDR$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">接收源路径</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IPV6_-RECVTCLASS$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">接收流通类型</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IPV6_-UNICAST_-HOPS$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">默认单播跳限</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IPV6_-USE_-MIN_-MTU$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">使用最小 $MTU$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IPV6_-V6ONLY$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">禁止<code>v4</code>兼容</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IPV6_-XXX$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">黏附性辅助数据</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">见后续</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IPV6_-MULTICAST_-IF$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">指定外出接口</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$u_-int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IPV6_-MULTICAST_-HOPS$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">指定外出跳限</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IPV6_-MULTICAST_-LOOP$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">指定是否环回</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">$u_-int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IPV6_-JOIN_-GROUP$</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">加入多播组</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$ipv6_-mreq\{\}$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$IPV6_-LEAVE_-GROUP$</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">离开多播组</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$ipv6_-mreq\{\}$</td>
-    </tr>
-    <tr>
-      <td rowspan="6" style="text-align: left;">$IPPROTO_-IP$ 或 $IPPROTO_-IPV6$</td>
-      <td style="text-align: left;">$MCAST_-JOIN_-GROUP$</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">加入多播组</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$group_-req\{\}$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$MCAST_-LEAVE_-GROUP$</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">离开多播组</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$group_-source_-req\{\}$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$MCAST_-BLOCK_-SOURCE$</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">阻塞多播源</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$group_-source_-req\{\}$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$MCAST_-UNBLOCK_-SOURCE$</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">开通多播源</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$group_-source_-req\{\}$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$MCAST_-JOIN_-SOURCE_-GROUP$</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">加入源特定多播组</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$group_-source_-req\{\}$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$MCAST_-LEAVE_-SOURCE_-GROUP$</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">离开源特定多播组</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$group_-source_-req\{\}$</td>
-    </tr>
-    <tr>
-      <td rowspan="2" style="text-align: left;">$IPPROTO_-TCP$</td>
-      <td style="text-align: left;">$TCP_-MAXSEG$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;"><code>TCP</code>最大分节大小</td>
-      <td style="text-align: center;"></td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">$TCP_-NODELAY$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">禁止 $Nagle$ 算法</td>
-      <td style="text-align: center;">$\checkmark$</td>
-      <td style="text-align: left;">$int$</td>
-    </tr>
-  </tbody>
-</table>
-<h2 id="2-通用套接字选项">2. 通用套接字选项</h2>
-<h3 id="21-so_debug">2.1 <code>SO_DEBUG</code></h3>
-<p>        本选项仅由<code>TCP</code>支持。当给一个<code>TCP</code>套接字开启本选项时，内核将为<code>TCP</code>在该套接字发送和接收的所有分组保留详细跟踪信息。这些信息保存在内核的某个环形缓冲区中，并可使用 $trpt$ 程序进行检查。</p>
-<h3 id="22-so_dontroute">2.2 <code>SO_DONTROUTE</code></h3>
-<p>        本选项规定外出的分组将绕过底层协议的正常路由机制。例如，<code>IPv4</code>情况下外出分组将被定向到合适的本地接口，也就是由目的地址的网络和子网部分确定的本地接口。如果这样的本地接口无法由目的地址确定，会返回 $ENETUNREACH$ 错误。路由守护进程 ( $routed$ 和 $gated$ ) 常使用本选项来绕过路由表 ( 路由表不正确的情况下 )，用于强制将分组从特定接口发出。</p>
-<h3 id="23-so_error">2.3 <code>SO_ERROR</code></h3>
-<p>        当一个套接字上发生错误时，源自 $Berkeley$ 的内核中的协议模块将该套接字的 $so_-error$ 变量设置为错误码中的一个，称为<strong>待处理错误</strong> ( $pending$ $error$ )。内核能够以两种方式通知进程这个错误：</p>
-<ol>
-<li>如果进程阻塞在对该套接字的 $select$ 错误上，那么无论是检查可读条件还是可写条件，$select$ 均返回并设置其中一个或所有两个条件；</li>
-<li>如果进程使用信号驱动式<code>I/O</code>，那么会产生一个 $SIGIO$ 信号。</li>
-</ol>
-<p>        进程可以通过访问 $SO_-ERROR$ 选项来获取 $so_-error$ 的值，随后 $so_-error$ 会被复位为 $0$ 。当进程调用 $read$ 且没有数据返回时，如果 $so_-error$ 为非 $0$ 值，那么 $read$ 返回 $-1$ 且 $errno$ 被设置为 $so_-error$ 的值，随后 $so_-error$ 被设置为 $0$ 。同样的，如果在进程调用 $write$ 时 $so_-error$ 非 $0$ ，也会进行上述操作。</p>
-<h3 id="24-so_keepalive">2.4 <code>SO_KEEPALIVE</code></h3>
-<p>        给一个<code>TCP</code>套接字设置该选项后，如果 $2$ 小时内在该套接字的任一方向上都没有数据交换，<code>TCP</code>就会自动给对端发送一个<em><strong>保持存活探测分节</strong></em> ( $keep-alive$ $probe$ )。这是一个对端必须相应的<code>TCP</code>分节，会导致三种情况之一：</p>
-<ol>
-<li>对端响应<code>ACK</code>，应用进程不会收到通知；</li>
-<li>对端响应<code>RST</code>，本端<code>TCP</code>收到通知后得知对端已经崩溃且重新启动，设置 $ECONNRESET$ 错误并关闭套接字；</li>
-<li>对端没有响应，源自 $Berkeley$ 的<code>TCP</code>实现将会重新发送 $8$ 个探测分节，两两相隔 $75$ 秒。如果还是没有响应则放弃，设置 $ETIMEOUT$ 错误并关闭套接字；如果收到一个<code>ICMP</code>错误，则会返回相应的错误。</li>
-</ol>
-<h3 id="25-so_linger">2.5 <code>SO_LINGER</code></h3>
-<p>        本选项指定 $close$ 函数如何处理面向连接的协议 ( <code>TCP</code>和<code>SCTP</code>等 )。默认操作是 $close$ 立即返回，如果有数据残留，会尝试将这些数据发送给对端。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="k">struct</span> <span class="n">linger</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">l_onoff</span><span class="p">;</span>  <span class="c1">// 0=off, nonzero=on
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">l_linger</span><span class="p">;</span>  <span class="c1">// linger time, POSIX specifies units as seconds
-</span><span class="c1"></span><span class="p">};</span>
-</code></pre></div><ul>
-<li>如果 $l_-onoff$ 为 $0$ ，$l_-linger$ 的值将被忽略，默认配置将生效；</li>
-<li>如果 $l_-onoff$ 非 $0$ 且 $l_-linger$ 为 $0$ ，那么 $close$ 某个连接时<code>TCP</code>将终止连接，丢弃所有留存在发送缓冲区中的数据，并给对端发送<code>RST</code>。这样一来就避免了 $TIME_-WAIT$ 阶段，但是如果在 $2MSL$ 时间内创建了该连接的分身，会导致来自刚被终止的连接上的旧的重复分节被不正确地传递到新的分身上；</li>
-<li>如果 $l_-onff$ 非 $0$ 且 $l_-linger$ 也非 $0$ ，那么当套接字关闭时内核将维持一段时间的连接。如果此时发送缓冲区中仍有数据，进程将休眠，直到所有数据发送完成且被确认或者到达时间上限。如果到达时间上限返回，会设置 $EWOULDBLOCK$ 错误，且丢弃发送缓冲区中的数据。如果套接字是非阻塞的，它将不等待 $close$ 完成。</li>
-</ul>
-<h3 id="26-so_reuseaddr和so_reuseport">2.6 <code>SO_REUSEADDR</code>和<code>SO_REUSEPORT</code></h3>
-<p>        $SO_-REUSEADDR$ 选项有以下作用：</p>
-<ol>
-<li>允许重启一个监听服务器并绑定众所周知的端口，即使以前建立的使用这个端口的进程仍然存在。一般情况下，在同一个端口重复绑定会失败，但是如果该服务器在绑定前指定了该选项，绑定将会成功。所有<code>TCP</code>服务器都应该指定这个选项，从而允许服务器在这种情形下被重新启动；</li>
-<li>允许在同一个端口上启动同一服务器的多个实例，只要每个实例绑定不同的<code>IP</code>地址；</li>
-<li>允许单个进程绑定同一端口到多个套接字上，只要每次绑定指定不同的本地<code>IP</code>地址即可；</li>
-<li>允许完全重复的绑定：当一个<code>IP</code>地址和端口已绑定到某个套接字上时，如果传输协议支持，同样的<code>IP</code>地址和端口还可以捆绑到另一个套接字上。一般来说，本特性仅支持<code>UDP</code>套接字；</li>
-</ol>
-<p>        随着多播的加入，$SO_-REUSEPORT$ 也被引入：</p>
-<ol>
-<li>允许完全重复的绑定，不过只有在绑定了同一<code>IP</code>地址和端口的套接字都指定了该选项时才可以；</li>
-<li>如果被绑定的<code>IP</code>地址是多播地址，那么与 $SO_-REUSEADDR$ 等效。</li>
-</ol>
-<h2 id="3ipv4套接字选项">3.<code>IPv4</code>套接字选项</h2>
-<h3 id="31-ip_options">3.1 <code>IP_OPTIONS</code></h3>
-<p>        本选项允许我们在<code>IPv4</code>首部中设置<code>IP</code>选项，要求我们熟悉<code>IP</code>首部中的<code>IP</code>选项格式。</p>
-<h3 id="32-ip_recvdstaddr">3.2 <code>IP_RECVDSTADDR</code></h3>
-<p>        本选项导致收到<code>UDP</code>数据报的目的<code>IP</code>地址由 $recvmsg$ 函数作为辅助数据返回。</p>
-<h3 id="33-ip_recvif">3.3 <code>IP_RECVIF</code></h3>
-<p>        本选项导致收到<code>UDP</code>数据报的接收接口索引由 $recvmsg$ 韩硕作为辅助数据返回。</p>
-<h2 id="4-ipv6套接字选项">4. <code>IPv6</code>套接字选项</h2>
-<h3 id="41-ipv6_recvdstopts">4.1 <code>IPV6_RECVDSTOPTS</code></h3>
-<p>        本选项会导致任何接收到的<code>IPv6</code>目的地选项都将由 $recvmsg$ 作为辅助数据返回。</p>
-<h3 id="42-ipv6_recvhoplimit">4.2 <code>IPV6_RECVHOPLIMIT</code></h3>
-<p>        本选项会导致任何接收到的跳限字段都将由 $recvmsg$ 作为辅助数据返回。</p>
-<h3 id="43-ipv6_recvhopopts">4.3 <code>IPV6_RECVHOPOPTS</code></h3>
-<p>        本选项会导致任何接收到的<code>IPv6</code>步跳选项都将由 $recvmsg$ 作为辅助数据返回。</p>
-<h3 id="44-ipv6_recvpathmtu">4.4 <code>IPV6_RECVPATHMTU</code></h3>
-<p>        本选项会导致某跳路径 $MTU$ 在发生变化时由 $recvmsg$ 作为辅助数据返回。</p>
-<h3 id="45-ipv6_recvpktinfo">4.5 <code>IPV6_RECVPKTINFO</code></h3>
-<p>        本选项会导致接收到的<code>IPv6</code>数据报的目的<code>IPv6</code>地址和到达接口索引由 $recvmsg$ 作为辅助数据返回。</p>
-<h3 id="46-ipv6_recvrthdr">4.6 <code>IPV6_RECVRTHDR</code></h3>
-<p>        本选项会导致接收到的<code>IPv6</code>路由首部将由 $recvmsg$ 作为辅助数据返回。</p>
-<h3 id="47-ipv6_recvtclass">4.7 <code>IPV6_RECVTCLASS</code></h3>
-<p>        本选项会导致接收到的流通类别将由 $recvmsg$ 作为辅助数据返回。</p>
-<h3 id="48-ipv6_use_min_mtu">4.8 <code>IPV6_USE_MIN_MTU</code></h3>
-<p>        设置为 $1$ 会关闭路径 $MTU$ 发现功能，使用<code>IPv6</code>的最小 $MTU$ 发送；设置为 $0$ 会对所有目的地执行路径 $MTU$ 发现；设置为 $-1$ 则路径 $MTU$ 发现仅对单播目的地执行，多播目的地使用最小 $MTU$ 。本选项默认值为 $-1$ 。</p>
-<h2 id="5-fcntl函数">5. <code>fcntl</code>函数</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;fcntl.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 成功则返回cmd命令的结果，出错返回-1
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">fcntl</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">cmd</span><span class="p">,</span> <span class="p">...</span> <span class="cm">/* int arg */</span><span class="p">);</span>
-</code></pre></div><p>        $fcntl$ 函数可以执行各种描述符控制操作。如下表所示：</p>
-<table>
-<thead>
-<tr>
-<th style="text-align:left">操作</th>
-<th style="text-align:left">$fcntl$</th>
-<th style="text-align:left">$ioctl$</th>
-<th style="text-align:left">路由套接字</th>
-<th style="text-align:left"><code>POSIX</code></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left">设置套接字为非阻塞式<code>I/O</code></td>
-<td style="text-align:left">$F_-SETFL$ ，$O_-NONBLOCK$</td>
-<td style="text-align:left">$FIONBIO$</td>
-<td style="text-align:left"></td>
-<td style="text-align:left">$fcntl$</td>
-</tr>
-<tr>
-<td style="text-align:left">设置套接字为信号驱动式<code>I/O</code></td>
-<td style="text-align:left">$F_-SETFL$ ，$O_-ASYNC$</td>
-<td style="text-align:left">$FIOASYNC$</td>
-<td style="text-align:left"></td>
-<td style="text-align:left">$fcntl$</td>
-</tr>
-<tr>
-<td style="text-align:left">设置套接字属主</td>
-<td style="text-align:left">$F_-SETOWN$</td>
-<td style="text-align:left">$SIOCSPGRP$ / $FIOSETOWN$</td>
-<td style="text-align:left"></td>
-<td style="text-align:left">$fcntl$</td>
-</tr>
-<tr>
-<td style="text-align:left">获取套接字属主</td>
-<td style="text-align:left">$F_-GETOWN$</td>
-<td style="text-align:left">$SIOCGPGRP$ / $FIOGETOWN$</td>
-<td style="text-align:left"></td>
-<td style="text-align:left">$fcntl$</td>
-</tr>
-<tr>
-<td style="text-align:left">获取套接字接收缓冲区中的字节数</td>
-<td style="text-align:left"></td>
-<td style="text-align:left">$FIONREAD$</td>
-<td style="text-align:left"></td>
-<td style="text-align:left"></td>
-</tr>
-<tr>
-<td style="text-align:left">测试套接字是否处于带外标志</td>
-<td style="text-align:left"></td>
-<td style="text-align:left">$SIOCATMARK$</td>
-<td style="text-align:left"></td>
-<td style="text-align:left">$sockatmark$</td>
-</tr>
-<tr>
-<td style="text-align:left">获取接口列表</td>
-<td style="text-align:left"></td>
-<td style="text-align:left">$SIOCGIFCONF$</td>
-<td style="text-align:left">$sysctl$</td>
-<td style="text-align:left"></td>
-</tr>
-<tr>
-<td style="text-align:left">接口操作</td>
-<td style="text-align:left"></td>
-<td style="text-align:left">$SIOCGIFxxx$ / $SIOSIFxxx$</td>
-<td style="text-align:left"></td>
-<td style="text-align:left"></td>
-</tr>
-<tr>
-<td style="text-align:left"><code>ARP</code>高速缓存操作</td>
-<td style="text-align:left"></td>
-<td style="text-align:left">$SIOCxARP$</td>
-<td style="text-align:left">$RTM_-xxx$</td>
-<td style="text-align:left"></td>
-</tr>
-<tr>
-<td style="text-align:left">路由表操作</td>
-<td style="text-align:left"></td>
-<td style="text-align:left">$SIOCxxxRT$</td>
-<td style="text-align:left">$RTM_-xxx$</td>
-<td style="text-align:left"></td>
-</tr>
-</tbody>
-</table>
-<p>        <code>POSIX</code>一栏指出<code>POSIX</code>规定的首选操作。$F_-SETOWN$ 命令的整数类型参数 $arg$ 既可以是一个正整数，指出接收信号的进程<code>ID</code>，也可以是一个负整数，其绝对值指出接收信号的进程组<code>ID</code>。同样的，$F_-GETOWN$ 命令既可以返回代表进程<code>ID</code>的正值，也可以返回代表进程组<code>ID</code>的负值。使用 $socket$ 函数新创建的套接字没有属主，然而如果一个新的套接字是从监听套接字创建而来的，那么这个新的套接字属主将从监听套接字继承而来。</p>
-
-            </div>
-            <div class="meta post-footer"> 
-                <span>2022 Feb 18 18:28</span> 
-                <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85%E5%A5%97%E6%8E%A5%E5%AD%97%E9%80%89%E9%A1%B9/"><i class="fas fa-link"></i> link</a>
             </div>
         </div>
         
