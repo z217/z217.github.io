@@ -88,6 +88,24 @@
     
     
     <div class="list-item">
+        <a class="entry-title" href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B20/">Unix网络编程（20）：共享内存</a>
+        
+        
+        <p>《Unix网络编程》读书笔记（20）</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2022 Feb 23 13:45
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: Web, C&C++
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
         <a class="entry-title" href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B19/">Unix网络编程（19）：信号量</a>
         
         
@@ -159,24 +177,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85%E5%A5%97%E6%8E%A5%E5%AD%97%E9%80%89%E9%A1%B9/">Unix网络编程补充：套接字选项</a>
-        
-        
-        <p>《Unix网络编程》读书笔记补充</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2022 Feb 18 18:28
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: Web, C&C++
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -185,6 +185,406 @@
     <div class="section-title">μblog</div>
     <div class="posts">
         
+        
+        <div class="post">
+            
+            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B20/">Unix网络编程（20）：共享内存</a></h1>
+            <div class="post-content">
+                <p>        共享内存是可用<code>IPC</code>形式中最快的。因为将内存区映射到进程的地址空间之后，进程间的数据传递就不用通过内核。</p>
+<h2 id="1-共享内存操作">1. 共享内存操作</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/mman.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回映射内存区的地址，出错返回MAP_FAILED
+</span><span class="c1"></span><span class="kt">void</span> <span class="o">*</span><span class="nf">mmap</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">len</span><span class="p">,</span> <span class="kt">int</span> <span class="n">prot</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">,</span> <span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">off_t</span> <span class="n">offset</span><span class="p">);</span>
+</code></pre></div><p>        $mmap$ 函数把一个文件或一个<code>POSIX</code>共享内存区对象映射到调用进程的地址空间。使用该函数有三个目的：</p>
+<ul>
+<li>对普通文件使用内存映射<code>I/O</code>；</li>
+<li>对特殊文件进行匿名内存映射；</li>
+<li>使用 $shm_-open$ 提供无亲缘关系的进程间的<code>POSIX</code>共享内存区。</li>
+</ul>
+<p>        $addr$ 可以指定描述符 $fd$ 应该被映射到的进程内存空间的地址，也可以指定为 $NULL$ ，从而让内核自己选择。$len$ 是映射到调用进程地址空间中的字节数，从被映射字节开头第 $offset$ 个字节开始，$offset$ 可以为 $0$ 。内存映射区的保护由 $prot$ 参数提供，可选值有：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">$prot$</th>
+<th style="text-align:left">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">$PROT_-READ$</td>
+<td style="text-align:left">数据可读</td>
+</tr>
+<tr>
+<td style="text-align:left">$PROT_-WRITE$</td>
+<td style="text-align:left">数据可写</td>
+</tr>
+<tr>
+<td style="text-align:left">$PROT_-EXEC$</td>
+<td style="text-align:left">数据可执行</td>
+</tr>
+<tr>
+<td style="text-align:left">$PROT_-NONE$</td>
+<td style="text-align:left">数据不可访问</td>
+</tr>
+</tbody>
+</table>
+<p>        $prot$ 参数的常见值为 $PROT_-READ$ | $PROT_-WRITE$ 。$flags$ 指定共享内存属性，可选值有：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">$flag$</th>
+<th style="text-align:left">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">$MAP_-SHARED$</td>
+<td style="text-align:left">变动是共享的</td>
+</tr>
+<tr>
+<td style="text-align:left">$MAP_-PRIVATE$</td>
+<td style="text-align:left">变动是私有的</td>
+</tr>
+<tr>
+<td style="text-align:left">$MAP_-FIXED$</td>
+<td style="text-align:left">准确地解释 $addr$</td>
+</tr>
+</tbody>
+</table>
+<p>        其中 $MAP_-SHARED$ 和 $MAP_-PRIVATE$ 必须选择其中一个。如果选择 $MAP_-SHARED$ ，那么调用进程对映射区内所做的修改对其他进程可见，并且也会修改底层对象；如果选择 $MAP_-PRIVATE$ ，那么调用进程对映射区所做的修改只有当前进程可见，而且不会修改底层对象；从移植性上考虑，不应该指定 $MAP_-FIXED$ ，如果没有指定该标志并且 $addr$ 非空，则具体行为取决于实现。可移植的代码应该把 $addr$ 设置为 $NULL$ 并不指定 $MAP_-FIXED$ 。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/mman.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回0，出错返回-1
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">munmap</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">len</span><span class="p">);</span>
+
+<span class="c1">// 成功返回0，出错返回-1
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">msync</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">len</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">);</span>
+</code></pre></div><p>        $munmap$ 从进程空间中删除映射区，删除之后再次访问先前映射区地址会产生 $SIGSEGV$ 信号。$msync$ 算法用于主动将映射区中的数据同步到硬盘，可选的 $flags$ 参数有：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">$flag$</th>
+<th style="text-align:left">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">$MS_-ASYNC$</td>
+<td style="text-align:left">异步写</td>
+</tr>
+<tr>
+<td style="text-align:left">$MS_-SYNC$</td>
+<td style="text-align:left">同步写</td>
+</tr>
+<tr>
+<td style="text-align:left">$MS_-INVALIDATE$</td>
+<td style="text-align:left">使高速缓存中的数据失效</td>
+</tr>
+</tbody>
+</table>
+<p>        其中 $MS_-ASYNC$ 和 $MS_-SYNC$ 必须指定其中一个。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="k">struct</span> <span class="n">shared</span> <span class="p">{</span>
+  <span class="n">sem_t</span> <span class="n">mutex</span><span class="p">;</span>  <span class="c1">// the mutex: a Posix memory-based semaphore
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">count</span><span class="p">;</span>  <span class="c1">// the counter
+</span><span class="c1"></span><span class="p">}</span> <span class="n">shared</span><span class="p">;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">nloop</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">shared</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: incr2 &lt;pathname&gt; &lt;#loops&gt;&#34;</span><span class="p">);</span>
+  <span class="n">nloop</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+
+  <span class="c1">// open file, initalize to 0, map into memory
+</span><span class="c1"></span>  <span class="n">fd</span> <span class="o">=</span> <span class="n">Open</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">O_RDWR</span> <span class="o">|</span> <span class="n">O_CREAT</span><span class="p">,</span> <span class="n">FILE_MODE</span><span class="p">);</span>
+  <span class="n">Write</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">shared</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">shared</span><span class="p">));</span>
+  <span class="n">ptr</span> <span class="o">=</span> <span class="n">Mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">shared</span><span class="p">),</span> <span class="n">PROT_READ</span> <span class="o">|</span> <span class="n">PROT_WRITE</span><span class="p">,</span>
+             <span class="n">MAP_SHARED</span><span class="p">,</span> <span class="n">fd</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="n">Close</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
+
+  <span class="c1">// initialize semaphore that is shared between processes
+</span><span class="c1"></span>  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+
+  <span class="n">setbuf</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>  <span class="c1">// stdout is unbuffered
+</span><span class="c1"></span>  <span class="k">if</span> <span class="p">(</span><span class="n">Fork</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// child
+</span><span class="c1"></span>    <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nloop</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">);</span>
+      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;child: %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">count</span><span class="o">++</span><span class="p">);</span>
+      <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="c1">// parent
+</span><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nloop</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;parent: %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">count</span><span class="o">++</span><span class="p">);</span>
+    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">);</span>
+  <span class="p">}</span>
+  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><h2 id="2-匿名内存映射">2. 匿名内存映射</h2>
+<p>        匿名内存映射可以让我们在不用创建文件的前提下使用内存映射。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="n">nloop</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span>
+  <span class="n">sem_t</span> <span class="o">*</span><span class="n">mutex</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: incr_map_anon &lt;#loops&gt;&#34;</span><span class="p">);</span>
+  <span class="n">nloop</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+
+  <span class="c1">// map into memory
+</span><span class="c1"></span>  <span class="n">ptr</span> <span class="o">=</span> <span class="n">Mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">),</span> <span class="n">PROT_READ</span> <span class="o">|</span> <span class="n">PROT_WRITE</span><span class="p">,</span>
+             <span class="n">MAP_SHARED</span> <span class="o">|</span> <span class="n">MAP_ANONYMOUS</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="c1">// 后略...
+</span><span class="c1"></span><span class="p">}</span>
+</code></pre></div><p>        $/dev/zero$ 设备文件会不断产生空字符，也可以用于实现匿名内存映射。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">nloop</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span>
+  <span class="n">sem_t</span> <span class="o">*</span><span class="n">mutex</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: incr_dev_zero &lt;#loops&gt;&#34;</span><span class="p">);</span>
+  <span class="n">nloop</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+
+  <span class="c1">// open /dev/zerp, map into memory
+</span><span class="c1"></span>  <span class="n">fd</span> <span class="o">=</span> <span class="n">Open</span><span class="p">(</span><span class="s">&#34;/dev/zero&#34;</span><span class="p">,</span> <span class="n">O_RDWR</span><span class="p">);</span>
+  <span class="n">ptr</span> <span class="o">=</span> <span class="n">Mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">),</span> <span class="n">PROT_READ</span> <span class="o">|</span> <span class="n">PROT_WRITE</span><span class="p">,</span> <span class="n">MAP_SHARED</span><span class="p">,</span> <span class="n">fd</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="n">Close</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
+
+  <span class="c1">// 后略...
+</span><span class="c1"></span><span class="p">}</span>
+</code></pre></div><h2 id="3-安全访问共享内存映射区">3. 安全访问共享内存映射区</h2>
+<p>        访问共享内存映射区时可能会产生两种错误：</p>
+<ol>
+<li>当访问的区域位于映射区以外时，返回 $SIGSEGV$ 错误；</li>
+<li>当访问的区域位于映射区以内但是超出文件大小时，返回 $SIGBUS$ 错误。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="cp">#define FILE &#34;test.data&#34;
+</span><span class="cp">#define SIZE 32768
+</span><span class="cp"></span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">i</span><span class="p">;</span>
+  <span class="kt">char</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span>
+
+  <span class="c1">// open: create or truncate; then mmap file
+</span><span class="c1"></span>  <span class="n">fd</span> <span class="o">=</span> <span class="n">Open</span><span class="p">(</span><span class="n">FILE</span><span class="p">,</span> <span class="n">O_RDWR</span> <span class="o">|</span> <span class="n">O_CREAT</span> <span class="o">|</span> <span class="n">O_TRUNC</span><span class="p">,</span> <span class="n">FILE_MODE</span><span class="p">);</span>
+  <span class="n">ptr</span> <span class="o">=</span> <span class="n">Mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">SIZE</span><span class="p">,</span> <span class="n">PROT_READ</span> <span class="o">|</span> <span class="n">PROT_WRITE</span><span class="p">,</span> <span class="n">MAP_SHARED</span><span class="p">,</span> <span class="n">fd</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">4096</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">SIZE</span><span class="p">;</span> <span class="n">i</span> <span class="o">+=</span> <span class="mi">4096</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;setting file size to %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">);</span>
+    <span class="n">Ftruncate</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">i</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;ptr[%d] = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ptr</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]);</span>
+  <span class="p">}</span>
+
+  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><p>        上述程序使用了让文件持续增长的技巧。它指定了一个大于文件大小的内存映射区，同时不断跟踪文件大小，并让文件大小随着写入增长。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;unistd.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">int</span> <span class="nf">ftruncate</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">off_t</span> <span class="n">len</span><span class="p">);</span>
+</code></pre></div><p>        处理 $mmap$ 的时候，普通文件或共享内存区的大小都可以通过 $ftruncate$ 修改。但是对于普通文件和共享内存区对象文件，<code>POSIX</code>对它们的处理逻辑不同：</p>
+<ul>
+<li>对于普通文件，如果文件大小大于 $length$ ，那么文件会被缩小并且丢弃额外的数据；如果文件大小小于 $length$ ，那么文件怎么修改和大小怎么改变是未定义的。实际上，对于一个普通文件，一种可移植的增加大小的方法是先使用 $lseek$ 定位到 $length - 1$ ，然后写入 $1$ 字节数据。所幸的是，几乎所有<code>Unix</code>实现都支持使用 $ftruncate$ 扩展一个文件；</li>
+<li>对于共享内存区对象文件，$ftruncate$ 会把大小设置为 $length$ 字节。</li>
+</ul>
+<p>        普通文件指通过 $open$ 打开的文件，共享内存区对象文件则指通过 $shm_-open$ 打开的文件，稍后我们会看到 $shm_-open$ 的调用。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/types.h&gt;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;sys/stat.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回0，出错返回-1
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">fstat</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="k">struct</span> <span class="n">stat</span> <span class="o">*</span><span class="n">buf</span><span class="p">);</span>
+</code></pre></div><p>        当打开一个已存在的共享内存区对象文件时，我们可以通过 $fstat$ 获取该文件信息。$stat$ 结构有 $12$ 或以上的成员，然而当 $fd$ 指代一个共享内存区对象时，只有四个成员有效：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">struct</span> <span class="n">stat</span> <span class="p">{</span>
+  <span class="c1">// ...
+</span><span class="c1"></span>  <span class="n">mode_t</span> <span class="n">st_mode</span><span class="p">;</span>  <span class="c1">// mode: S_I{RW}{USR,GRP,OTH}
+</span><span class="c1"></span>  <span class="n">uid_t</span> <span class="n">st_uid</span><span class="p">;</span>  <span class="c1">// user ID of owner
+</span><span class="c1"></span>  <span class="n">gid_t</span> <span class="n">st_gid</span><span class="p">;</span>  <span class="c1">// group ID of owner
+</span><span class="c1"></span>  <span class="n">off_t</span> <span class="n">st_size</span><span class="p">;</span>  <span class="c1">// size in bytes
+</span><span class="c1"></span>  <span class="c1">// ...
+</span><span class="c1"></span><span class="p">};</span>
+</code></pre></div><h2 id="4-posix共享内存区操作">4. <code>POSIX</code>共享内存区操作</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/mman.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回非负描述符，出错返回-1
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">shm_open</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">,</span> <span class="kt">int</span> <span class="n">oflag</span><span class="p">,</span> <span class="n">mode_t</span> <span class="n">mode</span><span class="p">);</span>
+
+<span class="c1">// 成功返回0，出错返回-1
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">shm_unlink</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">);</span>
+</code></pre></div><p>        <code>POSIX</code>共享内存区涉及以下两个步骤要求：</p>
+<ol>
+<li>调用 $shm_-open$ 并指定文件名，创建或打开一个共享内存区对象文件；</li>
+<li>调用 $mmap$ 把这个共享内存区对象文件映射到调用进程的地址空间。</li>
+</ol>
+<p>        $oflag$ 参数必须含有 $ORDONLY$ 和 $O_-RDWR$ 的其中一个，还可以指定 $O_-CREAT$ 、$O_-EXCL$ 和 $O_-TRUNC$ 。$mode$ 指定权限位，在指定了 $O_-CREAT$ 的前提下使用，如果没有指定 $O_-CREAT$ ，可以设置为 $0$ 。$shm_-unlink$ 则负责删除一个共享内存区对象文件，跟其他 $unlink$ 一样，已打开的文件不会影响删除。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">fd1</span><span class="p">,</span> <span class="n">fd2</span><span class="p">,</span> <span class="o">*</span><span class="n">ptr1</span><span class="p">,</span> <span class="o">*</span><span class="n">ptr2</span><span class="p">;</span>
+  <span class="n">pid_t</span> <span class="n">childpid</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">stat</span> <span class="n">stat</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: test3 &lt;name&gt;&#34;</span><span class="p">);</span>
+
+  <span class="n">shm_unlink</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+  <span class="n">fd1</span> <span class="o">=</span> <span class="n">Shm_open</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">O_RDWR</span> <span class="o">|</span> <span class="n">O_CREAT</span> <span class="o">|</span> <span class="n">O_EXCL</span><span class="p">,</span> <span class="n">FILE_MODE</span><span class="p">);</span>
+  <span class="n">Ftruncate</span><span class="p">(</span><span class="n">fd1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">));</span>
+  <span class="n">fd2</span> <span class="o">=</span> <span class="n">Open</span><span class="p">(</span><span class="s">&#34;/etc/hostname&#34;</span><span class="p">,</span> <span class="n">O_RDONLY</span><span class="p">);</span>
+  <span class="n">Fstat</span><span class="p">(</span><span class="n">fd2</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">stat</span><span class="p">);</span>
+
+  <span class="k">if</span> <span class="p">((</span><span class="n">childpid</span> <span class="o">=</span> <span class="n">Fork</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// child
+</span><span class="c1"></span>    <span class="n">ptr2</span> <span class="o">=</span> <span class="n">Mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">stat</span><span class="p">.</span><span class="n">st_size</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="p">,</span> <span class="n">MAP_SHARED</span><span class="p">,</span> <span class="n">fd2</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+    <span class="n">ptr1</span> <span class="o">=</span> <span class="n">Mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">),</span> <span class="n">PROT_READ</span> <span class="o">|</span> <span class="n">PROT_WRITE</span><span class="p">,</span>
+                <span class="n">MAP_SHARED</span><span class="p">,</span> <span class="n">fd1</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;child: shm ptr = %p, hostname ptr = %p</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="o">*</span><span class="n">ptr1</span><span class="p">);</span>
+
+    <span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;shared memory integer = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="o">*</span><span class="n">ptr1</span><span class="p">);</span>
+    <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="c1">// parent: mmap in reverse order from child
+</span><span class="c1"></span>  <span class="n">ptr1</span> <span class="o">=</span> <span class="n">Mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">),</span> <span class="n">PROT_READ</span> <span class="o">|</span> <span class="n">PROT_WRITE</span><span class="p">,</span> <span class="n">MAP_SHARED</span><span class="p">,</span> <span class="n">fd1</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="n">ptr2</span> <span class="o">=</span> <span class="n">Mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">stat</span><span class="p">.</span><span class="n">st_size</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="p">,</span> <span class="n">MAP_SHARED</span><span class="p">,</span> <span class="n">fd2</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;parent: shm ptr = %p, hostname ptr = %p</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">ptr1</span><span class="p">,</span> <span class="n">ptr2</span><span class="p">);</span>
+  <span class="o">*</span><span class="n">ptr1</span> <span class="o">=</span> <span class="mi">777</span><span class="p">;</span>
+  <span class="n">Waitpid</span><span class="p">(</span><span class="n">childpid</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><p>        上面的程序演示了父子进程可以把同一个共享内存区对象映射到不同的进程地址，并且通过这不同的进程地址读出相同的值。</p>
+<h2 id="5-生产者-消费者模型">5. 生产者-消费者模型</h2>
+<p>        我们可以通过共享内存技术实现生产者-消费者模型，通过共享内存区来容纳消息。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="cp">#define MESGSIZE 256  </span><span class="c1">// max #bytes per message, incl. null at end
+</span><span class="c1"></span><span class="cp">#define NMESG 16  </span><span class="c1">// max #messages
+</span><span class="c1"></span>
+<span class="k">struct</span> <span class="n">shmstruct</span> <span class="p">{</span>  <span class="c1">// struct stored in shared memory
+</span><span class="c1"></span>  <span class="n">sem_t</span> <span class="n">mutex</span><span class="p">;</span>  <span class="c1">// three POSIX memory-based semaphores
+</span><span class="c1"></span>  <span class="n">sem_t</span> <span class="n">nempty</span><span class="p">;</span>
+  <span class="n">sem_t</span> <span class="n">nstored</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">nput</span><span class="p">;</span>  <span class="c1">// index into msgoff[] for next put
+</span><span class="c1"></span>  <span class="kt">long</span> <span class="n">noverflow</span><span class="p">;</span>  <span class="c1">// #overflows by senders
+</span><span class="c1"></span>  <span class="n">sem_t</span> <span class="n">noverflowmutex</span><span class="p">;</span>  <span class="c1">// mutex for noverflow counter
+</span><span class="c1"></span>  <span class="kt">long</span> <span class="n">msgoff</span><span class="p">[</span><span class="n">NMESG</span><span class="p">];</span>  <span class="c1">// offset in shared memory of each message
+</span><span class="c1"></span>  <span class="kt">char</span> <span class="n">msgdata</span><span class="p">[</span><span class="n">NMESG</span> <span class="o">*</span> <span class="n">MESGSIZE</span><span class="p">];</span>  <span class="c1">// the actual messages
+</span><span class="c1"></span><span class="p">};</span>
+</code></pre></div><p>        当生产者想发送消息但是没有空间时，我们不会阻塞生产者，而是递增 $noverflow$ 计数。$msgoff$ 指出每个消息的偏移，其中 $msgoff[0] = 0$ 。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;cliserv2.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">lastnoverflow</span><span class="p">,</span> <span class="n">temp</span><span class="p">;</span>
+  <span class="kt">long</span> <span class="n">offset</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">shmstruct</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: server2 &lt;name&gt;&#34;</span><span class="p">);</span>
+
+  <span class="c1">// create shm, set its size, map it, close descriptor
+</span><span class="c1"></span>  <span class="n">shm_unlink</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>  <span class="c1">// OK if this fails
+</span><span class="c1"></span>  <span class="n">fd</span> <span class="o">=</span> <span class="n">Shm_open</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">O_RDWR</span> <span class="o">|</span> <span class="n">O_CREAT</span> <span class="o">|</span> <span class="n">O_EXCL</span><span class="p">,</span> <span class="n">FILE_MODE</span><span class="p">);</span>
+  <span class="n">ptr</span> <span class="o">=</span> <span class="n">Mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">shmstruct</span><span class="p">),</span> <span class="n">PROT_READ</span> <span class="o">|</span> <span class="n">PROT_WRITE</span><span class="p">,</span>
+             <span class="n">MAP_SHARED</span><span class="p">,</span> <span class="n">fd</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="n">Ftruncate</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">shmstruct</span><span class="p">));</span>
+  <span class="n">Close</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
+
+  <span class="c1">// initialize the array of offsetss
+</span><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="n">index</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="n">NMESG</span><span class="p">;</span> <span class="n">index</span><span class="o">++</span><span class="p">)</span>
+    <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">msgoff</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">index</span> <span class="o">*</span> <span class="n">MESGSIZE</span><span class="p">;</span>
+
+  <span class="c1">// initialize the semaphores in shared memory
+</span><span class="c1"></span>  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">nempty</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">NMESG</span><span class="p">);</span>
+  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">nstored</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">noverflowmutex</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+
+  <span class="c1">// this program is the consumer
+</span><span class="c1"></span>  <span class="n">index</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="n">lastnoverflow</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">nstored</span><span class="p">);</span>
+    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">);</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">msgoff</span><span class="p">[</span><span class="n">index</span><span class="p">];</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;index = %d: %s</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">msgdata</span><span class="p">[</span><span class="n">offset</span><span class="p">]);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">++</span><span class="n">index</span> <span class="o">&gt;=</span> <span class="n">NMESG</span><span class="p">)</span>
+      <span class="n">index</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// circular buffer
+</span><span class="c1"></span>    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">);</span>
+    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">nempty</span><span class="p">);</span>
+
+    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">noverflowmutex</span><span class="p">);</span>
+    <span class="n">temp</span> <span class="o">=</span> <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">noverflow</span><span class="p">;</span>  <span class="c1">// don&#39;t printf while mutex held
+</span><span class="c1"></span>    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">noverflowmutex</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">temp</span> <span class="o">!=</span> <span class="n">lastnoverflow</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;noverflow = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">temp</span><span class="p">);</span>
+      <span class="n">lastnoverflow</span> <span class="o">=</span> <span class="n">temp</span><span class="p">;</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><p>        消费者程序会先删除可能存在的共享内存区对象文件，然后重新创建。接着会初始化每个消息的偏移。最后，在每次循环的末尾都会检查 $noverflow$ ，如果改变了，就输出它的最新值。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;cliserv2.h&#34;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">nloop</span><span class="p">,</span> <span class="n">nusec</span><span class="p">;</span>
+  <span class="n">pid_t</span> <span class="n">pid</span><span class="p">;</span>
+  <span class="kt">char</span> <span class="n">mesg</span><span class="p">[</span><span class="n">MESGSIZE</span><span class="p">];</span>
+  <span class="kt">long</span> <span class="n">offset</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">shmstruct</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: client2 &lt;name&gt; &lt;#loops&gt; &lt;#usec&gt;&#34;</span><span class="p">);</span>
+  <span class="n">nloop</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+  <span class="n">nusec</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">3</span><span class="p">]);</span>
+
+  <span class="c1">// open and map shared memory that server must create
+</span><span class="c1"></span>  <span class="n">fd</span> <span class="o">=</span> <span class="n">Shm_open</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">O_RDWR</span><span class="p">,</span> <span class="n">FILE_MODE</span><span class="p">);</span>
+  <span class="n">ptr</span> <span class="o">=</span> <span class="n">Mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">shmstruct</span><span class="p">),</span> <span class="n">PROT_READ</span> <span class="o">|</span> <span class="n">PROT_WRITE</span><span class="p">,</span>
+             <span class="n">MAP_SHARED</span><span class="p">,</span> <span class="n">fd</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="n">Close</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
+
+  <span class="n">pid</span> <span class="o">=</span> <span class="n">getpid</span><span class="p">();</span>
+  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nloop</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">sleep_us</span><span class="p">(</span><span class="n">nusec</span><span class="p">);</span>
+    <span class="n">snprintf</span><span class="p">(</span><span class="n">mesg</span><span class="p">,</span> <span class="n">MESGSIZE</span><span class="p">,</span> <span class="s">&#34;pid %ld: message %d&#34;</span><span class="p">,</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span> <span class="n">pid</span><span class="p">,</span> <span class="n">i</span><span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">sem_trywait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">nempty</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">==</span> <span class="n">EAGAIN</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">noverflowmutex</span><span class="p">);</span>
+        <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">noverflow</span><span class="o">++</span><span class="p">;</span>
+        <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">noverflowmutex</span><span class="p">);</span>
+        <span class="k">continue</span><span class="p">;</span>
+      <span class="p">}</span> <span class="k">else</span>
+        <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;sem_trywait error&#34;</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">);</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">msgoff</span><span class="p">[</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">nput</span><span class="p">];</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">++</span><span class="p">(</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">nput</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">NMESG</span><span class="p">)</span>
+      <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">nput</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// circular buffer
+</span><span class="c1"></span>    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">);</span>
+    <span class="n">strncpy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">msgdata</span><span class="p">[</span><span class="n">offset</span><span class="p">],</span> <span class="n">mesg</span><span class="p">,</span> <span class="n">MESGSIZE</span><span class="p">);</span>
+    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">nstored</span><span class="p">);</span>
+  <span class="p">}</span>
+  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><p>        生产者程序使用不会阻塞 $sem_-trywait$ 调用，如果调用失败 ( 即 $nempty$ 信号量不大于 $0$ )，说明映射区中没有空间，递增 $noverflow$ 。</p>
+
+            </div>
+            <div class="meta post-footer"> 
+                <span>2022 Feb 23 13:45</span> 
+                <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B20/"><i class="fas fa-link"></i> link</a>
+            </div>
+        </div>
         
         <div class="post">
             
@@ -1714,366 +2114,6 @@ $$</p>
             <div class="meta post-footer"> 
                 <span>2022 Feb 20 14:01</span> 
                 <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B17/"><i class="fas fa-link"></i> link</a>
-            </div>
-        </div>
-        
-        <div class="post">
-            
-            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B16/">Unix网络编程（16）：管道和FIFO</a></h1>
-            <div class="post-content">
-                <h2 id="1-管道">1. 管道</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;unistd.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 成功返回0，出错返回-1
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">pipe</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
-</code></pre></div><p>        该函数返回两个文件描述符 $fd[0]$ 和 $fd[1]$ ，前者用于读，后者用于写。宏 $S_-IFFIFO$ 可用于确定一个描述符是文件、管道还是<code>FIFO</code>，它的唯一参数是 $stat$ 结构的 $st_-mode$ 成员，计算结果或为真 ( 非零值 )，或为假 ( $0$ )。对于管道来说，这个 $stat$ 结构是由 $fstat$ 函数填写的；对于<code>FIFO</code>来说，这个结构是由 $fstat$ 、$lstat$ 或 $stat$ 函数填写的。<br>
-        管道的典型用途是为两个不同的进程 ( 父进程和子进程 ) 提供进程间通信。首先，由一个进程 ( 父进程 ) 创建一个管道，然后调用 $fork$ 派生一个副本 ( 子进程 )。接着，父进程关闭这个管道的读端 ( $fd[0]$ )，子进程关闭管道的写端 ( $fd[1]$ )，这样就在父子进程间建立了一个单向数据流。我们在<code>Unix</code> <code>shell</code>中输入如下命令时：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash">who <span class="p">|</span> sort
-</code></pre></div><p>        将会创建一个管道，$who$ 进程通过输出端将数据发送给 $sort$ 进程，$sort$ 进程通过读入端读入 $who$ 进程发送的数据。<br>
-        管道是单向的，如果需要双向传输数据，我们必须创建两个管道，每个方向一个：</p>
-<ol>
-<li>创建管道 $fd1$ 和管道 $fd2$ ，并 $fork$ 一个子进程；</li>
-<li>父进程关闭 $fd1[0]$ 和 $fd2[1]$ ；</li>
-<li>子进程关闭 $fd1[1]$ 和 $fd2[0]$ 。</li>
-</ol>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="kt">void</span> <span class="nf">client</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">),</span> <span class="n">server</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">pipe1</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">pipe2</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
-  <span class="n">pid_t</span> <span class="n">childpid</span><span class="p">;</span>
-
-  <span class="n">Pipe</span><span class="p">(</span><span class="n">pipe1</span><span class="p">);</span>
-  <span class="n">Pipe</span><span class="p">(</span><span class="n">pipe2</span><span class="p">);</span>
-
-  <span class="k">if</span> <span class="p">((</span><span class="n">childpid</span> <span class="o">=</span> <span class="n">Fork</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// child
-</span><span class="c1"></span>    <span class="n">Close</span><span class="p">(</span><span class="n">pipe1</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
-    <span class="n">Close</span><span class="p">(</span><span class="n">pipe2</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
-
-    <span class="n">server</span><span class="p">(</span><span class="n">pipe1</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pipe2</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
-    <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-  <span class="p">}</span>
-
-  <span class="c1">// parent
-</span><span class="c1"></span>  <span class="n">Close</span><span class="p">(</span><span class="n">pipe1</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
-  <span class="n">Close</span><span class="p">(</span><span class="n">pipe2</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
-
-  <span class="n">clinet</span><span class="p">(</span><span class="n">pipe2</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pipe1</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
-  <span class="n">Waitpid</span><span class="p">(</span><span class="n">childpid</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>  <span class="c1">// wait for child to terminate
-</span><span class="c1"></span>  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-<span class="p">}</span>
-
-<span class="kt">void</span> <span class="nf">client</span><span class="p">(</span><span class="kt">int</span> <span class="n">readfd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">writefd</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">size_t</span> <span class="n">len</span><span class="p">;</span>
-  <span class="n">ssize_t</span> <span class="n">n</span><span class="p">;</span>
-  <span class="kt">char</span> <span class="n">buff</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">];</span>
-
-  <span class="c1">// read pathname
-</span><span class="c1"></span>  <span class="n">Fgets</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">,</span> <span class="n">stdin</span><span class="p">);</span>
-  <span class="n">len</span> <span class="o">=</span> <span class="n">strlen</span><span class="p">(</span><span class="n">buff</span><span class="p">);</span>  <span class="c1">// fgets() guarantees null byte at end
-</span><span class="c1"></span>  <span class="k">if</span> <span class="p">(</span><span class="n">buff</span><span class="p">[</span><span class="n">len</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="sc">&#39;\n&#39;</span><span class="p">)</span>
-    <span class="n">len</span><span class="o">--</span><span class="p">;</span>  <span class="c1">// delete newline from fgets()
-</span><span class="c1"></span>
-  <span class="c1">// write pathname to IPC channel
-</span><span class="c1"></span>  <span class="n">Write</span><span class="p">(</span><span class="n">writefd</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">len</span><span class="p">);</span>
-
-  <span class="c1">// read from IPC, write to standard output
-</span><span class="c1"></span>  <span class="k">while</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">Read</span><span class="p">(</span><span class="n">readfd</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="n">Write</span><span class="p">(</span><span class="n">STDOUT_FILENO</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">n</span><span class="p">);</span>
-<span class="p">}</span>
-
-<span class="kt">void</span> <span class="nf">server</span><span class="p">(</span><span class="kt">int</span> <span class="n">readfd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">writefd</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">fd</span><span class="p">;</span>
-  <span class="n">ssize_t</span> <span class="n">n</span><span class="p">;</span>
-  <span class="kt">char</span> <span class="n">buff</span><span class="p">[</span><span class="n">MAXLINE</span> <span class="o">+</span> <span class="mi">1</span><span class="p">];</span>
-
-  <span class="c1">// read pathname from IPC channel
-</span><span class="c1"></span>  <span class="k">if</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">Read</span><span class="p">(</span><span class="n">readfd</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;end-of-file while reading pathname&#34;</span><span class="p">);</span>
-  <span class="n">buff</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="sc">&#39;\0&#39;</span><span class="p">;</span>  <span class="c1">// null terminate pathname
-</span><span class="c1"></span>
-  <span class="k">if</span> <span class="p">((</span><span class="n">fd</span> <span class="o">=</span> <span class="n">open</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span> <span class="n">O_RDONLY</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-    <span class="c1">// error: must tell client
-</span><span class="c1"></span>    <span class="n">snprintf</span><span class="p">(</span><span class="n">buff</span> <span class="o">+</span> <span class="n">n</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">buff</span><span class="p">)</span> <span class="o">-</span> <span class="n">n</span><span class="p">,</span> <span class="s">&#34;: can&#39;t open, %s</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span>
-      <span class="n">strerror</span><span class="p">(</span><span class="n">errno</span><span class="p">));</span>
-    <span class="n">n</span> <span class="o">=</span> <span class="n">strlen</span><span class="p">(</span><span class="n">buff</span><span class="p">);</span>
-    <span class="n">Write</span><span class="p">(</span><span class="n">writefd</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">n</span><span class="p">);</span>
-  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-    <span class="c1">// open succeeded: copy file to IPC channel
-</span><span class="c1"></span>    <span class="k">while</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">Read</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
-      <span class="n">Write</span><span class="p">(</span><span class="n">writefd</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">n</span><span class="p">);</span>
-    <span class="n">Close</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div><p>        子进程在往管道写入最终数据后调用 $exit$ 终止，随后变为<strong>僵尸进程</strong> ( $zombie$ )：自身终止但父进程仍在运行且未等待该子进程。子进程终止时，内核会给父进程发送一个 $SIGCHILD$ 信号，但是父进程忽略了这个信号。随后父进程调用 $waitpid$ 取得子进程的终止状态。如果父进程没有调用 $waitpid$ 就终止，那么子进程变为孤儿进程，其父进程将变为 $init$ 进程，由 $init$ 进程获取其终止状态。</p>
-<h2 id="2-popen和pclose函数">2. <code>popen</code>和<code>pclose</code>函数</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 成功为文件指针，出错为NULL
-</span><span class="c1"></span><span class="n">FILE</span> <span class="o">*</span><span class="nf">popen</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">command</span><span class="p">,</span> <span class="n">cosnt</span> <span class="kt">char</span> <span class="o">*</span><span class="n">type</span><span class="p">);</span>
-
-<span class="c1">// 成功为shell终止状态，出错为-1
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">pclose</span><span class="p">(</span><span class="n">FILE</span> <span class="o">*</span><span class="n">stream</span><span class="p">);</span>
-</code></pre></div><p>        $popen$ 函数创建一个管道并启动另外一个进程，该进程要么从该管道读出标准输入，要么往该管道写入标准输出。$command$ 是一个<code>shell</code>命令，$type$ 可以是 $r$ 或者 $w$ ，分别对应着读入 $command$ 的标准输出和写到 $command$ 的标准输入。$pclose$ 函数则负责关闭由 $popen$ 创建的标准<code>I/O</code>流 $stream$ ，等待命令终止并返回<code>shell</code>终止状态。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#inlcude &#34;unpipc.h&#34;
-</span><span class="cp"></span>
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">size_t</span> <span class="n">n</span><span class="p">;</span>
-  <span class="kt">char</span> <span class="n">buff</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">],</span> <span class="n">command</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">];</span>
-  <span class="n">FILE</span> <span class="o">*</span><span class="n">fp</span><span class="p">;</span>
-
-  <span class="c1">// read pathname
-</span><span class="c1"></span>  <span class="n">Fgets</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">,</span> <span class="n">stdin</span><span class="p">);</span>
-  <span class="n">n</span> <span class="o">=</span> <span class="n">strlen</span><span class="p">(</span><span class="n">buff</span><span class="p">);</span>  <span class="c1">// fgets() guarantees null byte at end
-</span><span class="c1"></span>  <span class="k">if</span> <span class="p">(</span><span class="n">buff</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="sc">&#39;\n&#39;</span><span class="p">)</span>
-    <span class="n">n</span><span class="o">--</span><span class="p">;</span>  <span class="c1">// delete newline from fgets
-</span><span class="c1"></span>
-  <span class="n">snprintf</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">command</span><span class="p">),</span> <span class="s">&#34;cat %s&#34;</span><span class="p">,</span> <span class="n">buff</span><span class="p">);</span>
-  <span class="n">fp</span> <span class="o">=</span> <span class="n">Popen</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="s">&#34;r&#34;</span><span class="p">);</span>
-
-  <span class="c1">// copy from pipe to standard output
-</span><span class="c1"></span>  <span class="k">while</span> <span class="p">(</span><span class="n">Fgets</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">,</span> <span class="n">fp</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
-    <span class="n">Fputs</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span> <span class="n">stdout</span><span class="p">);</span>
-
-  <span class="n">Pclose</span><span class="p">(</span><span class="n">fp</span><span class="p">);</span>
-  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-<span class="p">}</span>
-</code></pre></div><h2 id="3-fifo">3. <code>FIFO</code></h2>
-<p>        <code>FIFO</code>指<strong>先进先出</strong> ( $first$ $in$ $first$ $out$ )，类似于管道，是一个单向的数据流。不同于管道的是，每个<code>FIFO</code>都有一个路径名与之关联，从而允许无亲缘关系的进程访问同一个<code>FIFO</code>，也被称为<strong>有名管道</strong> ( $named$ $pipe$ )。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/types.h&gt;</span><span class="cp">
-</span><span class="cp">#include</span> <span class="cpf">&lt;sys/stat.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 成功返回0，出错返回-1
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">mkfifo</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">pathname</span><span class="p">,</span> <span class="n">mode_t</span> <span class="n">mode</span><span class="p">);</span>
-</code></pre></div><p>        $pathname$ 是一个普通的<code>Unix</code>路径名，是<code>FIFO</code>的名字。$mode$ 指定文件权限，类似于 $open$ 的第二个参数，定义在 &lt;$sys/stat.h$&gt; 头文件中。</p>
-<table>
-<thead>
-<tr>
-<th style="text-align:center">常值</th>
-<th style="text-align:left">说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">$S_-IRUSR$</td>
-<td style="text-align:left">用户 ( 属主 ) 读</td>
-</tr>
-<tr>
-<td style="text-align:center">$S_-IWUSR$</td>
-<td style="text-align:left">用户 ( 属主 ) 写</td>
-</tr>
-<tr>
-<td style="text-align:center">$S_-IRGRP$</td>
-<td style="text-align:left">( 属 ) 组成员读</td>
-</tr>
-<tr>
-<td style="text-align:center">$S_-IWGRP$</td>
-<td style="text-align:left">( 属 ) 组成员写</td>
-</tr>
-<tr>
-<td style="text-align:center">$S_-IROTH$</td>
-<td style="text-align:left">其他用户读</td>
-</tr>
-<tr>
-<td style="text-align:center">$S_-IWOTH$</td>
-<td style="text-align:left">其他用户写</td>
-</tr>
-</tbody>
-</table>
-<p>        $mkfifo$ 隐式指定 $O_-CREAT$ | $O_-EXCL$ ，意味着要么创建一个新的<code>FIFO</code>，要么返回 $EEXIST$ 错误。如果不希望创建一个新的<code>FIFO</code>，那么应该调用 $open$ 或者 $fopen$ 。由于<code>FIFO</code>是半双工的，所以不能以读写方式打开，并且对其的 $lseek$ 调用也会报错，返回 $ESPIPE$ 错误。我们定义默认的<code>FIFO</code>权限如下：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cp">#define FILE_MODE (S_IRUSR |  S_IWUSR | S_IRGRP | S_IROTH)
-</span></code></pre></div><hr>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cp">#define FIFO1 &#34;/tmp/fifo.1&#34;
-</span><span class="cp">#define FIFO2 &#34;/tmp/fifo.2&#34;
-</span><span class="cp"></span>
-<span class="kt">void</span> <span class="nf">client</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">),</span> <span class="n">server</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">readfd</span><span class="p">,</span> <span class="n">writefd</span><span class="p">;</span>
-  <span class="n">pid_t</span> <span class="n">childpid</span><span class="p">;</span>
-
-  <span class="c1">// create two FIFOs; OK if they already exist
-</span><span class="c1"></span>  <span class="k">if</span> <span class="p">((</span><span class="n">mkfifo</span><span class="p">(</span><span class="n">FIFO1</span><span class="p">,</span> <span class="n">FILE_MODE</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EEXIST</span><span class="p">))</span>
-    <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;can&#39;t create %s&#34;</span><span class="p">,</span> <span class="n">FIFO1</span><span class="p">);</span>
-  <span class="k">if</span> <span class="p">((</span><span class="n">mkfifo</span><span class="p">(</span><span class="n">FIFO2</span><span class="p">,</span> <span class="n">FILE_MODE</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EEXIST</span><span class="p">))</span> <span class="p">{</span>
-    <span class="n">unlink</span><span class="p">(</span><span class="n">FIFO1</span><span class="p">);</span>
-    <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;can&#39;t create %s&#34;</span><span class="p">,</span> <span class="n">FIFO2</span><span class="p">);</span>
-  <span class="p">}</span>
-  <span class="k">if</span> <span class="p">((</span><span class="n">childpid</span> <span class="o">=</span> <span class="n">Fork</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// child
-</span><span class="c1"></span>    <span class="n">readfd</span> <span class="o">=</span> <span class="n">Open</span><span class="p">(</span><span class="n">FIFO1</span><span class="p">,</span> <span class="n">O_RDONLY</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-    <span class="n">writefd</span> <span class="o">=</span> <span class="n">Open</span><span class="p">(</span><span class="n">FIFO2</span><span class="p">,</span> <span class="n">O_WRONLY</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-
-    <span class="n">server</span><span class="p">(</span><span class="n">readfd</span><span class="p">,</span> <span class="n">writefd</span><span class="p">);</span>
-    <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-  <span class="p">}</span>
-
-  <span class="c1">// parent
-</span><span class="c1"></span>  <span class="n">writefd</span> <span class="o">=</span> <span class="n">Open</span><span class="p">(</span><span class="n">FIFO1</span><span class="p">,</span> <span class="n">O_WRONLY</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-  <span class="n">readfd</span> <span class="o">=</span> <span class="n">Open</span><span class="p">(</span><span class="n">FIFO2</span><span class="p">,</span> <span class="n">O_RDONLY</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-
-  <span class="n">client</span><span class="p">(</span><span class="n">readfd</span><span class="p">,</span> <span class="n">writefd</span><span class="p">);</span>
-  <span class="n">Waitpid</span><span class="p">(</span><span class="n">childpid</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>  <span class="c1">// wait for child to terminate
-</span><span class="c1"></span>
-  <span class="n">Close</span><span class="p">(</span><span class="n">readfd</span><span class="p">);</span>
-  <span class="n">Close</span><span class="p">(</span><span class="n">writefd</span><span class="p">);</span>
-
-  <span class="n">Unlink</span><span class="p">(</span><span class="n">FIFO1</span><span class="p">);</span>
-  <span class="n">Unlink</span><span class="p">(</span><span class="n">FIFO2</span><span class="p">);</span>
-  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-<span class="p">}</span>
-</code></pre></div><p>        没有正确使用<code>FIFO</code>的程序会产生问题，例如上述代码中调换父进程的两个 $open$ 的顺序，程序就会被阻塞，因为在以读方式打开<code>FIFO</code>的时候，没有其他进程以写方式打开相同的<code>FIFO</code>，从而就会阻塞。</p>
-<h2 id="4-管道和fifo的额外属性">4. 管道和<code>FIFO</code>的额外属性</h2>
-<table>
-  <thead>
-    <tr>
-      <th rowspan="2" style="text-align: center;">当前操作</th>
-      <th rowspan="2" style="text-align: center;">目标管道或<code>FIFO</code>的模式</th>
-      <th colspan="2" style="text-align: center;">返回</th>
-    </tr>
-    <tr>
-      <th style="text-align: center;">阻塞 ( 默认 )</th>
-      <th style="text-align: center;">$O_-NONBLOCK$ 设置</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td rowspan="2" style="text-align: center;">$open$ <code>FIFO</code>只读</td>
-      <td style="text-align: left;">写模式打开的<code>FIFO</code></td>
-      <td style="text-align: left;">成功</td>
-      <td style="text-align: left;">成功</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">非写模式打开的<code>FIFO</code></td>
-      <td style="text-align: left;">阻塞直到<code>FIFO</code>被以写模式打开</td>
-      <td style="text-align: left;">成功</td>
-    </tr>
-    <tr>
-      <td rowspan="2" style="text-align: center;">$open$ <code>FIFO</code>只写</td>
-      <td style="text-align: left;">读模式打开的<code>FIFO</code></td>
-      <td style="text-align: left;">成功</td>
-      <td style="text-align: left;">成功</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">非读模式打开的<code>FIFO</code></td>
-      <td style="text-align: left;">阻塞直到<code>FIFO</code>被以读模式打开</code>
-      <td style="text-align: left;">返回 $ENXIO$ 错误</td>
-    </tr>
-    <tr>
-      <td rowspan="2" style="text-align: center;">$read$ 空管道或<code>FIFO</code></td>
-      <td style="text-align: left;">写模式打开的管道或<code>FIFO</code></td>
-      <td style="text-align: left;">阻塞直到管道或<code>FIFO</code>中有数据 / 管道或<code>FIFO</code>不再以写模式打开</td>
-      <td style="text-align: left;">返回 $EAGAIN$ 错误</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">非写模式打开的管道或<code>FIFO</code></td>
-      <td style="text-align: left;">$read$ 返回 $0$</td>
-      <td style="text-align: left;">$read$ 返回 $0$</td>
-    </tr>
-    <tr>
-      <td rowspan="2" style="text-align: left;">$write$ 管道或<code>FIFO</code></td>
-      <td style="text-align: left;">读模式打开的管道或<code>FIFO</code></td>
-      <td style="text-align: left;">见后续</td>
-      <td style="text-align: left;">见后续</td>
-    </tr>
-    <tr>
-      <td style="text-align: left;">非读模式打开的管道或<code>FIFO</code></td>
-      <td style="text-align: left;">给线程产生 $SIGPIPE$</td>
-      <td style="text-align: left;">给线程产生 $SIGPIPE$</td>
-    </tr>
-  </tbody>
-</table>
-<p>        描述符可以通过 $open$ 或者 $fcntl$ 来设置为非阻塞式。对于管道或<code>FIFO</code>的读写，有以下规则：</p>
-<ul>
-<li>如果请求读的数据量大于现有可用数据量，那么只会返回这些可用的数据；</li>
-<li>如果请求写的字节数小于或等于 $PIPE_-BUF$ ( 一个<code>POSIX</code>限制值 )，那么 $write$ 操作是原子的；</li>
-<li>$O_-NONBLOCK$ 标志的设置对 $write$ 操作的原子性没有影响；</li>
-<li>在非阻塞模式下，如果待写字节数小于等于 $PIPE_-BUF$ ：
-<ol>
-<li>如果该管道或<code>FIFO</code>中有足够的空间，写入所有数据；</li>
-<li>如果该管道或<code>FIFO</code>中没有足够的空间，立即返回 $EAGAIN$ 错误；</li>
-</ol>
-</li>
-<li>在非阻塞模式下，如果待写字节数大于 $PIPE_-BUF$ ：
-<ol>
-<li>如果该管道或<code>FIFO</code>中至少有 $1$ 字节空间，那么内核将尽可能写入剩余空间，并将写入字节数作为返回值；</li>
-<li>如果该管道或<code>FIFO</code>已满，返回 $EAGAIN$ 错误；</li>
-</ol>
-</li>
-<li>向一个以非读模式打开的管道或<code>FIFO</code>写，内核将产生 $SIGPIPE$ 信号；
-<ol>
-<li>如果调用进程没有捕获也没有忽略 $SIGPIPE$ ，那么默认行为是终止进程；</li>
-<li>如果调用进程忽略了 $SIGPIPE$ ，或者捕获并从信号处理程序中返回，$write$ 将返回 $EPIPE$ 错误。</li>
-</ol>
-</li>
-</ul>
-<h2 id="5-字节流与消息">5. 字节流与消息</h2>
-<p>        到此为止的所有例子都是使用的字节流<code>I/O</code>模型，这是<code>Unix</code>的原生<code>I/O</code>模型。这种模型不存在记录边界，读写操作不会检查数据。有时候应用希望对所发送的数据加上某种结构，读出者可以通过结构确认消息边界。有三种方式可以实现这个目的：</p>
-<ol>
-<li>带内特殊终止序列。许多<code>Unix</code>应用程序使用换行符来分隔消息。写进程会给每个消息添加一个换行符，读进程则每次读出一行。这种方式也要求对一般数据中出现的分隔符转义处理；</li>
-<li>显式长度。每个记录前标记长度；</li>
-<li>每次连接一个记录。应用通过关闭与对端的连接来指示一个记录的结束。</li>
-</ol>
-<p>        我们也可以给消息增加一些结构。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cp">#define MAXMESGDATA (PIPE_BUF - 2 * sizeof(long))
-</span><span class="cp">#define MESGHDRSIZE (sizeof(struct mymesg) - MAXMESGDATA)
-</span><span class="cp"></span>
-<span class="k">struct</span> <span class="n">mymesg</span> <span class="p">{</span>
-  <span class="kt">long</span> <span class="n">mesg_len</span><span class="p">;</span>  <span class="c1">// # bytes in mesg_data, can be 0
-</span><span class="c1"></span>  <span class="kt">long</span> <span class="n">mesg_type</span><span class="p">;</span>  <span class="c1">// message type, must be &gt; 0
-</span><span class="c1"></span>  <span class="kt">char</span> <span class="n">mesg_data</span><span class="p">[</span><span class="n">MAXMESGDATA</span><span class="p">];</span>
-<span class="p">};</span>
-
-<span class="n">ssize_t</span> <span class="nf">mesg_send</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="k">struct</span> <span class="n">mymesg</span> <span class="o">*</span><span class="p">);</span>
-<span class="n">ssize_t</span> <span class="nf">mesg_recv</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="k">struct</span> <span class="n">mymesg</span> <span class="o">*</span><span class="p">);</span>
-
-<span class="n">ssize_t</span> <span class="nf">mesg_send</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="k">struct</span> <span class="n">mymesg</span> <span class="o">*</span><span class="n">mptr</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">return</span> <span class="n">write</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">mptr</span><span class="p">,</span> <span class="n">MESGHDRSIZE</span> <span class="o">+</span> <span class="n">mptr</span><span class="o">-&gt;</span><span class="n">mesg_len</span><span class="p">);</span>
-<span class="p">}</span>
-
-<span class="n">ssize_t</span> <span class="nf">mesg_recv</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="k">struct</span> <span class="n">mymesg</span> <span class="o">*</span><span class="n">mptr</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">size_t</span> <span class="n">len</span><span class="p">;</span>
-  <span class="n">ssize_t</span> <span class="n">n</span><span class="p">;</span>
-
-  <span class="c1">// read message header first, to get len of data that follows
-</span><span class="c1"></span>  <span class="k">if</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">Read</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">mptr</span><span class="p">,</span> <span class="n">MESGHDRSIZE</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// end of file
-</span><span class="c1"></span>  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">n</span> <span class="o">!=</span> <span class="n">MESGHDRSIZE</span><span class="p">)</span>
-    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;message header: expected %d, got %d&#34;</span><span class="p">,</span> <span class="n">MESGHDRSIZE</span><span class="p">,</span> <span class="n">n</span><span class="p">);</span>
-
-  <span class="k">if</span> <span class="p">((</span><span class="n">len</span> <span class="o">=</span> <span class="n">mptr</span><span class="o">-&gt;</span><span class="n">mesg_len</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="k">if</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">Read</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">mptr</span><span class="o">-&gt;</span><span class="n">mesg_data</span><span class="p">,</span> <span class="n">len</span><span class="p">))</span> <span class="o">!=</span> <span class="n">len</span><span class="p">)</span>
-      <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;message data: expected %d, got %d&#34;</span><span class="p">,</span> <span class="n">len</span><span class="p">,</span> <span class="n">n</span><span class="p">);</span>
-  <span class="k">return</span> <span class="n">len</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div><h2 id="6-管道和fifo限制">6. 管道和<code>FIFO</code>限制</h2>
-<p>        系统加于管道和<code>FIFO</code>的唯一限制为：</p>
-<ul>
-<li>$OPEN_-MAX$ ：一个进程可以打开的最大描述符数；</li>
-<li>$PIPE_-BUF$ ：可以原子地往管道或<code>FIFO</code>写入的最大数据量。</li>
-</ul>
-<p>        $OPEN_-MAX$ 的值可以通过 $sysconf$ 得到，$PIPE_-BUF$ 的值可以通过 $pathconf$ 或 $fpathconf$ 得到。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
-    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: pipeconf &lt;pathname&gt;&#34;</span><span class="p">);</span>
-
-  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;PIPE_BUF = %ld, OPEN_MAX = %ld</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span>
-    <span class="n">Pathconf</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">_PC_PIPE_BUF</span><span class="p">),</span> <span class="n">Sysconf</span><span class="p">(</span><span class="n">_SC_OPEN_MAX</span><span class="p">));</span>
-  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-<span class="p">}</span>
-</code></pre></div>
-            </div>
-            <div class="meta post-footer"> 
-                <span>2022 Feb 19 14:31</span> 
-                <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B16/"><i class="fas fa-link"></i> link</a>
             </div>
         </div>
         
