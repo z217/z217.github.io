@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  
+  <title>z217&#39;s blog</title>
+</head><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+    integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="/friend" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">Unix网络编程补充：epoll</h1>
+
+
+<p>        $epoll$ 执行与 $select$ 和 $poll$ 类似的工作：监听多个描述符，当其中存在可用描述符时返回。$epoll$ 支持边缘触发和层级触发两种模式，并且在监听大量描述符的情况下有着很好的性能。<br>
+        $epoll$ 的核心是 $epoll$ 对象，这是一个内核数据结构，形式上，可以认为是两个集合：</p>
+<ul>
+<li>监听集合 ( 有时候被称为 $epoll$ 集合 )：描述符集合，进程注册的新的待监听的描述符会被存放在该集合中；</li>
+<li>可用集合：描述符集合，是监听集合的子集，内核通过该集合返回可用的文件描述符。</li>
+</ul>
+<h2 id="1-epoll操作">1. <code>epoll</code>操作</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/epoll.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="cm">/* 成功时返回0，出错返回-1 */</span>
+
+<span class="kt">int</span> <span class="nf">epoll_create</span><span class="p">(</span><span class="kt">int</span> <span class="n">size</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">epoll_create1</span><span class="p">(</span><span class="kt">int</span> <span class="n">flags</span><span class="p">);</span>
+</code></pre></div><p>        $epoll_-create$ 创建一个 $epoll$ 对象，返回该对象的描述符。从<code>Linux 2.6.8</code>开始，$size$ 参数不再有作用，会被忽略，但是必须大于 $0$ ，否则会设置 $EINVAL$ 错误。$epoll_-create1$ 与 $epoll_-create$ 类似，$flags$ 参数的值可以是 $EPOLL_-CLOEXEC$ ，当设置该标志时，该对象描述符会在执行 $execve$ 调用后自动关闭。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#inlcude &lt;sys/epoll.h&gt;
+</span><span class="cp"></span>
+<span class="c1">// 成功返回0，出错返回-1
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">epoll_ctl</span><span class="p">(</span><span class="kt">int</span> <span class="n">epfd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">op</span><span class="p">,</span> <span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="k">struct</span> <span class="n">epoll_event</span> <span class="o">*</span><span class="n">event</span><span class="p">);</span>
+
+<span class="k">typedef</span> <span class="k">union</span> <span class="n">epoll_data</span> <span class="p">{</span>
+  <span class="kt">void</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">fd</span><span class="p">;</span>
+  <span class="kt">uint32_t</span> <span class="n">u32</span><span class="p">;</span>
+  <span class="kt">uint64_t</span> <span class="n">u64</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">epoll_data_t</span><span class="p">;</span>
+
+<span class="k">struct</span> <span class="n">epoll_event</span> <span class="p">{</span>
+  <span class="kt">uint32_t</span> <span class="n">events</span><span class="p">;</span>
+  <span class="n">epoll_data_t</span> <span class="n">data</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div><p>        $epoll_-ctl$ 从 $epoll$ 描述符中添加、修改或删除事件，$fd$ 指定待监听的描述符。其中 $op$ 可以是：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">$op$</th>
+<th style="text-align:left">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">$EPOLL_-CTL_-ADD$</td>
+<td style="text-align:left">添加一个事件</td>
+</tr>
+<tr>
+<td style="text-align:left">$EPOLL_-CTL_-MOD$</td>
+<td style="text-align:left">修改一个事件</td>
+</tr>
+<tr>
+<td style="text-align:left">$EPOLL_-CTL_-DEL$</td>
+<td style="text-align:left">删除一个事件，$events$ 参数会被忽略</td>
+</tr>
+</tbody>
+</table>
+<p>        $epoll_-event$ 的 $data$ 成员指定该事件关联的对象，会被保存在内核中，并在可用时返回；$events$ 成员是多个标志位的或的值，用于注册进程感兴趣的事件，当其中的条件满足时会唤醒阻塞进程，同时也作为返回值接收事件状态。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">$event$</th>
+<th style="text-align:left">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">$EPOLLIN$</td>
+<td style="text-align:left">描述符可读</td>
+</tr>
+<tr>
+<td style="text-align:left">$EPOLLOUT$</td>
+<td style="text-align:left">描述符可写</td>
+</tr>
+<tr>
+<td style="text-align:left">$EPOLLRDHUP$</td>
+<td style="text-align:left">流套接字对端关闭连接或者进入写半关闭状态</td>
+</tr>
+<tr>
+<td style="text-align:left">$EPOLLPRI$</td>
+<td style="text-align:left"><code>TCP</code>套接字带外数据</td>
+</tr>
+<tr>
+<td style="text-align:left">$EPOLLERR$</td>
+<td style="text-align:left">描述符发生错误，不需要作为入参指定也能触发</td>
+</tr>
+<tr>
+<td style="text-align:left">$EPOLLHUP$</td>
+<td style="text-align:left">描述符挂起，一般是描述符未打开或异常关闭导致的，不需要作为入参指定也能触发</td>
+</tr>
+<tr>
+<td style="text-align:left">$EPOLLET$</td>
+<td style="text-align:left">边缘触发模式 ( 默认为层级触发模式 )，仅作为入参，不会被返回</td>
+</tr>
+<tr>
+<td style="text-align:left">$EPOLLONESHOT$</td>
+<td style="text-align:left">单次通知，完成后该描述符会被移除出监听集合</td>
+</tr>
+<tr>
+<td style="text-align:left">$EPOLLWAKEUP$</td>
+<td style="text-align:left">在非 $EPOLLET$ 和 $EPOLLONESHOT$ 的事件上，并且进程拥有 $CAP_-BLOCK_-SUSPEND$ 的能力，可以确保系统不会在等待该事件或者处理该事件时进入休眠状态。仅作为入参，不会被返回</td>
+</tr>
+</tbody>
+</table>
+<p>        当 $epfd$ 或 $fd$ 不可用时，返回 $EBADF$ 错误。当 $fd$ 已存在时，返回 $EEXIST$ 错误。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/epoll.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="cm">/* 成功时返回可用描述符数，出错时返回-1 */</span>
+
+<span class="kt">int</span> <span class="nf">epoll_wait</span><span class="p">(</span><span class="kt">int</span> <span class="n">epfd</span><span class="p">,</span> <span class="k">struct</span> <span class="n">epoll_event</span> <span class="o">*</span><span class="n">events</span><span class="p">,</span>
+  <span class="kt">int</span> <span class="n">maxevents</span><span class="p">,</span> <span class="kt">int</span> <span class="n">timeout</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">epoll_pwait</span><span class="p">(</span><span class="kt">int</span> <span class="n">epfd</span><span class="p">,</span> <span class="k">struct</span> <span class="n">epoll_event</span> <span class="o">*</span><span class="n">events</span><span class="p">,</span>
+  <span class="kt">int</span> <span class="n">maxevents</span><span class="p">,</span> <span class="kt">int</span> <span class="n">timeout</span><span class="p">,</span> <span class="k">const</span> <span class="n">sigset_t</span> <span class="o">*</span><span class="n">sigmask</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">epoll_pwait2</span><span class="p">(</span><span class="kt">int</span> <span class="n">epfd</span><span class="p">,</span> <span class="k">struct</span> <span class="n">epoll_event</span> <span class="o">*</span><span class="n">events</span><span class="p">,</span>
+  <span class="kt">int</span> <span class="n">maxevents</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">timespec</span> <span class="o">*</span><span class="n">timeout</span><span class="p">,</span> <span class="k">const</span> <span class="n">sigset_t</span> <span class="o">*</span><span class="n">sigmask</span><span class="p">);</span>
+</code></pre></div><p>        $epoll_-wait$ 等待 $epoll$ 对象上的任意一个或多个描述符变为可用。$events$ 数组用于返回可用描述符，最多返回 $maxevents$ ( 必须大于 $0$ ) 个描述符。$timeout$ 参数指定超时事件，单位为毫秒，如果为 $-1$ ，意味着没有超时时间。文件描述符的状态会作为 $epoll_-event$ 中的 $events$ 成员返回。$epoll_-pwait$ 和 $epoll_-pwait2$ 与 $epoll_-wait$ 类似，其中 $sigmask$ 参数可以指定在等待描述符期间阻塞的信号，类似于以下操作：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="n">sigset_t</span> <span class="n">origmask</span><span class="p">;</span>
+
+<span class="n">pthread_sigmask</span><span class="p">(</span><span class="n">SIG_SETMASK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">sigmask</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">origmask</span><span class="p">);</span>
+<span class="n">ready</span> <span class="o">=</span> <span class="n">epoll</span><span class="p">(</span><span class="n">wait</span><span class="p">,</span> <span class="n">epfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">events</span><span class="p">,</span> <span class="n">maxevents</span><span class="p">,</span> <span class="n">timeout</span><span class="p">);</span>
+<span class="n">pthread_sigmask</span><span class="p">(</span><span class="n">SIG_SETMASK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">origmask</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</code></pre></div><p>        如果 $epfd$ 不可用，返回 $EBADF$ 错误；如果 $epfd$ 不是一个 $epoll$ 描述符或者 $maxevents$ 不大于 $0$ ，返回 $EINVAL$ 错误；如果 $events$ 指向不可用区域，返回 $EFAULT$ 错误；如果阻塞过程中被中断，返回 $EINTR$ 错误。</p>
+<h2 id="2-边缘触发和层级触发">2. 边缘触发和层级触发</h2>
+<p>        $epoll$ 允许边缘触发 ( $edge-triggered$ ，$ET$ ) 和层级触发 ( $level-triggered$ ，$LT$ ) 两种行为。假设存在以下情形：</p>
+<ol>
+<li>一个管道的读描述符 $rfd$ 被注册进 $epoll$ 对象；</li>
+<li>另一个进程往这个管道写入 $2KB$ 数据；</li>
+<li>$epoll_-wait$ 调用返回，当前进程从管道中读入 $1KB$ 数据；</li>
+<li>当前进程再次调用 $epoll_-wait$ 。</li>
+</ol>
+<p>        对于这种情况，$epoll$ 存在两种行为：</p>
+<ul>
+<li>边缘触发：描述符 $rfd$ 被认为不可用，尽管管道里面还存在数据，直到另一个进程再次向管道中写入数据。边缘触发只有在描述符被监听的时候才会改变事件状态；</li>
+<li>层级触发：描述符 $rfd$ 可用，$epoll_-wait$ 立即返回。</li>
+</ul>
+<p>        在上述例子中，假设使用边缘触发并且对端进程在等待先前数据的响应，那么由于 $epoll_-wait$ 的调用，对端可能会无限等待下去。所以对于这种情况，建议使用非阻塞式<code>I/O</code>，或者多次调用 $read$ 或 $write$ 直到返回 $EAGAIN$ 错误。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#define MAX_EVENTS 10
+</span><span class="cp"></span>
+<span class="k">struct</span> <span class="n">epoll_event</span><span class="p">,</span> <span class="n">ev</span><span class="p">,</span> <span class="n">events</span><span class="p">[</span><span class="n">MAX_EVENTS</span><span class="p">];</span>
+<span class="kt">int</span> <span class="n">listenfd</span><span class="p">,</span> <span class="n">connfd</span><span class="p">,</span> <span class="n">nfds</span><span class="p">,</span> <span class="n">epollfd</span><span class="p">,</span> <span class="n">val</span><span class="p">;</span>
+
+<span class="cm">/* Code to set up listening socket, &#39;listenfd&#39;,
+</span><span class="cm">   (socket(), bind(), listen()) omitted. */</span>
+
+<span class="n">epollfd</span> <span class="o">=</span> <span class="n">epoll_create1</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="k">if</span> <span class="p">(</span><span class="n">epollfd</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">perror</span><span class="p">(</span><span class="s">&#34;epoll_create1&#34;</span><span class="p">);</span>
+  <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="n">ev</span><span class="p">.</span><span class="n">events</span> <span class="o">=</span> <span class="n">EPOLLIN</span><span class="p">;</span>
+<span class="n">ev</span><span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">fd</span> <span class="o">=</span> <span class="n">listenfd</span><span class="p">;</span>
+<span class="k">if</span> <span class="p">(</span><span class="n">epoll_ctl</span><span class="p">(</span><span class="n">epollfd</span><span class="p">,</span> <span class="n">EPOLL_CTL_ADD</span><span class="p">,</span> <span class="n">listenfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ev</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">perror</span><span class="p">(</span><span class="s">&#34;epoll_ctl: listenfd&#34;</span><span class="p">);</span>
+  <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+  <span class="n">nfds</span> <span class="o">=</span> <span class="n">epoll_wait</span><span class="p">(</span><span class="n">epollfd</span><span class="p">,</span> <span class="n">events</span><span class="p">,</span> <span class="n">MAX_EVENTS</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">nfds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">perror</span><span class="p">(</span><span class="s">&#34;epoll_wait&#34;</span><span class="p">);</span>
+    <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="k">for</span> <span class="p">(</span><span class="n">n</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="n">nfds</span><span class="p">;</span> <span class="n">n</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">events</span><span class="p">[</span><span class="n">n</span><span class="p">].</span><span class="n">data</span><span class="p">.</span><span class="n">fd</span> <span class="o">==</span> <span class="n">listenfd</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">connfd</span> <span class="o">=</span> <span class="n">accept</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">addr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">addrlen</span><span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">connfd</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">perror</span><span class="p">(</span><span class="s">&#34;accept&#34;</span><span class="p">);</span>
+        <span class="n">eixt</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+      <span class="p">}</span>
+      
+      <span class="k">if</span> <span class="p">((</span><span class="n">val</span> <span class="o">=</span> <span class="n">fcntl</span><span class="p">(</span><span class="n">connfd</span><span class="p">,</span> <span class="n">F_GETFL</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">perror</span><span class="p">(</span><span class="s">&#34;fcntl: F_GETFL&#34;</span><span class="p">);</span>
+        <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+      <span class="p">}</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">fcntl</span><span class="p">(</span><span class="n">connfd</span><span class="p">,</span> <span class="n">F_SETFL</span><span class="p">,</span> <span class="n">val</span> <span class="o">|</span> <span class="n">O_NONBLOCK</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">perror</span><span class="p">(</span><span class="s">&#34;fcntl: F_SETFL&#34;</span><span class="p">);</span>
+        <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+      <span class="p">}</span>
+
+      <span class="n">ev</span><span class="p">.</span><span class="n">events</span> <span class="o">=</span> <span class="n">EPOLLIN</span> <span class="o">|</span> <span class="n">EPOLLET</span><span class="p">;</span>
+      <span class="n">ev</span><span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">fd</span> <span class="o">=</span> <span class="n">connfd</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">epoll_ctl</span><span class="p">(</span><span class="n">epollfd</span><span class="p">,</span> <span class="n">EPOLL_CTL_ADD</span><span class="p">,</span> <span class="n">connfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ev</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">perror</span><span class="p">(</span><span class="s">&#34;epoll_ctl: connfd&#34;</span><span class="p">);</span>
+        <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+      <span class="n">do_use_fd</span><span class="p">(</span><span class="n">events</span><span class="p">[</span><span class="n">n</span><span class="p">].</span><span class="n">data</span><span class="p">.</span><span class="n">fd</span><span class="p">);</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<script src=https://z217blog.cn/js/toc.js></script>
+
+<div>
+    <a href="javascript:void(0);" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+    <div id="sidetoc">
+        <header>
+            <h4>Unix网络编程补充：epoll</h4>
+        </header>
+        <nav id="TableOfContents">
+            <ul></ul>
+        </nav>
+    </div>
+    <script>
+        isTocOpen = true;
+    </script>
+</div>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B20/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+<script type="text/javascript">
+    if (isTocOpen) tocInit();
+</script>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2022, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        let all = MathJax.Hub.getAllJax(),
+            i;
+        
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
+</body>
+
+</html>
