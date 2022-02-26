@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  
+  <title>z217&#39;s blog</title>
+</head><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+    integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="/friend" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">Unix网络编程补充：eventfd和timerfd</h1>
+
+
+<h2 id="1-eventfd">1. <code>eventfd</code></h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/eventfd.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回eventfd描述符， 出错返回-1
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">eventfd</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">initval</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">);</span>
+</code></pre></div><p>        $eventfd$ 调用返回一个 $eventfd$ 对象描述符，通过该描述符，进程可以在用户空间实现阻塞和唤醒机制，内核会负责唤醒阻塞在该描述符上的进程。$eventfd$ 对象包含一个无符号 $64$ 位整型计数器，由内核维护，初始化为 $initval$ 的值。$flags$ 值是以下值的或：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">$flag$</th>
+<th style="text-align:left">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">$EFD_-CLOEXEC$</td>
+<td style="text-align:left">设置该标志后，描述符将在 $execve$ 调用之后自动关闭</td>
+</tr>
+<tr>
+<td style="text-align:left">$EFD_-NONBLOCK$</td>
+<td style="text-align:left">非阻塞模式</td>
+</tr>
+<tr>
+<td style="text-align:left">$EFD_-SEMAPHORE$</td>
+<td style="text-align:left">为读提供类似于信号量的语义</td>
+</tr>
+</tbody>
+</table>
+<p>        对于<code>Linux 2.6.26</code>及以下的版本来说，$flags$ 参数没有作用且必须为 $0$ 。如果 $flags$ 参数非法，会返回 $EINVAL$ 错误。对于返回的描述符，可以进行以下操作：</p>
+<ul>
+<li>$read$ ：调用成功会返回一个以主机字节序排列的 $64$ 位无符号整型；如果返回值小于 $64$ 位，则调用失败，返回 $EINVAL$ 错误。
+<ul>
+<li>如果没有指定 $EFD_-SEMAPHORE$ 并且 $eventfd$ 计数器值非零，$read$ 调用会返回计数器值，同时计数器值会被设置为 $0$ ；</li>
+<li>如果指定了 $EFD_-SEMAPHORE$ 并且 $eventfd$ 计数器值非零，$read$ 调用会返回 $1$ ，同时计数器值会减一；</li>
+<li>如果 $eventfd$ 计数器值为 $0$ ，$read$ 调用会阻塞直到计数器值非零。如果指定了 $EFD_-NONBLOCK$ ，$read$ 调用会返回 $EAGAIN$ 错误。</li>
+</ul>
+</li>
+<li>$write$ ：调用成功会为 $eventfd$ 计数器值加上一个 $64$ 位无符号整型的值的数量，最大为 $UINT_-MAX$ $-$ $1$ 。如果指定的值非 $64$ 位或者超过最大值，返回 $EINVAL$ 错误。
+<ul>
+<li>如果加上这个值会导致溢出，调用会阻塞直到该描述符被调用了一次 $read$ 。如果指定了 $EFD_-NONBLOCK$ ，$write$ 调用会返回 $EAGAIN$ 错误。</li>
+</ul>
+</li>
+<li>$poll$ / $select$ / $epoll$ ：
+<ul>
+<li>如果 $eventfd$ 计数器值大于 $0$ ，则描述符可读；</li>
+<li>如果 $eventfd$ 计数器值至少可以加 $1$ ，则描述符可写；</li>
+<li>如果 $eventfd$ 计数器值溢出，对于 $select$ ，该描述符状态会被设置为既可读也可写；对于 $poll$ ，返回 $POLLERR$ ；对于 $epoll$ ，返回 $EPOLLERR$ 。</li>
+</ul>
+</li>
+<li>$close$ ：递减该描述符的引用计数，当引用计数为零时，$eventfd$ 对象会被内核释放。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/eventfd.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="k">typedef</span> <span class="kt">uint64_t</span> <span class="n">eventfd_t</span><span class="p">;</span>
+
+<span class="cm">/* 成功返回调用传递的数据量，出错返回-1 */</span>
+
+<span class="kt">int</span> <span class="nf">eventfd_read</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">eventfd_t</span> <span class="o">*</span><span class="n">value</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">eventfd_write</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">eventfd_t</span> <span class="n">value</span><span class="p">);</span>
+</code></pre></div><p>        <code>GNU C</code>库定义了以上函数，与直接对 $eventfd$ 调用 $read$ 和 $write$ 的作用相同。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/eventfd.h&gt;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;unistd.h&gt;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;inttypes.h&gt;  // definition of PRIu64 &amp; PRIx64</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;stdlib.h&gt;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;stdint.h&gt;  // definition of uint64_t</span><span class="cp">
+</span><span class="cp"></span>
+<span class="cp">#define handle_error(msg) \
+</span><span class="cp">  do { \
+</span><span class="cp">    perror(msg); \
+</span><span class="cp">    exit(EXIT_FAILURE); \
+</span><span class="cp">  } while (0)
+</span><span class="cp"></span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">efd</span><span class="p">;</span>
+  <span class="kt">uint64_t</span> <span class="n">u</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&#34;Usage: %s &lt;num&gt;...</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+    <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="k">if</span> <span class="p">((</span><span class="n">efd</span> <span class="o">=</span> <span class="n">eventfd</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">handle_error</span><span class="p">(</span><span class="s">&#34;eventfd&#34;</span><span class="p">);</span>
+
+  <span class="k">switch</span> <span class="p">(</span><span class="n">fork</span><span class="p">())</span> <span class="p">{</span>
+  <span class="k">case</span> <span class="mi">0</span><span class="o">:</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">argc</span><span class="p">;</span> <span class="n">j</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;Child writing %s to efd</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">argv</span><span class="p">[</span><span class="n">j</span><span class="p">]);</span>
+      <span class="n">u</span> <span class="o">=</span> <span class="n">strtoull</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+      <span class="k">if</span><span class="p">(</span><span class="n">write</span><span class="p">(</span><span class="n">efd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">u</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">uint64_t</span><span class="p">))</span> <span class="o">!=</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">uint64_t</span><span class="p">))</span>
+        <span class="n">handle_error</span><span class="p">(</span><span class="s">&#34;write&#34;</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;Child completed write loop</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+    <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_SUCCESS</span><span class="p">);</span>
+
+  <span class="k">default</span><span class="o">:</span>
+    <span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+
+    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;Parent about to read</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">read</span><span class="p">(</span><span class="n">efd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">u</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">uint64_t</span><span class="p">))</span> <span class="o">!=</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">uint64_t</span><span class="p">))</span>
+      <span class="n">handle_error</span><span class="p">(</span><span class="s">&#34;read&#34;</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;Parent read %&#34;</span> <span class="n">PRIu64</span> <span class="s">&#34; (%#&#34;</span> <span class="n">PRIx64</span> <span class="s">&#34;) from efd</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">);</span>
+    <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_SUCCESS</span><span class="p">);</span>
+
+  <span class="k">case</span> <span class="o">-</span><span class="mi">1</span><span class="o">:</span>
+    <span class="n">handle_error</span><span class="p">(</span><span class="s">&#34;fork&#34;</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><h2 id="2-timerfd">2. <code>timerfd</code></h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/timerfd.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回timer描述符，出错返回-1
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">timerfd_create</span><span class="p">(</span><span class="kt">int</span> <span class="n">clockid</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">);</span>
+</code></pre></div><p>        这些系统调用用于创建和管理 $timerfd$ 计时器。$timerfd_-create$ 创建一个新的 $timer$ 对象，并返回该对象的描述符。$clockid$ 参数指定了 $timer$ 的时钟类型：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">$clock$</th>
+<th style="text-align:left">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">$CLOCK_-REALTIME$</td>
+<td style="text-align:left">可变的系统范围内的实时时钟</td>
+</tr>
+<tr>
+<td style="text-align:left">$CLOCK_-MONOTONIC$</td>
+<td style="text-align:left">不可修改的单调递增时钟，从过去某个指定时间开始，并且在系统启动后不再改变</td>
+</tr>
+<tr>
+<td style="text-align:left">$CLOCK_-BOOTTIME$</td>
+<td style="text-align:left">类似于 $CLOCK_-MONOTONIC$ ，但是可以在系统休眠时继续计时</td>
+</tr>
+<tr>
+<td style="text-align:left">$CLOCK_-REALTIME_-ALARM$</td>
+<td style="text-align:left">类似于 $CLOCK_-REALTIME$ ，但是可以阻止系统休眠。进程必须拥有 $CAP_-WAKE_-ALARM$ 能力才能设置该时钟</td>
+</tr>
+<tr>
+<td style="text-align:left">$LOCK_-BOOTTIME_-ALARM$</td>
+<td style="text-align:left">类似于 $CLOCK_-BOOTTIME$ ，但是可以阻止系统休眠。进程必须拥有 $CAP_-WAKE_-ALARM$ 能力才能设置该时钟</td>
+</tr>
+</tbody>
+</table>
+<p>        $flags$ 标志可以改变 $timer$ 的行为。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">$flag$</th>
+<th style="text-align:left">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">$TFD_-NONBLOCK$</td>
+<td style="text-align:left">非阻塞模式</td>
+</tr>
+<tr>
+<td style="text-align:left">$TFD_-CLOEXEC$</td>
+<td style="text-align:left">描述符会在 $execve$ 调用后自动关闭</td>
+</tr>
+</tbody>
+</table>
+<p>        如果 $clockid$ 或者 $flags$ 非法，返回 $EINVAL$ 错误。对于没有 $CAP_-WAKE_-ALARM$ 能力的进程指定 $CLOCK_-REALTIME_-ALARM$ 或者 $CLOCK_-BOOTTIME_-ALARM$ 标志会导致调用返回 $EPERM$ 错误。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/timerfd.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="cm">/* 成功返回0，出错返回-1 */</span>
+
+<span class="kt">int</span> <span class="nf">timerfd_settime</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">,</span>
+  <span class="k">const</span> <span class="k">struct</span> <span class="n">itimerspec</span> <span class="o">*</span><span class="n">new_value</span><span class="p">,</span> <span class="k">struct</span> <span class="n">itimerspce</span> <span class="o">*</span><span class="n">old_value</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">timerfd_gettime</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="k">struct</span> <span class="n">itimerspce</span> <span class="o">*</span><span class="n">curr_value</span><span class="p">);</span>
+
+<span class="k">struct</span> <span class="n">timespec</span> <span class="p">{</span>
+  <span class="n">time_t</span> <span class="n">tv_sec</span><span class="p">;</span>  <span class="c1">// seconds
+</span><span class="c1"></span>  <span class="kt">long</span> <span class="n">tv_nsec</span><span class="p">;</span>  <span class="c1">// nanoseconds
+</span><span class="c1"></span><span class="p">};</span>
+
+<span class="k">struct</span> <span class="n">itimerspec</span> <span class="p">{</span>
+  <span class="k">struct</span> <span class="n">timespec</span> <span class="n">it_interval</span><span class="p">;</span>  <span class="c1">// interval for periodic timer
+</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">timespec</span> <span class="n">it_value</span><span class="p">;</span>  <span class="c1">// initial expiration
+</span><span class="c1"></span><span class="p">};</span>
+</code></pre></div><p>        $timerfd_-settime$ 用于启动或者停止 $timer$ ，$new_-value$ 参数指定定时时间，如果 $it_-value$ 或者 $it_-interval$ 成员存在非零值，那么 $timer$ 会被启动；如果都为 $0$ ，那么 $timer$ 会停止。如果 $it_-value$ 和 $it_-interval$ 都非零，那么定时器会选择 $it_-value$ 的时间并且只会触发一次。$it_-value$ 默认为相对时间，可以通过 $flag$ 修改。$flag$ 参数可以为以下值：</p>
+<ul>
+<li>$TFD_-TIMER_-ABSTIME$ ：$it_-value$ 表达绝对时间 ( 默认为相对时间 )；</li>
+<li>$TFD_-TIMER_-CANCEL_-ON_-SET$ ：如果和 $TFD_-TIMER_-ABSTIME$ 同时设置，并且时钟为 $CLOCK_-REALTIME$ 或 $CLOCK_-REALTIME_-ALARM$ ，那么在经历了非连续的更改 ( $settimeofday$ 、$clock_-settime$ 等 ) 之后，$timer$ 会被标记为可取消。当更改发生并且有其他进程正阻塞在对该 $timerfd$ 的 $read$ 调用上时，$read$ 调用将失败并返回 $CANCELED$ 错误。</li>
+</ul>
+<p>        如果 $old_-value$ 非空，那么原来的定时时间会被返回到 $old_-value$ 指向的地址中。<br>
+        $timerfd_-gettime$ 调用会返回当前的定时时间。如果返回的时间值都为 $0$ ，表示当前定时器没有开始计时。无论当前定时器是否指定了 $TFD_-TIMER_-ABSTIME$ ，都将返回相对时间。<br>
+        可以对 $timerfd$ 进行以下操作：</p>
+<ul>
+<li>$read$ ：如果 $timer$ 已经启动，并且在上一次调用 $read$ 到现在这段时间已经超时了一次或多次，那么这次 $read$ 调用会以主机字节序返回一个 $64$ 位无符号整型，值为超时次数。
+<ul>
+<li>如果没有发生超时，那么 $read$ 会阻塞直到超时发生。如果指定了 $TFD_-NONBLOCK$ ，那么会返回 $EAGAIN$ 错误；</li>
+<li>如果提供的缓冲区小于 $64$ 位，返回 $EINVAL$ 错误；</li>
+<li>如果指定了 $CLOCK_-REALTIME$ / $CLOCK_-REALTIME_-ALARM$ 、$TFD_-TIMER_-ABSTIME$ 和 $TFD_-TIMER_-CANCEL_-ON_-SET$ ，并且在阻塞期间时间被以非连续方式修改，那么会返回 $ECANCELED$ 错误。</li>
+</ul>
+</li>
+<li>$poll$ / $select$ / $epoll$ ：如果发生了一次或多次超时，描述符将可读；</li>
+<li>$ioctl$ ：可以执行 $TFD_-IOC_-SET_-TICKS$ 命令，修改该定时器的超时次数，参数为一个无符号 $64$ 位整型指针，指向新的超时次数。当调用成功时，所有在该定时器上等待的进程将被唤醒。只有内核配置了 $CONFIG_-CHECKPOINT_-RESTORE$ 选项后该命令才可用；</li>
+<li>$close$ ：递减当前定时器描述符的引用计数，当引用计数为零时，该定时器将被内核释放。</li>
+</ul>
+<p>        如果 $fd$ 无效，返回 $EBADF$ 错误。如果 $fd$ 不是 $timerfd$ ，返回 $EINVAL$ 错误。如果 $new_-value$ 、$old_-value$ 或者 $curr_-value$ 无效，返回 $EFAULT$ 错误。此外，对于 $ECANCELED$ 错误，还存在特殊情况：</p>
+<ol>
+<li>创建一个 $CLCOK_-REALTIME$ / $CLOCK_-REALTIME_-ALARM$ 定时器，并启用 $TFD_-TIMER_-ABSTIME$ 和 $TFD_-TIMER_-CANCEL_-ON_-SET$ 标志；</li>
+<li>调用 $timerfd_-settime$ 启动定时器；</li>
+<li>对 $CLOCK_-REALTIME$ 时钟进行非连续修改 ( 比如 $settimeofday$ )；</li>
+<li>再次调用 $timerfd_-settime$ 启动定时器。</li>
+</ol>
+<p>        在上述情况下，$timerfd_-settime$ 将返回 $-1$ ，同时设置 $ECANCELED$ 错误，这使得调用者得知上一次启动因为非连续修改而中止。虽然这次调用返回了错误，但是不意味着设置失败，定时器还是会按照调用中传递的定时时间设置并启动。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/timerfd.h&gt;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;time.h&gt;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;unistd.h&gt;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;inttypes.h&gt;  // definition of PRIu64</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;stdlib.h&gt;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;stdint.h&gt;  // definition of uint64_t</span><span class="cp">
+</span><span class="cp"></span>
+<span class="cp">#define handle_error(msg) \
+</span><span class="cp">  do { \
+</span><span class="cp">    perror(msg); \
+</span><span class="cp">    exit(EXIT_FAILURE); \
+</span><span class="cp">  } while(0)
+</span><span class="cp"></span>
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">print_elapsed_time</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">static</span> <span class="k">struct</span> <span class="n">timespec</span> <span class="n">start</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">timespec</span> <span class="n">curr</span><span class="p">;</span>
+  <span class="k">static</span> <span class="kt">int</span> <span class="n">first_call</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">secs</span><span class="p">,</span> <span class="n">nsecs</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">first_call</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">first_call</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">clock_gettime</span><span class="p">(</span><span class="n">CLOCK_MONOTONIC</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">start</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">handle_error</span><span class="p">(</span><span class="s">&#34;clock_gettime&#34;</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">clock_gettime</span><span class="p">(</span><span class="n">CLOCK_MONOTONIC</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">curr</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">handle_error</span><span class="p">(</span><span class="s">&#34;clock_gettime&#34;</span><span class="p">);</span>
+
+  <span class="n">secs</span> <span class="o">=</span> <span class="n">curr</span><span class="p">.</span><span class="n">tv_set</span> <span class="o">-</span> <span class="n">start</span><span class="p">.</span><span class="n">tv_sec</span><span class="p">;</span>
+  <span class="n">nsecs</span> <span class="o">=</span> <span class="n">curr</span><span class="p">.</span><span class="n">tv_nsec</span> <span class="o">-</span> <span class="n">start</span><span class="p">.</span><span class="n">tv_nsec</span><span class="p">;</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">nsecs</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">secs</span><span class="o">--</span><span class="p">;</span>
+    <span class="n">nsecs</span> <span class="o">+=</span> <span class="mi">1000000000</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;%d.%03d: &#34;</span><span class="p">,</span> <span class="n">secs</span><span class="p">,</span> <span class="p">(</span><span class="n">nsecs</span> <span class="o">+</span> <span class="mi">500000</span><span class="p">)</span> <span class="o">/</span> <span class="mi">1000000</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">struct</span> <span class="n">itimerspec</span> <span class="n">new_value</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">max_exp</span><span class="p">,</span> <span class="n">fd</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">timespec</span> <span class="n">now</span><span class="p">;</span>
+  <span class="kt">uint64_t</span> <span class="n">exp</span><span class="p">,</span> <span class="n">tot_exp</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">((</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">))</span> <span class="p">{</span>
+    <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&#34;%s init-secs [interval-secs max-exp]</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+    <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">clock_gettime</span><span class="p">(</span><span class="n">CLOCK_REALTIME</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">now</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">handle_error</span><span class="p">(</span><span class="s">&#34;clock_gettime&#34;</span><span class="p">);</span>
+
+  <span class="cm">/* Create a CLOCK_REALTIME absolute timer with initial
+</span><span class="cm">     expiration and interval as specified in command line. */</span>
+  <span class="n">new_value</span><span class="p">.</span><span class="n">it_value</span><span class="p">.</span><span class="n">tv_sec</span> <span class="o">=</span> <span class="n">now</span><span class="p">.</span><span class="n">tv_sec</span> <span class="o">+</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+  <span class="n">new_value</span><span class="p">.</span><span class="n">it_value</span><span class="p">.</span><span class="n">tv_nsec</span> <span class="o">=</span> <span class="n">now</span><span class="p">.</span><span class="n">tv_nsec</span><span class="p">;</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">new_value</span><span class="p">.</span><span class="n">it_interval</span><span class="p">.</span><span class="n">tv_sec</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">max_exp</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="n">new_value</span><span class="p">.</span><span class="n">it_interval</span><span class="p">.</span><span class="n">tv_sec</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+    <span class="n">max_exp</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">3</span><span class="p">]);</span>
+  <span class="p">}</span>
+  <span class="n">new_value</span><span class="p">.</span><span class="n">it_interval</span><span class="p">.</span><span class="n">tv_nsec</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">((</span><span class="n">fd</span> <span class="o">=</span> <span class="n">timerfd_create</span><span class="p">(</span><span class="n">CLOCK_REALTIME</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">handle_error</span><span class="p">(</span><span class="s">&#34;timerfd_create&#34;</span><span class="p">);</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">timerfd_settime</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">TFD_TIMER_ABSTIME</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">new_value</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">handle_error</span><span class="p">(</span><span class="s">&#34;timerfd_settime&#34;</span><span class="p">);</span>
+
+  <span class="n">print_elapsed_time</span><span class="p">();</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;timer started</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+
+  <span class="k">for</span> <span class="p">(</span><span class="n">tot_exp</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">tot_exp</span> <span class="o">&lt;</span> <span class="n">max_exp</span><span class="p">;</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">read</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">exp</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">uint64_t</span><span class="p">))</span> <span class="o">!=</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">uint64_t</span><span class="p">))</span>
+      <span class="n">handle_error</span><span class="p">(</span><span class="s">&#34;read&#34;</span><span class="p">);</span>
+
+    <span class="n">tot_exp</span> <span class="o">+=</span> <span class="n">exp</span><span class="p">;</span>
+    <span class="n">print_elapsed_time</span><span class="p">();</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;read: %&#34;</span> <span class="n">PRIu64</span> <span class="s">&#34;; total=%&#34;</span> <span class="n">PRIu64</span> <span class="s">&#34;</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">exp</span><span class="p">,</span> <span class="n">tot_exp</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_SUCCESS</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+<script src=https://z217blog.cn/js/toc.js></script>
+
+<div>
+    <a href="javascript:void(0);" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+    <div id="sidetoc">
+        <header>
+            <h4>Unix网络编程补充：eventfd和timerfd</h4>
+        </header>
+        <nav id="TableOfContents">
+            <ul></ul>
+        </nav>
+    </div>
+    <script>
+        isTocOpen = true;
+    </script>
+</div>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85epoll/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+<script type="text/javascript">
+    if (isTocOpen) tocInit();
+</script>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:mailto:zihan.zhouchn@outlook.com">mailto:zihan.zhouchn@outlook.com</a> </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2022, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        let all = MathJax.Hub.getAllJax(),
+            i;
+        
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+
+<style>
+    code.has-jax {
+        font: inherit;
+        font-size: 100%;
+        background: inherit;
+        border: inherit;
+        color: #515151;
+    }
+</style></main>
+</body>
+
+</html>

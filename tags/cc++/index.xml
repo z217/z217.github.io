@@ -7,7 +7,18 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2022, z217 and the hugo authors, all rights reserved.</copyright>
-    <lastBuildDate>Fri, 25 Feb 2022 19:23:34 +0800</lastBuildDate><atom:link href="https://z217blog.cn/tags/cc++/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sat, 26 Feb 2022 17:30:49 +0800</lastBuildDate><atom:link href="https://z217blog.cn/tags/cc++/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Unix网络编程补充：eventfd和timerfd</title>
+      <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85eventfd%E5%92%8Ctimerfd/</link>
+      <pubDate>Sat, 26 Feb 2022 17:30:49 +0800</pubDate>
+      
+      <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85eventfd%E5%92%8Ctimerfd/</guid>
+      <description>1. eventfd #include &amp;lt;sys/eventfd.h&amp;gt; // 成功返回eventfd描述符， 出错返回-1 int eventfd(unsigned int initval, int flags);  $eventfd$ 调用返回一个 $eventfd$ 对象描述符，通过该描述符，进程可以在用户空间实现阻塞和唤醒机制，内核会负责唤醒阻塞在该描述符上的进程。$eventfd$ 对象包含一个无符号 $64$ 位整型计数器，由内核维护，初始化为 $initval$ 的值。$flags$ 值是以下值的或：
+   $flag$ 说明     $EFD_-CLOEXEC$ 设置该标志后，描述符将在 $execve$ 调用之后自动关闭   $EFD_-NONBLOCK$ 非阻塞模式   $EFD_-SEMAPHORE$ 为读提供类似于信号量的语义     对于Linux 2.6.26及以下的版本来说，$flags$ 参数没有作用且必须为 $0$ 。如果 $flags$ 参数非法，会返回 $EINVAL$ 错误。对于返回的描述符，可以进行以下操作：
+ $read$ ：调用成功会返回一个以主机字节序排列的 $64$ 位无符号整型；如果返回值小于 $64$ 位，则调用失败，返回 $EINVAL$ 错误。  如果没有指定 $EFD_-SEMAPHORE$ 并且 $eventfd$ 计数器值非零，$read$ 调用会返回计数器值，同时计数器值会被设置为 $0$ ； 如果指定了 $EFD_-SEMAPHORE$ 并且 $eventfd$ 计数器值非零，$read$ 调用会返回 $1$ ，同时计数器值会减一； 如果 $eventfd$ 计数器值为 $0$ ，$read$ 调用会阻塞直到计数器值非零。如果指定了 $EFD_-NONBLOCK$ ，$read$ 调用会返回 $EAGAIN$ 错误。   $write$ ：调用成功会为 $eventfd$ 计数器值加上一个 $64$ 位无符号整型的值的数量，最大为 $UINT_-MAX$ $-$ $1$ 。如果指定的值非 $64$ 位或者超过最大值，返回 $EINVAL$ 错误。  如果加上这个值会导致溢出，调用会阻塞直到该描述符被调用了一次 $read$ 。如果指定了 $EFD_-NONBLOCK$ ，$write$ 调用会返回 $EAGAIN$ 错误。   $poll$ / $select$ / $epoll$ ：  如果 $eventfd$ 计数器值大于 $0$ ，则描述符可读； 如果 $eventfd$ 计数器值至少可以加 $1$ ，则描述符可写； 如果 $eventfd$ 计数器值溢出，对于 $select$ ，该描述符状态会被设置为既可读也可写；对于 $poll$ ，返回 $POLLERR$ ；对于 $epoll$ ，返回 $EPOLLERR$ 。   $close$ ：递减该描述符的引用计数，当引用计数为零时，$eventfd$ 对象会被内核释放。  #include &amp;lt;sys/eventfd.</description>
+    </item>
+    
     <item>
       <title>Unix网络编程补充：epoll</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85epoll/</link>

@@ -88,6 +88,24 @@
     
     
     <div class="list-item">
+        <a class="entry-title" href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85eventfd%E5%92%8Ctimerfd/">Unix网络编程补充：eventfd和timerfd</a>
+        
+        
+        <p>《Unix网络编程》补充</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2022 Feb 26 17:30
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: Web, C&C++
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
         <a class="entry-title" href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85epoll/">Unix网络编程补充：epoll</a>
         
         
@@ -159,24 +177,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B17/">Unix网络编程（17）：消息队列</a>
-        
-        
-        <p>《Unix网络编程》读书笔记（17）</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2022 Feb 20 14:01
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: Web, C&C++
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -185,6 +185,315 @@
     <div class="section-title">μblog</div>
     <div class="posts">
         
+        
+        <div class="post">
+            
+            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85eventfd%E5%92%8Ctimerfd/">Unix网络编程补充：eventfd和timerfd</a></h1>
+            <div class="post-content">
+                <h2 id="1-eventfd">1. <code>eventfd</code></h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/eventfd.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回eventfd描述符， 出错返回-1
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">eventfd</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">initval</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">);</span>
+</code></pre></div><p>        $eventfd$ 调用返回一个 $eventfd$ 对象描述符，通过该描述符，进程可以在用户空间实现阻塞和唤醒机制，内核会负责唤醒阻塞在该描述符上的进程。$eventfd$ 对象包含一个无符号 $64$ 位整型计数器，由内核维护，初始化为 $initval$ 的值。$flags$ 值是以下值的或：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">$flag$</th>
+<th style="text-align:left">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">$EFD_-CLOEXEC$</td>
+<td style="text-align:left">设置该标志后，描述符将在 $execve$ 调用之后自动关闭</td>
+</tr>
+<tr>
+<td style="text-align:left">$EFD_-NONBLOCK$</td>
+<td style="text-align:left">非阻塞模式</td>
+</tr>
+<tr>
+<td style="text-align:left">$EFD_-SEMAPHORE$</td>
+<td style="text-align:left">为读提供类似于信号量的语义</td>
+</tr>
+</tbody>
+</table>
+<p>        对于<code>Linux 2.6.26</code>及以下的版本来说，$flags$ 参数没有作用且必须为 $0$ 。如果 $flags$ 参数非法，会返回 $EINVAL$ 错误。对于返回的描述符，可以进行以下操作：</p>
+<ul>
+<li>$read$ ：调用成功会返回一个以主机字节序排列的 $64$ 位无符号整型；如果返回值小于 $64$ 位，则调用失败，返回 $EINVAL$ 错误。
+<ul>
+<li>如果没有指定 $EFD_-SEMAPHORE$ 并且 $eventfd$ 计数器值非零，$read$ 调用会返回计数器值，同时计数器值会被设置为 $0$ ；</li>
+<li>如果指定了 $EFD_-SEMAPHORE$ 并且 $eventfd$ 计数器值非零，$read$ 调用会返回 $1$ ，同时计数器值会减一；</li>
+<li>如果 $eventfd$ 计数器值为 $0$ ，$read$ 调用会阻塞直到计数器值非零。如果指定了 $EFD_-NONBLOCK$ ，$read$ 调用会返回 $EAGAIN$ 错误。</li>
+</ul>
+</li>
+<li>$write$ ：调用成功会为 $eventfd$ 计数器值加上一个 $64$ 位无符号整型的值的数量，最大为 $UINT_-MAX$ $-$ $1$ 。如果指定的值非 $64$ 位或者超过最大值，返回 $EINVAL$ 错误。
+<ul>
+<li>如果加上这个值会导致溢出，调用会阻塞直到该描述符被调用了一次 $read$ 。如果指定了 $EFD_-NONBLOCK$ ，$write$ 调用会返回 $EAGAIN$ 错误。</li>
+</ul>
+</li>
+<li>$poll$ / $select$ / $epoll$ ：
+<ul>
+<li>如果 $eventfd$ 计数器值大于 $0$ ，则描述符可读；</li>
+<li>如果 $eventfd$ 计数器值至少可以加 $1$ ，则描述符可写；</li>
+<li>如果 $eventfd$ 计数器值溢出，对于 $select$ ，该描述符状态会被设置为既可读也可写；对于 $poll$ ，返回 $POLLERR$ ；对于 $epoll$ ，返回 $EPOLLERR$ 。</li>
+</ul>
+</li>
+<li>$close$ ：递减该描述符的引用计数，当引用计数为零时，$eventfd$ 对象会被内核释放。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/eventfd.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="k">typedef</span> <span class="kt">uint64_t</span> <span class="n">eventfd_t</span><span class="p">;</span>
+
+<span class="cm">/* 成功返回调用传递的数据量，出错返回-1 */</span>
+
+<span class="kt">int</span> <span class="nf">eventfd_read</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">eventfd_t</span> <span class="o">*</span><span class="n">value</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">eventfd_write</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">eventfd_t</span> <span class="n">value</span><span class="p">);</span>
+</code></pre></div><p>        <code>GNU C</code>库定义了以上函数，与直接对 $eventfd$ 调用 $read$ 和 $write$ 的作用相同。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/eventfd.h&gt;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;unistd.h&gt;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;inttypes.h&gt;  // definition of PRIu64 &amp; PRIx64</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;stdlib.h&gt;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;stdint.h&gt;  // definition of uint64_t</span><span class="cp">
+</span><span class="cp"></span>
+<span class="cp">#define handle_error(msg) \
+</span><span class="cp">  do { \
+</span><span class="cp">    perror(msg); \
+</span><span class="cp">    exit(EXIT_FAILURE); \
+</span><span class="cp">  } while (0)
+</span><span class="cp"></span>
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">efd</span><span class="p">;</span>
+  <span class="kt">uint64_t</span> <span class="n">u</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&#34;Usage: %s &lt;num&gt;...</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+    <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="k">if</span> <span class="p">((</span><span class="n">efd</span> <span class="o">=</span> <span class="n">eventfd</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">handle_error</span><span class="p">(</span><span class="s">&#34;eventfd&#34;</span><span class="p">);</span>
+
+  <span class="k">switch</span> <span class="p">(</span><span class="n">fork</span><span class="p">())</span> <span class="p">{</span>
+  <span class="k">case</span> <span class="mi">0</span><span class="o">:</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">argc</span><span class="p">;</span> <span class="n">j</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;Child writing %s to efd</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">argv</span><span class="p">[</span><span class="n">j</span><span class="p">]);</span>
+      <span class="n">u</span> <span class="o">=</span> <span class="n">strtoull</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+      <span class="k">if</span><span class="p">(</span><span class="n">write</span><span class="p">(</span><span class="n">efd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">u</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">uint64_t</span><span class="p">))</span> <span class="o">!=</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">uint64_t</span><span class="p">))</span>
+        <span class="n">handle_error</span><span class="p">(</span><span class="s">&#34;write&#34;</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;Child completed write loop</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+    <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_SUCCESS</span><span class="p">);</span>
+
+  <span class="k">default</span><span class="o">:</span>
+    <span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+
+    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;Parent about to read</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">read</span><span class="p">(</span><span class="n">efd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">u</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">uint64_t</span><span class="p">))</span> <span class="o">!=</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">uint64_t</span><span class="p">))</span>
+      <span class="n">handle_error</span><span class="p">(</span><span class="s">&#34;read&#34;</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;Parent read %&#34;</span> <span class="n">PRIu64</span> <span class="s">&#34; (%#&#34;</span> <span class="n">PRIx64</span> <span class="s">&#34;) from efd</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">);</span>
+    <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_SUCCESS</span><span class="p">);</span>
+
+  <span class="k">case</span> <span class="o">-</span><span class="mi">1</span><span class="o">:</span>
+    <span class="n">handle_error</span><span class="p">(</span><span class="s">&#34;fork&#34;</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><h2 id="2-timerfd">2. <code>timerfd</code></h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/timerfd.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="c1">// 成功返回timer描述符，出错返回-1
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">timerfd_create</span><span class="p">(</span><span class="kt">int</span> <span class="n">clockid</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">);</span>
+</code></pre></div><p>        这些系统调用用于创建和管理 $timerfd$ 计时器。$timerfd_-create$ 创建一个新的 $timer$ 对象，并返回该对象的描述符。$clockid$ 参数指定了 $timer$ 的时钟类型：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">$clock$</th>
+<th style="text-align:left">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">$CLOCK_-REALTIME$</td>
+<td style="text-align:left">可变的系统范围内的实时时钟</td>
+</tr>
+<tr>
+<td style="text-align:left">$CLOCK_-MONOTONIC$</td>
+<td style="text-align:left">不可修改的单调递增时钟，从过去某个指定时间开始，并且在系统启动后不再改变</td>
+</tr>
+<tr>
+<td style="text-align:left">$CLOCK_-BOOTTIME$</td>
+<td style="text-align:left">类似于 $CLOCK_-MONOTONIC$ ，但是可以在系统休眠时继续计时</td>
+</tr>
+<tr>
+<td style="text-align:left">$CLOCK_-REALTIME_-ALARM$</td>
+<td style="text-align:left">类似于 $CLOCK_-REALTIME$ ，但是可以阻止系统休眠。进程必须拥有 $CAP_-WAKE_-ALARM$ 能力才能设置该时钟</td>
+</tr>
+<tr>
+<td style="text-align:left">$LOCK_-BOOTTIME_-ALARM$</td>
+<td style="text-align:left">类似于 $CLOCK_-BOOTTIME$ ，但是可以阻止系统休眠。进程必须拥有 $CAP_-WAKE_-ALARM$ 能力才能设置该时钟</td>
+</tr>
+</tbody>
+</table>
+<p>        $flags$ 标志可以改变 $timer$ 的行为。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">$flag$</th>
+<th style="text-align:left">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">$TFD_-NONBLOCK$</td>
+<td style="text-align:left">非阻塞模式</td>
+</tr>
+<tr>
+<td style="text-align:left">$TFD_-CLOEXEC$</td>
+<td style="text-align:left">描述符会在 $execve$ 调用后自动关闭</td>
+</tr>
+</tbody>
+</table>
+<p>        如果 $clockid$ 或者 $flags$ 非法，返回 $EINVAL$ 错误。对于没有 $CAP_-WAKE_-ALARM$ 能力的进程指定 $CLOCK_-REALTIME_-ALARM$ 或者 $CLOCK_-BOOTTIME_-ALARM$ 标志会导致调用返回 $EPERM$ 错误。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/timerfd.h&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="cm">/* 成功返回0，出错返回-1 */</span>
+
+<span class="kt">int</span> <span class="nf">timerfd_settime</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">,</span>
+  <span class="k">const</span> <span class="k">struct</span> <span class="n">itimerspec</span> <span class="o">*</span><span class="n">new_value</span><span class="p">,</span> <span class="k">struct</span> <span class="n">itimerspce</span> <span class="o">*</span><span class="n">old_value</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">timerfd_gettime</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="k">struct</span> <span class="n">itimerspce</span> <span class="o">*</span><span class="n">curr_value</span><span class="p">);</span>
+
+<span class="k">struct</span> <span class="n">timespec</span> <span class="p">{</span>
+  <span class="n">time_t</span> <span class="n">tv_sec</span><span class="p">;</span>  <span class="c1">// seconds
+</span><span class="c1"></span>  <span class="kt">long</span> <span class="n">tv_nsec</span><span class="p">;</span>  <span class="c1">// nanoseconds
+</span><span class="c1"></span><span class="p">};</span>
+
+<span class="k">struct</span> <span class="n">itimerspec</span> <span class="p">{</span>
+  <span class="k">struct</span> <span class="n">timespec</span> <span class="n">it_interval</span><span class="p">;</span>  <span class="c1">// interval for periodic timer
+</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">timespec</span> <span class="n">it_value</span><span class="p">;</span>  <span class="c1">// initial expiration
+</span><span class="c1"></span><span class="p">};</span>
+</code></pre></div><p>        $timerfd_-settime$ 用于启动或者停止 $timer$ ，$new_-value$ 参数指定定时时间，如果 $it_-value$ 或者 $it_-interval$ 成员存在非零值，那么 $timer$ 会被启动；如果都为 $0$ ，那么 $timer$ 会停止。如果 $it_-value$ 和 $it_-interval$ 都非零，那么定时器会选择 $it_-value$ 的时间并且只会触发一次。$it_-value$ 默认为相对时间，可以通过 $flag$ 修改。$flag$ 参数可以为以下值：</p>
+<ul>
+<li>$TFD_-TIMER_-ABSTIME$ ：$it_-value$ 表达绝对时间 ( 默认为相对时间 )；</li>
+<li>$TFD_-TIMER_-CANCEL_-ON_-SET$ ：如果和 $TFD_-TIMER_-ABSTIME$ 同时设置，并且时钟为 $CLOCK_-REALTIME$ 或 $CLOCK_-REALTIME_-ALARM$ ，那么在经历了非连续的更改 ( $settimeofday$ 、$clock_-settime$ 等 ) 之后，$timer$ 会被标记为可取消。当更改发生并且有其他进程正阻塞在对该 $timerfd$ 的 $read$ 调用上时，$read$ 调用将失败并返回 $CANCELED$ 错误。</li>
+</ul>
+<p>        如果 $old_-value$ 非空，那么原来的定时时间会被返回到 $old_-value$ 指向的地址中。<br>
+        $timerfd_-gettime$ 调用会返回当前的定时时间。如果返回的时间值都为 $0$ ，表示当前定时器没有开始计时。无论当前定时器是否指定了 $TFD_-TIMER_-ABSTIME$ ，都将返回相对时间。<br>
+        可以对 $timerfd$ 进行以下操作：</p>
+<ul>
+<li>$read$ ：如果 $timer$ 已经启动，并且在上一次调用 $read$ 到现在这段时间已经超时了一次或多次，那么这次 $read$ 调用会以主机字节序返回一个 $64$ 位无符号整型，值为超时次数。
+<ul>
+<li>如果没有发生超时，那么 $read$ 会阻塞直到超时发生。如果指定了 $TFD_-NONBLOCK$ ，那么会返回 $EAGAIN$ 错误；</li>
+<li>如果提供的缓冲区小于 $64$ 位，返回 $EINVAL$ 错误；</li>
+<li>如果指定了 $CLOCK_-REALTIME$ / $CLOCK_-REALTIME_-ALARM$ 、$TFD_-TIMER_-ABSTIME$ 和 $TFD_-TIMER_-CANCEL_-ON_-SET$ ，并且在阻塞期间时间被以非连续方式修改，那么会返回 $ECANCELED$ 错误。</li>
+</ul>
+</li>
+<li>$poll$ / $select$ / $epoll$ ：如果发生了一次或多次超时，描述符将可读；</li>
+<li>$ioctl$ ：可以执行 $TFD_-IOC_-SET_-TICKS$ 命令，修改该定时器的超时次数，参数为一个无符号 $64$ 位整型指针，指向新的超时次数。当调用成功时，所有在该定时器上等待的进程将被唤醒。只有内核配置了 $CONFIG_-CHECKPOINT_-RESTORE$ 选项后该命令才可用；</li>
+<li>$close$ ：递减当前定时器描述符的引用计数，当引用计数为零时，该定时器将被内核释放。</li>
+</ul>
+<p>        如果 $fd$ 无效，返回 $EBADF$ 错误。如果 $fd$ 不是 $timerfd$ ，返回 $EINVAL$ 错误。如果 $new_-value$ 、$old_-value$ 或者 $curr_-value$ 无效，返回 $EFAULT$ 错误。此外，对于 $ECANCELED$ 错误，还存在特殊情况：</p>
+<ol>
+<li>创建一个 $CLCOK_-REALTIME$ / $CLOCK_-REALTIME_-ALARM$ 定时器，并启用 $TFD_-TIMER_-ABSTIME$ 和 $TFD_-TIMER_-CANCEL_-ON_-SET$ 标志；</li>
+<li>调用 $timerfd_-settime$ 启动定时器；</li>
+<li>对 $CLOCK_-REALTIME$ 时钟进行非连续修改 ( 比如 $settimeofday$ )；</li>
+<li>再次调用 $timerfd_-settime$ 启动定时器。</li>
+</ol>
+<p>        在上述情况下，$timerfd_-settime$ 将返回 $-1$ ，同时设置 $ECANCELED$ 错误，这使得调用者得知上一次启动因为非连续修改而中止。虽然这次调用返回了错误，但是不意味着设置失败，定时器还是会按照调用中传递的定时时间设置并启动。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/timerfd.h&gt;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;time.h&gt;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;unistd.h&gt;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;inttypes.h&gt;  // definition of PRIu64</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;stdlib.h&gt;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp">
+</span><span class="cp">#include</span> <span class="cpf">&lt;stdint.h&gt;  // definition of uint64_t</span><span class="cp">
+</span><span class="cp"></span>
+<span class="cp">#define handle_error(msg) \
+</span><span class="cp">  do { \
+</span><span class="cp">    perror(msg); \
+</span><span class="cp">    exit(EXIT_FAILURE); \
+</span><span class="cp">  } while(0)
+</span><span class="cp"></span>
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">print_elapsed_time</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">static</span> <span class="k">struct</span> <span class="n">timespec</span> <span class="n">start</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">timespec</span> <span class="n">curr</span><span class="p">;</span>
+  <span class="k">static</span> <span class="kt">int</span> <span class="n">first_call</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">secs</span><span class="p">,</span> <span class="n">nsecs</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">first_call</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">first_call</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">clock_gettime</span><span class="p">(</span><span class="n">CLOCK_MONOTONIC</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">start</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">handle_error</span><span class="p">(</span><span class="s">&#34;clock_gettime&#34;</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">clock_gettime</span><span class="p">(</span><span class="n">CLOCK_MONOTONIC</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">curr</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">handle_error</span><span class="p">(</span><span class="s">&#34;clock_gettime&#34;</span><span class="p">);</span>
+
+  <span class="n">secs</span> <span class="o">=</span> <span class="n">curr</span><span class="p">.</span><span class="n">tv_set</span> <span class="o">-</span> <span class="n">start</span><span class="p">.</span><span class="n">tv_sec</span><span class="p">;</span>
+  <span class="n">nsecs</span> <span class="o">=</span> <span class="n">curr</span><span class="p">.</span><span class="n">tv_nsec</span> <span class="o">-</span> <span class="n">start</span><span class="p">.</span><span class="n">tv_nsec</span><span class="p">;</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">nsecs</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">secs</span><span class="o">--</span><span class="p">;</span>
+    <span class="n">nsecs</span> <span class="o">+=</span> <span class="mi">1000000000</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;%d.%03d: &#34;</span><span class="p">,</span> <span class="n">secs</span><span class="p">,</span> <span class="p">(</span><span class="n">nsecs</span> <span class="o">+</span> <span class="mi">500000</span><span class="p">)</span> <span class="o">/</span> <span class="mi">1000000</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">struct</span> <span class="n">itimerspec</span> <span class="n">new_value</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">max_exp</span><span class="p">,</span> <span class="n">fd</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">timespec</span> <span class="n">now</span><span class="p">;</span>
+  <span class="kt">uint64_t</span> <span class="n">exp</span><span class="p">,</span> <span class="n">tot_exp</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">((</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">))</span> <span class="p">{</span>
+    <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&#34;%s init-secs [interval-secs max-exp]</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+    <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">clock_gettime</span><span class="p">(</span><span class="n">CLOCK_REALTIME</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">now</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">handle_error</span><span class="p">(</span><span class="s">&#34;clock_gettime&#34;</span><span class="p">);</span>
+
+  <span class="cm">/* Create a CLOCK_REALTIME absolute timer with initial
+</span><span class="cm">     expiration and interval as specified in command line. */</span>
+  <span class="n">new_value</span><span class="p">.</span><span class="n">it_value</span><span class="p">.</span><span class="n">tv_sec</span> <span class="o">=</span> <span class="n">now</span><span class="p">.</span><span class="n">tv_sec</span> <span class="o">+</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+  <span class="n">new_value</span><span class="p">.</span><span class="n">it_value</span><span class="p">.</span><span class="n">tv_nsec</span> <span class="o">=</span> <span class="n">now</span><span class="p">.</span><span class="n">tv_nsec</span><span class="p">;</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">new_value</span><span class="p">.</span><span class="n">it_interval</span><span class="p">.</span><span class="n">tv_sec</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">max_exp</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="n">new_value</span><span class="p">.</span><span class="n">it_interval</span><span class="p">.</span><span class="n">tv_sec</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+    <span class="n">max_exp</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">3</span><span class="p">]);</span>
+  <span class="p">}</span>
+  <span class="n">new_value</span><span class="p">.</span><span class="n">it_interval</span><span class="p">.</span><span class="n">tv_nsec</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">((</span><span class="n">fd</span> <span class="o">=</span> <span class="n">timerfd_create</span><span class="p">(</span><span class="n">CLOCK_REALTIME</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">handle_error</span><span class="p">(</span><span class="s">&#34;timerfd_create&#34;</span><span class="p">);</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">timerfd_settime</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">TFD_TIMER_ABSTIME</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">new_value</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">handle_error</span><span class="p">(</span><span class="s">&#34;timerfd_settime&#34;</span><span class="p">);</span>
+
+  <span class="n">print_elapsed_time</span><span class="p">();</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;timer started</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+
+  <span class="k">for</span> <span class="p">(</span><span class="n">tot_exp</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">tot_exp</span> <span class="o">&lt;</span> <span class="n">max_exp</span><span class="p">;</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">read</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">exp</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">uint64_t</span><span class="p">))</span> <span class="o">!=</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">uint64_t</span><span class="p">))</span>
+      <span class="n">handle_error</span><span class="p">(</span><span class="s">&#34;read&#34;</span><span class="p">);</span>
+
+    <span class="n">tot_exp</span> <span class="o">+=</span> <span class="n">exp</span><span class="p">;</span>
+    <span class="n">print_elapsed_time</span><span class="p">();</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;read: %&#34;</span> <span class="n">PRIu64</span> <span class="s">&#34;; total=%&#34;</span> <span class="n">PRIu64</span> <span class="s">&#34;</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">exp</span><span class="p">,</span> <span class="n">tot_exp</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_SUCCESS</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+            </div>
+            <div class="meta post-footer"> 
+                <span>2022 Feb 26 17:30</span> 
+                <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85eventfd%E5%92%8Ctimerfd/"><i class="fas fa-link"></i> link</a>
+            </div>
+        </div>
         
         <div class="post">
             
@@ -1246,496 +1555,6 @@
             <div class="meta post-footer"> 
                 <span>2022 Feb 21 16:43</span> 
                 <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B19/"><i class="fas fa-link"></i> link</a>
-            </div>
-        </div>
-        
-        <div class="post">
-            
-            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B18/">Unix网络编程（18）：锁</a></h1>
-            <div class="post-content">
-                <h2 id="1-互斥锁上锁和解锁">1. 互斥锁上锁和解锁</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cm">/* 成功返回0，出错返回非负错误码 */</span>
-
-<span class="kt">int</span> <span class="nf">pthread_mutex_lock</span><span class="p">(</span><span class="n">pthread_mutex_t</span> <span class="o">*</span><span class="n">mptr</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">pthread_mutex_trylock</span><span class="p">(</span><span class="n">pthread_mutex_t</span> <span class="o">*</span><span class="n">mptr</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">pthread_mutex_unlock</span><span class="p">(</span><span class="n">pthread_mutex_t</span> <span class="o">*</span><span class="n">mptr</span><span class="p">);</span>
-</code></pre></div><p>        <code>POSIX</code>互斥锁被声明为 $pthread_-mutex_-t$ 类型的变量。如果是静态分配的，需要初始化为常值 $PTHREAD_-MUTEX_-INITIALIZER$ ；如果是动态分配的，或者分配在共享内存区中，需要通过 $pthread_-mutex_-init$ 函数初始化。$pthread_-mutex_-lock$ 是阻塞版本的上锁，会一直阻塞直到该互斥锁解锁；$pthread_-mutex_-trylock$ 是非阻塞版本的上锁，如果该互斥锁已经上锁，会返回 $EBUSY$ 错误。</p>
-<h2 id="2-生产者消费者问题">2. 生产者消费者问题</h2>
-<p>        <strong>生产者-消费者</strong> ( $producer-consumer$ ) 问题，也称为<strong>有界缓冲区</strong> ( $bounded$ $buffer$ ) 问题。一个或多个生产者创建一个个数据条目，这些条目由一个或多个消费者处理。数据条目在生产者和消费者之间使用某种方式的<code>IPC</code>传递。对于使用管道或消息队列进行通信的生产者和消费者，内核会进行隐式同步。然而对于使用共享内存区进行通信的生产者和消费者，需要进行显式同步。我们使用互斥锁进行显式同步。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cp">#define MAXNITEMS 1000000
-</span><span class="cp">#define MAXNTHREADS 100
-</span><span class="cp"></span>
-<span class="kt">int</span> <span class="n">nitems</span><span class="p">;</span>  <span class="c1">// read-only by producer and consumer
-</span><span class="c1"></span><span class="k">struct</span> <span class="p">{</span>
-  <span class="n">pthread_mutex_t</span> <span class="n">mutex</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">buff</span><span class="p">[</span><span class="n">MAXNITEMS</span><span class="p">];</span>
-  <span class="kt">int</span> <span class="n">nput</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">nval</span><span class="p">;</span>
-<span class="p">}</span> <span class="n">shared</span> <span class="o">=</span> <span class="p">{</span>
-  <span class="n">PTHREAD_MUTEX_INITIALIZER</span>
-<span class="p">};</span>
-
-<span class="kt">void</span> <span class="o">*</span><span class="nf">produce</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">);</span>
-<span class="kt">void</span> <span class="o">*</span><span class="nf">consume</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="n">nthreads</span><span class="p">,</span> <span class="n">count</span><span class="p">[</span><span class="n">MAXNTHREADS</span><span class="p">];</span>
-  <span class="n">pthread_t</span> <span class="n">tid_produce</span><span class="p">[</span><span class="n">MAXNTHREADS</span><span class="p">],</span> <span class="n">tid_consume</span><span class="p">;</span>
-
-  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">)</span>
-    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: prodcons2 &lt;#items&gt; &lt;#threads&gt;&#34;</span><span class="p">);</span>
-  <span class="n">nitems</span> <span class="o">=</span> <span class="n">min</span><span class="p">(</span><span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">MAXNITEMS</span><span class="p">);</span>
-  <span class="n">nthreads</span> <span class="o">=</span> <span class="n">min</span><span class="p">(</span><span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">MAXNTHREADS</span><span class="p">);</span>
-
-  <span class="n">Set_concurrency</span><span class="p">(</span><span class="n">nthreads</span><span class="p">);</span>
-  <span class="c1">// start all the producer threads
-</span><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nthreads</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">count</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_produce</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">produce</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">count</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
-  <span class="p">}</span>
-
-  <span class="c1">// wait for all the producer threads
-</span><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nthreads</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_produce</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">);</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;count[%d] = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">count</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
-  <span class="p">}</span>
-
-  <span class="c1">// start, then wait for the consumer thread
-</span><span class="c1"></span>  <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-  <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-
-  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-<span class="p">}</span>
-</code></pre></div><p>        $set_-concurrency$ 告知系统我们希望并发运行的线程数。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="kt">void</span> <span class="o">*</span><span class="nf">produce</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
-    <span class="n">Pthread_mutex_lock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">nput</span> <span class="o">&gt;=</span> <span class="n">nitems</span><span class="p">)</span> <span class="p">{</span>
-      <span class="n">Pthread_mutex_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-      <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>  <span class="c1">// array is full, we&#39;re done
-</span><span class="c1"></span>    <span class="p">}</span>
-    <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">shared</span><span class="p">.</span><span class="n">nput</span><span class="p">]</span> <span class="o">=</span> <span class="n">shared</span><span class="p">.</span><span class="n">nval</span><span class="p">;</span>
-    <span class="n">shared</span><span class="p">.</span><span class="n">nput</span><span class="o">++</span><span class="p">;</span>
-    <span class="n">shared</span><span class="p">.</span><span class="n">nval</span><span class="o">++</span><span class="p">;</span>
-    <span class="n">Pthread_mutex_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-    <span class="o">*</span><span class="p">((</span><span class="kt">int</span> <span class="o">*</span><span class="p">)</span> <span class="n">arg</span><span class="p">)</span> <span class="o">+=</span> <span class="mi">1</span><span class="p">;</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-
-<span class="kt">void</span> <span class="o">*</span><span class="nf">consume</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
-
-  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nitems</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="n">i</span><span class="p">)</span>
-      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;buff[%d] = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
-  <span class="p">}</span>
-  <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div><h2 id="3-上锁与等待">3. 上锁与等待</h2>
-<p>        我们修改程序，让消费者线程在所有生产者启动后启动。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="n">nthreads</span><span class="p">,</span> <span class="n">count</span><span class="p">[</span><span class="n">MAXNTHREADS</span><span class="p">];</span>
-  <span class="n">pthread_t</span> <span class="n">tid_produce</span><span class="p">[</span><span class="n">MAXNTHREADS</span><span class="p">],</span> <span class="n">tid_consume</span><span class="p">;</span>
-
-  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">)</span>
-    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: prodcons3 &lt;#item&gt; &lt;#nthreads&gt;&#34;</span><span class="p">);</span>
-  <span class="n">nitems</span> <span class="o">=</span> <span class="n">min</span><span class="p">(</span><span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">MAXNITEMS</span><span class="p">);</span>
-  <span class="n">nthreads</span> <span class="o">=</span> <span class="n">min</span><span class="p">(</span><span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">MAXNTHREADS</span><span class="p">);</span>
-
-  <span class="c1">// create all producers and one consumer
-</span><span class="c1"></span>  <span class="n">Set_concurrency</span><span class="p">(</span><span class="n">nthreads</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
-  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nthreads</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">count</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_produce</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">produce</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">count</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
-  <span class="p">}</span>
-  <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-
-  <span class="c1">// wait for all producers and the consumer
-</span><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nthreads</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_produce</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">);</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;count[%d] = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">count</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
-  <span class="p">}</span>
-  <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-
-  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-<span class="p">}</span>
-
-<span class="kt">void</span> <span class="nf">consume_wait</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
-    <span class="n">Pthread_mutex_lock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">shared</span><span class="p">.</span><span class="n">nput</span><span class="p">)</span> <span class="p">{</span>
-      <span class="n">Pthread_mutex_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-      <span class="k">return</span><span class="p">;</span>  <span class="c1">// an item is ready
-</span><span class="c1"></span>    <span class="p">}</span>
-    <span class="n">Pthread_mutex_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-
-<span class="kt">void</span> <span class="o">*</span><span class="nf">consume</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
-
-  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nitems</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">consume_wait</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="n">i</span><span class="p">)</span> <span class="p">{</span>
-      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;buff[%d] = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-  <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div><p>        当数组中对应的位置缺少数据，从而消费者不能消费时，我们采用了轮询的方式等待生产者生产。</p>
-<h2 id="4-条件变量的唤醒和等待">4. 条件变量的唤醒和等待</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cm">/* 成功返回0，出错返回非负错误码 */</span>
-
-<span class="kt">int</span> <span class="nf">pthread_cond_wait</span><span class="p">(</span><span class="n">pthread_cond_t</span> <span class="o">*</span><span class="n">cptr</span><span class="p">,</span> <span class="n">pthread_mutex_t</span> <span class="o">*</span><span class="n">mptr</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">pthread_cond_signal</span><span class="p">(</span><span class="n">pthread_cond_t</span> <span class="o">*</span><span class="n">cptr</span><span class="p">);</span>
-</code></pre></div><p>        条件变量是类型为 $pthread_-cond_-t$ 的变量。每个条件变量总是与一个互斥锁关联。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cp">#define MAXNITEMS 1000000
-</span><span class="cp">#define MAXNTHREADS 100
-</span><span class="cp"></span>
-<span class="c1">// globals shared by threads
-</span><span class="c1"></span><span class="kt">int</span> <span class="n">nitems</span><span class="p">;</span>  <span class="c1">// read-only by producer and consumer
-</span><span class="c1"></span><span class="kt">int</span> <span class="n">buff</span><span class="p">[</span><span class="n">MAXNITEMS</span><span class="p">];</span>
-<span class="k">struct</span> <span class="p">{</span>
-  <span class="n">pthread_mutex_t</span> <span class="n">mutex</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">nput</span><span class="p">;</span>  <span class="c1">// next index to store
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">nval</span><span class="p">;</span>  <span class="c1">// next value to store
-</span><span class="c1"></span><span class="p">}</span> <span class="n">put</span> <span class="o">=</span> <span class="p">{</span>
-  <span class="n">PTHREAD_MUTEX_INITIALIZER</span>
-<span class="p">};</span>
-
-<span class="k">struct</span> <span class="p">{</span>
-  <span class="n">pthread_mutex_t</span> <span class="n">mutex</span><span class="p">;</span>
-  <span class="n">pthread_cond_t</span> <span class="n">cond</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">nready</span><span class="p">;</span>  <span class="c1">// number ready for consumer
-</span><span class="c1"></span><span class="p">}</span> <span class="n">nready</span> <span class="o">=</span> <span class="p">{</span>
-  <span class="n">PTHREAD_MUTEX_INITIALIZER</span><span class="p">,</span>
-  <span class="n">PTHREAD_COND_INITIALIZER</span>
-<span class="p">};</span>
-
-<span class="kt">void</span> <span class="o">*</span><span class="nf">produce</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
-    <span class="n">Pthread_mutex_lock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">put</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">put</span><span class="p">.</span><span class="n">nput</span> <span class="o">&gt;=</span> <span class="n">nitems</span><span class="p">)</span> <span class="p">{</span>
-      <span class="n">Pthread_mutex_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">put</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-      <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>  <span class="c1">// array is full, we&#39;re done
-</span><span class="c1"></span>    <span class="p">}</span>
-    <span class="n">buff</span><span class="p">[</span><span class="n">put</span><span class="p">.</span><span class="n">nput</span><span class="p">]</span> <span class="o">=</span> <span class="n">put</span><span class="p">.</span><span class="n">nval</span><span class="p">;</span>
-    <span class="n">put</span><span class="p">.</span><span class="n">nput</span><span class="o">++</span><span class="p">;</span>
-    <span class="n">put</span><span class="p">.</span><span class="n">nval</span><span class="o">++</span><span class="p">;</span>
-    <span class="n">Pthread_mutex_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">put</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-
-    <span class="n">Pthread_mutex_lock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">nready</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">nready</span><span class="p">.</span><span class="n">nready</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
-      <span class="n">Pthread_cond_signal</span><span class="p">(</span><span class="o">&amp;</span><span class="n">nready</span><span class="p">.</span><span class="n">cond</span><span class="p">);</span>
-    <span class="n">nready</span><span class="p">.</span><span class="n">nready</span><span class="o">++</span><span class="p">;</span>
-    <span class="n">Pthread_mutex_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">nready</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-
-    <span class="o">*</span><span class="p">((</span><span class="kt">int</span> <span class="o">*</span><span class="p">)</span> <span class="n">arg</span><span class="p">)</span> <span class="o">+=</span> <span class="mi">1</span><span class="p">;</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-
-<span class="kt">void</span> <span class="o">*</span><span class="nf">consume</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
-
-  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nitems</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">Pthread_mutex_lock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">nready</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-    <span class="k">while</span> <span class="p">(</span><span class="n">nready</span><span class="p">.</span><span class="n">nready</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
-      <span class="n">Pthread_cond_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">nready</span><span class="p">.</span><span class="n">cond</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">nready</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-    <span class="n">nready</span><span class="p">.</span><span class="n">nready</span><span class="o">--</span><span class="p">;</span>
-    <span class="n">Pthread_mutex_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">nready</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-
-    <span class="k">if</span> <span class="p">(</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="n">i</span><span class="p">)</span>
-      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;buff[%d] = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">buff</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
-  <span class="p">}</span>
-  <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div><p>        以上程序可能存在上锁冲突：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="n">Pthread_mutex_lock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">nready</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-<span class="k">while</span> <span class="p">(</span><span class="n">nready</span><span class="p">.</span><span class="n">nready</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
-  <span class="n">Pthread_cond_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">nready</span><span class="p">.</span><span class="n">cond</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">nready</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-<span class="n">nready</span><span class="p">.</span><span class="n">nready</span><span class="o">--</span><span class="p">;</span>
-<span class="n">Pthread_mutex_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">nready</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-</code></pre></div><p>        在等待和唤醒的时候都需要先获取互斥锁。然而由于其他线程唤醒的时候也持有锁，所以可能会让被唤醒的线程因为唤醒后无法获取锁，从而重新进入阻塞状态。为了避免这种冲突，可以修改代码：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="kt">int</span> <span class="n">dosignal</span><span class="p">;</span>
-
-<span class="n">Pthread_mutex_lock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">nready</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-<span class="n">dosignal</span> <span class="o">=</span> <span class="p">(</span><span class="n">nready</span><span class="p">.</span><span class="n">nready</span> <span class="o">==</span> <span class="mi">0</span><span class="p">);</span>
-<span class="n">nready</span><span class="p">.</span><span class="n">nready</span><span class="o">++</span><span class="p">;</span>
-<span class="n">Pthread_mutex_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">nready</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-
-<span class="k">if</span> <span class="p">(</span><span class="n">dosignal</span><span class="p">)</span>
-  <span class="n">Pthread_cond_signal</span><span class="p">(</span><span class="o">&amp;</span><span class="n">nready</span><span class="p">.</span><span class="n">cond</span><span class="p">);</span>
-</code></pre></div><p>        <code>POSIX</code>允许线程在没有持有与该条件变量相关联的互斥锁的前提下调用 $pthread_-cond_-signal$ ，但是对于需要可预见的调度行为，在调用前必须获取互斥锁。</p>
-<h2 id="5-条件变量的定时等待和广播">5. 条件变量的定时等待和广播</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cm">/* 成功返回0，出错返回非负错误码 */</span>
-
-<span class="kt">int</span> <span class="nf">pthread_cond_broadcast</span><span class="p">(</span><span class="n">pthread_cond_t</span> <span class="o">*</span><span class="n">cptr</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">pthread_cond_timedwait</span><span class="p">(</span><span class="n">pthread_cond_t</span> <span class="o">*</span><span class="n">cptr</span><span class="p">,</span> <span class="n">pthread_mutex_t</span> <span class="o">*</span><span class="n">mptr</span><span class="p">,</span>
-  <span class="k">const</span> <span class="k">struct</span> <span class="n">timespec</span> <span class="o">*</span><span class="n">abstime</span><span class="p">);</span>
-</code></pre></div><p>        $pthread_-cond_-broadcast$ 唤醒在条件变量上等待的所有线程。 $pthread_-cond_-timedwait$ 允许线程设置一个阻塞时间上限，$abstime$ 是绝对时间而不是时间差。</p>
-<h2 id="6-互斥锁和条件变量属性">6. 互斥锁和条件变量属性</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cm">/* 成功返回0，出错返回非负错误码 */</span>
-
-<span class="kt">int</span> <span class="nf">pthread_mutex_init</span><span class="p">(</span><span class="n">pthread_mutex_t</span> <span class="o">*</span><span class="n">mptr</span><span class="p">,</span> <span class="k">const</span> <span class="n">pthread_mutexattr_t</span> <span class="o">*</span><span class="n">attr</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">pthread_mutex_destroy</span><span class="p">(</span><span class="n">pthread_mutex_t</span> <span class="o">*</span><span class="n">mptr</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">pthread_cond_init</span><span class="p">(</span><span class="n">pthread_cond_t</span> <span class="o">*</span><span class="n">cptr</span><span class="p">,</span> <span class="k">const</span> <span class="n">pthread_condattr_t</span> <span class="o">*</span><span class="n">attr</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">pthread_cond_destroy</span><span class="p">(</span><span class="n">pthread_cond_t</span> <span class="o">*</span><span class="n">cptr</span><span class="p">);</span>
-</code></pre></div><p>        静态分配时通常使用 $PTHREAD_-MUTEX_-INITIALIZER$ 和 $PTHREAD_-COND_-INITIALIZER$ 初始化，这种方式初始化的互斥锁和条件变量具有默认属性。动态分配或者在共享内存区中的需要使用以上函数进行初始化和销毁。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cm">/* 成功返回0，出错返回非负错误码 */</span>
-
-<span class="kt">int</span> <span class="nf">pthread_mutexattr_init</span><span class="p">(</span><span class="n">pthread_mutexattr_t</span> <span class="o">*</span><span class="n">attr</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">pthread_mutexattr_destroy</span><span class="p">(</span><span class="n">pthread_mutexattr_t</span> <span class="o">*</span><span class="n">attr</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">pthread_condattr_init</span><span class="p">(</span><span class="n">pthread_condattr_t</span> <span class="o">*</span><span class="n">attr</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">pthread_mutexattr_destroy</span><span class="p">(</span><span class="n">pthread_condattr_t</span> <span class="o">*</span><span class="n">attr</span><span class="p">);</span>
-</code></pre></div><p>        互斥锁和条件变量的属性类型分别为 $pthread_-mutexattr_-t$ 和 $pthread_-condattr_-t$ ，由以上函数初始化和销毁。一旦某个互斥锁或条件变量的属性对象已经被初始化，就可以通过调用不同函数启用或禁止特定属性。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cm">/* 成功返回0，出错返回非负错误码 */</span>
-
-<span class="kt">int</span> <span class="nf">pthread_mutexattr_getpshared</span><span class="p">(</span><span class="k">const</span> <span class="n">pthread_mutexattr_t</span> <span class="o">*</span><span class="n">attr</span><span class="p">,</span> <span class="kt">int</span> <span class="o">*</span><span class="n">valptr</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">pthread_mutexattr_setpshared</span><span class="p">(</span><span class="n">pthread_mutexattr_t</span> <span class="o">*</span><span class="n">attr</span><span class="p">,</span> <span class="kt">int</span> <span class="n">value</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">pthread_condattr_getpshared</span><span class="p">(</span><span class="k">const</span> <span class="n">pthread_condattr_t</span> <span class="o">*</span><span class="n">attr</span><span class="p">,</span> <span class="kt">int</span> <span class="o">*</span><span class="n">valptr</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">pthread_condattr_setpshared</span><span class="p">(</span><span class="n">pthread_condattr_t</span> <span class="o">*</span><span class="n">attr</span><span class="p">,</span> <span class="kt">int</span> <span class="n">value</span><span class="p">);</span>
-</code></pre></div><p>        两个 $get$ 函数的 $valptr$ 返回属性当前值，$set$ 函数则根据 $value$ 设置该值。$value$ 可以是 $PTHREAD_-PROCESS_-PRIVATE$ 或 $PTHREAD_-PROCESS_-SHARED$ ，后者也称为进程间共享属性。当在多个进程间共享互斥锁时，进程终止时系统是不会释放所有持有的锁的。而对于线程，如果在持有互斥锁时被其他线程取消，可以通过安装取消时调用的函数来清理。</p>
-<h2 id="7-读写锁">7. 读写锁</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cm">/* 成功返回0，出错返回非负错误码 */</span>
-
-<span class="kt">int</span> <span class="nf">pthread_rwlock_rdlock</span><span class="p">(</span><span class="n">pthread_rwlock_t</span> <span class="o">*</span><span class="n">rwptr</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">pthread_rwlock_wrlock</span><span class="p">(</span><span class="n">pthread_rwlock_t</span> <span class="o">*</span><span class="n">rwptr</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">pthread_rwlock_tryrdlock</span><span class="p">(</span><span class="n">pthread_rwlock_t</span> <span class="o">*</span><span class="n">rwptr</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">pthread_rwlock_trywrlock</span><span class="p">(</span><span class="n">pthread_rwlock_t</span> <span class="o">*</span><span class="n">rwptr</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">pthread_rwlock_unlock</span><span class="p">(</span><span class="n">pthread_rwlock_t</span> <span class="o">*</span><span class="n">rwptr</span><span class="p">);</span>
-</code></pre></div><p>        $pthread_-rwlock_-tryrdlock$ 和 $pthread_-rwlock_-trywrlock$ 尝试以非阻塞方式获取锁，如果失败，返回 $EBUSY$ 错误。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cm">/* 成功返回0，出错返回非负错误码 */</span>
-
-<span class="kt">int</span> <span class="nf">pthread_rwlock_init</span><span class="p">(</span><span class="n">pthread_rwlock_t</span> <span class="o">*</span><span class="n">rwptr</span><span class="p">,</span>
-  <span class="k">const</span> <span class="n">pthread_rwlockattr_t</span> <span class="o">*</span><span class="n">attr</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">pthread_rwlock_destroy</span><span class="p">(</span><span class="n">pthread_rwlock_t</span> <span class="o">*</span><span class="n">rwptr</span><span class="p">);</span>
-</code></pre></div><p>        如果某个读写锁是静态分配的，可以通过 $PTHREAD_-RWLOCK_-INITIALIZER$ 初始化。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cm">/* 成功返回0，出错返回非负错误码 */</span>
-
-<span class="kt">int</span> <span class="nf">pthread_rwlockattr_init</span><span class="p">(</span><span class="n">pthread_rwlockattr_t</span> <span class="o">*</span><span class="n">attr</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">pthread_rwlockattr_destroy</span><span class="p">(</span><span class="n">pthread_rwlockattr_t</span> <span class="o">*</span><span class="n">attr</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">pthread_rwlockattr_getpshared</span><span class="p">(</span><span class="k">const</span> <span class="n">pthread_rwlockattr_t</span> <span class="o">*</span><span class="n">attr</span><span class="p">,</span> <span class="kt">int</span> <span class="o">*</span><span class="n">valptr</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">pthread_rwlockattr_setpshared</span><span class="p">(</span><span class="n">pthread_rwlockattr</span> <span class="o">*</span><span class="n">attr</span><span class="p">,</span> <span class="kt">int</span> <span class="n">value</span><span class="p">);</span>
-</code></pre></div><p>        $value$ 的值为 $PTHREAD_-PROCESS_-PRIVATE$ 或者 $PTHREAD_-PROCESS_-SHARED$ 。</p>
-<h2 id="8-线程取消">8. 线程取消</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 成功返回0，出错返回非负错误码
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">pthread_cancel</span><span class="p">(</span><span class="n">pthread_t</span> <span class="n">pid</span><span class="p">);</span>
-
-<span class="kt">void</span> <span class="nf">pthread_cleanup_push</span><span class="p">(</span><span class="kt">void</span> <span class="p">(</span><span class="o">*</span><span class="n">function</span><span class="p">)(</span><span class="kt">void</span> <span class="o">*</span><span class="p">),</span> <span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">);</span>
-
-<span class="kt">void</span> <span class="nf">pthread_cleanup_pop</span><span class="p">(</span><span class="kt">int</span> <span class="n">execute</span><span class="p">);</span>
-</code></pre></div><p>        通过 $pthread_-cancel$ ，可以取消一个持有锁的线程。线程可以通过 $pthread_-cleanup_-push$ 和 $pthread_-cleanup_-pop$ 安装和删除清理处理函数。清理处理函数会在线程被取消或者线程自愿终止时被调用。$pthread_-cleanup_-pop$ 总是删除栈顶的函数，并且当 $execute$ 不为 $0$ 时执行该函数。</p>
-<h2 id="9-记录上锁">9. 记录上锁</h2>
-<p>        <code>POSIX</code>记录上锁定义了一个特殊的字节范围以指定整个文件。它的起始偏移为 $0$ ，长度也为 $0$ 。<strong>粒度</strong> ( $granularity$ ) 标识能够被锁住的对象的大小。对记录上锁来说，粒度就是单个字节。通常情况下，粒度越小，意味着允许同时使用的用户数量就越多。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;fcntl.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 返回值取决于cmd，出错返回-1
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">fcntl</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">cmd</span><span class="p">,</span> <span class="p">...</span> <span class="cm">/* struct flock *arg */</span> <span class="p">);</span>
-
-<span class="k">struct</span> <span class="n">flock</span> <span class="p">{</span>
-  <span class="kt">short</span> <span class="n">l_type</span><span class="p">;</span>  <span class="c1">// F_RDLCK, F_WRLCK, F_UNLCK
-</span><span class="c1"></span>  <span class="kt">short</span> <span class="n">l_whence</span><span class="p">;</span>  <span class="c1">// SEEK_SET, SEEK_CUR, SEEK_END
-</span><span class="c1"></span>  <span class="n">off_t</span> <span class="n">l_start</span><span class="p">;</span>  <span class="c1">// relative starting offset in bytes
-</span><span class="c1"></span>  <span class="n">off_t</span> <span class="n">l_len</span><span class="p">;</span>  <span class="c1">// #bytes; 0 means until end-of-file
-</span><span class="c1"></span>  <span class="n">pid_t</span> <span class="n">l_pid</span><span class="p">;</span>  <span class="c1">// PID returned by F_GETLK
-</span><span class="c1"></span><span class="p">};</span>
-</code></pre></div><ul>
-<li>$F_-SETLK$ ：获取 ( $l_-type$ 为 $F_-RDLCK$ 或 $F_-WRLCK$ ) 或释放 ( $l_-type$ 为 $F_-UNLCK$ ) 由 $arg$ 指向的 $flock$ 结构的锁。如果当前进程无法获取锁，返回 $EACCES$ 或 $EAGAIN$ 错误；</li>
-<li>$F_-SETLKW$ ：与上个命令类似，但是如果无法获取锁不会立即返回，而是阻塞直到获取成功；</li>
-<li>$F_-GETLK$ ：检查由 $arg$ 指向的锁是否已有其他进程持有，如果没有就将 $l_-type$ 置为 $F_-UNLCK$ ；否则，这个锁的信息将由 $arg$ 返回，其中包括持有锁的进程的<code>PID</code>。</li>
-</ul>
-<p>        一个进程可以对某个文件的特定字节范围多次发出 $F_-SETLK$ 或 $F_-SETLKW$ ，每次成功与否取决于其他进程是否锁住该字节范围和锁的类型。对于同一个进程，后执行的 $F_-SETLK$ 或 $F_-SETLKW$ 会覆盖先执行的针对统一字节范围的同样两个命令。一个进程对文件上锁不会影响其他进程访问这个文件，也就是说，一个进程锁住一个字节范围，另一个进程还是能访问对应范围内的数据。如果同一个进程对于一个已持有锁的字节范围调用 $F_-GETLK$ ，会返回 $F_-UNLCK$ ，因为当前进程已经上锁。<br>
-        字节偏移是作为一个相对偏移成员 ( $l_-start$ 和 $l_-len$ ) 伴随其解释 ( $l_-whence$ ) 指定的。$l_-whence$ 可以是：</p>
-<ul>
-<li>$SEEK_-SET$ ：$l_-start$ 相对于文件开头；</li>
-<li>$SEEK_-CUR$ ：$l_-start$ 相对于当前字节偏移；</li>
-<li>$SEEK_-END$ ：$l_-start$ 相对于文件结束。</li>
-</ul>
-<p>        锁住整个文件的方式有两种：</p>
-<ol>
-<li>指定 $l_-whence$ 为 $SEEK_-SET$ ，$l_-start$ 和 $l_-len$ 为 $0$ ；</li>
-<li>使用 $lseek$ 把读写指针定位到文件开始，然后指定 $l_-whence$ 为 $SEEK_-CUR$ ，$l_-start$ 和 $l_-len$ 为 $0$ 。</li>
-</ol>
-<p>        $fcntl$ 记录上锁既可以用于读也可以用于写。对于一个字节，它只能存在一种锁。一个字节可以有多个读锁，但只能有一个写锁。当一个描述符没有以写的模式打开时不能上写锁，同样的，没有以读模式打开的描述符也不能上读锁。对于一个打开着某个文件的给定进程来说，当它关闭该文件的所有描述符或它本身终止时，与该文件关联的锁都会被删除。记录锁与进程<code>ID</code>相关，不能通过 $fork$ 继承。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="kt">void</span> <span class="nf">my_lock</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">struct</span> <span class="n">flock</span> <span class="n">lock</span><span class="p">;</span>
-
-  <span class="n">lock</span><span class="p">.</span><span class="n">l_type</span> <span class="o">=</span> <span class="n">F_WRLCK</span><span class="p">;</span>
-  <span class="n">lock</span><span class="p">.</span><span class="n">l_whence</span> <span class="o">=</span> <span class="n">SEEK_SET</span><span class="p">;</span>
-  <span class="n">lock</span><span class="p">.</span><span class="n">l_start</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="n">lock</span><span class="p">.</span><span class="n">l_len</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// write lock entire file
-</span><span class="c1"></span>
-  <span class="n">Fcntl</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">F_SETLKW</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">lock</span><span class="p">);</span>
-<span class="p">}</span>
-
-<span class="kt">void</span> <span class="nf">my_unlock</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">struct</span> <span class="n">flock</span> <span class="n">lock</span><span class="p">;</span>
-
-  <span class="n">lock</span><span class="p">.</span><span class="n">l_type</span> <span class="o">=</span> <span class="n">F_UNLCK</span><span class="p">;</span>
-  <span class="n">lock</span><span class="p">.</span><span class="n">l_whence</span> <span class="o">=</span> <span class="n">SEEK_SET</span><span class="p">;</span>
-  <span class="n">lock</span><span class="p">.</span><span class="n">l_start</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="n">lock</span><span class="p">.</span><span class="n">l_len</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// unlock entire file
-</span><span class="c1"></span>
-  <span class="n">Fcntl</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">F_SETLK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">lock</span><span class="p">);</span>
-<span class="p">}</span>
-</code></pre></div><p>        上锁和解锁的过程有些复杂，可以通过宏简化。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cp">#define read_lock(fd, offset, whence, len) \
-</span><span class="cp">  lock_reg(fd, F_SETLK, F_RDLCK, offset, whence, len)
-</span><span class="cp">#define readw_lock(fd, offset, whence, len) \
-</span><span class="cp">  lock_reg(fd, F_SETLKW, F_RDLCK, offset, whence, len)
-</span><span class="cp">#define write_lock(fd, offset, whence, len) \
-</span><span class="cp">  lock_reg(fd, F_SETLK, F_WRLCK, offset, whence, len)
-</span><span class="cp">#define writew_lock(fd, offset, whence, len) \
-</span><span class="cp">  lock_reg(fd, F_SETLKW, F_WRLCK, offset, whence, len)
-</span><span class="cp">#define un_lock(fd, offset, whence, len) \
-</span><span class="cp">  lock_reg(fd, F_SETLK, F_UNLCK, offset, whence, len)
-</span><span class="cp">#define is_read_lockable(fd, offset, whence, len) \
-</span><span class="cp">  !lock_test(fd, F_RDLCK, offset, whence, len)
-</span><span class="cp">#define is_write_lockable(fd, offset, whence, len) \
-</span><span class="cp">  !lock_test(fd, F_WRLCK, offset, whence, len)
-</span><span class="cp"></span>
-<span class="kt">int</span> <span class="nf">lock_reg</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">cmd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">type</span><span class="p">,</span> <span class="n">off_t</span> <span class="n">offset</span><span class="p">,</span> <span class="kt">int</span> <span class="n">whence</span><span class="p">,</span> <span class="n">off_t</span> <span class="n">len</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">struct</span> <span class="n">flock</span> <span class="n">lock</span><span class="p">;</span>
-
-  <span class="n">lock</span><span class="p">.</span><span class="n">l_type</span> <span class="o">=</span> <span class="n">type</span><span class="p">;</span>  <span class="c1">// F_RDLCK, F_WRLCK, F_UNLCK
-</span><span class="c1"></span>  <span class="n">lock</span><span class="p">.</span><span class="n">l_start</span> <span class="o">=</span> <span class="n">offset</span><span class="p">;</span>  <span class="c1">// byte offset, relative to l_whence
-</span><span class="c1"></span>  <span class="n">lock</span><span class="p">.</span><span class="n">l_whence</span> <span class="o">=</span> <span class="n">whence</span><span class="p">;</span>  <span class="c1">// SEEK_SET, SEEK_CUR, SEEK_END
-</span><span class="c1"></span>  <span class="n">lock</span><span class="p">.</span><span class="n">l_len</span> <span class="o">=</span> <span class="n">len</span><span class="p">;</span>  <span class="c1">// #bytes (0 means to EOF)
-</span><span class="c1"></span>
-  <span class="k">return</span> <span class="n">fcntl</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">lock</span><span class="p">);</span>  <span class="c1">// -1 upon error
-</span><span class="c1"></span><span class="p">}</span>
-
-<span class="n">pid_t</span> <span class="nf">lock_test</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">type</span><span class="p">,</span> <span class="n">off_t</span> <span class="n">offset</span><span class="p">,</span> <span class="kt">int</span> <span class="n">whence</span><span class="p">,</span> <span class="n">off_t</span> <span class="n">len</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">struct</span> <span class="n">flock</span> <span class="n">lock</span><span class="p">;</span>
-
-  <span class="n">lock</span><span class="p">.</span><span class="n">l_type</span> <span class="o">=</span> <span class="n">type</span><span class="p">;</span>  <span class="c1">// F_RDLCK or F_WRLCK
-</span><span class="c1"></span>  <span class="n">lock</span><span class="p">.</span><span class="n">l_start</span> <span class="o">=</span> <span class="n">offset</span><span class="p">;</span>  <span class="c1">// byte offset, relative to l_whence
-</span><span class="c1"></span>  <span class="n">lock</span><span class="p">.</span><span class="n">l_whence</span> <span class="o">=</span> <span class="n">whence</span><span class="p">;</span>  <span class="c1">// SEEK_SET, SEEK_CUR, SEEK_END
-</span><span class="c1"></span>  <span class="n">lock</span><span class="p">.</span><span class="n">l_len</span> <span class="o">=</span> <span class="n">len</span><span class="p">;</span>  <span class="c1">// #bytes (0 means to EOF)
-</span><span class="c1"></span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">fcntl</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">F_GETLK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">lock</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>  <span class="c1">// unexpected error
-</span><span class="c1"></span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">lock</span><span class="p">.</span><span class="n">l_type</span> <span class="o">==</span> <span class="n">F_UNLCK</span><span class="p">)</span>
-    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// false, region not locked by another proc
-</span><span class="c1"></span>  <span class="k">return</span> <span class="n">lock</span><span class="p">.</span><span class="n">l_pid</span><span class="p">;</span>  <span class="c1">// true, return positive PID of lock owner
-</span><span class="c1"></span><span class="p">}</span>
-</code></pre></div><p>        记录上锁的一个常见用途是确保某个程序 ( 例如守护进程 ) 在任何时刻只有一个副本在运行。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cp">#define PATH_PIDFILE &#34;pidfile&#34;
-</span><span class="cp"></span>
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">pidfd</span><span class="p">;</span>
-  <span class="kt">char</span> <span class="n">line</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">];</span>
-
-  <span class="c1">// open the PID file, create if nonexistent
-</span><span class="c1"></span>  <span class="n">pidfd</span> <span class="o">=</span> <span class="n">Open</span><span class="p">(</span><span class="n">PATH_PIDFILE</span><span class="p">,</span> <span class="n">O_RDWR</span> <span class="o">|</span> <span class="n">O_CREAT</span><span class="p">,</span> <span class="n">FILE_MODE</span><span class="p">);</span>
-
-  <span class="c1">// try to write lock the entire file
-</span><span class="c1"></span>  <span class="k">if</span> <span class="p">(</span><span class="n">write_lock</span><span class="p">(</span><span class="n">pidfd</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">SEEK_SET</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">=</span> <span class="n">EACCES</span> <span class="o">||</span> <span class="n">errno</span> <span class="o">=</span> <span class="n">EAGAIN</span><span class="p">)</span>
-      <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;unable to lock %s, is %s already running?&#34;</span><span class="p">,</span>
-        <span class="n">PATH_PIDFILE</span><span class="p">,</span> <span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
-    <span class="k">else</span>
-      <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;unable to lock %s&#34;</span><span class="p">,</span> <span class="n">PATH_PIDFILE</span><span class="p">);</span>
-  <span class="p">}</span>
-
-  <span class="c1">// write my PID, leave file open to hold the write lock
-</span><span class="c1"></span>  <span class="n">snprintf</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">line</span><span class="p">),</span> <span class="s">&#34;%ld</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span> <span class="n">getpid</span><span class="p">());</span>
-  <span class="n">Ftruncate</span><span class="p">(</span><span class="n">pidfd</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-  <span class="n">Write</span><span class="p">(</span><span class="n">pidfd</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="n">strlen</span><span class="p">(</span><span class="n">line</span><span class="p">));</span>
-
-  <span class="c1">// then do whatever the daemon does
-</span><span class="c1"></span>
-  <span class="n">pause</span><span class="p">();</span>
-<span class="p">}</span>
-</code></pre></div><h2 id="10-文件锁">10. 文件锁</h2>
-<p>        <code>POSIX</code>保证如果以 $O_-CREAT$ 和 $O_-EXCL$ 标志调用 $open$ 函数，那么一旦该文件存在，函数就返回错误。而且考虑到其他进程的存在，检查该文件是否存在和创建文件必须是原子的。从而，我们可以把这种文件当锁使用。释放这样的锁只需要调用 $unlink$ 。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cp">#define LOCKFILE &#34;/tmp/seqno.lock&#34;
-</span><span class="cp"></span>
-<span class="kt">void</span> <span class="nf">my_lock</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">tempfd</span><span class="p">;</span>
-
-  <span class="k">while</span> <span class="p">((</span><span class="n">tempfd</span> <span class="o">=</span> <span class="n">open</span><span class="p">(</span><span class="n">LOCKFILE</span><span class="p">,</span> <span class="n">O_RDWR</span> <span class="o">|</span> <span class="n">O_CREAT</span> <span class="o">|</span> <span class="n">O_EXCL</span><span class="p">,</span> <span class="n">FILE_MODE</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EEXIST</span><span class="p">)</span>
-      <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;open error for lock file&#34;</span><span class="p">);</span>
-    <span class="c1">// someone else has the lock, loop around adn try again
-</span><span class="c1"></span>  <span class="p">}</span>
-  <span class="n">Close</span><span class="p">(</span><span class="n">tempfd</span><span class="p">);</span>  <span class="c1">// opened the file, we have the lock
-</span><span class="c1"></span><span class="p">}</span>
-
-<span class="kt">void</span> <span class="nf">my_lock</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">Unlink</span><span class="p">(</span><span class="n">LOCKFILE</span><span class="p">);</span>  <span class="c1">// release lock by removing file
-</span><span class="c1"></span><span class="p">}</span>
-</code></pre></div><p>        这种技巧存在三个问题：</p>
-<ol>
-<li>如果当前持有锁的进程没有释放就终止，那么文件不会被删除。对于这个问题，可以通过检查文件最近访问时间，如果超过一定时间没访问就认为锁已经释放，但是这种方法不完美。另一种方法是在文件内写入进程<code>ID</code>，然后检查该进程<code>ID</code>是否在运行。这个方法同样存在问题，因为进程<code>ID</code>在经过一段时间后会重用；</li>
-<li>如果另外某个进程已经上锁，那么当前进程只能不断轮询；</li>
-<li>调用 $open$ 和 $unlink$ 会涉及文件系统的访问，增加开销。</li>
-</ol>
-<p>        <code>Unix</code>文件系统的另外两个技巧也可以用于上锁：</p>
-<ol>
-<li>如果新链接的文件名存在，那么 $link$ 会失败。可以先创建一个临时文件，路径名包括当前进程<code>ID</code>信息，然后将该临时文件 $link$ 到待建立锁的文件上。如果创建成功，说明获取了锁，只需要在不使用时 $unlink$ 锁文件即可。如果返回 $EEXIST$ 错误，说明锁已经被占用。这种技巧要求临时文件路径名和锁文件路径名必须位于同一个文件系统中，因为大多版本的<code>Unix</code>不允许不同文件系统之间的硬链接；</li>
-<li>如果以 $O_-TRUNC$ 模式打开的文件存在，但是当前进程没有写权限，$open$ 会返回错误。我们可以指定 $O_-CREAT$ 、 $O_-WRONLY$ 和 $O_-TRUNC$ 并设置 $mode$ 为 $0$ ( 即新文件不打开任何权限位 ) 的前提下调用 $open$ 。如果成功，我们就拥有了锁，只需要在不使用时 $unlink$ 锁文件即可。如果返回 $EACCES$ ，那么线程必须重新尝试。这种技巧要求当前进程不具备超级用户权限。</li>
-</ol>
-<p>        不管是哪种方式的文件上锁，都存在着一些问题。所以最好的方式还是使用 $fcntl$ 的记录上锁。</p>
-
-            </div>
-            <div class="meta post-footer"> 
-                <span>2022 Feb 21 14:36</span> 
-                <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B18/"><i class="fas fa-link"></i> link</a>
             </div>
         </div>
         
