@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html><head>
+<html lang="zh-CN"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="A personal blog of z217">
@@ -8,19 +8,19 @@
   <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
   <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
   <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
-  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
-  
-  <title>z217&#39;s blog</title>
-</head><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+  <link rel="stylesheet" href=https://z217blog.cn/css/jquery.floatingscroll.css>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
     integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src=https://z217blog.cn/js/navbutton.js></script>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <script src=https://z217blog.cn/js/jquery.floatingscroll.min.js></script>
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/navbutton.js></script>
 
 <body><aside id="sidenav">
     <header>
         
         <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
-
         
 
         <a id="branding" href=https://z217blog.cn>
@@ -80,6 +80,8 @@
         <div class="content">
 
 <h1 id="title">Unix网络编程（7）：高级I/O函数</h1>
+
+
 
 
 <h2 id="1-套接字超时">1. 套接字超时</h2>
@@ -164,7 +166,7 @@
 
 <span class="n">ssize_t</span> <span class="nf">send</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">buff</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">nbytes</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">);</span>
 </code></pre></div><p>        $recv$ 和 $send$ 的前 $3$ 个参数等同于 $read$ 和 $write$ 参数，$flags$ 参数的值或为 $0$ ，或为以下一个或多个的逻辑或：</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:left">$flags$</th>
@@ -205,7 +207,7 @@
 <td style="text-align:center"></td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <ul>
 <li>$MSG_-DONTROUTE$ ：告知内核目的主机在某个直接连接的本地网络上，无需执行路由表查找。既可以使用 $MSG_-DONTROUTE$ 标志针对单个输出操作开启，也可以使用 $SO_-DONTROUTE$ 套接字选项针对某个套接字上的所有输出操作开启；</li>
 <li>$MSG_-DONTWAIT$ ：在无需打开相应套接字的非阻塞标志的前提下，把单个<code>I/O</code>操作临时指定为非阻塞，接着执行<code>I/O</code>操作，然后关闭非阻塞标志；</li>
@@ -243,7 +245,7 @@
 </span><span class="c1"></span>  <span class="kt">int</span> <span class="n">msg_flags</span><span class="p">;</span>  <span class="c1">// recvmsg()返回的flags
 </span><span class="c1"></span><span class="p">};</span>
 </code></pre></div><p>        $msg_-name$ 和 $msg_-namelen$ 用于套接字未连接的场合，譬如未 $connect$ 的<code>UDP</code>套接字。如果无需指明协议地址，$msg_-name$ 应为空指针。对于 $recvmsg$ 函数，$msg_-name$ 参数是一个值-结果参数。$msg_-control$ 和 $msg_-controllen$ 这两个成员指定可选的辅助数据的位置和大小，$msg_-controllen$ 对于 $recvmsg$ 是一个值-结果参数。$recvmsg$ 和 $sendmsg$ 内部有两个 $flags$ ，一个是传递值的 $flags$ 参数，另一个是 $msg_-flags$ 成员，传递的是引用。只有 $recvmsg$ 使用 $msg_-flags$ 成员，$recvmsg$ 被调用时，$flags$ 参数被复制到 $msg_-flags$ 成员，并由内核使用其值驱动接收处理过程，内核还依据 $recvmsg$ 的结果更新 $msg_-flags$ 成员的值。$sendmsg$ 则忽略 $msg_-flags$ 成员，直接使用 $flags$ 参数驱动发送处理过程。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:left">标志</th>
@@ -320,7 +322,7 @@
 <td style="text-align:center">$\checkmark$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <ul>
 <li>$MSG_-BCAST$ ：返回条件是本数据报作为链路层广播收取或其目的<code>IP</code>地址是一个广播地址。与 $IP_-RECVDSTADDR$ 套接字选项相比，本标志是用于判断一个<code>UDP</code>数据报是否发往某个广播地址的更好办法；</li>
 <li>$MSG_-MCAST$ ：返回条件是本数据报作为链路层多播收取；</li>
@@ -332,7 +334,7 @@
 </ul>
 <h2 id="5-辅助数据">5. 辅助数据</h2>
 <p>        <strong>辅助数据</strong> ( $ancillary$ $data$ ) ，另一个名称是<strong>控制信息</strong> ( $control$ $information$ )，可通过调用 $sendmsg$ 和 $recvmsg$ 这两个函数，使用 $msghdr$ 结构中的 $msg_-control$ 和 $msg_-controllen$ 这两个成员发送和接收。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
   <thead>
     <tr>
       <th style="text-align: center;">协议</th>
@@ -393,7 +395,7 @@
       <td style="text-align: left;">发送/接收用户凭证</td>
     </tr>
   </tbody>
-</table>
+</table></div>
 <p>        辅助数据由一个或多个辅助数据对象组成，每个对象以一个定义在头文件 &lt;$sys/socket.h$&gt; 中的 $cmsghdr$ 结构开头。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
 </span><span class="cp"></span>
@@ -553,16 +555,7 @@
         }
     });
 </script>
-
-<style>
-    code.has-jax {
-        font: inherit;
-        font-size: 100%;
-        background: inherit;
-        border: inherit;
-        color: #515151;
-    }
-</style></main>
+</main>
 </body>
 
 </html>

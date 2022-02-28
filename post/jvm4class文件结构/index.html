@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html><head>
+<html lang="zh-CN"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="A personal blog of z217">
@@ -8,19 +8,19 @@
   <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
   <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
   <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
-  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
-  
-  <title>z217&#39;s blog</title>
-</head><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+  <link rel="stylesheet" href=https://z217blog.cn/css/jquery.floatingscroll.css>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
     integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src=https://z217blog.cn/js/navbutton.js></script>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <script src=https://z217blog.cn/js/jquery.floatingscroll.min.js></script>
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/navbutton.js></script>
 
 <body><aside id="sidenav">
     <header>
         
         <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
-
         
 
         <a id="branding" href=https://z217blog.cn>
@@ -82,6 +82,8 @@
 <h1 id="title">JVM（4）：Class文件结构</h1>
 
 
+
+
 <h2 id="1-平台无关性">1. 平台无关性</h2>
 <p>        <code>Java</code>在刚刚诞生时就有一句非常著名的口号：一次编写，到处运行。这个想法通过虚拟机实现，这些虚拟机都可以执行同一种与平台无关的字节码，从而达到一次编写，到处运行。可以说，字节码就是平台无关性的基石。<code>Java</code>虚拟机并不与<code>Java</code>语言绑定，在其之上还可以运行许多其他语言，如<code>Kotlin</code>、<code>Groovy</code>和<code>Scala</code>等。<code>Java</code>虚拟机唯一绑定的是类似于<code>Class</code>文件这种特殊的二进制文件，其中包含了<code>Java</code>虚拟机的指令集、符号表以及其他辅助信息。通过<code>Class</code>文件，<code>Java</code>虚拟机并不需要关心来源是什么语言，只要这门语言能够生成可以被读取的<code>Class</code>文件，那么它就可以在<code>Java</code>虚拟机上运行。<br>
         <code>Java</code>语言中的各种语法、关键字、常量变量和运算符号的语义最终都会转成字节码指令的组合，这就要求字节码指令的表达能力必须比<code>Java</code>语言的表达能力更强。从而，一些<code>Java</code>语言中并不支持的特性，字节码也能够表达出来。</p>
@@ -109,7 +111,7 @@
 </ul>
 <p>        <code>Java</code>代码在进行<code>Javac</code>编译时没有连接步骤，而是在虚拟机加载<code>Class</code>文件时进行动态连接，所以<code>Class</code>文件中不会保存方法和字段在内存中的位置信息，需要虚拟机在运行期进行转换。在类加载时，会从常量池中获取对应的符号引用，并在类创建和运行时解析，并翻译到具体内存地址中。<br>
         常量池的每一个常量都是一个表，包含 $17$ 结构不同的表结构数据，起始都是一个 $u1$ 类型标志位表示常量类型。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -204,12 +206,12 @@
 <td style="text-align:center">模块中开放或者导出的包</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        起初只提供了前 $11$ 种结构，后续为了更好地支持动态语言，额外增加了 $4$ 种，之后又为了支持<code>Java</code><em><strong>模块化系统</strong></em> ( $Jigsaw$ )，又加入了两种。<br>
         我们可以通过 $javap\ \ -verbose$ 命令查看<code>Class</code>文件中常量池的常量。</p>
 <h3 id="23-访问标志">2.3 访问标志</h3>
 <p>        在常量池之后是<strong>访问标志</strong> ( $access_-flags$ )，由 $2$ 字节组成，用于识别一些类或者接口的访问信息，包括：<code>Class</code>是类还是接口、是否为 $public$ 、是否为 $abstract$ 、是否为 $final$ ( 如果是类 ) 等等。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">标志</th>
@@ -264,12 +266,12 @@
 <td style="text-align:center">表示模块</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <h3 id="24-索引">2.4 索引</h3>
 <p>        <strong>类索引</strong> ( $this_-class$ ) 和<b>父类索引</b> ( $super_-class$ ) 都是 $u2$ 类型的数据，均指向一个 $CONSTANT_-Class_-info$ 的类描述符常量；<b>接口索引集合</b> ( $interfaces$ ) 是一组 $u2$ 类型的数据的集合，第一项 $u2$ 为接口计数器 ( $interfaces_-count$ )，表示索引表容量，后面的每一项均指向一个 $CONSTANT_-Class_-info$ 的类描述符常量。 <code>Class</code>文件通过这三项数据确定继承关系。类索引确定类的全限定名，父类索引确定类的父类的全限定名。除了 $Java.lang.Object$ 之外，所有的类都具有父类，而在 $Object$ 中，父类索引为 $0$ 。接口索引集合用于表示类实现的接口，按照声明顺序从左到右存储。</p>
 <h3 id="25-字段表集合">2.5 字段表集合</h3>
 <p>        <strong>字段表</strong> ( $Field_-info$ ) 用于表示接口和类中声明的变量。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -304,8 +306,8 @@
 <td style="text-align:center">$attributes_-count$</td>
 </tr>
 </tbody>
-</table>
-<table>
+</table></div>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">名称</th>
@@ -360,10 +362,10 @@
 <td style="text-align:center">是否为 $enum$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        接口当中的字段必须有 $ACC_-PUBLIC$ 、$ACC_-STATIC$ 、$ACC_-FINAL$ 标志。<br>
         $name_-index$ 和 $descriptor_-index$ 在标志值之后，是常量池的引用，表示字段简单名称以及字段和方法的描述符。在描述符中，基本数据类型以及 $void$ 使用一个大写字母表示，对象类型使用 $L$ 加全限定名表示。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">标识字符</th>
@@ -412,12 +414,12 @@
 <td style="text-align:center">对象类型</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        对于数组类型，每一个维度都会使用一个前置的 $[$ 字符表示，例如 $int[\ ][\ ]$ 会表示为 $[[I$ 。对于方法，会按照参数、返回值的方式描述，参数按照顺序放在 $(\ )$ 之中，例如 $int\ \ indexOf(char[]\ \ source,\ \ int\ \ index)$ 表示为 $([CI)I$ 。<br>
         $descriptor_-index$ 之后是属性表计数器，当字段存在额外信息如值时，计数器会记录字段的额外信息个数，并可以在之后的 $attribute_-info$ 中查询。字段表集合不会列出从父类或者父接口中继承而来的字段，但有可能出现原来<code>Java</code>代码之中不存在的字段，譬如内部类中包含的指向外部类实例的字段。</p>
 <h3 id="26-方法表集合">2.6 方法表集合</h3>
 <p>        <code>Class</code>文件中对字段和方法的描述采取了几乎一样的方式，同样包括 $access_-flags$、$name_-index$、$descriptor_-index$ 和 $attributes$ 。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">名称</th>
@@ -487,11 +489,11 @@
 <td style="text-align:center">是否由编译器自动产生</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        方法块内的<code>Java</code>代码，经由<code>Javac</code>编译后，存放在方法属性表集合中名为 $Code$ 的属性内。<code>Java</code>语言重载要求简单名称相同之外，还要拥有一个与原方法不同的特征签名。特征签名包括方法名称、参数顺序及参数类型。也就是说，仅仅改变返回值并不能算重载。但是<code>Class</code>文件中只要描述符不是完全一致，那么就允许多个方法共存，也即允许除了返回值之外其他都相同的方法共存。</p>
 <h3 id="27-属性表集合">2.7 属性表集合</h3>
 <p>        <strong>属性表</strong> ( $attribute_-info$ ) 在前面已经出现过，<code>Class</code>文件、字段表、方法表都可以包含一个属性表集合。属性表集合对顺序没有严格要求，而且可以在属性名不重复的前提下写入自定义的属性信息。<code>Java</code>虚拟机在运行时会忽略不认识的属性信息。对于每一个属性，它的名称都要从常量池中引用一个 $CONSTANT_-Utf8_-info$ 类型的常量表示。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -516,11 +518,11 @@
 <td style="text-align:center">$attribute_-length$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        属性值的结构是完全自定义的，只需要通过一个 $u4$ 类型的属性说明其占用位数即可。</p>
 <h4 id="271-code">2.7.1 <code>Code</code></h4>
 <p>        $Code$属性存储方法体内的经过<code>Javac</code>编译后产生的字节码指令。接口方法和抽象方法中不存在该属性。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -580,10 +582,10 @@
 <td style="text-align:center">$attributes_-count$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $attribute_-name_-index$ 指向 $CONSTANT_-Utf8_-info$ ，固定为 $Code$ 。$attribute_-length$ 表示属性值长度，固定为属性长度减去本身以及上一个属性的长度即 $6$ 个字节。$max_-stack$ 为<b>操作数栈</b> ( $Operand\ \ Stack$ ) 深度的最大值，虚拟机根据这个值分配<b>栈帧</b> ( $Stack\ \ Frame$ ) 中的操作栈深度。$max_-locals$ 表示局部变量所需的空间，单位为<b>变量槽</b> ( $Slot$ )，即虚拟机为局部变量分配内存的最小单位。对于 $32$ 位的数据类型，会使用一个槽；而对于 $64$ 位的数据类型 $double$ 和 $long$ ，则会使用两个槽。方法参数（包括实例方法中的隐藏参数 $this$ ）、异常处理参数、局部变量都要依赖于局部变量表，<code>Javac</code>编译器会根据每个变量的生命周期和类型计算出 $max_-locals$ 的大小。$code_-length$ 和 $code$ 存储字节码指令，每个指令使用 $u1$ 类型的数据大小存储。<br>
         如果方法中存在异常处理块的话，那么异常处理表会跟在字节码指令之后。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -613,11 +615,11 @@
 <td style="text-align:center">$1$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $start_-pc$ 和 $end_-pc$ 表示出现异常的代码行，$handler_-pc$ 为处理异常的行，当 $catch_-type$ 为 $0$ 时，任何异常都要跳转到 $handler_-pc$ 进行处理。</p>
 <h4 id="272-exceptions">2.7.2 <code>Exceptions</code></h4>
 <p>        $Exceptions$ 属性列举出方法中可能抛出的<strong>受查异常</strong> ( $Checked\ \ Exceptions$ )，也就是方法声明时在 $throws$ 关键字后面列举的异常。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -647,11 +649,11 @@
 <td style="text-align:center">$number_-of_-exceptions$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $number_-of_-exceptions$ 表示可能抛出的 $number_-of_-exceptions$ 种异常，每种异常使用一个 $exception_-index_-table$ 表示，指向 $CONSTANT_-Class_-info$ 型常量的索引，代表异常类型。</p>
 <h4 id="273-linenumbertable">2.7.3 <code>LineNumberTable</code></h4>
 <p>        $LineNumberTable$ 用于描述<code>Java</code>源码行号与字节码行号之间的对应关系，并非运行时的必须属性，可以在<code>Javac</code>中使用 $-g:none$ 或者 $-g:lines$ 来取消或者强制生成该信息。如果取消生成，那么当程序抛出异常时，不会显示出错的行号，并且在调试时也无法在源码处设置断点。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -681,11 +683,11 @@
 <td style="text-align:center">$line_-number_-table_-length$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $line_-number_-table$ 是一个数量为 $line_-number_-table_-length$ ，类型为 $line_-number_-info$ 的集合。$line_-number_-info$ 包含 $start_pc$ 和 $line_-number$ 两个 $u2$ 类型的数据，前者为字节码行号，后者为源码行号。</p>
 <h4 id="274-localvariabletable和localvariabletypetable">2.7.4 <code>LocalVariableTable</code>和<code>LocalVariableTypeTable</code></h4>
 <p>        $LocalVariableTable$ 描述栈帧中局部变量表与<code>Java</code>源码中变量的关系，同样并非运行时的必须属性，可以在<code>Javac</code>中使用 $-g:none$ 或者 $-g:vars$ 来取消或者强制生成该信息。如果取消生成，那么当其他人引用该方法时，所有参数名称都会丢失，<code>IDE</code>会使用譬如 $arg0$ 这样的占位符代替参数名。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -715,9 +717,9 @@
 <td style="text-align:center">$local_-variable_-table_-length$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        其中 $local_-variable_-info$ 的结构如下：</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -752,12 +754,12 @@
 <td style="text-align:center">$1$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $start_-pc$ 和 $length$ 分别代表局部变量生命周期开始的字节码行数以及作用域长度；$name_-index$ 和 $descriptor_-index$ 指向 $CONSTANT_-Utf8_-info$ 类型的常量，分别代表局部变量的名称以及描述符；$index$ 存储局部变量在栈帧的局部变量表中变量槽的起始位置。<br>
         $LocalVariableTypeTable$ 类似于 $LocalVariableTable$ ，但是将 $descriptor_-index$ 替换为<b>特征签名</b> ( $Signature$ )。对于非泛型类来说，描述符和特征签名相同。但是对于泛型类，由于擦除的存在，需要特征签名来对泛型进行描述。</p>
 <h4 id="275-sourcefile和sourcedebugextension">2.7.5 <code>SourceFile</code>和<code>SourceDebugExtension</code></h4>
 <p>        $SourceFile$ 用于记录生成<code>Class</code>文件的源码文件名称，同样是可选的，可以在<code>Javac</code>中使用 $-g:none$ 或者 $-g:source$ 来取消或者强制生成信息。对于大多数类来说，类名和文件名一致，但是对于特殊情况如内部类，如果取消生成，那么在抛出异常时不会显示出错代码所在的文件名。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -782,10 +784,10 @@
 <td style="text-align:center">$1$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $sourcefile_-index$ 指向 $CONSTANT_-Utf8_-info$ 类型的常量索引，常量值为源码文件的文件名。<br>
         <code>JDK 5</code>中加入的 $SourceDebugExtension$ 属性存储额外的代码调试信息，为非<code>Java</code>语言编写的，但需要编译成字节码在虚拟机中运行的程序，比如<code>JSP</code>等，提供了一个进行调试的标准机制。通过<code>SourceDebugExtension</code>，可以快速从异常堆栈中定位出<code>JSP</code>中出现问题的行号。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -810,11 +812,11 @@
 <td style="text-align:center">$1$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $debug_-extension$ 存储的就是额外的调试信息，通过一组变长的<code>UTF-8</code>格式的字符串。一个类最多只允许一个 $SourceDebugExtension$ 属性。</p>
 <h4 id="276-constantvalue">2.7.6 <code>ConstantValue</code></h4>
 <p>        $ConstantValue$ 用于通知虚拟机自动为静态变量赋值，只有静态变量才能使用该属性。对于非静态变量，会在实例构造器 &lt;$init$&gt;$(\ )$ 方法中赋值；而静态变量可以通过类构造器 &lt;$clinit$&gt;$(\ )$ 或者 $ConstantValue$ 进行赋值。<code>Javac</code>编译器会根据变量是否为 $final$ 以及变量类型来决定是否生成 $ConstantValue$ ：如果为 $final$ 并且类型为基本类型或者 $String$ ，则生成。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -839,11 +841,11 @@
 <td style="text-align:center">$1$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $constantvalue_-index$ 指向常量池中一个字面量常量的引用，可以是 $CONSTANT_-Long_-info$ 、$CONSTANT_-Integer_-info$ 等。</p>
 <h4 id="277-innerclasses">2.7.7 <code>InnerClasses</code></h4>
 <p>        $InnerClasses$ 用于记录内部类与宿主类之间的关联。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -873,9 +875,9 @@
 <td style="text-align:center">$number_-of_-classes$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $inner_-classes_-info$ 的结构如下：</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -905,9 +907,9 @@
 <td style="text-align:center">$1$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $inner_-class_-info_-index$ 和 $outer_-class_-info_-index$ 都指向 $CONSTANT_-Class_-info$ 类型的常量的索引，分别为内部类和宿主类的符号引用。$inner_-name_-index$ 指向 $CONSTANT_-Utf8_-info$ 类型的常量的索引，表示内部类的名称 (匿名内部类值为 $0$ )。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">名称</th>
@@ -967,10 +969,10 @@
 <td style="text-align:center">是否为枚举</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <h4 id="278-deprecated和synthetic">2.7.8 <code>Deprecated</code>和<code>Synthetic</code></h4>
 <p>        $Deprecated$ 和 $Synthetic$ 都是布尔值，分别表示是否废弃和是否由编译器自动产生。后者也可以通过设置标志位 $ACC_-SYNTHETIC$ 代替。当它们存在时，即代表为真。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -990,11 +992,11 @@
 <td style="text-align:center">$1$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        其中 $attribute_-length$ 的值恒为 $0x00000000$ 。</p>
 <h4 id="279-stackmaptable">2.7.9 <code>StackMapTable</code></h4>
 <p>        $StackMapTable$ 在<code>JDK 6</code>之后加入<code>Class</code>文件结构中，位于 $Code$ 属性的属性表中，在虚拟机类加载的字节码验证阶段被<em><strong>新类型检查验证器</strong></em> ( $Type\ \ Checker$ ) 使用。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -1024,11 +1026,11 @@
 <td style="text-align:center">$number_-of_-entries$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        <code>JDK 7</code>后，如果 $Code$ 中没有 $StackMapTable$ ，那么他就具有一个隐式的 $StackMapTable$ 属性，$number_-of_-entries$ 值为 $0$ 。</p>
 <h4 id="2710-signature">2.7.10 <code>Signature</code></h4>
 <p>        $Signature$ 是一个可选的定长属性，可以出现在类、字段表和方法表结构的属性表中，记录泛型签名信息。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -1053,11 +1055,11 @@
 <td style="text-align:center">$1$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $signature_-index$ 指向 $CONSTANT_-Utf8_-info$ 类型的常量的索引，表示类签名或者方法类型或者字段类型签名。</p>
 <h4 id="2711-bootstrapmethod">2.7.11 <code>BootstrapMethod</code></h4>
 <p>        $BootstrapMethod$ 在<code>JDK 7</code>之后添加到<code>Class</code>文件结构中，存储 $invokedynamic$ 指令引用的引导方法限定符。如果某个<code>Class</code>文件常量池中出现过 $CONSTANT_-InvokeDynamic_-info$ 类型的常量，那么这个文件属性表中必须存在一个 $BootstrapMethod$ 属性，且最多只能有一个。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -1087,9 +1089,9 @@
 <td style="text-align:center">$num_-bootstrap_-methods$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $bootstrap_-method$ 结构如下：</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -1114,11 +1116,11 @@
 <td style="text-align:center">$num_-bootstrap_-arguments$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $bootstrap_-method_-ref$ 指向 $CONSTANT_-MethodHandle$ 结构的索引值，代表一个引导方法。</p>
 <h4 id="2712-methodparameters">2.7.12 <code>MethodParameters</code></h4>
 <p>        $MethodParameters$ 在<code>JDK 8</code>之后加入到<code>Class</code>文件结构中，用于记录变长参数中各个形参的名称和信息。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -1148,9 +1150,9 @@
 <td style="text-align:center">$parameters_-count$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        其中 $parameter$ 结构如下：</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -1170,9 +1172,9 @@
 <td style="text-align:center">$1$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $name_-index$ 指向 $CONSTANT_-Utf8_-info$ 类型的常量的索引，表示参数名称。$access_-flags$ 是参数的状态指示器。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">名称</th>
@@ -1197,11 +1199,11 @@
 <td style="text-align:center">参数是在源文件中隐式定义的（如 $this$ ）</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <h4 id="2713-模块化相关属性">2.7.13 模块化相关属性</h4>
 <p>        <code>JDK 9</code>中添加了<code>Java</code>的模块化功能，因为模块描述文件 ( $module_-info.java$ ) 最终要编译为<code>Class</code>文件，所以<code>Class</code>文件结构中添加了 $Module$ 、$ModulePackages$ 和 $ModuleMainClass$ 三个属性。<br>
         $Module$ 属性是一个复杂的变长属性。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -1286,9 +1288,9 @@
 <td style="text-align:center">$provides_-count$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $module_-flags$ 是模块状态指示器。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">名称</th>
@@ -1313,10 +1315,10 @@
 <td style="text-align:center">模块是在源文件中隐式定义的</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $module_-versions_-index$ 指向 $CONSTANT_-Utf8_-info$ 类型的常量的索引，表示模块版本号。<br>
         $ModulePackages$ 用于描述模块中所有的包。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -1346,10 +1348,10 @@
 <td style="text-align:center">$package_-count$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $package_-index$ 指向 $CONSTANT_-Package_-info$ 类型的常量的索引，代表模块中的一个包。<br>
         $ModuleMainClass$ 用于确定模块的主类。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -1374,12 +1376,12 @@
 <td style="text-align:center">$1$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $main_-class_-index$ 指向 $CONSTANT_-Class_-info$ 类型的常量的索引，代表模块的主类。</p>
 <h4 id="2714-运行时注解相关属性">2.7.14 运行时注解相关属性</h4>
 <p>        <code>Class</code>文件在<code>JDK 5</code>之后增加了 $RuntimeVisibleAnnotation$ 、$RuntimeInvisibleAnnotation$ 、$RuntimeVisibleParameterAnnotations$ 和 $RuntimeInvisibleParameterAnnotations$ 四个属性，用于支持注解。<code>JDK 8</code>之后，又添加了 $RuntimeVisibleTypeAnnotations$ 和 $RuntimeInvisibleTypeAnnotations$ 两个属性。<br>
         $RuntimeVisibleAnnotations$ 记录了类、字段或方法声明上的运行时可见注解，可以通过反射获取这个属性。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -1409,9 +1411,9 @@
 <td style="text-align:center">$num_-annotations$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        其中 $annotation$ 的结构如下：</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">类型</th>
@@ -1436,7 +1438,7 @@
 <td style="text-align:center">$num_-element_-value_-pairs$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $Type_-index$ 指向 $CONSTANT_-Utf8_-info$ 类型的常量的索引，以字段描述符的形式表示一个注解；$element_-value_-pair$ 以键值对的形式表示注解的参数和值。</p>
 
 <script src=https://z217blog.cn/js/toc.js></script>
@@ -1532,16 +1534,7 @@
         }
     });
 </script>
-
-<style>
-    code.has-jax {
-        font: inherit;
-        font-size: 100%;
-        background: inherit;
-        border: inherit;
-        color: #515151;
-    }
-</style></main>
+</main>
 </body>
 
 </html>

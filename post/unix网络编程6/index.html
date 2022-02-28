@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html><head>
+<html lang="zh-CN"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="A personal blog of z217">
@@ -8,19 +8,19 @@
   <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
   <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
   <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
-  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
-  
-  <title>z217&#39;s blog</title>
-</head><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+  <link rel="stylesheet" href=https://z217blog.cn/css/jquery.floatingscroll.css>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
     integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src=https://z217blog.cn/js/navbutton.js></script>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <script src=https://z217blog.cn/js/jquery.floatingscroll.min.js></script>
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/navbutton.js></script>
 
 <body><aside id="sidenav">
     <header>
         
         <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
-
         
 
         <a id="branding" href=https://z217blog.cn>
@@ -82,6 +82,8 @@
 <h1 id="title">Unix网络编程（6）：守护进程</h1>
 
 
+
+
 <p>        <strong>守护进程</strong> ( $daemon$ ) 是在后台运行且不与任何控制终端关联的进程。<code>Unix</code>系统通常有很多守护进程在后台运行，执行不同的管理任务。守护进程没有控制终端通常源于它们由系统初始化脚本启动，然而守护进程也可能从某个终端由用户在<code>shell</code>提示符下输入命令行启动，这样的守护进程必须亲自脱离与控制终端的关联。</p>
 <h2 id="1-syslogd守护进程">1. <code>syslogd</code>守护进程</h2>
 <p>        <code>Unix</code>系统中的 $syslogd$ 守护进程通常由某个系统初始化脚本启动，而且在系统工作期间一直运行。<code>Linux</code>系统的不同发行版会使用各自的实现，比如<code>Ubuntu</code>会使用 $rsyslog$ ，<code>Arch</code>使用 $journal$ 。源自 $Berkeley$ 的 $syslogd$ 实现在启动时执行以下步骤：</p>
@@ -98,7 +100,7 @@
 </span><span class="cp"></span>
 <span class="kt">void</span> <span class="nf">syslog</span><span class="p">(</span><span class="kt">int</span> <span class="n">priority</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">message</span><span class="p">,</span> <span class="p">...);</span>
 </code></pre></div><p>        从守护进程中登记消息的常用技巧就是调用 $syslog$ 函数。本函数最初是为<code>BSD</code>系统开发的，不过如今几乎所有<code>Unix</code>厂商都有提供。$priority$ 是<em><strong>级别</strong></em> ( $level$ ) 和<em><strong>设施</strong></em> ( $facility$ ) 两者的组合。$message$ 参数类似于 $printf$ 的格式串，不过增加了 $\%m$ 规范，将 $errno$ 值替换为对应的错误消息，可以在 $message$ 的末尾添加换行符，不过并非必需。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">$level$</th>
@@ -148,9 +150,9 @@
 <td style="text-align:center">调试级消息 ( 最低优先级 )</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <br/>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">$facility$</th>
@@ -239,7 +241,7 @@
 <td style="text-align:center"><code>UUCP</code>系统</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        当 $syslog$ 被应用进程首次调用时，它创建一个<code>Unix</code>域数据报套接字，然后调用 $connect$ 连接到由 $syslogd$ 守护进程创建的<code>Unix</code>域数据报套接字的众所周知路径名 ( 譬如 $/var/run/log$ )。这个套接字一致保持打开，直到进程终止。作为替换，进程也可以调用 $openlog$ 和 $closelog$ 。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;syslog.h&gt;</span><span class="cp">
 </span><span class="cp"></span>
@@ -247,7 +249,7 @@
 
 <span class="kt">void</span> <span class="nf">closelog</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
 </code></pre></div><p>        $openlog$ 可以在首次调用 $syslog$ 前调用，$closelog$ 可以在应用程序不再需要发送日志消息时调用。$ident$ 参数是一个由 $syslog$ 冠于每个日志消息之前的字符串，值通常是程序名。$options$ 参数由一个或多个常值的逻辑或构成。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">$options$</th>
@@ -272,7 +274,7 @@
 <td style="text-align:center">随日志消息登记进程<code>PID</code></td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $openlog$ 被调用时，通常不立即创建<code>Unix</code>域套接字，而是直到首次调用 $syslog$ 时才打开。$openlog$ 的 $facility$ 参数为后续 $syslog$ 调用指定一个默认值，通过该参数，守护进程在后续的调用中只需要指定级别即可。<br>
         日志消息也可以由 $logger$ 命令产生，例如在<code>shell</code>脚本中通过 $logger$ 命令向 $syslogd$ 发送消息。</p>
 <h2 id="3-daemon_init函数">3. <code>daemon_init</code>函数</h2>
@@ -336,7 +338,7 @@
 <li>单个进程 ( <code>inetd</code> ) 就能为多个服务等待外来的客户请求，从而取代每个服务一个进程的做法，减少系统中的进程总数。</li>
 </ol>
 <p>        <code>inetd</code>进程首先将自己变为一个守护进程，接着会读入并处理自己的配置文件，通常是 $/etc/inetd.conf$ 的配置文件，指定本超级服务器处理哪些服务以及当一个服务请求到达时该怎么做。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:left">字段</th>
@@ -373,7 +375,7 @@
 <td style="text-align:left">调用 $exec$ 指定的命令行参数</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        当<code>inetd</code>调用 $exec$ 执行某个服务器程序时，该服务器的真实名字总是作为程序的第一个参数传递。<br>
         <code>inetd</code>守护进程的工作流程如下：</p>
 <ol>
@@ -486,16 +488,7 @@
         }
     });
 </script>
-
-<style>
-    code.has-jax {
-        font: inherit;
-        font-size: 100%;
-        background: inherit;
-        border: inherit;
-        color: #515151;
-    }
-</style></main>
+</main>
 </body>
 
 </html>

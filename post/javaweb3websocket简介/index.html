@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html><head>
+<html lang="zh-CN"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="A personal blog of z217">
@@ -8,19 +8,19 @@
   <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
   <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
   <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
-  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
-  
-  <title>z217&#39;s blog</title>
-</head><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+  <link rel="stylesheet" href=https://z217blog.cn/css/jquery.floatingscroll.css>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
     integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src=https://z217blog.cn/js/navbutton.js></script>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <script src=https://z217blog.cn/js/jquery.floatingscroll.min.js></script>
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/navbutton.js></script>
 
 <body><aside id="sidenav">
     <header>
         
         <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
-
         
 
         <a id="branding" href=https://z217blog.cn>
@@ -82,6 +82,8 @@
 <h1 id="title">JavaWeb（3）：WebSocket简介</h1>
 
 
+
+
 <p><strong>参考书籍：《Pro Java for Web Apps》</strong></p>
 <p>        <code>WebSocket</code>用于解决浏览器和服务器的通信问题。在现有体系中，如果只是简单的使用<code>Ajax</code>进行通信的话，容易出现的问题是只有浏览器发送请求时才能得到响应。也即当有新数据时，浏览器不能得知新数据的存在，也就不能及时发送请求获取新数据。<br>
         <code>WebSocket</code>使用了<code>HTTP/1.1 升级</code>特性。该特性的使用很简单，只需要在请求中包含头名称和值 $Connection: Upgrade$ ，并在额外的 $Upgrade$ 头中指定一个或多个协议的列表。如果服务器接收升级请求，那么将返回 $101\ \ Switching\ \ Protocols$ 。<code>HTTP升级</code>提供的最重要的特性是我们可以使用任意协议，并且在升级完成后就不再使用<code>HTTP</code>连接，我们可以用一个<code>Socket</code>来代替，由此产生了<code>WebSocket</code>协议。<code>WebSocket</code>协议将使用心跳消息（分别称为 $ping$ 和 $pong$ ）保持连接活跃，即周期性地发送小数据包。在连接升级为<code>WebScoket</code>协议之后，文本和二进制消息可以持续在两个方向上发送且不需要关闭和重连了；而且<code>HTTP</code>规范要求对应同一个主机名，只允许有两个并发连接，但由于我们升级为<code>WebScoket</code>连接了，因此该规范也不存在了。<br>
@@ -96,7 +98,7 @@
 <h2 id="java-websocket-api">Java WebSocket API</h2>
 <p>        <code>Java WebSocket API</code>包含在<code>Java EE 7</code>中，包含了客户端和服务端的<code>API</code>，存储在包 $javax.websocket$ 中，可以在 <a href="#https://docs.oracle.com/javaee/7/api/"><code>Java EE</code>文档</a> 中查询。</p>
 <h3 id="客户端api">客户端API</h3>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">方法</th>
@@ -113,7 +115,7 @@
 <td style="text-align:center">获取底层<code>WebSocket</code>客户端的实现</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        通过 $@ClientEndpoint$ 注解，我们可以标注出客户端终端，在客户端终端中也有四个事件，分别使用 $@OnOpen$, $@OnClose$, $@OnError$, $@OnMessage$ 标注，可以在相关文档中查阅其参数。</p>
 <h3 id="服务端api">服务端API</h3>
 <p>        服务端终端可以使用 $@ServerEndpoint$ 注解标注，该注解需提供 $value$ 特性的值，用于表示该终端所在的相对<code>URL</code>，以 $/$ 开头，允许模板参数，<code>Web容器</code>将在每次收到<code>WebSocket</code>连接时创建该类的实例，连接关闭后销毁。在服务端终端中同样包含四个使用 $@OnOpen$, $@OnClose$, $@OnError$, $@OnMessage$ 标注出的事件，并且在这些事件中我们还可以使用 $@PathParam$ 注解使用我们的模板参数。</p>
@@ -211,16 +213,7 @@
         }
     });
 </script>
-
-<style>
-    code.has-jax {
-        font: inherit;
-        font-size: 100%;
-        background: inherit;
-        border: inherit;
-        color: #515151;
-    }
-</style></main>
+</main>
 </body>
 
 </html>

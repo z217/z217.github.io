@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html><head>
+<html lang="zh-CN"><head>
 	<meta name="generator" content="Hugo 0.92.2" />
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,19 +9,19 @@
   <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
   <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
   <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
-  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
-  
-  <title>z217&#39;s blog</title>
-</head><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+  <link rel="stylesheet" href=https://z217blog.cn/css/jquery.floatingscroll.css>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
     integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src=https://z217blog.cn/js/navbutton.js></script>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <script src=https://z217blog.cn/js/jquery.floatingscroll.min.js></script>
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/navbutton.js></script>
 
 <body><aside id="sidenav">
     <header>
         
         <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
-
         
 
         <a id="branding" href=https://z217blog.cn>
@@ -190,13 +190,15 @@
             
             <h1 style="text-align: center;"><a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85eventfd%E5%92%8Ctimerfd/">Unix网络编程补充：eventfd和timerfd</a></h1>
             <div class="post-content">
+                
+                
                 <h2 id="1-eventfd">1. <code>eventfd</code></h2>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/eventfd.h&gt;</span><span class="cp">
 </span><span class="cp"></span>
 <span class="c1">// 成功返回eventfd描述符， 出错返回-1
 </span><span class="c1"></span><span class="kt">int</span> <span class="nf">eventfd</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">initval</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">);</span>
 </code></pre></div><p>        $eventfd$ 调用返回一个 $eventfd$ 对象描述符，通过该描述符，进程可以在用户空间实现阻塞和唤醒机制，内核会负责唤醒阻塞在该描述符上的进程。$eventfd$ 对象包含一个无符号 $64$ 位整型计数器，由内核维护，初始化为 $initval$ 的值。$flags$ 值是以下值的或：</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:left">$flag$</th>
@@ -217,7 +219,7 @@
 <td style="text-align:left">为读提供类似于信号量的语义</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        对于<code>Linux 2.6.26</code>及以下的版本来说，$flags$ 参数没有作用且必须为 $0$ 。如果 $flags$ 参数非法，会返回 $EINVAL$ 错误。对于返回的描述符，可以进行以下操作：</p>
 <ul>
 <li>$read$ ：调用成功会返回一个以主机字节序排列的 $64$ 位无符号整型；如果返回值小于 $64$ 位，则调用失败，返回 $EINVAL$ 错误。
@@ -306,7 +308,7 @@
 <span class="c1">// 成功返回timer描述符，出错返回-1
 </span><span class="c1"></span><span class="kt">int</span> <span class="nf">timerfd_create</span><span class="p">(</span><span class="kt">int</span> <span class="n">clockid</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">);</span>
 </code></pre></div><p>        这些系统调用用于创建和管理 $timerfd$ 计时器。$timerfd_-create$ 创建一个新的 $timer$ 对象，并返回该对象的描述符。$clockid$ 参数指定了 $timer$ 的时钟类型：</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:left">$clock$</th>
@@ -335,9 +337,9 @@
 <td style="text-align:left">类似于 $CLOCK_-BOOTTIME$ ，但是可以阻止系统休眠。进程必须拥有 $CAP_-WAKE_-ALARM$ 能力才能设置该时钟</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $flags$ 标志可以改变 $timer$ 的行为。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:left">$flag$</th>
@@ -354,7 +356,7 @@
 <td style="text-align:left">描述符会在 $execve$ 调用后自动关闭</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        如果 $clockid$ 或者 $flags$ 非法，返回 $EINVAL$ 错误。对于没有 $CAP_-WAKE_-ALARM$ 能力的进程指定 $CLOCK_-REALTIME_-ALARM$ 或者 $CLOCK_-BOOTTIME_-ALARM$ 标志会导致调用返回 $EPERM$ 错误。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/timerfd.h&gt;</span><span class="cp">
 </span><span class="cp"></span>
@@ -489,8 +491,8 @@
 <span class="p">}</span>
 </code></pre></div>
             </div>
-            <div class="meta post-footer"> 
-                <span>2022 Feb 26 17:30</span> 
+            <div class="meta post-footer">
+                <span>2022 Feb 26 17:30</span>
                 <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85eventfd%E5%92%8Ctimerfd/"><i class="fas fa-link"></i> link</a>
             </div>
         </div>
@@ -499,6 +501,8 @@
             
             <h1 style="text-align: center;"><a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85epoll/">Unix网络编程补充：epoll</a></h1>
             <div class="post-content">
+                
+                
                 <p>        $epoll$ 执行与 $select$ 和 $poll$ 类似的工作：监听多个描述符，当其中存在可用描述符时返回。$epoll$ 支持边缘触发和层级触发两种模式，并且在监听大量描述符的情况下有着很好的性能。<br>
         $epoll$ 的核心是 $epoll$ 对象，这是一个内核数据结构，形式上，可以认为是两个集合：</p>
 <ul>
@@ -531,7 +535,7 @@
   <span class="n">epoll_data_t</span> <span class="n">data</span><span class="p">;</span>
 <span class="p">};</span>
 </code></pre></div><p>        $epoll_-ctl$ 从 $epoll$ 描述符中添加、修改或删除事件，$fd$ 指定待监听的描述符。其中 $op$ 可以是：</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:left">$op$</th>
@@ -552,9 +556,9 @@
 <td style="text-align:left">删除一个事件，$events$ 参数会被忽略</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $epoll_-event$ 的 $data$ 成员指定该事件关联的对象，会被保存在内核中，并在可用时返回；$events$ 成员是多个标志位的或的值，用于注册进程感兴趣的事件，当其中的条件满足时会唤醒阻塞进程，同时也作为返回值接收事件状态。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:left">$event$</th>
@@ -599,7 +603,7 @@
 <td style="text-align:left">在非 $EPOLLET$ 和 $EPOLLONESHOT$ 的事件上，并且进程拥有 $CAP_-BLOCK_-SUSPEND$ 的能力，可以确保系统不会在等待该事件或者处理该事件时进入休眠状态。仅作为入参，不会被返回</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        当 $epfd$ 或 $fd$ 不可用时，返回 $EBADF$ 错误。当 $fd$ 已存在时，返回 $EEXIST$ 错误。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/epoll.h&gt;</span><span class="cp">
 </span><span class="cp"></span>
@@ -692,8 +696,8 @@
 <span class="p">}</span>
 </code></pre></div>
             </div>
-            <div class="meta post-footer"> 
-                <span>2022 Feb 25 19:23</span> 
+            <div class="meta post-footer">
+                <span>2022 Feb 25 19:23</span>
                 <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85epoll/"><i class="fas fa-link"></i> link</a>
             </div>
         </div>
@@ -702,6 +706,8 @@
             
             <h1 style="text-align: center;"><a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B20/">Unix网络编程（20）：共享内存</a></h1>
             <div class="post-content">
+                
+                
                 <p>        共享内存是可用<code>IPC</code>形式中最快的。因为将内存区映射到进程的地址空间之后，进程间的数据传递就不用通过内核。</p>
 <h2 id="1-共享内存操作">1. 共享内存操作</h2>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/mman.h&gt;</span><span class="cp">
@@ -715,7 +721,7 @@
 <li>使用 $shm_-open$ 提供无亲缘关系的进程间的<code>POSIX</code>共享内存区。</li>
 </ul>
 <p>        $addr$ 可以指定描述符 $fd$ 应该被映射到的进程内存空间的地址，也可以指定为 $NULL$ ，从而让内核自己选择。$len$ 是映射到调用进程地址空间中的字节数，从被映射字节开头第 $offset$ 个字节开始，$offset$ 可以为 $0$ 。内存映射区的保护由 $prot$ 参数提供，可选值有：</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:left">$prot$</th>
@@ -740,9 +746,9 @@
 <td style="text-align:left">数据不可访问</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $prot$ 参数的常见值为 $PROT_-READ$ | $PROT_-WRITE$ 。$flags$ 指定共享内存属性，可选值有：</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:left">$flag$</th>
@@ -763,7 +769,7 @@
 <td style="text-align:left">准确地解释 $addr$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        其中 $MAP_-SHARED$ 和 $MAP_-PRIVATE$ 必须选择其中一个。如果选择 $MAP_-SHARED$ ，那么调用进程对映射区内所做的修改对其他进程可见，并且也会修改底层对象；如果选择 $MAP_-PRIVATE$ ，那么调用进程对映射区所做的修改只有当前进程可见，而且不会修改底层对象；从移植性上考虑，不应该指定 $MAP_-FIXED$ ，如果没有指定该标志并且 $addr$ 非空，则具体行为取决于实现。可移植的代码应该把 $addr$ 设置为 $NULL$ 并不指定 $MAP_-FIXED$ 。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/mman.h&gt;</span><span class="cp">
 </span><span class="cp"></span>
@@ -773,7 +779,7 @@
 <span class="c1">// 成功返回0，出错返回-1
 </span><span class="c1"></span><span class="kt">int</span> <span class="nf">msync</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">len</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">);</span>
 </code></pre></div><p>        $munmap$ 从进程空间中删除映射区，删除之后再次访问先前映射区地址会产生 $SIGSEGV$ 信号。$msync$ 算法用于主动将映射区中的数据同步到硬盘，可选的 $flags$ 参数有：</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:left">$flag$</th>
@@ -794,7 +800,7 @@
 <td style="text-align:left">使高速缓存中的数据失效</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        其中 $MS_-ASYNC$ 和 $MS_-SYNC$ 必须指定其中一个。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
 </span><span class="cp"></span>
@@ -1092,8 +1098,8 @@
 </code></pre></div><p>        生产者程序使用不会阻塞 $sem_-trywait$ 调用，如果调用失败 ( 即 $nempty$ 信号量不大于 $0$ )，说明映射区中没有空间，递增 $noverflow$ 。</p>
 
             </div>
-            <div class="meta post-footer"> 
-                <span>2022 Feb 23 13:45</span> 
+            <div class="meta post-footer">
+                <span>2022 Feb 23 13:45</span>
                 <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B20/"><i class="fas fa-link"></i> link</a>
             </div>
         </div>
@@ -1102,6 +1108,8 @@
             
             <h1 style="text-align: center;"><a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B19/">Unix网络编程（19）：信号量</a></h1>
             <div class="post-content">
+                
+                
                 <p>        <strong>信号量</strong> ( $semaphore$ ) 是一种用于不同进程间或一个进程内的不同线程间同步的原语。<code>POSIX</code>信号量不必在内核中维护，可能使用文件系统中的某个文件来标识。</p>
 <h2 id="1-有名信号量操作">1. 有名信号量操作</h2>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;semaphore.h&gt;</span><span class="cp">
@@ -1552,8 +1560,8 @@
 <span class="p">}</span>
 </code></pre></div>
             </div>
-            <div class="meta post-footer"> 
-                <span>2022 Feb 21 16:43</span> 
+            <div class="meta post-footer">
+                <span>2022 Feb 21 16:43</span>
                 <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B19/"><i class="fas fa-link"></i> link</a>
             </div>
         </div>
@@ -1619,16 +1627,7 @@
         }
     });
 </script>
-
-<style>
-    code.has-jax {
-        font: inherit;
-        font-size: 100%;
-        background: inherit;
-        border: inherit;
-        color: #515151;
-    }
-</style></main>
+</main>
 </body>
 
 </html>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html><head>
+<html lang="zh-CN"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="A personal blog of z217">
@@ -8,19 +8,19 @@
   <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
   <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
   <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
-  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
-  
-  <title>z217&#39;s blog</title>
-</head><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+  <link rel="stylesheet" href=https://z217blog.cn/css/jquery.floatingscroll.css>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
     integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src=https://z217blog.cn/js/navbutton.js></script>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <script src=https://z217blog.cn/js/jquery.floatingscroll.min.js></script>
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/navbutton.js></script>
 
 <body><aside id="sidenav">
     <header>
         
         <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
-
         
 
         <a id="branding" href=https://z217blog.cn>
@@ -82,6 +82,8 @@
 <h1 id="title">Unix网络编程补充：套接字选项</h1>
 
 
+
+
 <h2 id="1-getsockopt和setsockop函数">1. <code>getsockopt</code>和<code>setsockop</code>函数</h2>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
 </span><span class="cp"></span>
@@ -91,7 +93,7 @@
 <span class="c1">// 成功返回0，出错返回-1
 </span><span class="c1"></span><span class="kt">int</span> <span class="nf">setsockopt</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">level</span><span class="p">,</span> <span class="kt">int</span> <span class="n">optname</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">optval</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">optlen</span><span class="p">);</span>
 </code></pre></div><p>        这两个函数仅适用于套接字。$sockfd$ 指向一个打开的套接字描述符，$level$ 指定系统中解释选项的代码或为通用套接字代码，或为某个特定于协议的代码。$optval$ 是一个指向某个变量的指针，$setsockopt$ 从 $optval$ 中获取设置，$getoptval$ 向 $optval$ 中写入设置。$optval$ 的大小由 $optlen$ 指定。套接字选项粗分为两大基本类型：一是启用或禁用某个特性的二元选项 ( 标志选项 )，二是取得并返回我们可以设置或检查的特定值的选项 ( 值选项 )。对于标志选项，$optval$ 是一个整数，$1$ 标识启用，$0$ 表示禁用。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
   <thead>
     <tr>
       <th style="text-align: center;">$level$</th>
@@ -607,7 +609,7 @@
       <td style="text-align: left;">$int$</td>
     </tr>
   </tbody>
-</table>
+</table></div>
 <h2 id="2-通用套接字选项">2. 通用套接字选项</h2>
 <h3 id="21-so_debug">2.1 <code>SO_DEBUG</code></h3>
 <p>        本选项仅由<code>TCP</code>支持。当给一个<code>TCP</code>套接字开启本选项时，内核将为<code>TCP</code>在该套接字发送和接收的所有分组保留详细跟踪信息。这些信息保存在内核的某个环形缓冲区中，并可使用 $trpt$ 程序进行检查。</p>
@@ -683,7 +685,7 @@
 <span class="c1">// 成功则返回cmd命令的结果，出错返回-1
 </span><span class="c1"></span><span class="kt">int</span> <span class="nf">fcntl</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">cmd</span><span class="p">,</span> <span class="p">...</span> <span class="cm">/* int arg */</span><span class="p">);</span>
 </code></pre></div><p>        $fcntl$ 函数可以执行各种描述符控制操作。如下表所示：</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:left">操作</th>
@@ -765,7 +767,7 @@
 <td style="text-align:left"></td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        <code>POSIX</code>一栏指出<code>POSIX</code>规定的首选操作。$F_-SETOWN$ 命令的整数类型参数 $arg$ 既可以是一个正整数，指出接收信号的进程<code>ID</code>，也可以是一个负整数，其绝对值指出接收信号的进程组<code>ID</code>。同样的，$F_-GETOWN$ 命令既可以返回代表进程<code>ID</code>的正值，也可以返回代表进程组<code>ID</code>的负值。使用 $socket$ 函数新创建的套接字没有属主，然而如果一个新的套接字是从监听套接字创建而来的，那么这个新的套接字属主将从监听套接字继承而来。</p>
 
 <script src=https://z217blog.cn/js/toc.js></script>
@@ -861,16 +863,7 @@
         }
     });
 </script>
-
-<style>
-    code.has-jax {
-        font: inherit;
-        font-size: 100%;
-        background: inherit;
-        border: inherit;
-        color: #515151;
-    }
-</style></main>
+</main>
 </body>
 
 </html>

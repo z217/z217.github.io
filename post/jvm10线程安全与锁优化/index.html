@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html><head>
+<html lang="zh-CN"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="A personal blog of z217">
@@ -8,19 +8,19 @@
   <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
   <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
   <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
-  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
-  
-  <title>z217&#39;s blog</title>
-</head><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+  <link rel="stylesheet" href=https://z217blog.cn/css/jquery.floatingscroll.css>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
     integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src=https://z217blog.cn/js/navbutton.js></script>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <script src=https://z217blog.cn/js/jquery.floatingscroll.min.js></script>
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/navbutton.js></script>
 
 <body><aside id="sidenav">
     <header>
         
         <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
-
         
 
         <a id="branding" href=https://z217blog.cn>
@@ -80,6 +80,8 @@
         <div class="content">
 
 <h1 id="title">JVM（10）：线程安全与锁优化</h1>
+
+
 
 
 <h2 id="1-线程安全">1. 线程安全</h2>
@@ -161,7 +163,7 @@
         锁的升级很容易发生，但是锁降级发生的条件比较苛刻，锁降级发生在 $Stop\ \ The\ \ World$ 期间，当<code>JVM</code>进入安全点时，会检查是否有闲置的锁，然后进行降级。</p>
 <h3 id="34-对象头">3.4 对象头</h3>
 <p>        每个<code>Java</code>对象都有对象头。如果是非数组类型，会使用 $2$ 字来存储对象头；如果是数组，会使用 $3$ 个字。在 $32$ 位虚拟机中，一个字是 $32$ 位；在 $64$ 位虚拟机中，一个字是 $64$ 位。对象头的内容如下：</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">长度</th>
@@ -186,7 +188,7 @@
 <td style="text-align:center">如果是数组，会在此存储数组长度</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        $32$ 位虚拟机的 $Mark\ \ Word$ 状态如下：</p>
 <pre tabindex="0"><code>|------------------------------------------------------------------|--------------|
 |                     Mark Word (32 bits)                          |     状态     |
@@ -216,7 +218,7 @@
 |                                                                            | 锁标记(2) |     GC标记    |
 |----------------------------------------------------------------------------------------|---------------|
 </code></pre><p>        其中两个锁标记位的状态为：</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">锁状态</th>
@@ -251,7 +253,7 @@
 <td style="text-align:center">$11$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <h3 id="35-轻量级锁">3.5 轻量级锁</h3>
 <p>        轻量级锁是<code>JDK 6</code>中加入的新型锁机制，轻量是相对于使用操作系统实现的传统锁而言的。轻量级锁的目的是在没有多线程竞争的前提下，减少传统的重量级锁使用操作系统互斥量带来的性能损耗。$Mark\ \ Word$ 被设计为非固定的动态数据结构，可以根据对象状态复用存储空间，这是轻量级锁实现的关键。<code>JVM</code>会为每个线程在当前线程的栈帧中创建用于存储锁记录的空间，称为 $Displaced\ \ Mark\ \ Word$ 。</p>
 <ol>
@@ -387,16 +389,7 @@
         }
     });
 </script>
-
-<style>
-    code.has-jax {
-        font: inherit;
-        font-size: 100%;
-        background: inherit;
-        border: inherit;
-        color: #515151;
-    }
-</style></main>
+</main>
 </body>
 
 </html>

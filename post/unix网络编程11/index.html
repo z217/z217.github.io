@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html><head>
+<html lang="zh-CN"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="A personal blog of z217">
@@ -8,19 +8,19 @@
   <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
   <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
   <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
-  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
-  
-  <title>z217&#39;s blog</title>
-</head><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+  <link rel="stylesheet" href=https://z217blog.cn/css/jquery.floatingscroll.css>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
     integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src=https://z217blog.cn/js/navbutton.js></script>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <script src=https://z217blog.cn/js/jquery.floatingscroll.min.js></script>
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/navbutton.js></script>
 
 <body><aside id="sidenav">
     <header>
         
         <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
-
         
 
         <a id="branding" href=https://z217blog.cn>
@@ -82,6 +82,8 @@
 <h1 id="title">Unix网络编程（11）：路由套接字</h1>
 
 
+
+
 <p><strong>注：以下内容可能不适用于Linux系统</strong></p>
 <p>        内核中的<code>Unix</code>路由表传统上一直使用 $ioctl$ 访问，但是 $ioctl$ 不能输出整个路由表，而诸如 $netstat$ 等程序通过读取内核的内存获取路由表内容。诸如 $gated$ 等路由守护进程需要监视由内核收取的<code>ICMP</code>重定向消息，它们通常创建一个原始<code>ICMP</code>套接字，再在这个套接字上监听所有收到的<code>ICMP</code>消息。在路由域中支持的唯一一种套接字是原始套接字。路由套接字上支持 $3$ 种类型的操作：</p>
 <ol>
@@ -108,7 +110,7 @@
 </span></code></pre></div><p>        每个接口都有一个唯一的索引。$sdl_-data$ 成员含有名字和链路层地址，名字从 $sdl_-data[0]$ 开始，并且不以空字符结尾。链路层地址从 $sdl_-data[sdl_-nlen]$ 开始，$LLADDR$ 宏返回指向链路层地址的指针。</p>
 <h2 id="2-套接字读写">2. 套接字读写</h2>
 <p>        创建一个路由套接字以后，进程可以通过写到该套接字向内核发送命令，通过从套接字读来从内核接收信息。路由套接字共有 $12$ 个路由消息，定义在 &lt;$net/route.h$&gt; 头文件中。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:left">消息类型</th>
@@ -218,7 +220,7 @@
 <td style="text-align:left">$rt_-msghdr$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        通过路由套接字交换的结构有 $5$ 个类型。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">struct</span> <span class="n">rt_msghdr</span> <span class="p">{</span>  <span class="c1">// defined in &lt;net/route.h&gt;
 </span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">rtm_msglen</span><span class="p">;</span>  <span class="c1">// to skip over non-understood messages
@@ -273,7 +275,7 @@
 </span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifan_what</span><span class="p">;</span>  <span class="c1">// what type of announcement
 </span><span class="c1"></span><span class="p">};</span>
 </code></pre></div><p>        每个结构都有相同的前 $3$ 个成员：本消息的长度、版本和类型，类型是上表中第一列的常值之一，长度则允许应用程序跳过无法理解的消息类型。$rtm_-addr$ 、$ifm_-addrs$ 和 $ifam_-addrs$ 这 $3$ 个成员是<em><strong>数位掩码</strong></em> ( $bit$ $mask$ )，指明本消息后跟的套接字地址结构是 $8$ 个可能选择中的哪几个。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
   <thead>
     <tr>
       <th colspan="2" style="text-align: center;">数位掩码</th>
@@ -352,7 +354,7 @@
       <td style="text-align: left;">最大元素数目</td>
     </tr>
   </tbody>
-</table>
+</table></div>
 <p>        上述常值定义在 &lt;$net/route.h$&gt; 头文件中，当存在多个套接字地址结构时，它们总是按照表中所示的顺序排列。</p>
 <h2 id="3-sysctl">3. <code>sysctl</code></h2>
 <p>        使用 $sysctl$ 检查路由表和接口列表的进程不需要超级用户权限。</p>
@@ -371,7 +373,7 @@
 <li>$AF_-UNSPEC$ ：获取或设置一些套接字层变量，譬如套接字发送或接收缓冲区的最大大小。</li>
 </ul>
 <p>        当 $name$ 数组的第二个元素为 $AF_-ROUTE$ 时，第三个元素 ( 协议号 ) 总是为 $0$ ，第四个元素是一个地址族，第五和第六指定做什么。</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">$name[\ ]$</th>
@@ -425,7 +427,7 @@
 <td style="text-align:center">$0$</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>        路由域支持 $3$ 种操作，由 $name[4]$ 指定，这些常值定义在 &lt;$sys/socket.h$&gt; 头文件中。这 $3$ 种操作返回的信息通过 $oldp$ 指针返回，$oldp$ 指向的缓冲区中含有可变数目的 $RTM_-xxx$ 消息。</p>
 <ol>
 <li>$NET_-RT_-DUMP$ 返回由 $name[3]$ 指定地址族的路由表，如果指定地址族为 $0$ ，则返回所有地址族的路由表。</li>
@@ -558,16 +560,7 @@
         }
     });
 </script>
-
-<style>
-    code.has-jax {
-        font: inherit;
-        font-size: 100%;
-        background: inherit;
-        border: inherit;
-        color: #515151;
-    }
-</style></main>
+</main>
 </body>
 
 </html>

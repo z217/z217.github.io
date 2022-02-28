@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html><head>
+<html lang="zh-CN"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="A personal blog of z217">
@@ -8,19 +8,19 @@
   <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
   <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
   <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
-  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
-  
-  <title>z217&#39;s blog</title>
-</head><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+  <link rel="stylesheet" href=https://z217blog.cn/css/jquery.floatingscroll.css>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
     integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src=https://z217blog.cn/js/navbutton.js></script>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <script src=https://z217blog.cn/js/jquery.floatingscroll.min.js></script>
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/navbutton.js></script>
 
 <body><aside id="sidenav">
     <header>
         
         <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
-
         
 
         <a id="branding" href=https://z217blog.cn>
@@ -82,6 +82,8 @@
 <h1 id="title">JVM（1）：技术体系与内存区域</h1>
 
 
+
+
 <h2 id="1-java技术体系">1. <code>Java</code>技术体系</h2>
 <p>        从广义上来讲，<code>Kotlin</code>、<code>Clojure</code>、<code>JRuby</code>、<code>Groovy</code>等运行于<code>Java</code>虚拟机上的编程语言及其相关的程序都属于<code>Java</code>技术体系中的一员。从传统意义上来看，<code>JCP</code>官方所定义的<code>Java</code>技术体系包括以下几个部分：</p>
 <ul>
@@ -139,7 +141,7 @@
 <p>        <code>HotSpot</code>虚拟机并没有区分虚拟机栈和本地方法栈，因此设置本地方法栈大小的参数 $+Xoss$ 虽然可以使用，但是没有任何效果。虚拟机栈和本地方法栈只能通过 $+Xss$ 参数设定。如之前讲述的一样，虚拟机栈和本地方法栈可能抛出 $StackOverflowError$ 和 $OutOfMemoryError$ 。<code>HotSpot</code>虚拟机不支持动态扩展栈，因此出现 $OutOfMemoryError$ 的情况只有最初创建线程时就无法申请到足够的内存的情况。在一般情况下，使用<code>HotSpot</code>虚拟机的默认参数下，对于一般的方法调用是足够的。但是如果是因为多线程导致的溢出，就需要减小最大堆和减小栈容量换取更多线程。当出现这种问题，报错信息会注明 $possibly\ \ out\ \ of\ \ memory\ \ or\ \ process/resource\ \ limits\ \ reached$ 。</p>
 <h3 id="43-方法区和运行时常量池">4.3 方法区和运行时常量池</h3>
 <p>        在<code>JDK6</code>之前的<code>HotSpot</code>虚拟机中，常量池都是分配在永久代中的，使用 $+XX:PermSize$ 和 $+XX:MaxPermSize$ 可以限制永久代大小。在这种情况下，异常信息会注明 $PermGEn\ \ space$ 。自<code>JDK7</code>起，字符串常量池被移至<code>Java</code>堆中。方法区溢出的条件比较苛刻，可能会出现在需要生成大量动态类的场景中。<code>JDK8</code>之后，永久代不再使用，元空间取而代之。<code>HotSpot</code>提供了一些参数：</p>
-<table>
+<div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>
 <th style="text-align:center">参数</th>
@@ -164,7 +166,7 @@
 <td style="text-align:left">垃圾收集后元空间的最大剩余容量百分比。</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <h3 id="44-直接内存">4.4 直接内存</h3>
 <p>        直接内存可以通过 $+X:MaxDirectMemorySize$ 参数指定，未指定则默认等同于<code>Java</code>堆 ( $+Xmx$ ) 大小。由直接内存溢出导致的异常，在 $Heap\ \ Dump$ 文件中不会有任何明显异常情况。如果发现 $Dump$ 文件很小，同时程序中又使用了例如 $NIO$ 等类，那么可能就是直接内存溢出导致的异常。</p>
 
@@ -261,16 +263,7 @@
         }
     });
 </script>
-
-<style>
-    code.has-jax {
-        font: inherit;
-        font-size: 100%;
-        background: inherit;
-        border: inherit;
-        color: #515151;
-    }
-</style></main>
+</main>
 </body>
 
 </html>
