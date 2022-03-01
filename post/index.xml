@@ -7,7 +7,20 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2022, z217 and the hugo authors, all rights reserved.</copyright>
-    <lastBuildDate>Sat, 26 Feb 2022 17:30:49 +0800</lastBuildDate><atom:link href="https://z217blog.cn/post/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Tue, 01 Mar 2022 15:15:57 +0800</lastBuildDate><atom:link href="https://z217blog.cn/post/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>EffectiveModernCpp（1）：类型推导</title>
+      <link>https://z217blog.cn/post/effectivemoderncpp1/</link>
+      <pubDate>Tue, 01 Mar 2022 15:15:57 +0800</pubDate>
+      
+      <guid>https://z217blog.cn/post/effectivemoderncpp1/</guid>
+      <description>1. 类型推导  考虑这样一个模版：
+template&amp;lt;typename T&amp;gt; void f(ParamType param); f(expr);  编译器会使用 $expr$ 进行类型推导，一个是针对 $T$ 的，另一个是针对 $ParamType$ 的。这两个类型通常是不同的。例如：
+template&amp;lt;typename T&amp;gt; void f(const T &amp;amp;param); int x = 0; f(x);  这时 $T$ 被推导为 $int$ ，$ParamType$ 被推导为 $const$ $int$ &amp;amp; 。事实上，$T$ 的推导不仅取决于 $expr$ ，还取决于 $ParamType$ 。这里有三种情况：
+ $ParamType$ 是一个指针或引用，但不是通用引用； $ParamType$ 是一个通用引用； $ParamType$ 既不是指针也不是引用。  1.1 情况一  最简单的情况是 $ParamType$ 是一个指针或引用但不是普通引用，这时类型推导过程为：
+ 如果 $expr$ 的类型是引用，忽略引用部分； 根据剩下部分推导 $T$ ，并得出 $ParamType$ 。  template&amp;lt;typename T&amp;gt; void f(T &amp;amp;param); int x = 27; const int cx = x; const int &amp;amp;rx = cx; f(x); // T为int, ParamType为int &amp;amp; f(cx); // T为const int, ParamType为const int &amp;amp; f(rx); // T为const int, ParamType为const int &amp;amp;  注意第三个例子中，即使 $rx$ 是一个引用，$T$ 也会被推导为非引用。</description>
+    </item>
+    
     <item>
       <title>Unix网络编程补充：eventfd和timerfd</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85eventfd%E5%92%8Ctimerfd/</link>

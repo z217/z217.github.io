@@ -88,6 +88,24 @@
     
     
     <div class="list-item">
+        <a class="entry-title" href="https://z217blog.cn/post/effectivemoderncpp1/">EffectiveModernCpp（1）：类型推导</a>
+        
+        
+        <p>《Effective Modern C&#43;&#43;》读书笔记（1）</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2022 Mar 01 15:15
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: C&C++
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
         <a class="entry-title" href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85eventfd%E5%92%8Ctimerfd/">Unix网络编程补充：eventfd和timerfd</a>
         
         
@@ -159,24 +177,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B18/">Unix网络编程（18）：锁</a>
-        
-        
-        <p>《Unix网络编程》读书笔记（18）</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2022 Feb 21 14:36
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: Web, C&C++
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -185,6 +185,304 @@
     <div class="section-title">μblog</div>
     <div class="posts">
         
+        
+        <div class="post">
+            
+            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/effectivemoderncpp1/">EffectiveModernCpp（1）：类型推导</a></h1>
+            <div class="post-content">
+                
+                
+                <h2 id="1-类型推导">1. 类型推导</h2>
+<p>        考虑这样一个模版：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+<span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="n">ParamType</span> <span class="n">param</span><span class="p">);</span>
+
+<span class="n">f</span><span class="p">(</span><span class="n">expr</span><span class="p">);</span>
+</code></pre></div><p>        编译器会使用 $expr$ 进行类型推导，一个是针对 $T$ 的，另一个是针对 $ParamType$ 的。这两个类型通常是不同的。例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+<span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="k">const</span> <span class="n">T</span> <span class="o">&amp;</span><span class="n">param</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+</code></pre></div><p>        这时 $T$ 被推导为 $int$ ，$ParamType$ 被推导为 $const$ $int$ &amp; 。事实上，$T$ 的推导不仅取决于 $expr$ ，还取决于 $ParamType$ 。这里有三种情况：</p>
+<ul>
+<li>$ParamType$ 是一个指针或引用，但不是通用引用；</li>
+<li>$ParamType$ 是一个通用引用；</li>
+<li>$ParamType$ 既不是指针也不是引用。</li>
+</ul>
+<h3 id="11-情况一">1.1 情况一</h3>
+<p>        最简单的情况是 $ParamType$ 是一个指针或引用但不是普通引用，这时类型推导过程为：</p>
+<ol>
+<li>如果 $expr$ 的类型是引用，忽略引用部分；</li>
+<li>根据剩下部分推导 $T$ ，并得出 $ParamType$ 。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+<span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="n">T</span> <span class="o">&amp;</span><span class="n">param</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">27</span><span class="p">;</span>
+<span class="k">const</span> <span class="kt">int</span> <span class="n">cx</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>
+<span class="k">const</span> <span class="kt">int</span> <span class="o">&amp;</span><span class="n">rx</span> <span class="o">=</span> <span class="n">cx</span><span class="p">;</span>
+
+<span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">);</span> <span class="c1">// T为int, ParamType为int &amp;
+</span><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="n">cx</span><span class="p">);</span>  <span class="c1">// T为const int, ParamType为const int &amp;
+</span><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="n">rx</span><span class="p">);</span>  <span class="c1">// T为const int, ParamType为const int &amp;
+</span></code></pre></div><p>        注意第三个例子中，即使 $rx$ 是一个引用，$T$ 也会被推导为非引用。</p>
+<h3 id="12-情况二">1.2 情况二</h3>
+<p>        如果 $ParamType$ 是一个通用引用，那么推导过程如下：</p>
+<ul>
+<li>如果 $expr$ 是左值，$T$ 和 $ParamType$ 都会被推导为左值引用；</li>
+<li>如果 $expr$ 是右值，那么适用上一个情况的规则。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+<span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="n">T</span> <span class="o">&amp;&amp;</span><span class="n">param</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">27</span><span class="p">;</span>
+<span class="k">const</span> <span class="kt">int</span> <span class="n">cx</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>
+<span class="k">const</span> <span class="kt">int</span> <span class="o">&amp;</span><span class="n">rx</span> <span class="o">=</span> <span class="n">cx</span><span class="p">;</span>
+
+<span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>  <span class="c1">// T为int &amp;, paramType为int &amp;
+</span><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="n">cx</span><span class="p">);</span>  <span class="c1">// T为const int &amp;, paramType为const int &amp;
+</span><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="n">rx</span><span class="p">);</span>  <span class="c1">// T为const int &amp;, paramType为const int &amp;
+</span><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="mi">27</span><span class="p">);</span>  <span class="c1">// T为int, paramType为int &amp;&amp;
+</span></code></pre></div><h3 id="13-情况三">1.3 情况三</h3>
+<p>        当 $ParamType$ 既不是指针也不是引用时，采用传值方式。推导过程如下：</p>
+<ul>
+<li>如果 $expr$ 是引用，忽略引用部分；</li>
+<li>如果 $expr$ 是 $const$ ，忽略 $const$ ；</li>
+<li>如果 $expr$ 是 $volatile$ ，忽略 $volatile$ 。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+<span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="n">T</span> <span class="n">param</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">27</span><span class="p">;</span>
+<span class="k">const</span> <span class="kt">int</span> <span class="n">cx</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>
+<span class="k">const</span> <span class="kt">int</span> <span class="o">&amp;</span><span class="n">rx</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>
+<span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="k">const</span> <span class="n">ptr</span> <span class="o">=</span> <span class="s">&#34;pointers&#34;</span><span class="p">;</span>
+
+<span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>  <span class="c1">// T和ParamType都是int
+</span><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="n">cx</span><span class="p">);</span>  <span class="c1">// T和ParamType都是int
+</span><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="n">rx</span><span class="p">);</span>  <span class="c1">// T和ParamType都是int
+</span><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="n">ptr</span><span class="p">);</span>  <span class="c1">// T和ParamType都是const char *
+</span></code></pre></div><p>        最后一个例子中，由于 $const$ 被忽略，所以类型会被推导为 $const$ $char$ $\star$ 。</p>
+<h3 id="14-数组">1.4 数组</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">const</span> <span class="kt">char</span> <span class="n">name</span><span class="p">[]</span> <span class="o">=</span> <span class="s">&#34;name&#34;</span><span class="p">;</span>  <span class="c1">// 类型为const char[13]
+</span><span class="c1"></span>
+<span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">ptrToName</span> <span class="o">=</span> <span class="n">name</span><span class="p">;</span>
+</code></pre></div><p>        虽然 $name$ 和 $ptrToName$ 的类型不同，但是<code>C++</code>允许数组退化为一个指针。应用在函数上，体现为：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="kt">void</span> <span class="nf">myFunc</span><span class="p">(</span><span class="kt">int</span> <span class="n">param</span><span class="p">[]);</span>
+
+<span class="kt">void</span> <span class="nf">myFunc</span><span class="p">(</span><span class="kt">int</span> <span class="o">*</span><span class="n">param</span><span class="p">);</span>
+</code></pre></div><p>        上面这两个函数是等价的。将这个规则应用于模版：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+<span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="n">T</span> <span class="n">param</span><span class="p">);</span>
+
+<span class="n">f</span><span class="p">(</span><span class="n">name</span><span class="p">);</span>  <span class="c1">// T为const char *
+</span></code></pre></div><p>        虽然函数不能接收数组，但是可以接收数组引用。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+<span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="n">T</span> <span class="o">&amp;</span><span class="n">param</span><span class="p">);</span>
+
+<span class="n">f</span><span class="p">(</span><span class="n">name</span><span class="p">);</span>  <span class="c1">// T为const char[13], paramType为const char (&amp;)[13]
+</span></code></pre></div><p>        从而我们可以通过模版函数推导出数组大小：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">N</span><span class="o">&gt;</span>
+<span class="k">constexpr</span> <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">arraySize</span><span class="p">(</span><span class="n">T</span> <span class="p">(</span><span class="o">&amp;</span><span class="p">)[</span><span class="n">N</span><span class="p">])</span> <span class="k">noexcept</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="n">N</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div><h3 id="15-函数">1.5 函数</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="kt">void</span> <span class="nf">foo</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">double</span><span class="p">);</span>
+
+<span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+<span class="kt">void</span> <span class="n">f1</span><span class="p">(</span><span class="n">T</span> <span class="n">param</span><span class="p">);</span>
+
+<span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+<span class="kt">void</span> <span class="n">f2</span><span class="p">(</span><span class="n">T</span> <span class="o">&amp;</span><span class="n">param</span><span class="p">);</span>
+
+<span class="n">f1</span><span class="p">(</span><span class="n">foo</span><span class="p">);</span>  <span class="c1">// T和paramType为void (*)(int, double)
+</span><span class="c1"></span><span class="n">f2</span><span class="p">(</span><span class="n">foo</span><span class="p">);</span>  <span class="c1">// T和paramType为void (&amp;)(int, double)
+</span></code></pre></div><p>        与数组相同，函数也会退化为指针，但是对于引用，它们不会退化。</p>
+<h2 id="2-auto">2. <code>auto</code></h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">auto</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">27</span><span class="p">;</span>  <span class="c1">// int
+</span><span class="c1"></span><span class="k">const</span> <span class="k">auto</span> <span class="n">cx</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>  <span class="c1">// int
+</span><span class="c1"></span><span class="k">const</span> <span class="k">auto</span> <span class="o">&amp;</span><span class="n">rx</span> <span class="o">=</span> <span class="n">cx</span><span class="p">;</span> <span class="c1">// int
+</span><span class="c1"></span>
+<span class="k">const</span> <span class="kt">char</span> <span class="n">name</span><span class="p">[]</span> <span class="o">=</span> <span class="s">&#34;name&#34;</span><span class="p">;</span>
+<span class="k">auto</span> <span class="n">arr1</span> <span class="o">=</span> <span class="n">name</span><span class="p">;</span>  <span class="c1">// const char *
+</span><span class="c1"></span><span class="k">auto</span> <span class="o">&amp;</span><span class="n">arr2</span> <span class="o">=</span> <span class="n">name</span><span class="p">;</span>  <span class="c1">// const char (&amp;)[13]
+</span><span class="c1"></span>
+<span class="kt">void</span> <span class="nf">foo</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">double</span><span class="p">);</span>
+
+<span class="k">auto</span> <span class="n">f1</span> <span class="o">=</span> <span class="n">foo</span><span class="p">;</span>  <span class="c1">// void (*)(int, double)
+</span><span class="c1"></span><span class="k">auto</span> <span class="n">f2</span> <span class="o">=</span> <span class="n">foo</span><span class="p">;</span>  <span class="c1">// void (&amp;)(int, double)
+</span></code></pre></div><p>        $auto$ 类型推导除了一个例外，其他情况都和模版类型推导一样。<code>C++</code>中允许以下的类型声明方式：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">auto</span> <span class="n">x1</span> <span class="o">=</span> <span class="mi">27</span><span class="p">;</span>  <span class="c1">// int
+</span><span class="c1"></span><span class="k">auto</span> <span class="nf">x2</span><span class="p">(</span><span class="mi">27</span><span class="p">);</span>  <span class="c1">// int
+</span><span class="c1"></span><span class="k">auto</span> <span class="n">x3</span> <span class="o">=</span> <span class="p">{</span><span class="mi">27</span><span class="p">};</span>  <span class="c1">// std::initializer_list
+</span><span class="c1"></span><span class="k">auto</span> <span class="n">x4</span><span class="p">{</span><span class="mi">27</span><span class="p">};</span>  <span class="c1">// std::initializer_list
+</span></code></pre></div><p>        这就是 $auto$ 推导不同于模版推导的地方，使用花括号的变量声明会被推导为 $initializer_-list$ ，后者是一个模版。$initializer_-list$ 在实例化的过程中也要被推导，推导出的类型为 $initalizer_-list$&lt;$int$&gt; 。</p>
+<h2 id="3-decltype">3. <code>decltype</code></h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">const</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// decltype(i)为const int
+</span><span class="c1"></span>
+<span class="kt">bool</span> <span class="nf">f</span><span class="p">(</span><span class="k">const</span> <span class="n">Widget</span> <span class="o">&amp;</span><span class="n">w</span><span class="p">);</span>  <span class="c1">// decltype(f)是bool (const Widget &amp;)
+</span><span class="c1"></span>
+<span class="k">struct</span> <span class="nc">Point</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">x</span><span class="p">;</span>  <span class="c1">// decltype(Point::x)为int
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">y</span><span class="p">;</span>  <span class="c1">// decltype(Point::y)为int
+</span><span class="c1"></span><span class="p">};</span>
+
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">v</span><span class="p">;</span>  <span class="c1">// decltype(v)为std::vector&lt;int&gt;
+</span><span class="c1"></span>
+<span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// decltype(v[0])为int &amp;
+</span></code></pre></div><p>        $decltype$ 会返回精确的结果，主要用途是作为模版函数的返回类型，根据不同的形参返回不同的类型。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">Container</span><span class="p">,</span> <span class="k">typename</span> <span class="n">Index</span><span class="o">&gt;</span>
+<span class="k">auto</span> <span class="n">authAndAccess</span><span class="p">(</span><span class="n">Container</span> <span class="o">&amp;</span><span class="n">c</span><span class="p">,</span> <span class="n">Index</span> <span class="n">i</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="k">decltype</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="p">{</span>
+  <span class="n">authenticateUser</span><span class="p">();</span>
+  <span class="k">return</span> <span class="n">c</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+<span class="p">}</span>
+</code></pre></div><p>        函数名称前的 $auto$ 不会做任何推导工作，只是暗示使用尾置返回类型。<code>C++11</code>允许自动推导单一语句的<code>lambda</code>表达式返回类型，<code>C++14</code>扩展到允许自动推导所有<code>lambda</code>表达式和函数，甚至包含多条语句。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">Container</span><span class="p">,</span> <span class="k">typename</span> <span class="n">Index</span><span class="o">&gt;</span>  <span class="c1">// C++14
+</span><span class="c1"></span><span class="k">auto</span> <span class="n">authAndAccess</span><span class="p">(</span><span class="n">Container</span> <span class="o">&amp;</span><span class="n">c</span><span class="p">,</span> <span class="n">Index</span> <span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">authenticateUser</span><span class="p">();</span>
+  <span class="k">return</span> <span class="n">c</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+<span class="p">}</span>
+</code></pre></div><p>        由于 $auto$ 应用于函数时使用的是模版推导的方式，所以根据我们在<a href="#11-%E6%83%85%E5%86%B5%E4%B8%80">情况一</a>中所说的，如果表达式是一个引用，那么引用会被忽略，从而以下代码不合法：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="n">std</span><span class="o">::</span><span class="n">deque</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">d</span><span class="p">;</span>
+<span class="n">authAndAccess</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span> <span class="c1">// 编译失败
+</span></code></pre></div><p>        为了避免这种情况，我们应该使用 $decltype$ ，因为 $decltype$ 会返回精确类型，包括引用。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">Container</span><span class="p">,</span> <span class="k">typename</span> <span class="n">Index</span><span class="o">&gt;</span>
+<span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">authAndAccess</span><span class="p">(</span><span class="n">Container</span> <span class="o">&amp;</span><span class="n">c</span><span class="p">,</span> <span class="n">Index</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">authenticateUser</span><span class="p">();</span>
+  <span class="k">return</span> <span class="n">c</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+<span class="p">}</span>
+</code></pre></div><p>        $decltype(auto)$ 是<code>C++14</code>引入的，允许我们通过 $decltype$ 方式推导返回值，而不是使用模版推导方式。在使用 $decltype(auto)$ 之后，函数会返回引用类型。<br>
+        $decltype(auto) $ 也不局限于函数返回类型：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="n">Widget</span> <span class="n">w</span><span class="p">;</span>
+<span class="k">const</span> <span class="n">Widget</span> <span class="o">&amp;</span><span class="n">cw</span> <span class="o">=</span> <span class="n">w</span><span class="p">;</span>
+
+<span class="k">auto</span> <span class="n">myWidget1</span> <span class="o">=</span> <span class="n">cw</span><span class="p">;</span>  <span class="c1">// Widget
+</span><span class="c1"></span><span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">myWidget2</span> <span class="o">=</span> <span class="n">cw</span><span class="p">;</span>  <span class="c1">// const Widget &amp;
+</span></code></pre></div><p>        向 $authAndAccess$ 传递一个右值是不合法的，因为右值不能绑定到左值引用上。如果想要它支持左值和右值，需要修改为通用引用：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">Container</span><span class="p">,</span> <span class="k">typename</span> <span class="n">Index</span><span class="o">&gt;</span>
+<span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">authAndAccess</span><span class="p">(</span><span class="n">Container</span> <span class="o">&amp;&amp;</span><span class="n">c</span><span class="p">,</span> <span class="n">Index</span> <span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">authenticateUser</span><span class="p">();</span>
+  <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">Container</span><span class="o">&gt;</span><span class="p">(</span><span class="n">c</span><span class="p">)[</span><span class="n">i</span><span class="p">];</span>
+<span class="p">}</span>
+</code></pre></div><p>        $decltype$ 也存在一些特殊情况。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// decltype(x)为int
+</span><span class="c1"></span>            <span class="c1">// decltype((x))为int&amp;
+</span></code></pre></div><p>        在上述例子中，$decltype(int)$ 为 $int$ ，这没有问题，但是 $decltype((int))$ 却变成了 $int$ &amp; 。对于 $x$ 来说，它是一个左值，而<code>C++11</code>定义了 $(x)$ 也是一个左值，并且对后者的 $decltype$ 调用会返回引用类型。将这个特性应用在函数上，结果如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">f1</span><span class="p">()</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="k">return</span> <span class="n">x</span><span class="p">;</span>  <span class="c1">// int
+</span><span class="c1"></span><span class="p">}</span>
+
+<span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">f2</span><span class="p">()</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="k">return</span> <span class="p">(</span><span class="n">x</span><span class="p">);</span>  <span class="c1">// int &amp;
+</span><span class="c1"></span><span class="p">}</span>
+</code></pre></div><h2 id="4-类型诊断">4. 类型诊断</h2>
+<p>        为了获取真实的推导结果，我们需要采取一些诊断方式。</p>
+<h3 id="41-编译器诊断">4.1 编译器诊断</h3>
+<p>        编译出错时，编译器会输出报错信息，这些信息中会包含推导结果。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="c1">// 声明一个模版类但不定义
+</span><span class="c1"></span><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">TD</span><span class="p">;</span>
+</code></pre></div><p>        我们声明了一个模版类但不定义，从而在尝试实例化这个类的时候就会报错。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="k">const</span> <span class="kt">int</span> <span class="o">*</span><span class="n">y</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">x</span><span class="p">;</span>
+
+<span class="n">TD</span><span class="o">&lt;</span><span class="k">decltype</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">&gt;</span> <span class="n">xType</span><span class="p">;</span>
+<span class="n">TD</span><span class="o">&lt;</span><span class="k">decltype</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">&gt;</span> <span class="n">yType</span><span class="p">;</span>
+</code></pre></div><p>        上面的代码产生类似于下面的错误：</p>
+<pre tabindex="0"><code>error: aggregate 'TD&lt;int&gt; xtype' has incomplete type and
+    cannot be defined
+error: aggregate 'TD&lt;const int *&gt; yType' has incomplete type and
+    cannot be defined
+</code></pre><h3 id="42-运行时输出">4.2 运行时输出</h3>
+<p>        标准<code>I/O</code>提供了一种格式化输出的方法：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="k">typeid</span><span class="p">(</span><span class="n">x</span><span class="p">).</span><span class="n">name</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="k">typeid</span><span class="p">(</span><span class="n">y</span><span class="p">).</span><span class="n">name</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+</code></pre></div><p>        这种方法会产生一个 $std::type_-info$ 对象，并调用该对象的 $name$ 函数。要注意的是，这个函数不保证返回有意义的东西，比如<code>GNU</code>和<code>Clang</code>可能会返回 $i$ ( 表示 $int$ )，和 $PKi$ ( 表示 $pointer$ $to$ $\require{cancel}\bcancel{konst}$ $const$ $int$ )。<br>
+        考虑一个更复杂的例子：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+<span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="k">const</span> <span class="n">T</span> <span class="o">&amp;</span><span class="n">param</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;T=&#34;</span> <span class="o">&lt;&lt;</span> <span class="k">typeid</span><span class="p">(</span><span class="n">T</span><span class="p">).</span><span class="n">name</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;</span><span class="se">\n</span><span class="s">&#34;</span>
+            <span class="o">&lt;&lt;</span> <span class="s">&#34;param=&#34;</span> <span class="o">&lt;&lt;</span> <span class="k">typeid</span><span class="p">(</span><span class="n">param</span><span class="p">).</span><span class="n">name</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="n">createVec</span><span class="p">();</span>
+
+<span class="k">const</span> <span class="k">auto</span> <span class="n">vw</span> <span class="o">=</span> <span class="n">createVec</span><span class="p">();</span>
+<span class="c1">// ...
+</span><span class="c1"></span><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">vw</span><span class="p">.</span><span class="n">empty</span><span class="p">())</span> <span class="p">{</span>
+  <span class="n">f</span><span class="p">(</span><span class="o">&amp;</span><span class="n">vw</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="p">}</span>
+</code></pre></div><p>        <code>GNU</code>和<code>Clang</code>会输出类似如下的结果：</p>
+<pre tabindex="0"><code>T=PK6Widget
+param=PK6Widget
+</code></pre><p>        数字 $6$ 是类名称的字符串长度。看起来这种输出方式好像可以理解，但是推导一下却发现不是这样的，因为 $T$ 和 $param$ 的类型输出一致，很明显这是错的。所以 $std::type_-info::name$ 的结果并不总是可信。相比于标准库，<code>Boost</code>库是更好的选择：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="cp">#include</span> <span class="cpf">&lt;boost/type_index.hpp&gt;</span><span class="cp">
+</span><span class="cp"></span>
+<span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+<span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="k">const</span> <span class="n">T</span> <span class="o">&amp;</span><span class="n">param</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">using</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="p">;</span>
+  <span class="k">using</span> <span class="n">boost</span><span class="o">::</span><span class="n">type_index</span><span class="o">::</span><span class="n">type_id_with_cvr</span><span class="p">;</span>
+
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;T=&#34;</span> <span class="o">&lt;&lt;</span> <span class="n">type_id_with_cvr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">().</span><span class="n">pretty_name</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;</span><span class="se">\n</span><span class="s">&#34;</span>
+       <span class="o">&lt;&lt;</span> <span class="s">&#34;param=&#34;</span> <span class="o">&lt;&lt;</span> <span class="n">type_id_with_cvr</span><span class="p">(</span><span class="k">decltype</span><span class="p">(</span><span class="n">param</span><span class="p">)</span><span class="o">&gt;</span><span class="p">().</span><span class="n">pretty_name</span><span class="p">()</span>
+       <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div><p>        在<code>GNU</code>和<code>Clang</code>环境下，会输出：</p>
+<pre tabindex="0"><code>T=Widget const *
+param=Widget const * const&amp;
+</code></pre><h2 id="5-再谈auto">5. 再谈<code>auto</code></h2>
+<p>        $auto$ 的概念很简单，但是如果使用不小心，会产生一些错误。以下列举了一些 $auto$ 的使用法则。</p>
+<h3 id="51-优先使用auto">5.1 优先使用<code>auto</code></h3>
+<p>        <code>C++</code>的变量声明是不会将变量清空的，这意味着当你使用：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="kt">int</span> <span class="n">x</span><span class="p">;</span>  <span class="c1">// 声明但不初始化
+</span></code></pre></div><p>        的时候，$x$ 的值是完全不确定的。使用 $auto$ 则可以避免这个问题，因为你不初始化便无法推导出结果。<br>
+        此外，当有些变量名过于冗长时：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+<span class="kt">void</span> <span class="n">dwim</span><span class="p">(</span><span class="n">It</span> <span class="n">b</span><span class="p">,</span> <span class="n">It</span> <span class="n">e</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">while</span> <span class="p">(</span><span class="n">b</span> <span class="o">!=</span> <span class="n">e</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">typename</span> <span class="n">std</span><span class="o">::</span><span class="n">iterator_traits</span><span class="o">&lt;</span><span class="n">It</span><span class="o">&gt;::</span><span class="n">value_type</span>
+    <span class="n">currValue</span> <span class="o">=</span> <span class="o">*</span><span class="n">b</span><span class="p">;</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><p>        我们也可以使用 $auto$ 简化。因为 $auto$ 使用类型推导技术，所以它还可表达一些只有编译器才能知道的类型：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">auto</span> <span class="n">derefUPLess</span> <span class="o">=</span> 
+  <span class="p">[](</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="o">&amp;</span><span class="n">p1</span><span class="p">,</span>
+     <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="o">&amp;</span><span class="n">p2</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="o">*</span><span class="n">p1</span> <span class="o">&lt;</span> <span class="o">*</span><span class="n">p2</span><span class="p">;</span>
+  <span class="p">};</span>
+</code></pre></div><p>        如果使用<code>C++14</code>，上述代码还可以继续简化：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">auto</span> <span class="n">derefUPLess</span> <span class="o">=</span>
+  <span class="p">[](</span><span class="k">const</span> <span class="k">auto</span> <span class="o">&amp;</span><span class="n">p1</span><span class="p">,</span> <span class="k">const</span> <span class="k">auto</span> <span class="o">&amp;</span><span class="n">p2</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="o">*</span><span class="n">p1</span> <span class="o">&lt;</span> <span class="o">*</span><span class="n">p2</span><span class="p">;</span>
+  <span class="p">};</span>
+</code></pre></div><p>        $auto$ 还可以避免一个问题，称之为<em><strong>类型快捷方式</strong></em> ( $type$ $shortcuts$ ) 问题。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">v</span><span class="p">;</span>
+<span class="kt">unsigned</span> <span class="n">sz</span> <span class="o">=</span> <span class="n">v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+</code></pre></div><p>        $std::vector::size$ 的返回类型为 $std::vector$&lt;$int$&gt;$::size_-type$ ，后者实际上也是无符号整型。但是这会造成移植性问题，比如在 $64$ 位<code>Windows</code>系统中，前者为 $64$ 位，后者为 $32$ 位。通过使用 $auto$ ，我们可以避免这个问题。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="n">std</span><span class="o">::</span><span class="n">unordered_map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span> <span class="kt">int</span><span class="o">&gt;</span> <span class="n">m</span><span class="p">;</span>
+<span class="k">for</span> <span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span> <span class="kt">int</span><span class="o">&gt;</span> <span class="o">&amp;</span><span class="nl">p</span> <span class="p">:</span> <span class="n">m</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// ...
+</span><span class="c1"></span><span class="p">}</span>
+</code></pre></div><p>        上述代码好像没有问题，而且也能正常运行，但是还是有问题。$std::unordered_-map$ 的 $key$ 是一个常量，但是 $for$ 循环中声明的不是常量。从而编译器需要在每个遍历过程中不断创建临时对象，将该临时对象引用绑定到 $p$ ，并在每次迭代结束后销毁这个临时对象。同样，使用 $auto$ 也可以避免这个问题。</p>
+<h3 id="52-通过显式类型避免错误推导">5.2 通过显式类型避免错误推导</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span> <span class="n">features</span><span class="p">(</span><span class="k">const</span> <span class="n">Widget</span> <span class="o">&amp;</span><span class="n">w</span><span class="p">);</span>
+
+<span class="k">auto</span> <span class="n">highPriority</span> <span class="o">=</span> <span class="n">features</span><span class="p">(</span><span class="n">w</span><span class="p">)[</span><span class="mi">5</span><span class="p">];</span>  <span class="c1">// 应该使用bool显式声明
+</span><span class="c1"></span><span class="n">processWidget</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">highPriority</span><span class="p">);</span>  <span class="c1">// 未定义行为
+</span></code></pre></div><p>        $processWidget$ 是一个未定义行为，因为 $std::vector$&lt;$bool$&gt;$::operator[\ ]$ 不会返回容器元素的引用，而是返回一个 $std::vecotr$&lt;$bool$&gt;$::reference$ 对象，从而 $auto$ 不会推导为 $bool$ 。虽然如此，但是 $reference$ 是可以隐式转换为 $bool$ 的，为什么这里还是未定义行为呢？因为 $reference$ 的行为依赖于具体实现，举例来讲，其中一种实现是包含一个指向结果的指针。这时，我们调用 $features$ ，后者返回一个临时 $vector$ 对象，$reference$ 的成员指针指向这个临时对象中的某个元素。之后临时对象销毁，从而导致 $reference$ 的成员指针变为了悬垂指针。<br>
+        $std::vector$&lt;$bool$&gt;$::reference$ 是代理类的一个应用，一些代理类被设计为对客户可见，比如 $std::shared_-ptr$ 和 $std::unique_-ptr$ ，其他代理类则与之相反。作为一个通则，不可见的代理类不应该使用 $auto$ 。因为这样类型的对象的生命周期通常被设计为不超过一条语句，使用 $auto$ 违反了它们的设计理念。<br>
+        但是实际上，开发者并不知道哪些函数返回的是代理类，往往都是在跟踪一些问题时才能发现代理类。$auto$ 本身没问题，问题是 $auto$ 不会推导出你想要的类型。解决方案是使用另一种类型推导形式，称为<em><strong>显式类型初始化惯用法</strong></em> ( $the$ $explicitly$ $typed$ $initialized$ $idiom$ )。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">auto</span> <span class="n">highPriority</span> <span class="o">=</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="p">(</span><span class="n">features</span><span class="p">(</span><span class="n">w</span><span class="p">)[</span><span class="mi">5</span><span class="p">]);</span>
+</code></pre></div>
+            </div>
+            <div class="meta post-footer">
+                <span>2022 Mar 1 15:15</span>
+                <a href="https://z217blog.cn/post/effectivemoderncpp1/"><i class="fas fa-link"></i> link</a>
+            </div>
+        </div>
         
         <div class="post">
             
@@ -1101,468 +1399,6 @@
             <div class="meta post-footer">
                 <span>2022 Feb 23 13:45</span>
                 <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B20/"><i class="fas fa-link"></i> link</a>
-            </div>
-        </div>
-        
-        <div class="post">
-            
-            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B19/">Unix网络编程（19）：信号量</a></h1>
-            <div class="post-content">
-                
-                
-                <p>        <strong>信号量</strong> ( $semaphore$ ) 是一种用于不同进程间或一个进程内的不同线程间同步的原语。<code>POSIX</code>信号量不必在内核中维护，可能使用文件系统中的某个文件来标识。</p>
-<h2 id="1-有名信号量操作">1. 有名信号量操作</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;semaphore.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 成功返回信号量指针，出错返回SEM_FAILED
-</span><span class="c1"></span><span class="n">sem_t</span> <span class="o">*</span><span class="nf">sem_open</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">,</span> <span class="kt">int</span> <span class="n">oflag</span><span class="p">,</span> <span class="p">...</span>
-  <span class="cm">/* mode_t mode, unsigned int value */</span> <span class="p">);</span>
-</code></pre></div><p>        $sem_-open$ 创建一个有名信号量或者打开一个有名信号量。有名信号量既可以用于线程间同步，又可以用于进程间同步。$oflag$ 参数可以是 $0$ 、$O_-CREAT$ 或 $O_-CREAT$ | $O_-EXCL$ 。如果指定了 $O_-CREAT$ ，那么也要指定权限位 $mode$ 和信号量初始值 $value$ 。信号量初始值不能超过 $SEM_-VALUE_-MAX$ ( 这个常值至少为 $32767$ )。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;semaphore.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cm">/* 成功返回0，出错返回-1 */</span>
-
-<span class="kt">int</span> <span class="nf">sem_close</span><span class="p">(</span><span class="n">sem_t</span> <span class="o">*</span><span class="n">sem</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">sem_unlink</span><span class="p">(</span><span class="n">sem_t</span> <span class="o">*</span><span class="n">sem</span><span class="p">);</span>
-</code></pre></div><p>        当进程终止时，内核会对仍然打开着的有名信号量执行关闭操作。关闭一个信号量只是减少其引用计数，并不会删除。如果想要删除一个信号量，需要调用 $sem_-unlink$ 函数。类似于 $unlink$ ，如果在调用 $sem_-unlink$ 时该信号量引用计数不为 $0$ ，依然会进行删除，但是析构会等到引用计数为 $0$ 时才会发生。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;semaphore.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cm">/* 成功返回0，出错返回-1 */</span>
-
-<span class="kt">int</span> <span class="nf">sem_wait</span><span class="p">(</span><span class="n">sem_t</span> <span class="o">*</span><span class="n">sem</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">sem_trywait</span><span class="p">(</span><span class="n">sem_t</span> <span class="o">*</span><span class="n">sem</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">sem_post</span><span class="p">(</span><span class="n">sem_t</span> <span class="o">*</span><span class="n">sem</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">sem_getvalue</span><span class="p">(</span><span class="n">sem_t</span> <span class="o">*</span><span class="n">sem</span><span class="p">,</span> <span class="kt">int</span> <span class="o">*</span><span class="n">valp</span><span class="p">);</span>
-</code></pre></div><p>        $sem_-wait$ 测试指定信号量的值，如果大于 $0$ ，就将其减 $1$ 并返回；如果不大于 $0$ ，就会阻塞直到该值大于 $0$ ，然后减 $1$ 并返回。如果在阻塞的过程中被中断，$sem_-wait$ 会返回并设置 $EINTR$ 错误。考虑到可能使用同一信号量的其他线程的存在，测试并减 $1$ 这个过程是原子的。$sem_-trywait$ 是 $sem_-wait$ 的非阻塞版本，如果值不大于 $0$ ，它会返回并设置 $EAGAIN$ 错误。<br>
-        当一个线程使用完信号量后，应该调用 $sem_-post$ 函数将信号值加 $1$ 。$sem_-getvalue$ 会在 $valp$ 中返回信号量的当前值。如果信号量非正值，那么返回值可能是 $0$ ，也可能是一个负数，其绝对值为阻塞在该信号量上的线程数。</p>
-<h2 id="2-生产者-消费者问题">2. 生产者-消费者问题</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cp">#define NBUFF 10
-</span><span class="cp">#define SEM_MUTEX &#34;mutex&#34;
-</span><span class="cp">#define SEM_NEMPTY &#34;nempty&#34;
-</span><span class="cp">#define SEM_NSTORED &#34;nstored&#34;
-</span><span class="cp"></span>
-<span class="kt">int</span> <span class="n">nitems</span><span class="p">;</span>  <span class="c1">// read-only by producer and consumer
-</span><span class="c1"></span><span class="k">struct</span> <span class="p">{</span>  <span class="c1">// data shared by producer and consumer
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">buff</span><span class="p">[</span><span class="n">NBUFF</span><span class="p">];</span>
-  <span class="n">sem_t</span> <span class="o">*</span><span class="n">mutex</span><span class="p">,</span> <span class="o">*</span><span class="n">nempty</span><span class="p">,</span> <span class="o">*</span><span class="n">nstored</span><span class="p">;</span>
-<span class="p">}</span> <span class="n">shared</span><span class="p">;</span>
-
-<span class="kt">void</span> <span class="o">*</span><span class="nf">produce</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">);</span>
-<span class="kt">void</span> <span class="o">*</span><span class="nf">consume</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">pthread_t</span> <span class="n">tid_produce</span><span class="p">,</span> <span class="n">tid_consume</span><span class="p">;</span>
-
-  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
-    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: prodcons1 &lt;#items&gt;&#34;</span><span class="p">);</span>
-  <span class="n">nitems</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
-
-  <span class="c1">// create three semaphores
-</span><span class="c1"></span>  <span class="n">shared</span><span class="p">.</span><span class="n">mutex</span> <span class="o">=</span> <span class="n">Sem_open</span><span class="p">(</span><span class="n">SEM_MUTEX</span><span class="p">,</span> <span class="n">O_CREAT</span> <span class="o">|</span> <span class="n">O_EXCL</span><span class="p">,</span>
-                          <span class="n">FILE_MODE</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
-  <span class="n">shared</span><span class="p">.</span><span class="n">nempty</span> <span class="o">=</span> <span class="n">Sem_open</span><span class="p">(</span><span class="n">SEM_NEMPTY</span><span class="p">,</span> <span class="n">O_CREAT</span> <span class="o">|</span> <span class="n">O_EXCL</span><span class="p">,</span>
-                           <span class="n">FILE_MODE</span><span class="p">,</span> <span class="n">NBUFF</span><span class="p">);</span>
-  <span class="n">shared</span><span class="p">.</span><span class="n">nstored</span> <span class="o">=</span> <span class="n">Sem_open</span><span class="p">(</span><span class="n">SEM_NSTORED</span><span class="p">,</span> <span class="n">O_CREAT</span> <span class="o">|</span> <span class="n">O_EXCL</span><span class="p">,</span>
-                            <span class="n">FILE_MODE</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-
-  <span class="c1">// create one producer thread and one consumer thread
-</span><span class="c1"></span>  <span class="n">Set_concurrency</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
-  <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_produce</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">produce</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-  <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-
-  <span class="c1">// wait for the two threads
-</span><span class="c1"></span>  <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_produce</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-  <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-
-  <span class="c1">// remove the semaphores
-</span><span class="c1"></span>  <span class="n">Sem_unlink</span><span class="p">(</span><span class="n">SEM_MUTEX</span><span class="p">);</span>
-  <span class="n">Sem_unlink</span><span class="p">(</span><span class="n">SEM_NEMPTY</span><span class="p">);</span>
-  <span class="n">Sem_unlink</span><span class="p">(</span><span class="n">SEM_NSTORED</span><span class="p">);</span>
-  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-<span class="p">}</span>
-
-<span class="kt">void</span> <span class="o">*</span><span class="nf">produce</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
-
-  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nitems</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">Sem_wait</span><span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>  <span class="c1">// wait for at least 1 empty slot
-</span><span class="c1"></span>    <span class="n">Sem_wait</span><span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-    <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="n">NBUFF</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span><span class="p">;</span>  <span class="c1">// store i into circular buffer
-</span><span class="c1"></span>    <span class="n">Sem_post</span><span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-    <span class="n">Sem_post</span><span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>  <span class="c1">// 1 more stored item
-</span><span class="c1"></span>  <span class="p">}</span>
-  <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="kt">void</span> <span class="o">*</span><span class="nf">consume</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
-
-  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nitems</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">Sem_wait</span><span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>  <span class="c1">// wait for at least 1 stored item
-</span><span class="c1"></span>    <span class="n">Sem_wait</span><span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="n">NBUFF</span><span class="p">[</span> <span class="o">!=</span> <span class="n">i</span><span class="p">)</span>
-      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;buff[%d] = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="n">NBUFF</span><span class="p">]);</span>
-    <span class="n">Sem_post</span><span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-    <span class="n">Sem_post</span><span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>  <span class="c1">// 1 more empty slot
-</span><span class="c1"></span>  <span class="p">}</span>
-  <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div><p>        上述程序声明 $3$ 个信号量。$mutex$ 保护共享缓冲区；$nempty$ 统计共享缓冲区中的空槽数；$nstored$ 统计共享缓冲区中的元素数。</p>
-<h2 id="3-匿名信号量操作">3. 匿名信号量操作</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;semaphore.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cm">/* 成功返回0，出错返回-1 */</span>
-
-<span class="kt">int</span> <span class="nf">sem_init</span><span class="p">(</span><span class="n">sem_t</span> <span class="o">*</span><span class="n">sem</span><span class="p">,</span> <span class="kt">int</span> <span class="n">shared</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">value</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">sem_destroy</span><span class="p">(</span><span class="n">sem_t</span> <span class="o">*</span><span class="n">sem</span><span class="p">);</span>
-</code></pre></div><p>        匿名信号量是存储在内存中的信号量。匿名信号量通过 $sem_-init$ 初始化，如果 $shared$ 为 $0$ ，那么待初始化的信号量是在同一进程的各个线程间共享的，否则该信号量是在进程间共享的。当 $shared$ 为非零值时，信号量必须存放在某种类型的共享内存区中，从而能让多个进程访问。与 $sem_-open$ 一样，$value$ 指定信号量初始值。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cp">#define NBUFF 10
-</span><span class="cp"></span>
-<span class="kt">int</span> <span class="n">nitems</span><span class="p">;</span>  <span class="c1">// read-only by producer and consumer
-</span><span class="c1"></span><span class="k">struct</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">buff</span><span class="p">[</span><span class="n">NBUFF</span><span class="p">];</span>
-  <span class="n">sem_t</span> <span class="n">mutex</span><span class="p">,</span> <span class="n">nempty</span><span class="p">,</span> <span class="n">nstored</span><span class="p">;</span>  <span class="c1">// semaphores, not pointers
-</span><span class="c1"></span><span class="p">}</span> <span class="n">shared</span><span class="p">;</span>
-
-<span class="kt">void</span> <span class="o">*</span><span class="nf">producer</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">),</span> <span class="o">*</span><span class="n">consume</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argc</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">pthread_t</span> <span class="n">tid_produce</span><span class="p">,</span> <span class="n">tid_consume</span><span class="p">;</span>
-
-  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
-    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: prodcons2 &lt;#items&gt;&#34;</span><span class="p">);</span>
-  <span class="n">nitems</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
-
-  <span class="c1">// initialize three semaphores
-</span><span class="c1"></span>  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
-  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">NBUFF</span><span class="p">);</span>
-  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-
-  <span class="n">Set_concurrency</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
-  <span class="n">Pthread_join</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_produce</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">produce</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-  <span class="n">Pthread_join</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-
-  <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_produce</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-  <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-
-  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>
-  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>
-  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-<span class="p">}</span>
-</code></pre></div><h2 id="4-生产者-消费者问题多生产者和单个消费者">4. 生产者-消费者问题：多生产者和单个消费者</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cp">#define NBUFF 10
-</span><span class="cp">#define MAXNTHREADS 100
-</span><span class="cp"></span>
-<span class="kt">int</span> <span class="n">nitems</span><span class="p">,</span> <span class="n">nproducers</span><span class="p">;</span>  <span class="c1">// read-only by producer and consumer
-</span><span class="c1"></span>
-<span class="k">struct</span> <span class="p">{</span>  <span class="c1">// data shared by producers and consumer
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">buff</span><span class="p">[</span><span class="n">NBUFF</span><span class="p">];</span>
-  <span class="kt">int</span> <span class="n">nput</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">nputval</span><span class="p">;</span>
-  <span class="n">sem_t</span> <span class="n">mutex</span><span class="p">,</span> <span class="n">nempty</span><span class="p">,</span> <span class="n">nstored</span><span class="p">;</span>  <span class="c1">// semaphores, not pointers
-</span><span class="c1"></span><span class="p">}</span> <span class="n">shared</span><span class="p">;</span>
-
-<span class="kt">void</span> <span class="o">*</span><span class="nf">produce</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">),</span> <span class="o">*</span><span class="n">consume</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="n">count</span><span class="p">[</span><span class="n">MAXNTHREADS</span><span class="p">];</span>
-  <span class="n">pthread_t</span> <span class="n">tid_produce</span><span class="p">[</span><span class="n">MAXNTHREADS</span><span class="p">],</span> <span class="n">tid_consume</span><span class="p">;</span>
-
-  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">)</span>
-    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: prodcons3 &lt;#items&gt; &lt;#producers&gt;&#34;</span><span class="p">);</span>
-  <span class="n">nitems</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
-  <span class="n">nproducers</span> <span class="o">=</span> <span class="n">mi</span><span class="p">(</span><span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">MAXNTHREADS</span><span class="p">);</span>
-
-  <span class="c1">// initialize three semaphores
-</span><span class="c1"></span>  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
-  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">NBUFF</span><span class="p">);</span>
-  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-
-  <span class="c1">// create all producers and one consumer
-</span><span class="c1"></span>  <span class="n">Set_concurrency</span><span class="p">(</span><span class="n">nproducers</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
-  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nproducers</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">count</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_produce</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">produce</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">count</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
-  <span class="p">}</span>
-  <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-
-  <span class="c1">// wait for all producers and the consumer
-</span><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nproducers</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_produce</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">);</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;count[%d] = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">count</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
-  <span class="p">}</span>
-  <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-
-  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>
-  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>
-  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-<span class="p">}</span>
-
-<span class="kt">void</span> <span class="o">*</span><span class="nf">produce</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
-    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>  <span class="c1">// wait for at least 1 empty slot
-</span><span class="c1"></span>    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-
-    <span class="k">if</span> <span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">nput</span> <span class="o">&gt;=</span> <span class="n">nitems</span><span class="p">)</span> <span class="p">{</span>
-      <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>
-      <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-      <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>  <span class="c1">// all done
-</span><span class="c1"></span>    <span class="p">}</span>
-
-    <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">shared</span><span class="p">.</span><span class="n">nput</span> <span class="o">%</span> <span class="n">NBUFF</span><span class="p">]</span> <span class="o">=</span> <span class="n">shared</span><span class="p">.</span><span class="n">nputval</span><span class="p">;</span>
-    <span class="n">shared</span><span class="p">.</span><span class="n">nput</span><span class="o">++</span><span class="p">;</span>
-    <span class="n">shared</span><span class="p">.</span><span class="n">nputval</span><span class="p">;</span>
-
-    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>  <span class="c1">// 1 more stored item
-</span><span class="c1"></span>    <span class="o">*</span><span class="p">((</span><span class="kt">int</span> <span class="o">*</span><span class="p">)</span> <span class="n">arg</span><span class="p">)</span> <span class="o">+=</span> <span class="mi">1</span><span class="p">;</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-
-<span class="kt">void</span> <span class="o">*</span><span class="nf">consume</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
-
-  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nitems</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>  <span class="c1">// wait for at least 1 stored item
-</span><span class="c1"></span>    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-
-    <span class="k">if</span> <span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="n">NBUFF</span><span class="p">]</span> <span class="o">!=</span> <span class="n">i</span><span class="p">)</span>
-      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;error: buff[%d] = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="n">NBUFF</span><span class="p">]);</span>
-
-    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>  <span class="c1">// 1 more empty slot
-</span><span class="c1"></span>  <span class="p">}</span>
-  <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div><p>        相较于单生产者单消费者的情况，生产者的循环会在放置了 $nitems$ 个值后终止。</p>
-<h2 id="5-生产者-消费者问题多生产者和多消费者">5. 生产者-消费者问题：多生产者和多消费者</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cp">#define NBUFF 10
-</span><span class="cp">#define MAXNTHREADS 100
-</span><span class="cp"></span>
-<span class="kt">int</span> <span class="n">nitems</span><span class="p">,</span> <span class="n">nproducers</span><span class="p">,</span> <span class="n">nconsumers</span><span class="p">;</span>  <span class="c1">// read-only
-</span><span class="c1"></span>
-<span class="k">struct</span> <span class="p">{</span>  <span class="c1">// data shared by producers and consumers
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">buff</span><span class="p">[</span><span class="n">NBUFF</span><span class="p">];</span>
-  <span class="kt">int</span> <span class="n">nput</span><span class="p">;</span>  <span class="c1">// item number
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">nputval</span><span class="p">;</span>  <span class="c1">// value to store in buff[]
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">nget</span><span class="p">;</span>  <span class="c1">// item number
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ngetval</span><span class="p">;</span>  <span class="c1">// value fetched from buff[]
-</span><span class="c1"></span>  <span class="n">sem_t</span> <span class="n">mutex</span><span class="p">,</span> <span class="n">nempty</span><span class="p">,</span> <span class="n">nstored</span><span class="p">;</span>  <span class="c1">// semaphores
-</span><span class="c1"></span><span class="p">}</span> <span class="n">shared</span><span class="p">;</span>
-
-<span class="kt">void</span> <span class="o">*</span><span class="nf">produce</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">),</span> <span class="o">*</span><span class="n">consume</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="n">prodcount</span><span class="p">[</span><span class="n">MAXNTHREADS</span><span class="p">],</span> <span class="n">conscount</span><span class="p">[</span><span class="n">MAXNTHREADS</span><span class="p">];</span>
-  <span class="n">pthread_t</span> <span class="n">tid_produce</span><span class="p">[</span><span class="n">MAXNTHREADS</span><span class="p">],</span> <span class="n">tid_consume</span><span class="p">[</span><span class="n">MAXNTHREADS</span><span class="p">];</span>
-
-  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">)</span>
-    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: prodcons4 &lt;#items&gt; &lt;#producers&gt; &lt;#consumers&gt;&#34;</span><span class="p">);</span>
-  <span class="n">nitems</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
-  <span class="n">nproducers</span> <span class="o">=</span> <span class="n">min</span><span class="p">(</span><span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">MAXNTHREADS</span><span class="p">);</span>
-  <span class="n">nconsumers</span> <span class="o">=</span> <span class="n">min</span><span class="p">(</span><span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span> <span class="n">MAXNTHREADS</span><span class="p">);</span>
-
-  <span class="c1">// initalize three semaphores
-</span><span class="c1"></span>  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
-  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">NBUFF</span><span class="p">);</span>
-  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-
-  <span class="c1">// create all producers and all consumers
-</span><span class="c1"></span>  <span class="n">Set_concurrency</span><span class="p">(</span><span class="n">nproducers</span> <span class="o">+</span> <span class="n">nconsumers</span><span class="p">);</span>
-  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nproducers</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">prodcount</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_produce</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">produce</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">prodcount</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
-  <span class="p">}</span>
-  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nconsumers</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">conscount</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_consume</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">consume</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">conscont</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
-  <span class="p">}</span>
-
-  <span class="c1">// wait for all producers and all consumers
-</span><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span> <span class="n">nproducers</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_produce</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">);</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;producer count[%d] = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">prodcount</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
-  <span class="p">}</span>
-  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nconsumers</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_consume</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">);</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;consumer count[%d] = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">conscount</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
-  <span class="p">}</span>
-
-  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>
-  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>
-  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-<span class="p">}</span>
-
-<span class="kt">void</span> <span class="o">*</span><span class="nf">produce</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
-    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>  <span class="c1">// wait for at least 1 empty slot
-</span><span class="c1"></span>    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-
-    <span class="k">if</span> <span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">nput</span> <span class="o">&gt;=</span> <span class="n">nitems</span><span class="p">)</span> <span class="p">{</span>
-      <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>  <span class="c1">// let consumers terminate
-</span><span class="c1"></span>      <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>
-      <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-      <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>  <span class="c1">// all done
-</span><span class="c1"></span>    <span class="p">}</span>
-
-    <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">shared</span><span class="p">.</span><span class="n">nput</span> <span class="o">%</span> <span class="n">NBUFF</span><span class="p">]</span> <span class="o">=</span> <span class="n">shared</span><span class="p">.</span><span class="n">nputval</span><span class="p">;</span>
-    <span class="n">shared</span><span class="p">.</span><span class="n">nput</span><span class="o">++</span><span class="p">;</span>
-    <span class="n">shared</span><span class="p">.</span><span class="n">nputval</span><span class="o">++</span><span class="p">;</span>
-
-    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>  <span class="c1">// 1 more stored item
-</span><span class="c1"></span>    <span class="o">*</span><span class="p">((</span><span class="kt">int</span> <span class="o">*</span><span class="p">)</span> <span class="n">arg</span><span class="p">)</span> <span class="o">+=</span> <span class="mi">1</span><span class="p">;</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-
-<span class="kt">void</span> <span class="o">*</span><span class="nf">consume</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
-
-  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
-    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>  <span class="c1">// wait for at least 1 stored item
-</span><span class="c1"></span>    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shard</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-
-    <span class="k">if</span> <span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">nget</span> <span class="o">&gt;=</span> <span class="n">nitems</span><span class="p">)</span> <span class="p">{</span>
-      <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>
-      <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-      <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>  <span class="c1">// all done
-</span><span class="c1"></span>    <span class="p">}</span>
-    <span class="n">i</span> <span class="o">=</span> <span class="n">shared</span><span class="p">.</span><span class="n">nget</span> <span class="o">%</span> <span class="n">NBUFF</span><span class="p">;</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="n">shared</span><span class="p">.</span><span class="n">ngetval</span><span class="p">)</span>
-      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;error: buff[%d] = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
-    <span class="n">shared</span><span class="p">.</span><span class="n">nget</span><span class="o">++</span><span class="p">;</span>
-    <span class="n">shared</span><span class="p">.</span><span class="n">ngetval</span><span class="o">++</span><span class="p">;</span>
-
-    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>  <span class="c1">// 1 more empty slot
-</span><span class="c1"></span>    <span class="o">*</span><span class="p">((</span><span class="kt">int</span> <span class="o">*</span><span class="p">)</span> <span class="n">arg</span><span class="p">)</span> <span class="o">+=</span> <span class="mi">1</span><span class="p">;</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div><p>        这里的生产者函数增添了一行，在检测到已经生产了 $nitems$ 个数据后，为了唤醒阻塞在 $nstored$ 上的线程，会在线程终止前递增 $nstored$ 信号值。同时我们修改消费者函数，每次消费前比较 $nget$ 和 $nitems$ ，确定是否完成所有消费。</p>
-<h2 id="6-多缓冲区">6. 多缓冲区</h2>
-<p>        在一些处理数据的程序中，我们可能会用到以下形式的循环：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">while</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="n">fdin</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">BUFFSIZE</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-  <span class="cm">/* process the data */</span>
-  <span class="n">write</span><span class="p">(</span><span class="n">fdout</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">n</span><span class="p">);</span>
-<span class="p">}</span>
-</code></pre></div><p>        以上循环读入一行文件，并对其处理，然后写回一行输出。我们可以考虑将这个操作分为两个线程，一个线程负责读，另一个负责写。表面上看这可以改善程序的运行，其实不然，因为我们使用的还是同一个缓冲区，写线程还是要等待读线程完成。为了解决这个问题，我们可以使用两个缓冲区。同时，要注意大多数<code>Unix</code>内核检测出对一个文件的顺序读之后，不仅会读出我们需要的磁盘块的内容，还会顺便读取下一个磁盘块的内容，从而可以改善下次读取的操作时间。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cp">#define NBUFF 8
-</span><span class="cp"></span>
-<span class="k">struct</span> <span class="p">{</span>  <span class="c1">// data shared by producer and consumer
-</span><span class="c1"></span>  <span class="k">struct</span> <span class="p">{</span>
-    <span class="kt">char</span> <span class="n">data</span><span class="p">[</span><span class="n">BUFFSIZE</span><span class="p">];</span>  <span class="c1">// a buffer
-</span><span class="c1"></span>    <span class="n">ssize_t</span> <span class="n">n</span><span class="p">;</span>  <span class="c1">// count of #bytes in the buffer
-</span><span class="c1"></span>  <span class="p">}</span> <span class="n">buff</span> <span class="p">[</span><span class="n">NBUFF</span><span class="p">];</span>  <span class="c1">// NBUFF of these buffers/counts
-</span><span class="c1"></span>  <span class="n">sem_t</span> <span class="n">mutex</span><span class="p">,</span> <span class="n">nempty</span><span class="p">,</span> <span class="n">nstored</span><span class="p">;</span>  <span class="c1">// semaphores
-</span><span class="c1"></span><span class="p">}</span> <span class="n">shared</span><span class="p">;</span>
-
-<span class="kt">int</span> <span class="n">fd</span><span class="p">;</span>  <span class="c1">// input file to copy to stdout
-</span><span class="c1"></span><span class="kt">void</span> <span class="o">*</span><span class="nf">produce</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">),</span> <span class="o">*</span><span class="n">consume</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">pthread_t</span> <span class="n">tid_produce</span><span class="p">,</span> <span class="n">tid_consume</span><span class="p">;</span>
-
-  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
-    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: mycat2 &lt;pathname&gt;&#34;</span><span class="p">);</span>
-
-  <span class="n">fd</span> <span class="o">=</span> <span class="n">Open</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">O_RDONLY</span><span class="p">);</span>
-
-  <span class="c1">// initalize three semaphores
-</span><span class="c1"></span>  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
-  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">NBUFF</span><span class="p">);</span>
-  <span class="n">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-
-  <span class="c1">// one producer thread, one consumer thread
-</span><span class="c1"></span>  <span class="n">Set_concurrency</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
-  <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_produce</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">produce</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>  <span class="c1">// reader thread
-</span><span class="c1"></span>  <span class="n">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>  <span class="c1">// writer thread
-</span><span class="c1"></span>
-  <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_produce</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-  <span class="n">Pthread_join</span><span class="p">(</span><span class="n">tid_consume</span><span class="p">.</span> <span class="nb">NULL</span><span class="p">);</span>
-
-  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>
-  <span class="n">Sem_destroy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>
-  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-<span class="p">}</span>
-
-<span class="kt">void</span> <span class="o">*</span><span class="nf">produce</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
-
-  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="p">;</span> <span class="p">)</span> <span class="p">{</span>
-    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>  <span class="c1">// wait for at least 1 empty slot
-</span><span class="c1"></span>    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-    <span class="c1">// critical region
-</span><span class="c1"></span>    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-
-    <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">n</span> <span class="o">=</span> <span class="n">Read</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">data</span><span class="p">,</span> <span class="n">BUFFSIZE</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-      <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>  <span class="c1">// 1 more stored item
-</span><span class="c1"></span>      <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="k">if</span> <span class="p">(</span><span class="o">++</span><span class="n">i</span> <span class="o">&gt;=</span> <span class="n">NBUFF</span><span class="p">)</span>
-      <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// circular buffer
-</span><span class="c1"></span>
-    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>  <span class="c1">// 1 more stored item
-</span><span class="c1"></span>  <span class="p">}</span>
-<span class="p">}</span>
-
-<span class="kt">void</span> <span class="o">*</span><span class="nf">consume</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
-
-  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="p">;</span> <span class="p">)</span> <span class="p">{</span>
-    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nstored</span><span class="p">);</span>  <span class="c1">// wait for at least 1 stored item
-</span><span class="c1"></span>    <span class="n">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-    <span class="c1">// critical region
-</span><span class="c1"></span>    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
-
-    <span class="k">if</span> <span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
-      <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>
-    <span class="n">Write</span><span class="p">(</span><span class="n">STDOUT_FILENO</span><span class="p">,</span> <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">data</span><span class="p">,</span> <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">n</span><span class="p">);</span>
-    <span class="k">if</span><span class="p">(</span><span class="o">++</span><span class="n">i</span> <span class="o">&gt;=</span> <span class="n">NBUFF</span><span class="p">)</span>
-      <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// circular buffer
-</span><span class="c1"></span>
-    <span class="n">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">nempty</span><span class="p">);</span>  <span class="c1">// 1 more empty slot
-</span><span class="c1"></span>  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div><p>        本例子中由 $mutex$ 锁住的临界区是空的，如果我们的数据以链表形式而不是数组形式存储，那么这块区域可用于操作链表。</p>
-<h2 id="7-信号量限制">7. 信号量限制</h2>
-<p>        <code>POSIX</code>定义了两个信号量限制：</p>
-<ul>
-<li>$SEM_-NSEMS_-MAX$ ：一个进程可同时打开着的最大信号量 ( <code>POSIX</code>要求至少为 $256$ )；</li>
-<li>$SEM_-VALUE_-MAX$ ：一个信号量的最大值 ( <code>POSIX</code>要求至少为 $32767$ )。</li>
-</ul>
-<p>        这两个常值通常定义在 &lt;$unistd.h$&gt; 头文件中。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;SEM_NSEMS_MAX = %ld, SEM_VALUE_MAX = %ld</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span>
-    <span class="n">Sysconf</span><span class="p">(</span><span class="n">_SC_SEM_NSEMS_MAX</span><span class="p">),</span> <span class="n">Sysconf</span><span class="p">(</span><span class="n">_SC_SEM_VALUE_MAX</span><span class="p">));</span>
-  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-<span class="p">}</span>
-</code></pre></div>
-            </div>
-            <div class="meta post-footer">
-                <span>2022 Feb 21 16:43</span>
-                <a href="https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B19/"><i class="fas fa-link"></i> link</a>
             </div>
         </div>
         
