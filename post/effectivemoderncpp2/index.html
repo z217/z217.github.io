@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/jquery.floatingscroll.css>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+    integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <script src=https://z217blog.cn/js/jquery.floatingscroll.min.js></script>
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="/friend" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">EffectiveModernCpp（2）：使用现代C&#43;&#43;语法</h1>
+
+
+
+
+<h2 id="1-初始化">1. 初始化</h2>
+<p>        从不同的角度来看，<code>C++11</code>的初始化语法丰富却又混乱。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="kt">int</span> <span class="nf">w</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>  <span class="c1">// 小括号初始化
+</span><span class="c1"></span><span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// =初始化
+</span><span class="c1"></span><span class="kt">int</span> <span class="n">y</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>  <span class="c1">// 花括号初始化
+</span><span class="c1"></span><span class="kt">int</span> <span class="n">z</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">};</span>  <span class="c1">// =和花括号初始化
+</span></code></pre></div><p>        在通常情况下，后面两种是等价的。对于 $int$ 这种内置类型而言，这些初始化方式通常没有什么太大区别。但是对于用户类型而言，理解它们的区别很重要。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="n">Widget</span> <span class="n">w1</span><span class="p">;</span>  <span class="c1">// 默认构造函数
+</span><span class="c1"></span><span class="n">Widget</span> <span class="n">w2</span> <span class="o">=</span> <span class="n">w1</span><span class="p">;</span>  <span class="c1">// 拷贝构造函数
+</span><span class="c1"></span><span class="n">w1</span> <span class="o">=</span> <span class="n">w2</span><span class="p">;</span>  <span class="c1">// 调用operator=
+</span></code></pre></div><p>        <code>C++</code>使用<strong>统一初始化</strong> ( $uniform$ $initialization$ ) 来整合这些混乱的初始化语法。所谓统一初始化即使用单一初始化语法，是基于花括号的初始化。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">v</span><span class="p">{</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">};</span>
+
+<span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">ai1</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+<span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">ai2</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">ai3</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// 错误
+</span><span class="c1"></span>
+<span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
+  <span class="c1">// ...
+</span><span class="c1"></span><span class="k">private</span><span class="o">:</span>
+  <span class="kt">int</span> <span class="n">x</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+  <span class="kt">int</span> <span class="n">y</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="nf">z</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>  <span class="c1">// 错误
+</span><span class="c1"></span><span class="p">};</span>
+</code></pre></div><p>        可以发现，相比于其他初始化方法，使用花括号的初始化方式在任何地方都成立，这也是为什么它被称为统一初始化。<br>
+        花括号初始化还具备其他初始化不具有的特性——不允许内置类型的隐式<em><strong>变窄转换</strong></em> ( $narrowing$ $conversion$ )。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="kt">double</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">;</span>
+<span class="kt">int</span> <span class="nf">sum1</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">y</span> <span class="o">+</span> <span class="n">z</span><span class="p">);</span>
+<span class="kt">int</span> <span class="n">sum2</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span> <span class="o">+</span> <span class="n">z</span><span class="p">;</span>
+<span class="kt">int</span> <span class="n">sum3</span><span class="p">{</span><span class="n">x</span> <span class="o">+</span> <span class="n">y</span> <span class="o">+</span> <span class="n">z</span><span class="p">};</span>  <span class="c1">// 错误
+</span></code></pre></div><p>        此外，使用花括号初始化还可以避免<code>C++</code>的一个问题。这个问题的根源是<code>C++</code>规定所有能被认为是一个声明的语句都视为声明。从而会导致以下情况：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="n">Widget</span> <span class="nf">w1</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>  <span class="c1">// 初始化
+</span><span class="c1"></span><span class="n">Widget</span> <span class="nf">w2</span><span class="p">();</span>  <span class="c1">// 函数声明
+</span></code></pre></div><p>        本来是想调用默认构造函数的，结果却变成了一个函数声明。但是使用花括号初始化就不会有这个问题：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="n">Widget</span> <span class="n">w3</span><span class="p">{};</span>  <span class="c1">// 初始化
+</span></code></pre></div><p>        当然，花括号初始化也存在缺点，主要是与 $std::initializer_-list$ 相关的问题。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+  <span class="n">Widget</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">b</span><span class="p">);</span>
+  <span class="n">Widget</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="kt">double</span> <span class="n">d</span><span class="p">);</span>
+  <span class="n">Widget</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">initializer_list</span><span class="o">&lt;</span><span class="kt">long</span> <span class="kt">double</span><span class="o">&gt;</span> <span class="n">il</span><span class="p">);</span>
+  <span class="k">operator</span> <span class="nf">float</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
+  <span class="c1">// ...
+</span><span class="c1"></span><span class="p">};</span>
+
+<span class="n">Widget</span> <span class="nf">w1</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="nb">true</span><span class="p">);</span>  <span class="c1">// 调用第一个构造函数
+</span><span class="c1"></span><span class="n">Widget</span> <span class="nf">w2</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">);</span>  <span class="c1">// 调用第二个构造函数
+</span><span class="c1"></span><span class="n">Widget</span> <span class="n">w3</span><span class="p">{</span><span class="mi">10</span><span class="p">,</span> <span class="nb">true</span><span class="p">};</span> <span class="c1">// 调用第三个构造函数
+</span><span class="c1"></span><span class="n">Widget</span> <span class="n">w4</span><span class="p">{</span><span class="mi">10</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">};</span> <span class="c1">// 调用第三个构造函数
+</span><span class="c1"></span>
+<span class="n">Widget</span> <span class="nf">w5</span><span class="p">(</span><span class="n">w4</span><span class="p">);</span>  <span class="c1">// 拷贝构造函数
+</span><span class="c1"></span><span class="n">Widget</span> <span class="n">w6</span><span class="p">{</span><span class="n">w4</span><span class="p">};</span>  <span class="c1">// 调用第三个构造函数
+</span><span class="c1"></span>
+<span class="n">Widget</span> <span class="nf">w7</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">w4</span><span class="p">));</span>  <span class="c1">// 移动构造函数
+</span><span class="c1"></span><span class="n">Widget</span> <span class="n">w8</span><span class="p">{</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">w4</span><span class="p">)};</span>  <span class="c1">// 调用第三个构造函数
+</span></code></pre></div><p>        可以发现，当存在使用 $initializer_-list$ 的构造函数时，花括号初始化总是会优先选择该构造函数。只有当实在无法选择该构造函数时，才会进入正常的构造函数选择中：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+  <span class="n">Widget</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">b</span><span class="p">);</span>
+  <span class="n">Widget</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="kt">double</span> <span class="n">d</span><span class="p">);</span>
+  <span class="n">Widget</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">initializer_list</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span> <span class="n">il</span><span class="p">);</span>
+  <span class="c1">// ...
+</span><span class="c1"></span><span class="p">};</span>
+
+<span class="n">Widget</span> <span class="n">w1</span><span class="p">{</span><span class="mi">10</span><span class="p">,</span> <span class="nb">true</span><span class="p">};</span>  <span class="c1">// 调用第一个构造函数
+</span><span class="c1"></span><span class="n">Widget</span> <span class="n">w2</span><span class="p">{</span><span class="mi">10</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">};</span>  <span class="c1">// 调用第二个构造函数
+</span></code></pre></div><p>        这里还有一个边缘情况，那就是空的花括号。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+  <span class="n">Widget</span><span class="p">();</span>
+  <span class="n">Widget</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">initializer_list</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">il</span><span class="p">);</span>
+  <span class="c1">// ...
+</span><span class="c1"></span><span class="p">};</span>
+
+<span class="n">Widget</span> <span class="n">w1</span><span class="p">;</span>  <span class="c1">// 默认构造函数
+</span><span class="c1"></span><span class="n">Widget</span> <span class="n">w2</span><span class="p">{};</span>  <span class="c1">// 默认构造函数
+</span><span class="c1"></span><span class="n">Widget</span> <span class="nf">w3</span><span class="p">();</span>  <span class="c1">// 函数声明
+</span></code></pre></div><p>        空的花括号意味没有实参，而不是空的 $initializer_-list$ ，从而会调用默认构造函数。如果想在这种情况下调用初始化列表形式的构造函数，需要创建一个实参：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="n">Widget</span> <span class="nf">w4</span><span class="p">({});</span>  <span class="c1">// 调用第二个构造函数
+</span><span class="c1"></span><span class="n">Widget</span> <span class="n">w5</span><span class="p">{{}};</span>  <span class="c1">// 调用第二个构造函数
+</span></code></pre></div><p>        如果你是一个模版的作者，那么花括号和小括号初始化方式会存在更麻烦的问题。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">Ts</span><span class="o">&gt;</span>
+<span class="kt">void</span> <span class="n">doSomeWork</span><span class="p">(</span><span class="n">Ts</span><span class="o">&amp;&amp;</span><span class="p">...</span> <span class="n">params</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// create T object from params
+</span><span class="c1"></span><span class="p">}</span>
+
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">v</span><span class="p">;</span>
+<span class="n">doSomeWork</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&gt;</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">);</span>
+<span class="n">doSomeWork</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&gt;</span><span class="p">{</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">};</span>
+</code></pre></div><p>        上面两种调用方式的结果是不同的，前者的 $vector$ 大小为 $10$ 而后者为 $2$ 。所以，对于开发者来说，规范一个正确的用法很重要。标准库的 $std::make_-unique$ 和 $std::make_-shared$ 选择的解决方案是统一使用小括号，并记录在文档中作为接口的一部分。</p>
+<h2 id="2-nullptr">2. <code>nullptr</code></h2>
+<p>        一般来讲，<code>C++</code>会优先将 $0$ 看作 $int$ 而不是指针。对于 $NULL$ ，它没有一个确切的类型，它的类型取决于实现。在<code>C++98</code>中，对指针类型和整数进行重载可能会导致异常情况：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="kt">void</span> <span class="nf">f</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+<span class="kt">void</span> <span class="nf">f</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
+<span class="kt">void</span> <span class="nf">f</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">);</span>
+
+<span class="n">f</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>  <span class="c1">// f(int)
+</span><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="nb">NULL</span><span class="p">);</span>  <span class="c1">// 可能会编译失败，一般来说会调用f(int)
+</span></code></pre></div><p>        这段代码的行为取决于 $NULL$ 实现，如果 $NULL$ 为 $0L$ ，那么就存在二义性，因为它可以转为 $int$ 、$bool$ 和 $void$ $\star$ 中的任意一个。这种行为的存在使得<code>C++98</code>程序员都会尽量避免同时重载整型和指针。<br>
+        <code>C++11</code>新增了 $nullptr$ 。$nullptr$ 的优点是它不是整型，严格来讲它也不是指针，真正的类型是 $std::nullptr_-t$ ，并且经过循环定义，它又被定义为 $nullptr$ 。$nullptr$ 可以转换为任何指向内置类型的指针。而且可以避开使用 $NULL$ 时带来的问题：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="n">f</span><span class="p">(</span><span class="k">nullptr</span><span class="p">);</span>  <span class="c1">// f(void *)
+</span></code></pre></div><p>        $nullptr$ 应用于模版时就更有用了。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">FuncType</span><span class="p">,</span> <span class="k">typename</span> <span class="n">MuxType</span><span class="p">,</span>
+         <span class="k">typename</span> <span class="n">PtrType</span><span class="o">&gt;</span>
+<span class="k">auto</span> <span class="n">lockAndCall</span><span class="p">(</span><span class="n">FuncType</span> <span class="n">func</span><span class="p">,</span> <span class="n">MuxType</span> <span class="o">&amp;</span><span class="n">mutex</span><span class="p">,</span>
+    <span class="n">PtrType</span> <span class="n">ptr</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="k">decltype</span><span class="p">(</span><span class="n">func</span><span class="p">(</span><span class="n">ptr</span><span class="p">))</span> <span class="p">{</span>
+  <span class="n">MuxGuard</span> <span class="nf">g</span><span class="p">(</span><span class="n">mutex</span><span class="p">);</span>
+  <span class="k">return</span> <span class="nf">func</span><span class="p">(</span><span class="n">ptr</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">f1</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="n">spw</span><span class="p">);</span>
+<span class="kt">double</span> <span class="nf">f2</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="n">upw</span><span class="p">);</span>
+<span class="kt">bool</span> <span class="nf">f3</span><span class="p">(</span><span class="n">Widget</span> <span class="o">*</span><span class="n">pw</span><span class="p">);</span>
+
+<span class="n">std</span><span class="o">::</span><span class="n">mutex</span> <span class="n">f1m</span><span class="p">,</span> <span class="n">f2m</span><span class="p">,</span> <span class="n">f3m</span><span class="p">;</span>  <span class="c1">// 用于不同函数的互斥量
+</span><span class="c1"></span><span class="k">using</span> <span class="n">MuxGuard</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="p">;</span>
+
+<span class="k">auto</span> <span class="n">result1</span> <span class="o">=</span> <span class="n">lockAndCall</span><span class="p">(</span><span class="n">f1</span><span class="p">,</span> <span class="n">f1m</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>  <span class="c1">// 错误
+</span><span class="c1"></span><span class="k">auto</span> <span class="n">result2</span> <span class="o">=</span> <span class="n">lockAndCall</span><span class="p">(</span><span class="n">f2</span><span class="p">,</span> <span class="n">f2m</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>  <span class="c1">// 错误
+</span><span class="c1"></span><span class="k">auto</span> <span class="n">result3</span> <span class="o">=</span> <span class="n">lockAndCall</span><span class="p">(</span><span class="n">f3</span><span class="p">,</span> <span class="n">f3m</span><span class="p">,</span> <span class="k">nullptr</span><span class="p">);</span>
+</code></pre></div><p>        前两个调用不能通过编译。在第一个调用中，$0$ 会被推导为 $int$ ，而 $f1$ 并不接受 $int$ 类型。同理，第二个调用中 $f2$ 也不接收整型。</p>
+<h2 id="3-using">3. <code>using</code></h2>
+<p>        通过别名声明，我们可以简化一些声明：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">typedef</span> <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">unordered_map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;&gt;</span>
+  <span class="n">UPtrMapSS</span><span class="p">;</span>
+<span class="k">using</span> <span class="n">UPtrMapSS</span> <span class="o">=</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">unordered_map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;&gt;</span><span class="p">;</span>
+</code></pre></div><p>        这里 $typedef$ 和 $using$ 的作用相同。在大部分情况下，这两个关键字都可以互相替换。但是碰到模版时就不行了，因为 $using$ 可以被模版化。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+<span class="k">using</span> <span class="n">MyAllocaList</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">list</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">MyAlloc</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="p">;</span>
+
+<span class="n">MyAllocList</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="n">lw</span><span class="p">;</span>
+</code></pre></div><p>        而 $typedef$ 只能这样使用：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+<span class="k">struct</span> <span class="nc">MyAllocList</span> <span class="p">{</span>
+  <span class="k">typedef</span> <span class="n">std</span><span class="o">::</span><span class="n">list</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">MyAlloc</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="n">type</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="n">MyAllocList</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;::</span><span class="n">type</span> <span class="n">lw</span><span class="p">;</span>
+</code></pre></div><p>        对于一些使用 $typedef$ 的老代码，我们也可以使用 $using$ 修改：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+<span class="k">using</span> <span class="n">MyAllocList_t</span> <span class="o">=</span> <span class="n">MyAllocList</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">type</span><span class="p">;</span>
+</code></pre></div><h2 id="4-限域枚举">4. 限域枚举</h2>
+<p>        <strong>未限域枚举</strong> ( $unscoped$ $enum$ ) 的枚举名作用于与 $enum$ 域一致。<code>C++11</code>中引入了<strong>限域枚举</strong> ( $scoped$ $enum$ )，它不会导致枚举名泄露：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">enum</span> <span class="nc">Color1</span> <span class="p">{</span> <span class="n">black</span><span class="p">,</span> <span class="n">white</span><span class="p">,</span> <span class="n">red</span> <span class="p">};</span>  <span class="c1">// 未限域枚举
+</span><span class="c1"></span><span class="k">auto</span> <span class="n">white</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>  <span class="c1">// 错误
+</span><span class="c1"></span>
+<span class="k">enum</span> <span class="k">class</span> <span class="nc">Color2</span> <span class="p">{</span> <span class="n">black</span><span class="p">,</span> <span class="n">white</span><span class="p">,</span> <span class="n">red</span> <span class="p">};</span>  <span class="c1">// 限域枚举
+</span><span class="c1"></span><span class="n">Color2</span> <span class="n">c</span> <span class="o">=</span> <span class="n">Color2</span><span class="o">::</span><span class="n">white</span><span class="p">;</span>
+</code></pre></div><p>        限域枚举通过 $enum$ $class$ 声明，所以也被称为<strong>枚举类</strong> ( $enum$ $class$ )。使用限域枚举减少命名空间污染已经是一个足够吸引人使用它的理由了，但它还有第二个优点：在它的作用于中，枚举名是强类型。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">size_t</span><span class="o">&gt;</span> <span class="n">primeFactors</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">x</span><span class="p">);</span>
+
+<span class="k">enum</span> <span class="k">class</span> <span class="nc">Color</span> <span class="p">{</span> <span class="n">black</span><span class="p">,</span> <span class="n">white</span><span class="p">,</span> <span class="n">red</span> <span class="p">};</span>
+<span class="n">Color</span> <span class="n">c</span> <span class="o">=</span> <span class="n">Color</span><span class="o">::</span><span class="n">red</span><span class="p">;</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="n">c</span> <span class="o">&lt;</span> <span class="mf">14.5</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// 错误
+</span><span class="c1"></span>  <span class="k">auto</span> <span class="n">factors</span> <span class="o">=</span> <span class="n">primeFactors</span><span class="p">(</span><span class="n">c</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><p>        如果真的需要将枚举类型像上面这样使用，需要进行类型转换：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">if</span> <span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">14.5</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">auto</span> <span class="n">factors</span> <span class="o">=</span> <span class="n">primeFactors</span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">size_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">c</span><span class="p">));</span>
+<span class="p">}</span>
+</code></pre></div><p>        除了限域枚举之外，<code>C++11</code>还允许枚举的前置声明。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">enum</span> <span class="k">class</span> <span class="nc">Status</span><span class="p">;</span>
+<span class="kt">void</span> <span class="nf">continueProcessing</span><span class="p">(</span><span class="n">Status</span> <span class="n">s</span><span class="p">);</span>
+</code></pre></div><p>        你可以在不给出一个枚举定义的前提下使用该枚举类型。在<code>C++11</code>以前，枚举的前置声明并不允许，因为编译器需要根据枚举值确定枚举实际使用的类型，比如 $char$ 、$int$ 等。为了高效使用内存，编译器通常在确保能包含所有枚举值的前提下为枚举选择一个最小的基础类型。而在<code>C++11</code>中，如果使用前置声明，那么枚举默认会是 $int$ 。如果想要指定类型，可以通过如下方式：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">enum</span> <span class="k">class</span> <span class="nc">Status</span><span class="o">:</span> <span class="n">std</span><span class="o">::</span><span class="kt">uint32_t</span><span class="p">;</span>
+<span class="k">enum</span> <span class="nc">Color</span><span class="o">:</span> <span class="n">std</span><span class="o">::</span><span class="kt">uint8_t</span><span class="p">;</span>
+</code></pre></div><p>        也可以结合定义一起声明：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">enum</span> <span class="k">class</span> <span class="nc">Status</span><span class="o">:</span> <span class="n">std</span><span class="o">::</span><span class="kt">uint32_t</span> <span class="p">{</span>
+  <span class="n">good</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+  <span class="n">failed</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="p">};</span>
+</code></pre></div><p>        虽然大部分情况下限域枚举更好，但是也存在着非限域枚举更好的情况：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">using</span> <span class="n">UserInfo</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">tuple</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span>  <span class="c1">// 名字
+</span><span class="c1"></span>                            <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span>  <span class="c1">// email
+</span><span class="c1"></span>                            <span class="n">std</span><span class="o">::</span><span class="n">size_t</span><span class="o">&gt;</span><span class="p">;</span>  <span class="c1">// 声望
+</span></code></pre></div><p>        上面的 $tuple$ 类型每个字段都有不同的含义。字段较少的时候还好，但是一旦变多，记忆哪些字段的含义是什么就很难了。我们可以使用枚举简化：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">enum</span> <span class="nc">UserInfoFields</span> <span class="o">=</span> <span class="p">{</span> <span class="n">uiName</span><span class="p">,</span> <span class="n">uiEmail</span><span class="p">,</span> <span class="n">uiReputation</span> <span class="p">};</span>
+<span class="n">UserInfo</span> <span class="n">uInfo</span><span class="p">;</span>
+<span class="c1">// ...
+</span><span class="c1"></span><span class="k">auto</span> <span class="n">val</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">get</span><span class="o">&lt;</span><span class="n">uiEmail</span><span class="o">&gt;</span><span class="p">(</span><span class="n">uInfo</span><span class="p">);</span>
+</code></pre></div><p>        $uiEmail$ 被隐式转换为 $std::size_-t$ ，从而获取了邮箱。而如果使用限域枚举，我们就不得不加入类型转换。</p>
+<h2 id="5-函数delete">5. 函数<code>delete</code></h2>
+<p>        <code>C++</code>编译器会在类缺少某些函数时自动声明，比如默认构造函数、拷贝构造函数等。但是有时候，我们不想让客户调用这些函数。在<code>C++98</code>中，常见的办法是将它们声明为私有成员函数。例如，<code>C++</code>标准库 $iostream$ 的继承链顶部是模版类 $basic_-ios$ ，所有的 $istream$ 和 $ostream$ 都继承自此类，拷贝它们是不合适的。<code>C++98</code>是这样处理的：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">charT</span><span class="p">,</span> <span class="k">class</span> <span class="nc">traits</span> <span class="o">=</span> <span class="n">char_traits</span><span class="o">&lt;</span><span class="n">charT</span><span class="o">&gt;</span> <span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">basic_ios</span> <span class="o">:</span> <span class="k">public</span> <span class="n">ios_base</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+  <span class="c1">// ...
+</span><span class="c1"></span><span class="k">private</span><span class="o">:</span>
+  <span class="n">basic_ios</span><span class="p">(</span><span class="k">const</span> <span class="n">basic_ios</span> <span class="o">&amp;</span><span class="p">);</span>
+  <span class="n">basic_ios</span> <span class="o">&amp;</span><span class="k">operator</span><span class="o">=</span><span class="p">(</span><span class="k">const</span> <span class="n">basic_ios</span> <span class="o">&amp;</span><span class="p">);</span>
+<span class="p">};</span>
+</code></pre></div><p>        声明为私有成员且不定义，可以防止客户调用它们。<code>C++11</code>提供了一种更好的方式：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">charT</span><span class="p">,</span> <span class="k">class</span> <span class="nc">traits</span> <span class="o">=</span> <span class="n">char_traits</span><span class="o">&lt;</span><span class="n">charT</span><span class="o">&gt;</span> <span class="o">&gt;</span>
+<span class="k">class</span> <span class="nc">basic_ios</span> <span class="o">:</span> <span class="k">public</span> <span class="n">ios_base</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+  <span class="c1">// ...
+</span><span class="c1"></span>  <span class="n">basic_ios</span><span class="p">(</span><span class="k">const</span> <span class="n">basic_ios</span> <span class="o">&amp;</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
+  <span class="n">basic_ios</span> <span class="o">&amp;</span><span class="k">operator</span><span class="o">=</span><span class="p">(</span><span class="k">const</span> <span class="n">basic_ios</span> <span class="o">&amp;</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div><p>        表面上看与声明为私有成员函数一样，但是实际上函数 $delete$ 还有一些其他意义：声明为 $delete$ 的函数在被以任何方式调用时，都无法通过编译。注意，声明为 $delete$ 的函数应该是 $public$ 成员，因为如果是私有成员，当调用它们时，编译器可能会报该函数是 $private$ 而不是类似于函数被 $delete$ 的错误。<br>
+        任何函数都可以被 $delete$ 。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="kt">bool</span> <span class="nf">isLucky</span><span class="p">(</span><span class="kt">int</span> <span class="n">number</span><span class="p">);</span>
+<span class="kt">bool</span> <span class="nf">isLucky</span><span class="p">(</span><span class="kt">char</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
+<span class="kt">bool</span> <span class="nf">isLucky</span><span class="p">(</span><span class="kt">bool</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
+<span class="kt">bool</span> <span class="nf">isLucky</span><span class="p">(</span><span class="kt">double</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
+</code></pre></div><p>        $char$ 、$bool$ 和 $double$ 都可以被隐式转换为 $int$ ，为了让 $isLucky$ 只接收整型，我们可以将这些对应类型的函数 $delete$ 。<br>
+        $delete$ 还可以应用于模版实例化的过程。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+<span class="kt">void</span> <span class="n">processPointer</span><span class="o">&lt;</span><span class="n">T</span> <span class="o">*</span><span class="n">ptr</span><span class="p">);</span>
+
+<span class="k">template</span><span class="o">&lt;&gt;</span>
+<span class="kt">void</span> <span class="n">processPointer</span><span class="o">&lt;</span><span class="kt">void</span><span class="o">&gt;</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
+<span class="k">template</span><span class="o">&lt;&gt;</span>
+<span class="kt">void</span> <span class="n">processPointer</span><span class="o">&lt;</span><span class="kt">char</span><span class="o">&gt;</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
+</code></pre></div><p>        指针有两种特殊情况。一种是 $void$ $\star$ ，因为没法对他们进行解引用。另一种是 $char$ $\star$ ，因为它们通常代表<code>C</code>风格字符串，而不是单个字符的指针。我们可以通过 $delete$ 删除它们。按理来说，$const$ 修饰的类型也要删除：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;&gt;</span>
+<span class="kt">void</span> <span class="n">processPointer</span><span class="o">&lt;</span><span class="k">const</span> <span class="kt">void</span><span class="o">&gt;</span><span class="p">(</span><span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
+<span class="k">template</span><span class="o">&lt;&gt;</span>
+<span class="kt">void</span> <span class="n">processPointer</span><span class="o">&lt;</span><span class="k">const</span> <span class="kt">char</span><span class="o">&gt;</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
+</code></pre></div><p>        更彻底一点，我们还要删除 $const$ $volatile$ $void$ $\star$ 和 $const$ $volatile$ $char$ $\star$ ，还有其他标准字符类型的重载版本，比如 $std::wchar_-t$ 和 $std::char16_-t$ 等。<br>
+        模版类型是无法使用<code>C++98</code>的方式禁止实例化的，因为不能给特化的模版指定一个于函数模版的访问级别：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+  <span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+  <span class="kt">void</span> <span class="n">processPointer</span><span class="p">(</span><span class="n">T</span> <span class="o">*</span><span class="n">ptr</span><span class="p">);</span>
+
+<span class="k">private</span><span class="o">:</span>
+  <span class="k">template</span><span class="o">&lt;&gt;</span>
+  <span class="kt">void</span> <span class="n">processPointer</span><span class="o">&lt;</span><span class="kt">void</span><span class="o">&gt;</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">);</span>  <span class="c1">// 错误
+</span><span class="c1"></span><span class="p">};</span>
+</code></pre></div><p>        $delete$ 不会出现这种问题，因为它们不需要不同的访问级别，而且可以在类外删除。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+  <span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+  <span class="kt">void</span> <span class="n">processPointer</span><span class="p">(</span><span class="n">T</span> <span class="o">*</span><span class="n">ptr</span><span class="p">);</span>
+<span class="p">};</span>
+
+<span class="k">template</span><span class="o">&lt;&gt;</span>
+<span class="kt">void</span> <span class="n">Widget</span><span class="o">::</span><span class="n">processPointer</span><span class="o">&lt;</span><span class="kt">void</span><span class="o">&gt;</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
+</code></pre></div><h2 id="6-override">6. <code>override</code></h2>
+<p>        在<code>C++</code>里，要重写一个函数，需要：</p>
+<ul>
+<li>基类函数是 $virtual$ 函数；</li>
+<li>基类和派生类函数名相同 ( 析构函数除外 )；</li>
+<li>基类和派生类参数相同；</li>
+<li>基类和派生类函数常量性相同；</li>
+<li>基类和派生类的返回类型和异常说明兼容；</li>
+<li>函数的引用限定符相同。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">class</span> <span class="nc">Base</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+  <span class="k">virtual</span> <span class="kt">void</span> <span class="n">mf1</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
+  <span class="k">virtual</span> <span class="kt">void</span> <span class="nf">mf2</span><span class="p">(</span><span class="kt">int</span> <span class="n">x</span><span class="p">);</span>
+  <span class="k">virtual</span> <span class="kt">void</span> <span class="nf">mf3</span><span class="p">()</span> <span class="o">&amp;</span><span class="p">;</span>
+  <span class="kt">void</span> <span class="nf">mf4</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="k">class</span> <span class="nc">Derived</span><span class="o">:</span> <span class="k">public</span> <span class="n">Base</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+  <span class="k">virtual</span> <span class="kt">void</span> <span class="n">mf1</span><span class="p">();</span>
+  <span class="k">virtual</span> <span class="kt">void</span> <span class="nf">mf2</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">x</span><span class="p">);</span>
+  <span class="k">virtual</span> <span class="kt">void</span> <span class="nf">mf3</span><span class="p">()</span> <span class="o">&amp;&amp;</span><span class="p">;</span>
+  <span class="kt">void</span> <span class="nf">mf4</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div><p>        上面的 $4$ 个函数都没有正确地重写，而且编译器并不会报错。为了避免这种错误，我们可以使用 $override$ ：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">class</span> <span class="nc">Derived</span><span class="o">:</span> <span class="k">public</span> <span class="n">Base</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+  <span class="k">virtual</span> <span class="kt">void</span> <span class="n">mf1</span><span class="p">()</span> <span class="k">override</span><span class="p">;</span>
+  <span class="k">virtual</span> <span class="kt">void</span> <span class="nf">mf2</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">x</span><span class="p">)</span> <span class="k">override</span><span class="p">;</span>
+  <span class="k">virtual</span> <span class="kt">void</span> <span class="nf">mf3</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="k">override</span><span class="p">;</span>
+  <span class="k">virtual</span> <span class="kt">void</span> <span class="nf">mf4</span><span class="p">()</span> <span class="k">const</span> <span class="k">override</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div><p>        这样上面的代码就会在编译时报错。</p>
+<h2 id="7-const_iterator">7. <code>const_iterator</code></h2>
+<p>        在<code>C++98</code>中，标准库对 $const_-iterator$ 的支持不是很完整。如果你要使用 $const_-iterator$ ，需要这样：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">typedef</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;::</span><span class="n">iterator</span> <span class="n">IterT</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;::</span><span class="n">const_iterator</span> <span class="n">ConstIterT</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">values</span><span class="p">;</span>
+
+<span class="n">ConstIterT</span> <span class="n">ci</span> <span class="o">=</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">find</span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="n">ConstIterT</span><span class="o">&gt;</span><span class="p">(</span><span class="n">values</span><span class="p">.</span><span class="n">begin</span><span class="p">()),</span>
+            <span class="k">static_cast</span><span class="o">&lt;</span><span class="n">ConstIterT</span><span class="o">&gt;</span><span class="p">(</span><span class="n">values</span><span class="p">.</span><span class="n">end</span><span class="p">()),</span>
+            <span class="mi">1983</span><span class="p">);</span>
+<span class="n">values</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="n">IterT</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ci</span><span class="p">),</span> <span class="mi">1998</span><span class="p">);</span>  <span class="c1">// 可能无法编译
+</span></code></pre></div><p>        之所以会有这种用法，是因为 $vector$ 在<code>C++98</code>中是非常量容器，无法从中取得 $const_-iterator$ 。而且，<code>C++98</code>的插入操作位置只能由 $iterator$ 指定，$const_-iterator$ 是不合法的。但是由于没有一个可移植的将 $const_-iterator$ 转为 $iterator$ 的方法，所以上面的代码可能也无法编译。<br>
+        这种情况在<code>C++11</code>中得到了改变，通过 $cbegin$ 和 $cend$ ，我们可以很容易就获取到 $const_-iterator$ ，甚至对非常量容器也是如此。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">values</span><span class="p">;</span>
+<span class="k">auto</span> <span class="n">it</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">find</span><span class="p">(</span>
+            <span class="n">values</span><span class="p">.</span><span class="n">cbegin</span><span class="p">(),</span> <span class="n">values</span><span class="p">.</span><span class="n">cend</span><span class="p">(),</span> <span class="mi">1983</span><span class="p">);</span>
+<span class="n">values</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="n">it</span><span class="p">,</span> <span class="mi">1998</span><span class="p">);</span>
+</code></pre></div><p>        但是<code>C++11</code>对非成员函数的版本支持仍存在不足：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">C</span><span class="p">,</span> <span class="k">typename</span> <span class="n">V</span><span class="o">&gt;</span>
+<span class="kt">void</span> <span class="n">findAndInsert</span><span class="p">(</span><span class="n">C</span> <span class="o">&amp;</span><span class="n">container</span><span class="p">,</span>
+    <span class="k">const</span> <span class="n">V</span> <span class="o">&amp;</span><span class="n">targetval</span><span class="p">,</span> <span class="k">const</span> <span class="n">V</span> <span class="o">&amp;</span><span class="n">insertVal</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">using</span> <span class="n">std</span><span class="o">::</span><span class="n">cbegin</span><span class="p">;</span>
+  <span class="k">using</span> <span class="n">std</span><span class="o">::</span><span class="n">cend</span><span class="p">;</span>
+  <span class="k">auto</span> <span class="n">it</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">find</span><span class="p">(</span><span class="n">cbegin</span><span class="p">(</span><span class="n">container</span><span class="p">),</span> <span class="n">cend</span><span class="p">(</span><span class="n">container</span><span class="p">),</span>
+                      <span class="n">targetVal</span><span class="p">);</span>
+  <span class="n">container</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="n">it</span><span class="p">,</span> <span class="n">insertVal</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><p>        上面的代码在<code>C++14</code>中可以运行，但是<code>C++11</code>中不行，因为<code>C++11</code>没有非函数版本的 $cbegin$ 和 $cend$ 。我们也可以自己实现一个支持<code>C++11</code>的版本：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">C</span><span class="o">&gt;</span>
+<span class="k">auto</span> <span class="n">cbegin</span><span class="p">(</span><span class="k">const</span> <span class="n">C</span> <span class="o">&amp;</span><span class="n">container</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="k">decltype</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">begin</span><span class="p">(</span><span class="n">container</span><span class="p">))</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">begin</span><span class="p">(</span><span class="n">container</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><h2 id="8-noexcept">8. <code>noexcept</code></h2>
+<p>        在<code>C++98</code>中，<strong>异常说明</strong> ( $exception$ $specifications$ ) 很麻烦，你不得不写出函数可能抛出的异常类型，而且这些类型还可能随着代码更改而更改。<code>C++</code>从根本上改变了<code>C++98</code>的异常说明，只包含两种情况，可能抛出异常或绝不抛出异常。$noexcept$ 则用于保证函数不会抛出异常。<br>
+        就本身而言，函数是否为 $noexcept$ 和是否为 $const$ 一样重要。调用者可以查看函数是否声明 $noexcept$ ，这也会影响到调用代码的异常安全性和效率。给不抛异常的函数加上 $noexcept$ 可以让编译器生成更好的目标代码。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="kt">int</span> <span class="nf">f</span><span class="p">(</span><span class="kt">int</span> <span class="n">x</span><span class="p">)</span> <span class="k">throw</span><span class="p">();</span>  <span class="c1">// C++98
+</span><span class="c1"></span><span class="kt">int</span> <span class="nf">f</span><span class="p">(</span><span class="kt">int</span> <span class="n">x</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>  <span class="c1">// C++11
+</span></code></pre></div><p>        如果在运行时 $f$ 出现异常，那么就跟异常说明相冲。在<code>C++98</code>中，调用栈会展开到 $f$ 的调用者，一些不期望的行为比如程序中止也会发生。而在<code>C++11</code>中，调用栈只是可能在程序终止之前展开。在一个 $noexcept$ 函数中，当异常传播到函数之外时，优化器不需要保证调用栈的可展开状态，也不需要保证 $noexcept$ 函数中的对象按照相反顺序析构。<br>
+        $swap$ 函数是 $noexcept$ 的绝佳用地。标准库的 $swap$ 是否 $noexcept$ 要依赖于用于自定义的 $swap$ ：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">N</span><span class="o">&gt;</span>
+<span class="kt">void</span> <span class="n">swap</span><span class="p">(</span><span class="n">T</span> <span class="p">(</span><span class="o">&amp;</span><span class="n">a</span><span class="p">)[</span><span class="n">N</span><span class="p">],</span> <span class="n">T</span> <span class="p">(</span><span class="o">&amp;</span><span class="n">b</span><span class="p">)[</span><span class="n">N</span><span class="p">])</span>
+  <span class="k">noexcept</span><span class="p">(</span><span class="k">noexcept</span><span class="p">(</span><span class="n">swap</span><span class="p">(</span><span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">*</span><span class="n">b</span><span class="p">)));</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">class</span> <span class="nc">T1</span><span class="p">,</span> <span class="k">class</span> <span class="nc">T2</span><span class="o">&gt;</span>
+<span class="k">struct</span> <span class="nc">pair</span> <span class="p">{</span>
+  <span class="c1">// ...
+</span><span class="c1"></span>  <span class="kt">void</span> <span class="nf">swap</span><span class="p">(</span><span class="n">pair</span> <span class="o">&amp;</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">noexpcet</span><span class="p">(</span><span class="k">noexcept</span><span class="p">(</span><span class="n">swap</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">p</span><span class="p">.</span><span class="n">first</span><span class="p">))</span> <span class="o">&amp;&amp;</span>
+    <span class="k">noexcept</span><span class="p">(</span><span class="n">swap</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="n">p</span><span class="p">.</span><span class="n">second</span><span class="p">)));</span>
+<span class="p">};</span>
+</code></pre></div><p>        这些函数是否 $noexcept$ 依赖于其表达式是否 $noexcept$ 。<br>
+        对于大多数函数，它们都不应该指定为 $noexcept$ 。但是对于一些函数，比如移动构造函数和 $swap$ 函数等，应该只要可能就将它们声明为 $noexcept$ 。</p>
+<h2 id="9-constexpr">9. <code>constexpr</code></h2>
+<p>        从概念上来说，$constexpr$ 表示一个值不仅仅是常量，还是编译期可知的。但是对于函数来说，$constexpr$ 函数的返回值并不需要是 $const$ ，也不需要是编译器可知的。编译器可知的值可以被存放到只读存储空间中。更广泛的应用是编译器可知的常量整数会出现在需要整型常量表达式的情况中，包括数组大小、整数模版参数、枚举值和对齐修饰符等。如果想要在这些情况中使用变量，就需要声明为 $constexpr$ ：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">constexpr</span> <span class="k">auto</span> <span class="n">sz</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="n">sz</span><span class="o">&gt;</span> <span class="n">data1</span><span class="p">;</span>
+</code></pre></div><p>        由于 $constexpr$ 变量需要在编译器可知，所以它必须被初始化。而对于 $const$ 变量来说，它们可以不初始化。<br>
+        如果 $constexpr$ 作用于函数，并且实参是编译期常量，它们将产出编译期值；如果形参是运行时值，它们就产出运行时值。如果 $constexpr$ 函数应用于需要编译器常量的上下文，要求入参必须为编译器常量，否则编译会失败。在<code>C++11</code>中，$constexpr$ 函数的代码只能由一个 $return$ 语句组成。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">constexpr</span> <span class="kt">int</span> <span class="nf">pow</span><span class="p">(</span><span class="kt">int</span> <span class="n">base</span><span class="p">,</span> <span class="kt">int</span> <span class="n">exp</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="p">(</span><span class="n">exp</span> <span class="o">==</span> <span class="mi">0</span> <span class="o">?</span> <span class="mi">1</span> <span class="o">:</span> <span class="n">base</span> <span class="o">*</span> <span class="n">pow</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">exp</span> <span class="o">-</span> <span class="mi">1</span><span class="p">));</span>
+<span class="p">}</span>
+
+<span class="k">constexpr</span> <span class="k">auto</span> <span class="n">numConds</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="n">pow</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">numConds</span><span class="p">)</span><span class="o">&gt;</span> <span class="n">results</span><span class="p">;</span>
+</code></pre></div><p>        在<code>C++14</code>中，这个限制变得非常宽松了，改为只能获取和返回字面量类型：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">constexpr</span> <span class="kt">int</span> <span class="nf">pow</span><span class="p">(</span><span class="kt">int</span> <span class="n">base</span><span class="p">,</span> <span class="kt">int</span> <span class="n">exp</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span>
+  <span class="k">auto</span> <span class="n">result</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">exp</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="n">result</span> <span class="o">*=</span> <span class="n">base</span><span class="p">;</span>
+  <span class="k">return</span> <span class="n">result</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div><p>        在<code>C++11</code>中，构造函数和其他成员函数也可以是 $constexpr$ ，从而一些用户定义的类型也能作为编译期常量使用：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">class</span> <span class="nc">Point</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+  <span class="k">constexpr</span> <span class="n">Point</span><span class="p">(</span><span class="kt">double</span> <span class="n">xVal</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="kt">double</span> <span class="n">yVal</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="k">noexcept</span>
+    <span class="o">:</span> <span class="n">x</span><span class="p">(</span><span class="n">xVal</span><span class="p">),</span> <span class="n">y</span><span class="p">(</span><span class="n">yVal</span><span class="p">)</span> <span class="p">{}</span>
+  <span class="k">constexpr</span> <span class="kt">double</span> <span class="nf">xValue</span><span class="p">()</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="p">{</span> <span class="k">return</span> <span class="n">x</span><span class="p">;</span> <span class="p">}</span>
+  <span class="k">constexpr</span> <span class="kt">double</span> <span class="nf">yValue</span><span class="p">()</span> <span class="k">const</span> <span class="k">noexcept</span> <span class="p">{</span> <span class="k">return</span> <span class="n">y</span><span class="p">;</span> <span class="p">}</span>
+  <span class="kt">void</span> <span class="nf">setX</span><span class="p">(</span><span class="kt">double</span> <span class="n">newX</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span> <span class="n">x</span> <span class="o">=</span> <span class="n">newX</span><span class="p">;</span> <span class="p">}</span>
+  <span class="kt">void</span> <span class="nf">setY</span><span class="p">(</span><span class="kt">double</span> <span class="n">newY</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span> <span class="n">y</span> <span class="o">=</span> <span class="n">newY</span><span class="p">;</span> <span class="p">}</span>
+
+<span class="k">private</span><span class="o">:</span>
+  <span class="kt">double</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="k">constexpr</span> <span class="n">Point</span> <span class="nf">p1</span><span class="p">(</span><span class="mf">9.4</span><span class="p">,</span> <span class="mf">27.7</span><span class="p">);</span>
+<span class="k">constexpr</span> <span class="n">Point</span> <span class="nf">p2</span><span class="p">(</span><span class="mf">28.8</span><span class="p">,</span> <span class="mf">5.3</span><span class="p">);</span>
+
+<span class="k">constexpr</span> <span class="n">Point</span> <span class="nf">midpoint</span><span class="p">(</span><span class="k">const</span> <span class="n">Point</span> <span class="o">&amp;</span><span class="n">p1</span><span class="p">,</span> <span class="k">const</span> <span class="n">Point</span> <span class="o">&amp;</span><span class="n">p2</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="p">{(</span><span class="n">p1</span><span class="p">.</span><span class="n">xValue</span><span class="p">()</span> <span class="o">+</span> <span class="n">p2</span><span class="p">.</span><span class="n">xValue</span><span class="p">())</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+          <span class="p">(</span><span class="n">p1</span><span class="p">.</span><span class="n">yValue</span><span class="p">()</span> <span class="o">+</span> <span class="n">p2</span><span class="p">.</span><span class="n">yValue</span><span class="p">())</span> <span class="o">/</span> <span class="mi">2</span><span class="p">};</span>
+<span class="p">}</span>
+<span class="k">constexpr</span> <span class="k">auto</span> <span class="n">mid</span> <span class="o">=</span> <span class="n">midpoint</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">);</span>
+</code></pre></div><p>        $setX$ 和 $setY$ 无法声明为 $constexpr$ ，因为它们会修改对象状态，但是 $constexpr$ 成员函数是隐式 $const$ 的，而且 $constexpr$ 函数也不能返回 $void$ 类型。但是这个限制在<code>C++14</code>中被放宽了，从而 $setX$ 和 $setY$ 也能声明为 $constexpr$ 。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">class</span> <span class="nc">Point</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+  <span class="c1">// ...
+</span><span class="c1"></span>  <span class="k">constexpr</span> <span class="kt">void</span> <span class="n">setX</span><span class="p">(</span><span class="kt">double</span> <span class="n">newX</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span> <span class="n">x</span> <span class="o">=</span> <span class="n">newX</span><span class="p">;</span> <span class="p">}</span>
+  <span class="k">constexpr</span> <span class="kt">void</span> <span class="nf">setY</span><span class="p">(</span><span class="kt">double</span> <span class="n">newY</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span> <span class="n">y</span> <span class="o">=</span> <span class="n">newY</span><span class="p">;</span> <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="k">constexpr</span> <span class="n">Point</span> <span class="nf">reflection</span><span class="p">(</span><span class="k">const</span> <span class="n">Point</span> <span class="o">&amp;</span><span class="n">p</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span>
+  <span class="n">Point</span> <span class="n">result</span><span class="p">;</span>
+  <span class="n">result</span><span class="p">.</span><span class="n">setX</span><span class="p">(</span><span class="o">-</span><span class="n">p</span><span class="p">.</span><span class="n">xValue</span><span class="p">());</span>
+  <span class="n">result</span><span class="p">.</span><span class="n">setY</span><span class="p">(</span><span class="o">-</span><span class="n">p</span><span class="p">.</span><span class="n">yValue</span><span class="p">());</span>
+  <span class="k">return</span> <span class="n">result</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div><h2 id="10-线程安全的const函数">10. 线程安全的<code>const</code>函数</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">class</span> <span class="nc">Polynomial</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+  <span class="k">using</span> <span class="n">RootsType</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">;</span>
+
+  <span class="n">RootsType</span> <span class="nf">roots</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">rootsAreValid</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">rootsAreValid</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">rootVals</span><span class="p">;</span>
+  <span class="p">}</span>
+
+<span class="k">private</span><span class="o">:</span>
+  <span class="k">mutable</span> <span class="kt">bool</span> <span class="n">rootsAreValid</span><span class="p">{</span><span class="nb">false</span><span class="p">};</span>
+  <span class="k">mutable</span> <span class="n">RootsType</span> <span class="n">rootVals</span><span class="p">{};</span>
+<span class="p">};</span>
+</code></pre></div><p>        从概念上将，$roots$ 函数并不会改变对象状态，但是也许会改变 $rootsAreValid$ 和 $rootVals$ ，这也是为什么它们被声明为 $mutable$ 。假设程序运行在多线程环境，有超过一个线程同时调用该函数。因为 $roots$ 是 $const$ ，那么就代表它是一个读操作。读操作不应该是线程不安全的，但可惜的是，上面的代码是线程不安全的。我们需要把它改为线程安全的：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">class</span> <span class="nc">Polynomial</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+  <span class="k">using</span> <span class="n">RootsType</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">;</span>
+
+  <span class="n">RootsType</span> <span class="nf">roots</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span> <span class="n">g</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">rootsAreValid</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">rootsAreValid</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">rootVals</span><span class="p">;</span>
+  <span class="p">}</span>
+
+<span class="k">private</span><span class="o">:</span>
+  <span class="k">mutable</span> <span class="n">std</span><span class="o">::</span><span class="n">mutex</span> <span class="n">m</span><span class="p">;</span>
+  <span class="k">mutable</span> <span class="kt">bool</span> <span class="n">rootsAreValid</span><span class="p">{</span><span class="nb">false</span><span class="p">};</span>
+  <span class="n">mutalbe</span> <span class="n">RootsType</span> <span class="n">rootVals</span><span class="p">{};</span>
+<span class="p">};</span>
+</code></pre></div><p>        $m$ 是 $mutable$ 的，因为上锁和解锁都是非 $const$ 函数。</p>
+<h2 id="10-特殊函数生成">10. 特殊函数生成</h2>
+<p>        特殊函数指的是<code>C++</code>自己生成的函数，<code>C++98</code>中它们是：默认构造函数、析构函数、拷贝构造函数、拷贝赋值运算符。这些函数仅在需要时才生成，而且是隐式 $public$ 和 $inline$ 的。<code>C++11</code>中添加了两个特殊函数：移动构造函数和移动赋值运算符。<br>
+        拷贝操作是独立的，如果你声明了拷贝构造函数但没有声明拷贝赋值运算符，并且代码中使用了拷贝赋值，那么编译器就会帮你生成拷贝赋值运算符，反之同理。但是对于移动函数不是这样的。如果你声明了移动构造函数或者移动赋值运算符，编译器便不会再为你生成另一个。这里面隐含的意义是：如果你显式声明了一个移动函数，说明这个类型的移动操作不再是单纯地逐一移动成员变量，那么编译器便不会为你生成另一个语义是逐一移动成员变量的移动函数。<br>
+        再进一步，如果一个类型显式声明了拷贝构造函数或者拷贝赋值运算符，编译器就不会生成移动操作。这种限制的原因是如果显式声明了拷贝函数，那么意味着这个类型的拷贝操作也可能不是逐一拷贝成员变量，从而移动操作也可能不适用。反之也成立，如果一个类型显式声明了移动函数，便不会生成拷贝函数。<br>
+        或许你听过 $Rule$ $of$ $Three$ ，即用户只要声明了拷贝构造函数、拷贝赋值运算符或者析构函数中的一个，那么也需要声明另外两个。这个法则也可以应用于<code>C++11</code>中的移动函数，并且编译器当且仅当满足以下条件时才会生成移动函数：</p>
+<ul>
+<li>类中没有拷贝函数；</li>
+<li>类中没有移动函数；</li>
+<li>类中没有用户定义的析构函数。</li>
+</ul>
+<p>        如果我们在声明了其中一种函数之后，还想要编译器生成其他类型的函数，那么我们可以使用 $default$ 关键字：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+  <span class="c1">// ...
+</span><span class="c1"></span>  <span class="o">~</span><span class="n">Widget</span><span class="p">();</span>
+  <span class="n">Widget</span><span class="p">(</span><span class="k">const</span> <span class="n">Widget</span> <span class="o">&amp;</span><span class="p">)</span> <span class="o">=</span> <span class="k">default</span><span class="p">;</span>
+  <span class="n">Widget</span> <span class="o">&amp;</span><span class="k">operator</span><span class="o">=</span><span class="p">(</span><span class="k">const</span> <span class="n">Widget</span> <span class="o">&amp;</span><span class="p">)</span> <span class="o">=</span> <span class="k">default</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div><p>        这种方法通常用于多态基类，因为它们通常有一个虚析构函数。事实上，即使编译器会自动生成，我们也最好手动声明并使用 $default$ 关键字。<br>
+        最后，还要注意，成员模版函数是不会阻止编译器生成特殊函数的。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+  <span class="c1">// ...
+</span><span class="c1"></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+  <span class="n">Widget</span><span class="p">(</span><span class="k">const</span> <span class="n">T</span> <span class="o">&amp;</span><span class="n">rhs</span><span class="p">);</span>
+  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+  <span class="n">Widget</span> <span class="o">&amp;</span><span class="k">operator</span><span class="o">=</span><span class="p">(</span><span class="k">const</span> <span class="n">T</span> <span class="o">&amp;</span><span class="n">rhs</span><span class="p">);</span>
+<span class="p">};</span>
+</code></pre></div><p>        在上述代码中，编译器依然可以生成移动函数和拷贝函数。</p>
+
+<script src=https://z217blog.cn/js/toc.js></script>
+
+<div>
+    <a href="javascript:void(0);" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+    <div id="sidetoc">
+        <header>
+            <h4>EffectiveModernCpp（2）：使用现代C&#43;&#43;语法</h4>
+        </header>
+        <nav id="TableOfContents">
+            <ul></ul>
+        </nav>
+    </div>
+    <script>
+        isTocOpen = true;
+    </script>
+</div>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/effectivemoderncpp1/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+<script type="text/javascript">
+    if (isTocOpen) tocInit();
+</script>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:zihan.zhouchn@outlook.com">zihan.zhouchn@outlook.com</a>
+            </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2022, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        let all = MathJax.Hub.getAllJax(),
+            i;
+        
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+</main>
+</body>
+
+</html>
