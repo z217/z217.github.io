@@ -85,311 +85,311 @@
 
 
 <p>        泛型允许一个类应用于多种类型，实现了参数化类型的概念。促使泛型产生的原因之一就是容器类，泛型可以用于指定一个容器具体要持有怎样的类型。当然，也可以通过泛型实现持有多个类型的类，如元组类：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">TwoTuple</span><span class="o">&lt;</span><span class="n">A</span><span class="o">,</span> <span class="n">B</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">final</span> <span class="n">A</span> <span class="n">first</span><span class="o">;</span>
-    <span class="kd">public</span> <span class="kd">final</span> <span class="n">B</span> <span class="n">second</span><span class="o">;</span>
-
-    <span class="kd">public</span> <span class="nf">TwoTuple</span><span class="o">(</span><span class="n">A</span> <span class="n">a</span><span class="o">,</span> <span class="n">B</span> <span class="n">b</span><span class="o">)</span> <span class="o">{</span>
-        <span class="k">this</span><span class="o">.</span><span class="na">first</span> <span class="o">=</span> <span class="n">a</span><span class="o">;</span>
-        <span class="k">this</span><span class="o">.</span><span class="na">second</span> <span class="o">=</span> <span class="n">b</span><span class="o">;</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        如果需要长度更长的元组如三元组，我们可以在二元组的基础上声明三元组类，并令其继承二元组类。<br>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">TwoTuple</span><span class="o">&lt;</span><span class="n">A</span><span class="o">,</span> <span class="n">B</span><span class="o">&gt;</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="kd">final</span> <span class="n">A</span> <span class="n">first</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="kd">final</span> <span class="n">B</span> <span class="n">second</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="nf">TwoTuple</span><span class="o">(</span><span class="n">A</span> <span class="n">a</span><span class="o">,</span> <span class="n">B</span> <span class="n">b</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">this</span><span class="o">.</span><span class="na">first</span> <span class="o">=</span> <span class="n">a</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">this</span><span class="o">.</span><span class="na">second</span> <span class="o">=</span> <span class="n">b</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><p>        如果需要长度更长的元组如三元组，我们可以在二元组的基础上声明三元组类，并令其继承二元组类。<br>
         除了具体类外，泛型还可以应用于抽象类和接口当中。<br>
         <code>Java</code>泛型存在着很多局限性，第一个就是不能以基本类型作为其类型参数。当然，通过<code>Java</code>自动包装和自动拆包的功能，基本类型和其包装类型可以很方便地进行转换。<br>
         之前提到的泛型都是应用于一个类上的，但是泛型同样可以应用于方法上，而且不仅可以应用于泛型类的方法上，也可以应用于普通类的方法上。如果通过使用泛型方法就可以避免使用泛型类，那么推荐使用泛型方法。此外，由于 $static$ 方法无法获取类型参数，因此如果要让 $static$ 方法使用泛型，那么就必须让其成为泛型方法。与使用泛型类不同，使用泛型方法时可以不用指定具体类型，通过类型参数推断，编译器可以为我们找出具体类型。</p>
 <h2 id="1-擦除">1. 擦除</h2>
 <p>        通过泛型，我们可以声明一个 $ArrayList&lt;Integer&gt;$ 对象，然后我们可以获取 $ArraysList.class$ ，但是却不能获取 $ArrayList&lt;Integer&gt;.class$ 对象。这个行为说明了在编译器的眼中，$ArrayList&lt;Integer&gt;$ 和 $ArrayList&lt;String&gt;$ 是同一类型。更加夸张的是，不同于<code>C++</code>，在<code>Java</code>的泛型内，你无法获取任何有关于泛型参数类型的信息。这些行为的原因都是因为<code>Java</code>的泛型是使用擦除实现的。在基于擦除的实现中，泛型被认为是第二类类型，既不能在某些重要的上下文环境中使用的类型。泛型类型只有在静态类型检查期间才会出现，之后泛型类型将被擦除，并替换为非泛型边界如 $List$ , $Object$ 等。<br>
         在<code>C++</code>中，我们可以实现以下代码：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span> <span class="k">class</span> <span class="nc">Test</span> <span class="p">{</span>
-    <span class="n">T</span> <span class="n">obj</span><span class="p">;</span>
-<span class="k">public</span><span class="o">:</span>
-    <span class="n">Test</span><span class="p">(</span><span class="n">T</span> <span class="n">t</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">this</span><span class="p">.</span><span class="n">obj</span> <span class="o">=</span> <span class="n">t</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="kt">void</span> <span class="nf">f</span><span class="p">()</span> <span class="p">{</span>
-        <span class="n">obj</span><span class="p">.</span><span class="n">f</span><span class="p">();</span>
-    <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div><p>        但是在<code>Java</code>中，这种行为就无法实现了。因为擦除的存在，<code>Java</code>编译器无法认为 $obj$ 含有 $f(\ )$ 方法。而为了调用 $f(\ )$ ，在<code>Java</code>中需要这样实现：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">interface</span> <span class="nc">HasF</span> <span class="o">{</span>
-    <span class="kt">void</span> <span class="nf">f</span><span class="o">();</span>
-<span class="o">}</span>
-
-<span class="kd">public</span> <span class="kd">class</span> <span class="nc">Test</span><span class="o">&lt;?</span> <span class="kd">extends</span> <span class="n">HasF</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="kd">private</span> <span class="n">T</span> <span class="n">obj</span><span class="o">;</span>
-    <span class="n">Test</span><span class="o">(</span><span class="n">T</span> <span class="n">t</span><span class="o">)</span> <span class="o">{</span>
-        <span class="k">this</span><span class="o">.</span><span class="na">obj</span> <span class="o">=</span> <span class="n">t</span><span class="o">;</span>
-    <span class="o">}</span>
-    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">f</span><span class="o">()</span> <span class="o">{</span>
-        <span class="n">obj</span><span class="o">.</span><span class="na">f</span><span class="o">();</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        通过给定泛型类的边界，泛型类只能接受符合这个边界的类型参数，从而就能确保含有 $f(\ )$ 方法了。<br>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="o">&gt;</span> <span class="k">class</span> <span class="nc">Test</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">T</span> <span class="n">obj</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Test</span><span class="p">(</span><span class="n">T</span> <span class="n">t</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">this</span><span class="p">.</span><span class="n">obj</span> <span class="o">=</span> <span class="n">t</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">void</span> <span class="nf">f</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">obj</span><span class="p">.</span><span class="n">f</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        但是在<code>Java</code>中，这种行为就无法实现了。因为擦除的存在，<code>Java</code>编译器无法认为 $obj$ 含有 $f(\ )$ 方法。而为了调用 $f(\ )$ ，在<code>Java</code>中需要这样实现：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">interface</span> <span class="nc">HasF</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">void</span> <span class="nf">f</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Test</span><span class="o">&lt;?</span> <span class="kd">extends</span> <span class="n">HasF</span><span class="o">&gt;</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">private</span> <span class="n">T</span> <span class="n">obj</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Test</span><span class="o">(</span><span class="n">T</span> <span class="n">t</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">this</span><span class="o">.</span><span class="na">obj</span> <span class="o">=</span> <span class="n">t</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">f</span><span class="o">()</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">obj</span><span class="o">.</span><span class="na">f</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><p>        通过给定泛型类的边界，泛型类只能接受符合这个边界的类型参数，从而就能确保含有 $f(\ )$ 方法了。<br>
         虽然通过擦除，<code>Java</code>保证了向后兼容。但是带来的代价也是显著的，所有关于类型参数的信息都丢失了。也因为这个原因，泛型并不是强制使用的：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">A</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{}</span>
-
-<span class="kd">class</span> <span class="nc">Derived1</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="kd">extends</span> <span class="n">A</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{}</span>
-
-<span class="kd">class</span> <span class="nc">Derived2</span> <span class="kd">extends</span> <span class="n">A</span> <span class="o">{}</span>
-</code></pre></div><p>        但是擦除机制带来的最令人困惑的并不是这个，而是“看起来好像持有”：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">ArrayMaker</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="kd">private</span> <span class="n">Class</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">kind</span><span class="o">;</span>
-
-    <span class="kd">public</span> <span class="nf">ArrayMaker</span><span class="o">(</span><span class="n">Class</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">kind</span><span class="o">)</span> <span class="o">{</span>
-        <span class="k">this</span><span class="o">.</span><span class="na">kind</span> <span class="o">=</span> <span class="n">kind</span><span class="o">;</span>
-    <span class="o">}</span>
-    <span class="nd">@SuppressWarnings</span><span class="o">(</span><span class="s">&#34;unchecked&#34;</span><span class="o">)</span>
-    <span class="n">T</span><span class="o">[]</span> <span class="nf">create</span><span class="o">(</span><span class="kt">int</span> <span class="n">size</span><span class="o">)</span> <span class="o">{</span>
-        <span class="k">return</span> <span class="o">(</span><span class="n">T</span><span class="o">[])</span> <span class="n">Array</span><span class="o">.</span><span class="na">newInstance</span><span class="o">(</span><span class="n">kind</span><span class="o">,</span> <span class="n">size</span><span class="o">);</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        即使使用了 $Class&lt;T&gt;$ 储存 $kind$ ，因为擦除的存在，它会被存储为 $Class$ 对象，从而使得创建数组时不会产生具体结果，只能配合转型使用。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">A</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">Derived1</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="kd">extends</span> <span class="n">A</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">Derived2</span> <span class="kd">extends</span> <span class="n">A</span> <span class="o">{}</span>
+</span></span></code></pre></div><p>        但是擦除机制带来的最令人困惑的并不是这个，而是“看起来好像持有”：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">ArrayMaker</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">private</span> <span class="n">Class</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">kind</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="nf">ArrayMaker</span><span class="o">(</span><span class="n">Class</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">kind</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">this</span><span class="o">.</span><span class="na">kind</span> <span class="o">=</span> <span class="n">kind</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="nd">@SuppressWarnings</span><span class="o">(</span><span class="s">&#34;unchecked&#34;</span><span class="o">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">T</span><span class="o">[]</span> <span class="nf">create</span><span class="o">(</span><span class="kt">int</span> <span class="n">size</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="o">(</span><span class="n">T</span><span class="o">[])</span> <span class="n">Array</span><span class="o">.</span><span class="na">newInstance</span><span class="o">(</span><span class="n">kind</span><span class="o">,</span> <span class="n">size</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><p>        即使使用了 $Class&lt;T&gt;$ 储存 $kind$ ，因为擦除的存在，它会被存储为 $Class$ 对象，从而使得创建数组时不会产生具体结果，只能配合转型使用。</p>
 <h2 id="2-擦除的补偿">2. 擦除的补偿</h2>
 <p>        因为擦除的原因，类内部无法得到类型参数信息，因此 $instanceof$ 不能使用。但是可以使用动态 $isInstance(\ )$ ：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">Building</span> <span class="o">{}</span>
-
-<span class="kd">class</span> <span class="nc">House</span> <span class="kd">extends</span> <span class="n">Building</span> <span class="o">{}</span>
-
-<span class="kd">class</span> <span class="nc">ClassType</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="n">Class</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">kind</span><span class="o">;</span>
-
-    <span class="kd">public</span> <span class="nf">ClassType</span><span class="o">(</span><span class="n">Class</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">kind</span><span class="o">)</span> <span class="o">{</span>
-        <span class="k">this</span><span class="o">.</span><span class="na">kind</span> <span class="o">=</span> <span class="n">kind</span><span class="o">;</span>
-    <span class="o">}</span>
-
-    <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">f</span><span class="o">(</span><span class="n">Object</span> <span class="n">obj</span><span class="o">)</span> <span class="o">{</span>
-        <span class="k">return</span> <span class="n">kind</span><span class="o">.</span><span class="na">isInstance</span><span class="o">(</span><span class="n">obj</span><span class="o">);</span>
-    <span class="o">}</span>
-
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">ClassType</span><span class="o">&lt;</span><span class="n">Building</span><span class="o">&gt;</span> <span class="n">classType</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ClassType</span><span class="o">&lt;&gt;(</span><span class="n">Building</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
-        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">classType</span><span class="o">.</span><span class="na">f</span><span class="o">(</span><span class="k">new</span> <span class="n">Building</span><span class="o">()));</span> <span class="c1">// true
-</span><span class="c1"></span>        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">classType</span><span class="o">.</span><span class="na">f</span><span class="o">(</span><span class="k">new</span> <span class="n">House</span><span class="o">()));</span> <span class="c1">// true
-</span><span class="c1"></span>    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        在泛型类中，通过类似 $new\ \ T(\ )$ 的方式创建类是不行的，因为<code>Java</code>编译器无法确认类型拥有默认构造器。而在<code>C++</code>中由于编译器的定期检查，这种行为的安全性得以确保。如果想要在<code>Java</code>中以类似方式创建对象，可以通过工厂模式：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">ClassAsFactory</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="n">T</span> <span class="n">x</span><span class="o">;</span>
-    <span class="kd">public</span> <span class="nf">ClassAsFactory</span><span class="o">(</span><span class="n">Class</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">kind</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">NoSuchMethodException</span> <span class="o">{</span>
-        <span class="k">try</span> <span class="o">{</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="n">kind</span><span class="o">.</span><span class="na">getDeclaredConstructor</span><span class="o">().</span><span class="na">newInstance</span><span class="o">();</span>
-        <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">IllegalAccessException</span> <span class="o">|</span> <span class="n">InstantiationException</span> <span class="o">|</span> <span class="n">InvocationTargetException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
-            <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
-        <span class="o">}</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        虽然编译可以通过，但是不一定每次都能成功创建，比如 $ClassAsFactory&lt;Integer&gt;$ 就会失败，因为 $Integer$ 类没有默认构造器。为了避免这个问题，可以使用显示工厂：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">interface</span> <span class="nc">Factory</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="n">T</span> <span class="nf">create</span><span class="o">();</span>
-<span class="o">}</span>
-
-<span class="kd">class</span> <span class="nc">IntegerFactory</span> <span class="kd">implements</span> <span class="n">Factory</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="n">Integer</span> <span class="nf">create</span><span class="o">()</span> <span class="o">{</span>
-        <span class="k">return</span> <span class="k">new</span> <span class="n">Integer</span><span class="o">(</span><span class="n">0</span><span class="o">);</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-
-<span class="kd">class</span> <span class="nc">Foo</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="kd">private</span> <span class="n">T</span> <span class="n">x</span><span class="o">;</span>
-    <span class="kd">public</span> <span class="o">&lt;</span><span class="n">F</span> <span class="kd">extends</span> <span class="n">Factory</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="nf">Foo</span><span class="o">(</span><span class="n">F</span> <span class="n">factory</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="na">create</span><span class="o">();</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        除了工厂方法之外，还可以使用模板方法：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">abstract</span> <span class="kd">class</span> <span class="nc">GenericWithCreate</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="kd">private</span> <span class="kd">final</span> <span class="n">T</span> <span class="n">element</span><span class="o">;</span>
-
-    <span class="kd">public</span> <span class="nf">GenericWithCreate</span><span class="o">()</span> <span class="o">{</span>
-        <span class="n">element</span> <span class="o">=</span> <span class="n">create</span><span class="o">();</span>
-    <span class="o">}</span>
-
-    <span class="kd">public</span> <span class="kd">abstract</span> <span class="n">T</span> <span class="nf">create</span><span class="o">();</span>
-<span class="o">}</span>
-
-<span class="kd">class</span> <span class="nc">X</span> <span class="o">{}</span>
-
-<span class="kd">class</span> <span class="nc">Creator</span> <span class="kd">extends</span> <span class="n">GenericWithCreate</span><span class="o">&lt;</span><span class="n">x</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="nd">@Override</span>
-    <span class="kd">public</span> <span class="n">X</span> <span class="nf">create</span><span class="o">()</span> <span class="o">{</span>
-        <span class="k">return</span> <span class="k">new</span> <span class="n">X</span><span class="o">();</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        在泛型类内，你无法直接通过 $new$ 创建泛型数组，一般情况下都是使用 $ArrayList$ 进行替代。但是在一些需要建立泛型数组的情况下，通过 $new$ 建立之后再进行转型这种方式是无效的。因为<code>Java</code>数组将跟踪它们被创建时的实际类型，信息在编译期存储，因此无论怎么转型，它都是 $Object$ 数组。因此最好是在集合内部使用 $Object[\ ]$ ，然后在取出元素时再将其转型为 $T$ 。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">GenericArray</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="kd">private</span> <span class="n">Object</span><span class="o">[]</span> <span class="n">array</span><span class="o">;</span>
-
-    <span class="kd">public</span> <span class="nf">GenericArray</span><span class="o">(</span><span class="kt">int</span> <span class="n">size</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">array</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Object</span><span class="o">[</span><span class="n">size</span><span class="o">];</span>
-    <span class="o">}</span>
-
-    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">put</span><span class="o">(</span><span class="kt">int</span> <span class="n">index</span><span class="o">,</span> <span class="n">T</span> <span class="n">item</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">array</span><span class="o">[</span><span class="n">index</span><span class="o">]</span> <span class="o">=</span> <span class="n">item</span><span class="o">;</span>
-    <span class="o">}</span>
-
-    <span class="nd">@SuppressWarnings</span><span class="o">(</span><span class="s">&#34;unchecked&#34;</span><span class="o">)</span>
-    <span class="kd">public</span> <span class="n">T</span> <span class="nf">get</span><span class="o">(</span><span class="kt">int</span> <span class="n">index</span><span class="o">)</span> <span class="o">{</span>
-        <span class="k">return</span> <span class="o">(</span><span class="n">T</span><span class="o">)</span> <span class="n">array</span><span class="o">[</span><span class="n">index</span><span class="o">];</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        如果要获得整个数组对象，那么就不能使用 $new$ ，而要改为使用 $Class$ 对象：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">GenericArrayWithTypeToken</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="kd">private</span> <span class="n">T</span><span class="o">[]</span> <span class="n">array</span><span class="o">;</span>
-
-    <span class="nd">@SuppressWarnings</span><span class="o">(</span><span class="s">&#34;unchecked&#34;</span><span class="o">)</span>
-    <span class="kd">public</span> <span class="nf">GenericArrayWithTypeToken</span><span class="o">(</span><span class="n">Class</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">type</span><span class="o">,</span> <span class="kt">int</span> <span class="n">size</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">array</span> <span class="o">=</span> <span class="o">(</span><span class="n">T</span><span class="o">[])</span> <span class="n">Array</span><span class="o">.</span><span class="na">newInstance</span><span class="o">(</span><span class="n">type</span><span class="o">,</span> <span class="n">size</span><span class="o">);</span>
-    <span class="o">}</span>
-
-    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">put</span><span class="o">(</span><span class="kt">int</span> <span class="n">index</span><span class="o">,</span> <span class="n">T</span> <span class="n">item</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">array</span><span class="o">[</span><span class="n">index</span><span class="o">]</span> <span class="o">=</span> <span class="n">item</span><span class="o">;</span>
-    <span class="o">}</span>
-
-    <span class="kd">public</span> <span class="n">T</span> <span class="nf">get</span><span class="o">(</span><span class="kt">int</span> <span class="n">index</span><span class="o">)</span> <span class="o">{</span>
-        <span class="k">return</span> <span class="n">array</span><span class="o">[</span><span class="n">index</span><span class="o">];</span>
-    <span class="o">}</span>
-
-    <span class="kd">public</span> <span class="n">T</span><span class="o">[]</span> <span class="nf">rep</span><span class="o">()</span> <span class="o">{</span>
-        <span class="k">return</span> <span class="n">array</span><span class="o">;</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        可以发现，这两种情况都会产生大量警告。当然，警告是可以忽略的。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">Building</span> <span class="o">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">House</span> <span class="kd">extends</span> <span class="n">Building</span> <span class="o">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">ClassType</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Class</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">kind</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="nf">ClassType</span><span class="o">(</span><span class="n">Class</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">kind</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">this</span><span class="o">.</span><span class="na">kind</span> <span class="o">=</span> <span class="n">kind</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">f</span><span class="o">(</span><span class="n">Object</span> <span class="n">obj</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">kind</span><span class="o">.</span><span class="na">isInstance</span><span class="o">(</span><span class="n">obj</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ClassType</span><span class="o">&lt;</span><span class="n">Building</span><span class="o">&gt;</span> <span class="n">classType</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ClassType</span><span class="o">&lt;&gt;(</span><span class="n">Building</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">classType</span><span class="o">.</span><span class="na">f</span><span class="o">(</span><span class="k">new</span> <span class="n">Building</span><span class="o">()));</span> <span class="c1">// true
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">classType</span><span class="o">.</span><span class="na">f</span><span class="o">(</span><span class="k">new</span> <span class="n">House</span><span class="o">()));</span> <span class="c1">// true
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><p>        在泛型类中，通过类似 $new\ \ T(\ )$ 的方式创建类是不行的，因为<code>Java</code>编译器无法确认类型拥有默认构造器。而在<code>C++</code>中由于编译器的定期检查，这种行为的安全性得以确保。如果想要在<code>Java</code>中以类似方式创建对象，可以通过工厂模式：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">ClassAsFactory</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">T</span> <span class="n">x</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="nf">ClassAsFactory</span><span class="o">(</span><span class="n">Class</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">kind</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">NoSuchMethodException</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">try</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">x</span> <span class="o">=</span> <span class="n">kind</span><span class="o">.</span><span class="na">getDeclaredConstructor</span><span class="o">().</span><span class="na">newInstance</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">IllegalAccessException</span> <span class="o">|</span> <span class="n">InstantiationException</span> <span class="o">|</span> <span class="n">InvocationTargetException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><p>        虽然编译可以通过，但是不一定每次都能成功创建，比如 $ClassAsFactory&lt;Integer&gt;$ 就会失败，因为 $Integer$ 类没有默认构造器。为了避免这个问题，可以使用显示工厂：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">interface</span> <span class="nc">Factory</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">T</span> <span class="nf">create</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">IntegerFactory</span> <span class="kd">implements</span> <span class="n">Factory</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="n">Integer</span> <span class="nf">create</span><span class="o">()</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="k">new</span> <span class="n">Integer</span><span class="o">(</span><span class="n">0</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">Foo</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">private</span> <span class="n">T</span> <span class="n">x</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="o">&lt;</span><span class="n">F</span> <span class="kd">extends</span> <span class="n">Factory</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="nf">Foo</span><span class="o">(</span><span class="n">F</span> <span class="n">factory</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="na">create</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><p>        除了工厂方法之外，还可以使用模板方法：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">abstract</span> <span class="kd">class</span> <span class="nc">GenericWithCreate</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">private</span> <span class="kd">final</span> <span class="n">T</span> <span class="n">element</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="nf">GenericWithCreate</span><span class="o">()</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">element</span> <span class="o">=</span> <span class="n">create</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="kd">abstract</span> <span class="n">T</span> <span class="nf">create</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">X</span> <span class="o">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">Creator</span> <span class="kd">extends</span> <span class="n">GenericWithCreate</span><span class="o">&lt;</span><span class="n">x</span><span class="o">&gt;</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nd">@Override</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="n">X</span> <span class="nf">create</span><span class="o">()</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="k">new</span> <span class="n">X</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><p>        在泛型类内，你无法直接通过 $new$ 创建泛型数组，一般情况下都是使用 $ArrayList$ 进行替代。但是在一些需要建立泛型数组的情况下，通过 $new$ 建立之后再进行转型这种方式是无效的。因为<code>Java</code>数组将跟踪它们被创建时的实际类型，信息在编译期存储，因此无论怎么转型，它都是 $Object$ 数组。因此最好是在集合内部使用 $Object[\ ]$ ，然后在取出元素时再将其转型为 $T$ 。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">GenericArray</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">private</span> <span class="n">Object</span><span class="o">[]</span> <span class="n">array</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="nf">GenericArray</span><span class="o">(</span><span class="kt">int</span> <span class="n">size</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">array</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Object</span><span class="o">[</span><span class="n">size</span><span class="o">];</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">put</span><span class="o">(</span><span class="kt">int</span> <span class="n">index</span><span class="o">,</span> <span class="n">T</span> <span class="n">item</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">array</span><span class="o">[</span><span class="n">index</span><span class="o">]</span> <span class="o">=</span> <span class="n">item</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@SuppressWarnings</span><span class="o">(</span><span class="s">&#34;unchecked&#34;</span><span class="o">)</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="n">T</span> <span class="nf">get</span><span class="o">(</span><span class="kt">int</span> <span class="n">index</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="o">(</span><span class="n">T</span><span class="o">)</span> <span class="n">array</span><span class="o">[</span><span class="n">index</span><span class="o">];</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><p>        如果要获得整个数组对象，那么就不能使用 $new$ ，而要改为使用 $Class$ 对象：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">GenericArrayWithTypeToken</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">private</span> <span class="n">T</span><span class="o">[]</span> <span class="n">array</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nd">@SuppressWarnings</span><span class="o">(</span><span class="s">&#34;unchecked&#34;</span><span class="o">)</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="nf">GenericArrayWithTypeToken</span><span class="o">(</span><span class="n">Class</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">type</span><span class="o">,</span> <span class="kt">int</span> <span class="n">size</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">array</span> <span class="o">=</span> <span class="o">(</span><span class="n">T</span><span class="o">[])</span> <span class="n">Array</span><span class="o">.</span><span class="na">newInstance</span><span class="o">(</span><span class="n">type</span><span class="o">,</span> <span class="n">size</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">put</span><span class="o">(</span><span class="kt">int</span> <span class="n">index</span><span class="o">,</span> <span class="n">T</span> <span class="n">item</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">array</span><span class="o">[</span><span class="n">index</span><span class="o">]</span> <span class="o">=</span> <span class="n">item</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="n">T</span> <span class="nf">get</span><span class="o">(</span><span class="kt">int</span> <span class="n">index</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">array</span><span class="o">[</span><span class="n">index</span><span class="o">];</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="n">T</span><span class="o">[]</span> <span class="nf">rep</span><span class="o">()</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">array</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><p>        可以发现，这两种情况都会产生大量警告。当然，警告是可以忽略的。</p>
 <h2 id="3-边界">3. 边界</h2>
 <p>        边界提供了一种限制泛型参数类型的机制，潜在的效果是允许泛型调用一些方法。如果能够将参数限制为某个类型的子集，那么就可以运用子集来调用方法。同时，如果你需要的话，还可以在继承的每个层次上添加不同的限制：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">A</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{}</span>
-
-<span class="kd">class</span> <span class="nc">B</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{}</span>
-
-<span class="kd">class</span> <span class="nc">C</span><span class="o">&lt;&lt;</span><span class="n">T</span> <span class="kd">extends</span> <span class="n">B</span><span class="o">&gt;</span> <span class="kd">extends</span> <span class="n">A</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="o">{}</span>
-
-<span class="kd">class</span> <span class="nc">D</span><span class="o">&lt;</span><span class="n">T</span> <span class="kd">extends</span> <span class="n">A</span> <span class="o">&amp;</span> <span class="n">B</span><span class="o">&gt;</span> <span class="o">{}</span>
-</code></pre></div><p>        再考虑一种情况，假设 $Apple$ 是 $Fruit$ 的子类，那么：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="n">List</span><span class="o">&lt;</span><span class="n">Fruit</span><span class="o">&gt;</span> <span class="n">list</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;</span><span class="n">Apple</span><span class="o">&gt;();</span>
-</code></pre></div><p>        虽然看起来好像是正确的，但却是错误的，因为 $Apple$ 的 $List$ 在类型上并不等价于 $Fruit$ 的 $List$ 。如果你想要让其正确地向上转型，就需要使用通配符：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="n">List</span><span class="o">&lt;?</span> <span class="kd">extends</span> <span class="n">Fruit</span><span class="o">&gt;</span> <span class="n">list</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;</span><span class="n">Apple</span><span class="o">&gt;();</span>
-</code></pre></div><p>        这种方式给定了一个“任何扩展了 $Fruit$ 对象”的边界，$List$ 就可以接受任何可以向上转型为 $Fruit$ 的类型了。除了这种方式外，还可以使用超类通配符，即声明某个特定类的基类：$&lt;?\ \ super\ \ MyClass&gt;$ ，甚至使用类型参数 $&lt;?\ \ super\ \ T&gt;$ 。<br>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">A</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">B</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">C</span><span class="o">&lt;&lt;</span><span class="n">T</span> <span class="kd">extends</span> <span class="n">B</span><span class="o">&gt;</span> <span class="kd">extends</span> <span class="n">A</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="o">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">D</span><span class="o">&lt;</span><span class="n">T</span> <span class="kd">extends</span> <span class="n">A</span> <span class="o">&amp;</span> <span class="n">B</span><span class="o">&gt;</span> <span class="o">{}</span>
+</span></span></code></pre></div><p>        再考虑一种情况，假设 $Apple$ 是 $Fruit$ 的子类，那么：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="n">List</span><span class="o">&lt;</span><span class="n">Fruit</span><span class="o">&gt;</span> <span class="n">list</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;</span><span class="n">Apple</span><span class="o">&gt;();</span>
+</span></span></code></pre></div><p>        虽然看起来好像是正确的，但却是错误的，因为 $Apple$ 的 $List$ 在类型上并不等价于 $Fruit$ 的 $List$ 。如果你想要让其正确地向上转型，就需要使用通配符：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="n">List</span><span class="o">&lt;?</span> <span class="kd">extends</span> <span class="n">Fruit</span><span class="o">&gt;</span> <span class="n">list</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;</span><span class="n">Apple</span><span class="o">&gt;();</span>
+</span></span></code></pre></div><p>        这种方式给定了一个“任何扩展了 $Fruit$ 对象”的边界，$List$ 就可以接受任何可以向上转型为 $Fruit$ 的类型了。除了这种方式外，还可以使用超类通配符，即声明某个特定类的基类：$&lt;?\ \ super\ \ MyClass&gt;$ ，甚至使用类型参数 $&lt;?\ \ super\ \ T&gt;$ 。<br>
         在上面的例子中使用了无界通配符 $?$ 。如果单独使用无界通配符，看起来好像就等价于原生类型。事实也确实是这样，编译器很少关心原生类型和仅使用无界通配符之间的区别。但这也并不意味着仅使用无界通配符没有意义，它可以标识你想在这里使用泛型。此外，无界通配符表示可以接受任何类型的特性还使得它成为存储泛型类的场所，可以将此特性应用于传参中。当然，编译器也会有关注它们间差异的时候：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">Holder</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
-    <span class="kd">private</span> <span class="n">T</span> <span class="n">obj</span><span class="o">;</span>
-
-    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setObj</span><span class="o">(</span><span class="n">T</span> <span class="n">obj</span><span class="o">)</span> <span class="o">{</span>
-        <span class="k">this</span><span class="o">.</span><span class="na">obj</span> <span class="o">=</span> <span class="n">obj</span><span class="o">;</span>
-    <span class="o">}</span>
-
-    <span class="kd">public</span> <span class="n">T</span> <span class="nf">getObj</span><span class="o">()</span> <span class="o">{</span>
-        <span class="k">return</span> <span class="k">this</span><span class="o">.</span><span class="na">obj</span><span class="o">;</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-
-<span class="kd">public</span> <span class="kd">class</span> <span class="nc">Wildcards</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">rawArgs</span><span class="o">(</span><span class="n">Holder</span> <span class="n">holder</span><span class="o">,</span> <span class="n">Object</span> <span class="n">object</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">holder</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="n">object</span><span class="o">);</span> <span class="c1">// warning
-</span><span class="c1"></span>    <span class="o">}</span>
-
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">unboundedArg</span><span class="o">(</span><span class="n">Holder</span><span class="o">&lt;?&gt;</span> <span class="n">holder</span><span class="o">,</span> <span class="n">Object</span> <span class="n">object</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">holder</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="n">object</span><span class="o">);</span> <span class="c1">// error
-</span><span class="c1"></span>    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        当 $holder$ 是一个 $Holder&lt;?&gt;$ 时，调用 $rawArgs(\ )$ 后，因为编译器仍然知道它是个泛型类型，因此认为传递一个 $Object$ 类型对象是不安全的，所以会产生警告。同样的，在调用 $unboundedArg(\ )$ 时，因为 $Holder&lt;?&gt;$ 要持有一个具体类型的，因此不能只是向其传递 $Object$ 。<br>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">Holder</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">private</span> <span class="n">T</span> <span class="n">obj</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setObj</span><span class="o">(</span><span class="n">T</span> <span class="n">obj</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">this</span><span class="o">.</span><span class="na">obj</span> <span class="o">=</span> <span class="n">obj</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="n">T</span> <span class="nf">getObj</span><span class="o">()</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="k">this</span><span class="o">.</span><span class="na">obj</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Wildcards</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">rawArgs</span><span class="o">(</span><span class="n">Holder</span> <span class="n">holder</span><span class="o">,</span> <span class="n">Object</span> <span class="n">object</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">holder</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="n">object</span><span class="o">);</span> <span class="c1">// warning
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">unboundedArg</span><span class="o">(</span><span class="n">Holder</span><span class="o">&lt;?&gt;</span> <span class="n">holder</span><span class="o">,</span> <span class="n">Object</span> <span class="n">object</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">holder</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="n">object</span><span class="o">);</span> <span class="c1">// error
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><p>        当 $holder$ 是一个 $Holder&lt;?&gt;$ 时，调用 $rawArgs(\ )$ 后，因为编译器仍然知道它是个泛型类型，因此认为传递一个 $Object$ 类型对象是不安全的，所以会产生警告。同样的，在调用 $unboundedArg(\ )$ 时，因为 $Holder&lt;?&gt;$ 要持有一个具体类型的，因此不能只是向其传递 $Object$ 。<br>
         上面演示了需要使用原生类型的情况，也有情况需要使用 $&lt;?&gt;$ ：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">CaptureConversion</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="kt">void</span> <span class="nf">f1</span><span class="o">(</span><span class="n">Holder</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">holder</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">T</span> <span class="n">t</span> <span class="o">=</span> <span class="n">holder</span><span class="o">.</span><span class="na">get</span><span class="o">();</span>
-    <span class="o">}</span>
-
-    <span class="kd">public</span> <span class="kd">static</span> <span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="kt">void</span> <span class="nf">f2</span><span class="o">(</span><span class="n">Holder</span> <span class="n">holder</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">f1</span><span class="o">(</span><span class="n">holder</span><span class="o">);</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        在上面的例子中将原生类型传入 $f1(\ )$ 会产生异常，而传入 $f2(\ )$ 不会。因为 $f2(\ )$ 使用 $&lt;?&gt;$ 作为参数，编译器可能会推断出实际类型，这种行为称为捕获转换。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">CaptureConversion</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="kd">static</span> <span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="kt">void</span> <span class="nf">f1</span><span class="o">(</span><span class="n">Holder</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">holder</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">T</span> <span class="n">t</span> <span class="o">=</span> <span class="n">holder</span><span class="o">.</span><span class="na">get</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="kd">static</span> <span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="kt">void</span> <span class="nf">f2</span><span class="o">(</span><span class="n">Holder</span> <span class="n">holder</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">f1</span><span class="o">(</span><span class="n">holder</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><p>        在上面的例子中将原生类型传入 $f1(\ )$ 会产生异常，而传入 $f2(\ )$ 不会。因为 $f2(\ )$ 使用 $&lt;?&gt;$ 作为参数，编译器可能会推断出实际类型，这种行为称为捕获转换。</p>
 <h2 id="4-自限定类型">4. 自限定类型</h2>
 <p>        先看下面这个例子：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">GenericType</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{}</span>
-
-<span class="kd">public</span> <span class="kd">class</span> <span class="nc">CuriouslyRecurringGeneric</span> <span class="kd">extends</span> <span class="n">GenericType</span><span class="o">&lt;</span><span class="n">CuriouslyRecurringGeneric</span><span class="o">&gt;</span> <span class="o">{}</span>
-</code></pre></div><p>        这种泛型称为<em><strong>古怪的循环泛型</strong></em> ( $CRG$ ) ，本质是将基类的类型参数使用导出类来代替。类似的我们还可以进行下面的声明：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">SelfBounded</span><span class="o">&lt;</span><span class="n">T</span> <span class="kd">extends</span> <span class="n">SelfBounded</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="o">{}</span>
-</code></pre></div><p>        这样 $T$ 的类型就被限定为类似于：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">A</span> <span class="kd">extends</span> <span class="n">SelfBounded</span><span class="o">&lt;</span><span class="n">A</span><span class="o">&gt;</span> <span class="o">{}</span>
-</code></pre></div><p>        通过使用自限定类型，可以保证类型参数与当前正在被定义的类相同。当然，这个规则也可以通过下面方式避免：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">B</span> <span class="kd">extends</span> <span class="n">SelfBounded</span> <span class="o">{}</span>
-</code></pre></div><p>        上面的代码可以编译，而且不会产生警告。因此自限定并非强制保证类型相同，如果你确实需要强制保证的话，就需要外部工具的辅助。<br>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">GenericType</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">CuriouslyRecurringGeneric</span> <span class="kd">extends</span> <span class="n">GenericType</span><span class="o">&lt;</span><span class="n">CuriouslyRecurringGeneric</span><span class="o">&gt;</span> <span class="o">{}</span>
+</span></span></code></pre></div><p>        这种泛型称为<em><strong>古怪的循环泛型</strong></em> ( $CRG$ ) ，本质是将基类的类型参数使用导出类来代替。类似的我们还可以进行下面的声明：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">SelfBounded</span><span class="o">&lt;</span><span class="n">T</span> <span class="kd">extends</span> <span class="n">SelfBounded</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="o">{}</span>
+</span></span></code></pre></div><p>        这样 $T$ 的类型就被限定为类似于：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">A</span> <span class="kd">extends</span> <span class="n">SelfBounded</span><span class="o">&lt;</span><span class="n">A</span><span class="o">&gt;</span> <span class="o">{}</span>
+</span></span></code></pre></div><p>        通过使用自限定类型，可以保证类型参数与当前正在被定义的类相同。当然，这个规则也可以通过下面方式避免：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">B</span> <span class="kd">extends</span> <span class="n">SelfBounded</span> <span class="o">{}</span>
+</span></span></code></pre></div><p>        上面的代码可以编译，而且不会产生警告。因此自限定并非强制保证类型相同，如果你确实需要强制保证的话，就需要外部工具的辅助。<br>
         自限定类型的价值在于它们可以产生协变参数类型：方法参数类型随子类变化。可以对比下下面的两个例子：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">Base</span> <span class="o">{}</span>
-
-<span class="kd">class</span> <span class="nc">Derived</span> <span class="kd">extends</span> <span class="n">Base</span> <span class="o">{}</span>
-
-<span class="kd">interface</span> <span class="nc">OrdinaryGetter</span> <span class="o">{</span>
-    <span class="kt">void</span> <span class="nf">set</span><span class="o">(</span><span class="n">Base</span> <span class="n">base</span><span class="o">);</span>
-<span class="o">}</span>
-
-<span class="kd">interface</span> <span class="nc">DerivedGetter</span> <span class="kd">extends</span> <span class="n">OrdinaryGetter</span> <span class="o">{</span>
-    <span class="kt">void</span> <span class="nf">set</span><span class="o">(</span><span class="n">Derived</span> <span class="n">derived</span><span class="o">);</span>
-<span class="o">}</span>
-</code></pre></div><p>        在这个例子中，$DerivedGetter$ 重写了 $set(\ )$ 方法，这是合理的，但是会存在两个 $set(\ )$ 方法。有时候我们想要让方法接受子类作为参数，又不想因为重写而同时存在两个同名方法，那么可以通过自限定实现：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">interface</span> <span class="nc">SelfBounded</span><span class="o">&lt;</span><span class="n">T</span> <span class="kd">extends</span> <span class="n">SelfBounded</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="o">{</span>
-    <span class="kt">void</span> <span class="nf">set</span><span class="o">(</span><span class="n">T</span> <span class="n">arg</span><span class="o">);</span>
-<span class="o">}</span>
-
-<span class="kd">interface</span> <span class="nc">Setter</span> <span class="kd">extends</span> <span class="n">SelfBounded</span><span class="o">&lt;</span><span class="n">Setter</span><span class="o">&gt;</span> <span class="o">{}</span>
-</code></pre></div><h2 id="5-混型">5. 混型</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">Base</span> <span class="o">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">Derived</span> <span class="kd">extends</span> <span class="n">Base</span> <span class="o">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">interface</span> <span class="nc">OrdinaryGetter</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">void</span> <span class="nf">set</span><span class="o">(</span><span class="n">Base</span> <span class="n">base</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">interface</span> <span class="nc">DerivedGetter</span> <span class="kd">extends</span> <span class="n">OrdinaryGetter</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">void</span> <span class="nf">set</span><span class="o">(</span><span class="n">Derived</span> <span class="n">derived</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><p>        在这个例子中，$DerivedGetter$ 重写了 $set(\ )$ 方法，这是合理的，但是会存在两个 $set(\ )$ 方法。有时候我们想要让方法接受子类作为参数，又不想因为重写而同时存在两个同名方法，那么可以通过自限定实现：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">interface</span> <span class="nc">SelfBounded</span><span class="o">&lt;</span><span class="n">T</span> <span class="kd">extends</span> <span class="n">SelfBounded</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">void</span> <span class="nf">set</span><span class="o">(</span><span class="n">T</span> <span class="n">arg</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">interface</span> <span class="nc">Setter</span> <span class="kd">extends</span> <span class="n">SelfBounded</span><span class="o">&lt;</span><span class="n">Setter</span><span class="o">&gt;</span> <span class="o">{}</span>
+</span></span></code></pre></div><h2 id="5-混型">5. 混型</h2>
 <p>        混型可以混合多个类，产生一个表示混型中所有类型的类，使得组装多个类变得简单。在<code>C++</code>中可以这样使用混型：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="o">&lt;</span><span class="k">template</span> <span class="n">T</span><span class="o">&gt;</span> <span class="k">class</span> <span class="nc">A</span> <span class="o">:</span> <span class="k">public</span> <span class="n">T</span> <span class="p">{}</span>
-</code></pre></div><p>        但是在<code>Java</code>中因为擦除的原因，并不能使用这种方式。一种常见的解决方案是通过接口：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">interface</span> <span class="nc">A</span> <span class="o">{}</span>
-
-<span class="kd">class</span> <span class="nc">AImpl</span> <span class="kd">implements</span> <span class="n">A</span> <span class="o">{}</span>
-</code></pre></div><p>        第二种方案是通过装饰器模式：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">Basic</span> <span class="o">{}</span>
-
-<span class="kd">class</span> <span class="nc">Decorator</span> <span class="kd">extends</span> <span class="n">Base</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="n">Basic</span> <span class="n">basic</span><span class="o">;</span>
-
-    <span class="kd">public</span> <span class="nf">Decorator</span><span class="o">(</span><span class="n">Basic</span> <span class="n">basic</span><span class="o">)</span> <span class="o">{</span>
-        <span class="k">this</span><span class="o">.</span><span class="na">basic</span> <span class="o">=</span> <span class="n">basic</span><span class="o">;</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-
-<span class="kd">class</span> <span class="nc">A</span> <span class="kd">extends</span> <span class="n">Decorator</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="nf">A</span><span class="o">(</span><span class="n">Basic</span> <span class="n">basic</span><span class="o">)</span> <span class="o">{</span>
-        <span class="kd">super</span><span class="o">(</span><span class="n">basic</span><span class="o">);</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-
-<span class="kd">class</span> <span class="nc">B</span> <span class="kd">extends</span> <span class="n">Decorator</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="nf">B</span><span class="o">(</span><span class="n">Basic</span> <span class="n">basic</span><span class="o">)</span> <span class="o">{</span>
-        <span class="kd">super</span><span class="o">(</span><span class="n">basic</span><span class="o">);</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><h2 id="6-潜在类型机制">6. 潜在类型机制</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="o">&lt;</span><span class="k">template</span> <span class="n">T</span><span class="o">&gt;</span> <span class="k">class</span> <span class="nc">A</span> <span class="o">:</span> <span class="k">public</span> <span class="n">T</span> <span class="p">{}</span>
+</span></span></code></pre></div><p>        但是在<code>Java</code>中因为擦除的原因，并不能使用这种方式。一种常见的解决方案是通过接口：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">interface</span> <span class="nc">A</span> <span class="o">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">AImpl</span> <span class="kd">implements</span> <span class="n">A</span> <span class="o">{}</span>
+</span></span></code></pre></div><p>        第二种方案是通过装饰器模式：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">Basic</span> <span class="o">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">Decorator</span> <span class="kd">extends</span> <span class="n">Base</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="n">Basic</span> <span class="n">basic</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="nf">Decorator</span><span class="o">(</span><span class="n">Basic</span> <span class="n">basic</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">this</span><span class="o">.</span><span class="na">basic</span> <span class="o">=</span> <span class="n">basic</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">A</span> <span class="kd">extends</span> <span class="n">Decorator</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="nf">A</span><span class="o">(</span><span class="n">Basic</span> <span class="n">basic</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kd">super</span><span class="o">(</span><span class="n">basic</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">B</span> <span class="kd">extends</span> <span class="n">Decorator</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="nf">B</span><span class="o">(</span><span class="n">Basic</span> <span class="n">basic</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kd">super</span><span class="o">(</span><span class="n">basic</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><h2 id="6-潜在类型机制">6. 潜在类型机制</h2>
 <p>        潜在类型机制或结构化类型机制，允许我们横跨类继承结构，可以调用不属于公共接口的方法。当然，因为<code>Java</code>擦除机制的存在，类内部无法保证传入的类型包含特定方法，因此无法像<code>C++</code>那样直接使用潜在类型机制。一个简单的模仿方法是通过接口：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">interface</span> <span class="nc">I</span> <span class="o">{</span>
-    <span class="kt">void</span> <span class="nf">f1</span><span class="o">();</span>
-<span class="o">}</span>
-
-<span class="kd">class</span> <span class="nc">A</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="o">&lt;</span><span class="n">T</span> <span class="kd">extends</span> <span class="n">I</span><span class="o">&gt;</span>
-    <span class="kt">void</span> <span class="nf">f2</span><span class="o">(</span><span class="n">T</span> <span class="n">t</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">t</span><span class="o">.</span><span class="na">f1</span><span class="o">();</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        但是通过接口方式显然存在着局限性，为了消除这个局限性，我们需要付出更多工作，使用反射机制来实现：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">B</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">f3</span><span class="o">()</span> <span class="o">{}</span>
-<span class="o">}</span>
-
-<span class="kd">class</span> <span class="nc">CommunicateReflectively</span> <span class="o">{</span>
-    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">f4</span><span class="o">(</span><span class="n">Object</span> <span class="n">obj</span><span class="o">)</span> <span class="o">{</span>
-        <span class="n">Class</span><span class="o">&lt;?&gt;</span> <span class="n">c</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="na">getClass</span><span class="o">();</span>
-        <span class="k">try</span> <span class="o">{</span>
-            <span class="n">Method</span> <span class="n">f</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="na">getMethod</span><span class="o">(</span><span class="s">&#34;f3&#34;</span><span class="o">);</span>
-            <span class="n">f</span><span class="o">.</span><span class="na">invoke</span><span class="o">(</span><span class="n">obj</span><span class="o">);</span>
-        <span class="o">}</span> <span class="k">catch</span><span class="o">(</span><span class="n">NoSuchMethodException</span> <span class="o">|</span> <span class="n">IllegalAccessException</span> <span class="o">|</span> <span class="n">InvocationTargetException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
-            <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
-        <span class="o">}</span>
-    <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>        反射会在运行时进行动态检查。通过反射可以在运行时动态地确定所需要的方法是否需要并且调用，而且通过 $try-catch$ ，可以在缺少必须方法时部分实现目标。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">interface</span> <span class="nc">I</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">void</span> <span class="nf">f1</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">A</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="kd">static</span> <span class="o">&lt;</span><span class="n">T</span> <span class="kd">extends</span> <span class="n">I</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">void</span> <span class="nf">f2</span><span class="o">(</span><span class="n">T</span> <span class="n">t</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">t</span><span class="o">.</span><span class="na">f1</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><p>        但是通过接口方式显然存在着局限性，为了消除这个局限性，我们需要付出更多工作，使用反射机制来实现：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">B</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">f3</span><span class="o">()</span> <span class="o">{}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">CommunicateReflectively</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">f4</span><span class="o">(</span><span class="n">Object</span> <span class="n">obj</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Class</span><span class="o">&lt;?&gt;</span> <span class="n">c</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="na">getClass</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">        <span class="k">try</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">Method</span> <span class="n">f</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="na">getMethod</span><span class="o">(</span><span class="s">&#34;f3&#34;</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">f</span><span class="o">.</span><span class="na">invoke</span><span class="o">(</span><span class="n">obj</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span> <span class="k">catch</span><span class="o">(</span><span class="n">NoSuchMethodException</span> <span class="o">|</span> <span class="n">IllegalAccessException</span> <span class="o">|</span> <span class="n">InvocationTargetException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">        <span class="o">}</span>
+</span></span><span class="line"><span class="cl">    <span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><p>        反射会在运行时进行动态检查。通过反射可以在运行时动态地确定所需要的方法是否需要并且调用，而且通过 $try-catch$ ，可以在缺少必须方法时部分实现目标。</p>
 
 <script src=https://z217blog.cn/js/toc.js></script>
 

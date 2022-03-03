@@ -106,17 +106,17 @@
 <p>        我们调用 $aio_-read$ 函数，给内核传递描述符、缓冲区指针、缓冲区大小和文件偏移，并告诉内核当整个操作完成时如何通知我们。该系统调用会立即返回，而且在等待<code>I/O</code>完成期间，我们的进程不被阻塞。</p>
 <h2 id="2-select函数">2. <code>select</code>函数</h2>
 <p>        $select$ 函数允许进程指示内核等待多个事件中的任何一个发生，并只在有一个或多个事件发生或经历一段指定时间后才唤醒。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/select.h&gt;</span><span class="cp">
-</span><span class="cp">#include</span> <span class="cpf">&lt;sys/time.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 存在就绪描述符则返回其数目，超时返回0，出错返回-1
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">select</span><span class="p">(</span><span class="kt">int</span> <span class="n">maxfdp1</span><span class="p">,</span> <span class="n">fd_set</span> <span class="o">*</span><span class="n">readset</span><span class="p">,</span> <span class="n">fd_set</span> <span class="o">*</span><span class="n">writeset</span><span class="p">,</span>
-  <span class="n">fd_set</span> <span class="o">*</span><span class="n">exceptset</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">timeval</span> <span class="o">*</span><span class="n">timeout</span><span class="p">);</span>
-
-<span class="n">strcut</span> <span class="n">timeval</span> <span class="p">{</span>
-  <span class="kt">long</span> <span class="n">tv_sec</span><span class="p">;</span>  <span class="c1">// seconds
-</span><span class="c1"></span>  <span class="kt">long</span> <span class="n">tv_usec</span><span class="p">;</span>  <span class="c1">// microseconds
-</span></code></pre></div><p>        $timeval$ 参数有以下三种可能：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/select.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/time.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 存在就绪描述符则返回其数目，超时返回0，出错返回-1
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">select</span><span class="p">(</span><span class="kt">int</span> <span class="n">maxfdp1</span><span class="p">,</span> <span class="n">fd_set</span> <span class="o">*</span><span class="n">readset</span><span class="p">,</span> <span class="n">fd_set</span> <span class="o">*</span><span class="n">writeset</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="n">fd_set</span> <span class="o">*</span><span class="n">exceptset</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">timeval</span> <span class="o">*</span><span class="n">timeout</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">strcut</span> <span class="n">timeval</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">long</span> <span class="n">tv_sec</span><span class="p">;</span>  <span class="c1">// seconds
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">long</span> <span class="n">tv_usec</span><span class="p">;</span>  <span class="c1">// microseconds
+</span></span></span></code></pre></div><p>        $timeval$ 参数有以下三种可能：</p>
 <ol>
 <li>永远等待下去：仅在有一个描述准备好<code>I/O</code>时才返回，此时该参数设为 $NULL$ ；</li>
 <li>等待一段固定时间：在有一个描述符准备好<code>I/O</code>时返回，但是不超过由该参数所指定的时间；</li>
@@ -125,18 +125,18 @@
 <p>        尽管 $timeval$ 结构允许我们指定一个微妙级的时间，但是内核支持的真实分辨率往往会更粗糙。例如，许多<code>Unix</code>内核把超时值向上舍入为 $10ms$ 的倍数。另外还涉及调度延迟，也就是说定时器时间到后，内核还需要花一点时间调度相应进程运行。<br>
         $select$ 函数中的三个参数 $readset$ 、$writeset$ 和 $exceptset$ 中，如果我们对某个条件不感兴趣，就可以把它设为空指针。事实上，如果这三个指针均为空，我们就有了一个比<code>Unix</code>的 $sleep$ 函数更为精确的定时器。$maxfdp1$ 参数指定待测试的描述符个数，它的值是待测试的最大描述符加 $1$　。头文件 &lt;$sys/select.h$&gt; 中定义的 $FD_-SETSIZE$ 常值是数据类型 $fd_-set$ 中的描述符总数，通常为 $1024$　。<br>
         $select$ 使用描述符集，通常是一个整数数组，其中每个整数中的每一位对应一个描述符。例如，假设使用 $32$ 位整数，那么该数组的第一个元素对应于描述符 $0 \sim 31$ ，第二个元素对应于描述符 $32 \sim 63$ ，以此类推。所有这些实现细节都与应用程序无关，隐藏在名为 $fd_-set$ 的数据类型和以下四个宏中：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="c1">// 清零
-</span><span class="c1"></span><span class="kt">void</span> <span class="nf">FD_ZERO</span><span class="p">(</span><span class="n">fd_set</span> <span class="o">*</span><span class="n">fdset</span><span class="p">);</span>
-
-<span class="c1">// 打开
-</span><span class="c1"></span><span class="kt">void</span> <span class="nf">FD_SET</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">fd_set</span> <span class="o">*</span><span class="n">fdset</span><span class="p">);</span>
-
-<span class="c1">// 关闭
-</span><span class="c1"></span><span class="kt">void</span> <span class="nf">FD_SET</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">fd_set</span> <span class="o">*</span><span class="n">fdset</span><span class="p">);</span>
-
-<span class="c1">// 检查
-</span><span class="c1"></span><span class="kt">void</span> <span class="nf">FD_ISSET</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">fd_set</span> <span class="o">*</span><span class="n">fdset</span><span class="p">);</span>
-</code></pre></div><p>        $select$ 函数修改由指针 $readset$ 、$writeset$ 和 $exceptset$ 指向的描述符集，因而这三个参数都是值-结果参数。调用该函数时，我们指定关心的描述符值，函数返回时，结果将指示哪写描述符已经就绪。我们通过 $FD_-ISSET$ 宏测试 $fd_-set$ 数据类型中的描述符，描述符集内任何与未就绪描述符对应的位返回时均清 $0$ 。为此，每次重新调用 $select$ 时，我们都得再把所有描述符集内关心的位置 $1$ 。<br>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="c1">// 清零
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">void</span> <span class="nf">FD_ZERO</span><span class="p">(</span><span class="n">fd_set</span> <span class="o">*</span><span class="n">fdset</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 打开
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">void</span> <span class="nf">FD_SET</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">fd_set</span> <span class="o">*</span><span class="n">fdset</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 关闭
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">void</span> <span class="nf">FD_SET</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">fd_set</span> <span class="o">*</span><span class="n">fdset</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 检查
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">void</span> <span class="nf">FD_ISSET</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">fd_set</span> <span class="o">*</span><span class="n">fdset</span><span class="p">);</span>
+</span></span></code></pre></div><p>        $select$ 函数修改由指针 $readset$ 、$writeset$ 和 $exceptset$ 指向的描述符集，因而这三个参数都是值-结果参数。调用该函数时，我们指定关心的描述符值，函数返回时，结果将指示哪写描述符已经就绪。我们通过 $FD_-ISSET$ 宏测试 $fd_-set$ 数据类型中的描述符，描述符集内任何与未就绪描述符对应的位返回时均清 $0$ 。为此，每次重新调用 $select$ 时，我们都得再把所有描述符集内关心的位置 $1$ 。<br>
         满足下列四个条件中的任何一个时，套接字准备好读：</p>
 <ol>
 <li>该套接字接受缓冲区中的数据字节数大于等于套接字接收缓冲区低水位标记的当前大小，对这样的套接字执行读操作不会阻塞并将返回一个大于 $0$ 的值。可以使用 $SO_-RCVLOWAT$ 套接字选项设置该套接字的低水位标记，对<code>TCP</code>和<code>UDP</code>套接字而言，默认值为 $1$ ；</li>
@@ -212,11 +212,11 @@
 <li>$close$ 把描述符的引用计数减一，仅在该计数为 $0$ 时才关闭套接字。$shutdown$ 则可以直接关闭套接字；</li>
 <li>$close$ 终止读和写两个方向的数据传输，$shutdown$ 则只关闭一半的连接。</li>
 </ol>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 成功返回0，出错返回-1
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">shutdown</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">howto</span><span class="p">);</span>
-</code></pre></div><p>        该函数的行为依赖于 $howto$ 参数：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 成功返回0，出错返回-1
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">shutdown</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">howto</span><span class="p">);</span>
+</span></span></code></pre></div><p>        该函数的行为依赖于 $howto$ 参数：</p>
 <ul>
 <li>$SHUT_-RD$ ：读半关闭，套接字中不再有数据可以接收，而且现有接收缓冲区中的数据全部丢弃。此时对端的后续数据都会被确认，然后丢弃；</li>
 <li>$SHUT_-WR$ ：写半关闭，当前套接字发送缓冲区中的数据全部丢弃；</li>
@@ -224,17 +224,17 @@
 </ul>
 <h2 id="4-poll函数">4. <code>poll</code>函数</h2>
 <p>        $poll$ 提供的功能和 $select$ 类似，不过在处理流设备时，他能够提供额外的信息。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;poll.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 若存在就绪描述符则返回其数目，超时返回0，出错返回-1
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">poll</span><span class="p">(</span><span class="k">struct</span> <span class="n">pollfd</span> <span class="o">*</span><span class="n">fdarray</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">nfds</span><span class="p">,</span> <span class="kt">int</span> <span class="n">timeout</span><span class="p">);</span>
-
-<span class="k">struct</span> <span class="n">pollfd</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">fd</span><span class="p">;</span>
-  <span class="kt">short</span> <span class="n">events</span><span class="p">;</span>  <span class="c1">// fd关注的事件
-</span><span class="c1"></span>  <span class="kt">short</span> <span class="n">revents</span><span class="p">;</span>  <span class="c1">// fd发生的事件
-</span><span class="c1"></span><span class="p">};</span>
-</code></pre></div><p>        第一个参数是指向一个结构数首元素的指针，要测试的条件由 $events$ 指定，函数在相应的 $revents$ 中返回该描述符的状态。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;poll.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 若存在就绪描述符则返回其数目，超时返回0，出错返回-1
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">poll</span><span class="p">(</span><span class="k">struct</span> <span class="n">pollfd</span> <span class="o">*</span><span class="n">fdarray</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">long</span> <span class="n">nfds</span><span class="p">,</span> <span class="kt">int</span> <span class="n">timeout</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">pollfd</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">fd</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">short</span> <span class="n">events</span><span class="p">;</span>  <span class="c1">// fd关注的事件
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">short</span> <span class="n">revents</span><span class="p">;</span>  <span class="c1">// fd发生的事件
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></code></pre></div><p>        第一个参数是指向一个结构数首元素的指针，要测试的条件由 $events$ 指定，函数在相应的 $revents$ 中返回该描述符的状态。</p>
 <div class="div-table" data-fl-scrolls><table>
 <thead>
 <tr>

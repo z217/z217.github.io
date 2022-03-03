@@ -86,50 +86,50 @@
 
 <p>        首先从获取<code>JDK</code>源码开始。以<code>OpenJDK</code>为例，点击 <a href="https://hg.openjdk.java.net/jdk/">OpenJDK</a> 进入，选择对应的<code>JDK</code>版本，在此以<code>JDK12</code>为例，选择 $jdk12$ 。进入后在左侧选择 $browse$ ，然后再选择 $zip$ 即可下载。源码下载完毕之后解压，可以在解压后的文件目录下的 $/doc/building.html$ 中阅读编译文档。<br>
         源码下载完毕之后开始准备<code>Linux</code>环境，要注意在<code>Linux</code>环境中，文件夹请尽量使用英文名，名称中不要出现空格。我使用的是<code>WSL Ubuntu</code>，在刚开始使用时要记得切换镜像源。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash">vi /etc/apt/sources.list
-</code></pre></div><p>        使用 $vi$ 打开配置文件，然后替换为镜像源，在此我使用的是阿里云的镜像源，$sources.list$ 文件内容如下：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash">deb http://mirrors.aliyun.com/ubuntu/ bionic main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu/ bionic-security main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu/ bionic-updates main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu/ bionic-proposed main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu/ bionic-backports main restricted universe multiverse
-deb-src http://mirrors.aliyun.com/ubuntu/ bionic main restricted universe multiverse
-deb-src http://mirrors.aliyun.com/ubuntu/ bionic-security main restricted universe multiverse
-deb-src http://mirrors.aliyun.com/ubuntu/ bionic-updates main restricted universe multiverse
-deb-src http://mirrors.aliyun.com/ubuntu/ bionic-proposed main restricted universe multiverse
-deb-src http://mirrors.aliyun.com/ubuntu/ bionic-backports main restricted universe multiverse
-</code></pre></div><p>        替换完毕后执行更新命令：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash">sudo apt-get update
-sudo apt-get upgrade
-</code></pre></div><p>        然后就可以开始构建编译环境了：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash">sudo apt-get install build-essential <span class="c1">#GCC</span>
-sudo apt-get install zip unzip <span class="c1">#ZIP UNZIP</span>
-sudo apt-get install libfreetype6-dev <span class="c1">#FreeType</span>
-sudo apt-get install libcups2-dev <span class="c1">#CUPS</span>
-sudo apt-get install libx11-dev libxext-dev libxrender-dev libxrandr-dev libxtst-dev libxt-dev <span class="c1">#X11</span>
-sudo apt-get install libasound2-dev <span class="c1">#ALSA</span>
-sudo apt-get install libffi-dev <span class="c1">#libffi</span>
-sudo apt-get install autoconf <span class="c1">#Autoconf</span>
-</code></pre></div><p>        虽然我们要编译<code>JDK</code>，但是仍然需要下载一份已经编译好的<code>JDK</code>。如果要编译版本为 $N$ 的<code>JDK</code>，那么至少需要一个版本为 $N-1$ 的已编译好的<code>JDK</code>。在这里我们要编译<code>JDK12</code>，因此可以下载<code>JDK11</code>进行编译。点击 <a href="https://jdk.java.net/java-se-ri/11">jdk.java.net</a> 进行下载，注意在此要下载<code>Linux</code>版。下载完成后前往下载目录，输入：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash">tar -zxvf openjdk-11+28_linux-x64_bin.tar.gz
-</code></pre></div><p>        开始解压，解压完成会得到一个名为 $jdk-11$ 的文件夹，再输入</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash">vi /etc/profile
-</code></pre></div><p>        在打开的文件中加入以下配置：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="nv">JAVA_HOME</span><span class="o">=</span><span class="nv">$YOUR_POSITION</span>/jdk-11 <span class="c1">#将$YOUR_POSITION替换为当前文件路径，可以使用pwd进行查看</span>
-<span class="nv">PATH</span><span class="o">=</span><span class="nv">$PATH</span>:<span class="nv">$JAVA_HOME</span>/bin
-<span class="nb">export</span> JAVA_HOME PATH
-</code></pre></div><p>        添加完成后输入</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="nb">source</span> /etc/profile
-</code></pre></div><p>        启用配置。启用后可以输入</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash">java -version
-</code></pre></div><p>        进行确认。<br>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vi /etc/apt/sources.list
+</span></span></code></pre></div><p>        使用 $vi$ 打开配置文件，然后替换为镜像源，在此我使用的是阿里云的镜像源，$sources.list$ 文件内容如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">deb http://mirrors.aliyun.com/ubuntu/ bionic main restricted universe multiverse
+</span></span><span class="line"><span class="cl">deb http://mirrors.aliyun.com/ubuntu/ bionic-security main restricted universe multiverse
+</span></span><span class="line"><span class="cl">deb http://mirrors.aliyun.com/ubuntu/ bionic-updates main restricted universe multiverse
+</span></span><span class="line"><span class="cl">deb http://mirrors.aliyun.com/ubuntu/ bionic-proposed main restricted universe multiverse
+</span></span><span class="line"><span class="cl">deb http://mirrors.aliyun.com/ubuntu/ bionic-backports main restricted universe multiverse
+</span></span><span class="line"><span class="cl">deb-src http://mirrors.aliyun.com/ubuntu/ bionic main restricted universe multiverse
+</span></span><span class="line"><span class="cl">deb-src http://mirrors.aliyun.com/ubuntu/ bionic-security main restricted universe multiverse
+</span></span><span class="line"><span class="cl">deb-src http://mirrors.aliyun.com/ubuntu/ bionic-updates main restricted universe multiverse
+</span></span><span class="line"><span class="cl">deb-src http://mirrors.aliyun.com/ubuntu/ bionic-proposed main restricted universe multiverse
+</span></span><span class="line"><span class="cl">deb-src http://mirrors.aliyun.com/ubuntu/ bionic-backports main restricted universe multiverse
+</span></span></code></pre></div><p>        替换完毕后执行更新命令：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt-get update
+</span></span><span class="line"><span class="cl">sudo apt-get upgrade
+</span></span></code></pre></div><p>        然后就可以开始构建编译环境了：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt-get install build-essential <span class="c1">#GCC</span>
+</span></span><span class="line"><span class="cl">sudo apt-get install zip unzip <span class="c1">#ZIP UNZIP</span>
+</span></span><span class="line"><span class="cl">sudo apt-get install libfreetype6-dev <span class="c1">#FreeType</span>
+</span></span><span class="line"><span class="cl">sudo apt-get install libcups2-dev <span class="c1">#CUPS</span>
+</span></span><span class="line"><span class="cl">sudo apt-get install libx11-dev libxext-dev libxrender-dev libxrandr-dev libxtst-dev libxt-dev <span class="c1">#X11</span>
+</span></span><span class="line"><span class="cl">sudo apt-get install libasound2-dev <span class="c1">#ALSA</span>
+</span></span><span class="line"><span class="cl">sudo apt-get install libffi-dev <span class="c1">#libffi</span>
+</span></span><span class="line"><span class="cl">sudo apt-get install autoconf <span class="c1">#Autoconf</span>
+</span></span></code></pre></div><p>        虽然我们要编译<code>JDK</code>，但是仍然需要下载一份已经编译好的<code>JDK</code>。如果要编译版本为 $N$ 的<code>JDK</code>，那么至少需要一个版本为 $N-1$ 的已编译好的<code>JDK</code>。在这里我们要编译<code>JDK12</code>，因此可以下载<code>JDK11</code>进行编译。点击 <a href="https://jdk.java.net/java-se-ri/11">jdk.java.net</a> 进行下载，注意在此要下载<code>Linux</code>版。下载完成后前往下载目录，输入：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">tar -zxvf openjdk-11+28_linux-x64_bin.tar.gz
+</span></span></code></pre></div><p>        开始解压，解压完成会得到一个名为 $jdk-11$ 的文件夹，再输入</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">vi /etc/profile
+</span></span></code></pre></div><p>        在打开的文件中加入以下配置：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nv">JAVA_HOME</span><span class="o">=</span><span class="nv">$YOUR_POSITION</span>/jdk-11 <span class="c1">#将$YOUR_POSITION替换为当前文件路径，可以使用pwd进行查看</span>
+</span></span><span class="line"><span class="cl"><span class="nv">PATH</span><span class="o">=</span><span class="nv">$PATH</span>:<span class="nv">$JAVA_HOME</span>/bin
+</span></span><span class="line"><span class="cl"><span class="nb">export</span> JAVA_HOME PATH
+</span></span></code></pre></div><p>        添加完成后输入</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">source</span> /etc/profile
+</span></span></code></pre></div><p>        启用配置。启用后可以输入</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">java -version
+</span></span></code></pre></div><p>        进行确认。<br>
         在配置完编译环境后，开始编译。首先进入一开始下载好的<code>JDK</code>源码文件夹。<code>OpenJDK</code>提供了很多编译参数，可以通过输入参数来改变编译配置，输入：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash">bash configure --help
-</code></pre></div><p>        命令可以查询到编译参数。以编译 $FastDebug$ 版、仅含 $Server$ 模式的<code>HotSpot</code>虚拟机为例，输入：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash">bash configure --enable-debug --with-jvm-variants<span class="o">=</span>server
-</code></pre></div><p>        $configure$ 命令会检查依赖项，当出现依赖项缺失时，会抛出异常，并且会给出安装命令。当抛出异常时，只需要根据其给出的安装命令安装即可。在检查完毕后，会输出配置信息，可以在 $/build$ 文件夹中新生成的文件夹内查看。之后就可以开始编译了，输入：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash">make images
-</code></pre></div><p>        即可开始。编译的过程很漫长，最终编译结束后会在之前 $/build$ 文件夹下配置文件夹中的 $/jdk$ 文件夹中生成<code>JDK</code>。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">bash configure --help
+</span></span></code></pre></div><p>        命令可以查询到编译参数。以编译 $FastDebug$ 版、仅含 $Server$ 模式的<code>HotSpot</code>虚拟机为例，输入：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">bash configure --enable-debug --with-jvm-variants<span class="o">=</span>server
+</span></span></code></pre></div><p>        $configure$ 命令会检查依赖项，当出现依赖项缺失时，会抛出异常，并且会给出安装命令。当抛出异常时，只需要根据其给出的安装命令安装即可。在检查完毕后，会输出配置信息，可以在 $/build$ 文件夹中新生成的文件夹内查看。之后就可以开始编译了，输入：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">make images
+</span></span></code></pre></div><p>        即可开始。编译的过程很漫长，最终编译结束后会在之前 $/build$ 文件夹下配置文件夹中的 $/jdk$ 文件夹中生成<code>JDK</code>。</p>
 
 <script src=https://z217blog.cn/js/toc.js></script>
 

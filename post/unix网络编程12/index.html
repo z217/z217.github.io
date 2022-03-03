@@ -89,8 +89,8 @@
 <p>        <code>TCP</code>并没有真正的带外数据，不过提供了<strong>紧急模式</strong> ( $urgent$ $mode$ )。以下为<code>TCP</code>发送缓冲区。</p>
 <p><img src="/image/2022-02-16-1.jpg" alt="含有待发送数据的套接字发送缓冲区"></p>
 <p>        进程以 $MSG_-OOB$ 标志发送一个带外数据：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="n">send</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="s">&#34;a&#34;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MSG_OOB</span><span class="p">);</span>
-</code></pre></div><p>        <code>TCP</code>将这个数据放置在发送缓冲区的下一个可用位置，并把该连接的<code>TCP</code>紧急指针设置为下一个可用位置。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="n">send</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="s">&#34;a&#34;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MSG_OOB</span><span class="p">);</span>
+</span></span></code></pre></div><p>        <code>TCP</code>将这个数据放置在发送缓冲区的下一个可用位置，并把该连接的<code>TCP</code>紧急指针设置为下一个可用位置。</p>
 <p><img src="/image/2022-02-16-2.jpg" alt="应用进程写入带外数据后的套接字发送缓冲区"></p>
 <p>        <code>TCP</code>紧急指针对应一个<code>TCP</code>序列号，它是使用 $MSG_-OOB$ 标志写出的最后一个数据字节 ( 即带外数据字节 ) 对应的序列号加 $1$ 。发送端<code>TCP</code>将为待发送的下一个分节在<code>TCP</code>首部设置<code>URG</code>标志，并把<code>TCP</code><em><strong>紧急偏移</strong></em> ( $urgent$ $offset$ ) 字段设置为紧急指针指向的字节，这个分节可能包含也可能不含之前发送的带外数据。$16$ 位的<code>TCP</code>序列号加上 $16$ 位的紧急偏移字段即可得到 $32$ 位的紧急指针。<code>TCP</code>紧急模式的一个重要特点是<code>TCP</code>首部指出发送端已经进入紧急模式 ( 设置<code>URG</code>标志 )，但是紧急指针指向的实际数据字节却不一定发送。<br>
         从接收端的角度来看，发生了以下事件：</p>
@@ -109,101 +109,101 @@
 <p>        在使用 $select$ 监听时，要注意将监听带外数据的描述符置于异常集合中。当监听异常条件时，要注意先进行一次普通的读，然后再监听异常集合，并且在读入带外数据后清除异常集合。</p>
 <h2 id="2-sockatmark函数">2. <code>sockatmark</code>函数</h2>
 <p>        每当收到一个带外数据时，就有一个与之关联的<strong>带外标记</strong> ( $out-of-band$ $mark$ )，这是发送进程发送带外字节时该字节在发送端普通数据流中的位置。在从套接字读入期间，接收进程通过调用 $sockatmark$ 函数确定是否处于带外标记。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 带外标记返回1，非带外标记返回0，出错返回-1
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">sockatmark</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">);</span>
-</code></pre></div><p>        不管接收进程在带内 ( $SO_-OOBINLINE$ 选项 ) 还是带外 ( $MSG_-OOB$ 标志 ) 接收带外数据，都可以使用带外标记。带外标记的常见用法之一就是接收进程特殊地对待所有带外数据，直到越过带外数据。<br>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 带外标记返回1，非带外标记返回0，出错返回-1
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">sockatmark</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">);</span>
+</span></span></code></pre></div><p>        不管接收进程在带内 ( $SO_-OOBINLINE$ 选项 ) 还是带外 ( $MSG_-OOB$ 标志 ) 接收带外数据，都可以使用带外标记。带外标记的常见用法之一就是接收进程特殊地对待所有带外数据，直到越过带外数据。<br>
         带外标记总是指向普通数据最后一个字节之后的位置。如果带外数据在线接收，如果下一个待读入字节是使用 $MSG_-OOB$ 标志发送的，$sockatmark$ 就返回真。如果带外数据带外接收，那么当下一个待读入字节是带外数据的第一个字节时，$sockatmark$ 就返回真。读操作总是停在带外标记上，从而进程能通过 $sockatmark$ 判断缓冲区指针是否处于带外标记。</p>
 <h2 id="3-客户服务器心跳函数">3. 客户/服务器心跳函数</h2>
 <p>        实现<code>TCP</code>心跳函数，有些人会想到使用<code>TCP</code>的保活计时器 ( $SO_-KEEPALIVE$ 选项 ) 来提供这种功能，然而<code>TCP</code>要在连接闲置 $2$ 小时后才发送存活探测分节。尽管缩短<code>TCP</code>的保活计时器参数在许多系统上可行，但是这些参数通常是按照内核而不是按照每个套接字维护的，因此会影响到所有开启该选项的套接字。其次，两个端系统之间短暂的连接丢失并非总是坏事，<code>TCP</code>从一开始就支持临时断连，源自 $Berkeley$ 的<code>TCP</code>实现将重传 $8 \sim 10$ 分钟才会放弃某个连接。开发人员必须审查引入心跳机制的具体应用，有些系统需要这种功能，但是大多数并不需要。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="k">static</span> <span class="kt">int</span> <span class="n">servfd</span><span class="p">;</span>
-<span class="k">static</span> <span class="kt">int</span> <span class="n">nsec</span><span class="p">;</span>  <span class="c1">// seconds between each alarm
-</span><span class="c1"></span><span class="k">static</span> <span class="kt">int</span> <span class="n">maxnprobes</span><span class="p">;</span>  <span class="c1">// probes w/no response before quit
-</span><span class="c1"></span><span class="k">static</span> <span class="kt">int</span> <span class="n">nprobes</span><span class="p">;</span>  <span class="c1">// probes since last server response
-</span><span class="c1"></span><span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_urg</span><span class="p">(</span><span class="kt">int</span><span class="p">),</span> <span class="n">sig_alrm</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
-
-<span class="kt">void</span> <span class="nf">heartbeat_cli</span><span class="p">(</span><span class="kt">int</span> <span class="n">servfd_arg</span><span class="p">,</span> <span class="kt">int</span> <span class="n">nsec_arg</span><span class="p">,</span> <span class="kt">int</span> <span class="n">maxnprobes_arg</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">servfd</span> <span class="o">=</span> <span class="n">servfd_arg</span><span class="p">;</span>  <span class="c1">// set globals for signal handlers
-</span><span class="c1"></span>  <span class="k">if</span> <span class="p">((</span><span class="n">nsec</span> <span class="o">=</span> <span class="n">nsec_arg</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="n">nsec</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
-  <span class="k">if</span> <span class="p">((</span><span class="n">maxnprobes</span> <span class="o">=</span> <span class="n">maxnprobes_arg</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">nsec</span><span class="p">)</span>
-    <span class="n">maxnprobes</span> <span class="o">=</span> <span class="n">nsec</span><span class="p">;</span>
-  <span class="n">nprobes</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-
-  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGURG</span><span class="p">,</span> <span class="n">sig_urg</span><span class="p">);</span>
-  <span class="n">Fcntl</span><span class="p">(</span><span class="n">servfd</span><span class="p">,</span> <span class="n">F_SETOWN</span><span class="p">,</span> <span class="n">getpid</span><span class="p">());</span>
-
-  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGALRM</span><span class="p">,</span> <span class="n">sig_alrm</span><span class="p">);</span>
-  <span class="n">alarm</span><span class="p">(</span><span class="n">nsec</span><span class="p">);</span>
-<span class="p">}</span>
-
-<span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_urg</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">n</span><span class="p">;</span>
-  <span class="kt">char</span> <span class="n">c</span><span class="p">;</span>
-
-  <span class="k">if</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">recv</span><span class="p">(</span><span class="n">servfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">c</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MSG_OOB</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EWOULDBLOCK</span><span class="p">)</span>
-      <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;recv error&#34;</span><span class="p">);</span>
-  <span class="n">nprobes</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// reset counter
-</span><span class="c1"></span>  <span class="k">return</span><span class="p">;</span>  <span class="c1">// may interrupt client code
-</span><span class="c1"></span><span class="p">}</span>
-
-<span class="n">stativ</span> <span class="kt">void</span> <span class="nf">sig_alrm</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">if</span> <span class="p">(</span><span class="o">++</span><span class="n">nprobes</span> <span class="o">&gt;</span> <span class="n">maxnprobes</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&#34;server is unreachable</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
-    <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-  <span class="p">}</span>
-  <span class="n">Send</span><span class="p">(</span><span class="n">servfd</span><span class="p">,</span> <span class="s">&#34;1&#34;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MSG_OOB</span><span class="p">);</span>
-  <span class="n">alarm</span><span class="p">(</span><span class="n">nsec</span><span class="p">);</span>
-  <span class="k">return</span><span class="p">;</span>  <span class="c1">// may interrupt client code
-</span><span class="c1"></span><span class="p">}</span>
-</code></pre></div><p>        在这个例子中，客户每隔 $1$ 秒向服务器发送一个带外字节，服务器收取该字节将导致它向客户发回一个带外字节。每端都需要知道对端是否不复存在或不再可达。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="k">static</span> <span class="kt">int</span> <span class="n">servfd</span><span class="p">;</span>
-<span class="k">static</span> <span class="kt">int</span> <span class="n">nsec</span><span class="p">;</span>  <span class="c1">// seconds between each alarm
-</span><span class="c1"></span><span class="k">static</span> <span class="kt">int</span> <span class="n">maxnalarms</span><span class="p">;</span>  <span class="c1">// alaram w/no client probe before quit
-</span><span class="c1"></span><span class="k">static</span> <span class="kt">int</span> <span class="n">nprobes</span><span class="p">;</span>  <span class="c1">// alarms since last client probe
-</span><span class="c1"></span><span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_urg</span><span class="p">(</span><span class="kt">int</span><span class="p">),</span> <span class="n">sig_alrm</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
-
-<span class="kt">void</span> <span class="nf">heartbeat_serv</span><span class="p">(</span><span class="kt">int</span> <span class="n">esrvfd_arg</span><span class="p">,</span> <span class="kt">int</span> <span class="n">nsec_arg</span><span class="p">,</span> <span class="kt">int</span> <span class="n">maxnalarms_arg</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">servfd</span> <span class="o">=</span> <span class="n">servfd_arg</span><span class="p">;</span>  <span class="c1">// set globals for signal handlers
-</span><span class="c1"></span>  <span class="k">if</span> <span class="p">((</span><span class="n">nsec</span> <span class="o">=</span> <span class="n">nsec_arg</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="n">nsec</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
-  <span class="k">if</span> <span class="p">((</span><span class="n">maxnalarms</span> <span class="o">=</span> <span class="n">maxnalarms_arg</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">nsec</span><span class="p">)</span>
-    <span class="n">maxnalarms</span> <span class="o">=</span> <span class="n">nsec</span><span class="p">;</span>
-
-  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGURG</span><span class="p">,</span> <span class="n">sig_urg</span><span class="p">);</span>
-  <span class="n">Fcntl</span><span class="p">(</span><span class="n">servfd</span><span class="p">,</span> <span class="n">F_SETOWN</span><span class="p">,</span> <span class="n">getpid</span><span class="p">());</span>
-
-  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGALRM</span><span class="p">,</span> <span class="n">sig_alrm</span><span class="p">);</span>
-  <span class="n">alarm</span><span class="p">(</span><span class="n">nsec</span><span class="p">);</span>
-<span class="p">}</span>
-
-<span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_urg</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">n</span><span class="p">;</span>
-  <span class="kt">char</span> <span class="n">c</span><span class="p">;</span>
-
-  <span class="k">if</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">recv</span><span class="p">(</span><span class="n">servfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">c</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MSG_OOB</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EWOULDBLOCK</span><span class="p">)</span>
-      <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;recv error&#34;</span><span class="p">);</span>
-  <span class="n">Send</span><span class="p">(</span><span class="n">servfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">c</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MSG_OOB</span><span class="p">);</span> <span class="c1">// echo back out-of-band type
-</span><span class="c1"></span>  <span class="n">nprobes</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// reset counter
-</span><span class="c1"></span>  <span class="k">return</span><span class="p">;</span>  <span class="c1">// may interrupt server code
-</span><span class="c1"></span><span class="p">}</span>
-
-<span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_alrm</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">if</span> <span class="p">(</span><span class="o">++</span><span class="n">nprobes</span> <span class="o">&gt;</span> <span class="n">maxnalarms</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;no probes from client</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
-    <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-  <span class="p">}</span>
-  <span class="n">alarm</span><span class="p">(</span><span class="n">nsec</span><span class="p">);</span>
-  <span class="k">return</span><span class="p">;</span>  <span class="c1">// may interrupt server code
-</span><span class="c1"></span><span class="p">}</span>
-</code></pre></div>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">static</span> <span class="kt">int</span> <span class="n">servfd</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">static</span> <span class="kt">int</span> <span class="n">nsec</span><span class="p">;</span>  <span class="c1">// seconds between each alarm
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">static</span> <span class="kt">int</span> <span class="n">maxnprobes</span><span class="p">;</span>  <span class="c1">// probes w/no response before quit
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">static</span> <span class="kt">int</span> <span class="n">nprobes</span><span class="p">;</span>  <span class="c1">// probes since last server response
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_urg</span><span class="p">(</span><span class="kt">int</span><span class="p">),</span> <span class="n">sig_alrm</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">heartbeat_cli</span><span class="p">(</span><span class="kt">int</span> <span class="n">servfd_arg</span><span class="p">,</span> <span class="kt">int</span> <span class="n">nsec_arg</span><span class="p">,</span> <span class="kt">int</span> <span class="n">maxnprobes_arg</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">servfd</span> <span class="o">=</span> <span class="n">servfd_arg</span><span class="p">;</span>  <span class="c1">// set globals for signal handlers
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">if</span> <span class="p">((</span><span class="n">nsec</span> <span class="o">=</span> <span class="n">nsec_arg</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">nsec</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">((</span><span class="n">maxnprobes</span> <span class="o">=</span> <span class="n">maxnprobes_arg</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">nsec</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">maxnprobes</span> <span class="o">=</span> <span class="n">nsec</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">nprobes</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGURG</span><span class="p">,</span> <span class="n">sig_urg</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Fcntl</span><span class="p">(</span><span class="n">servfd</span><span class="p">,</span> <span class="n">F_SETOWN</span><span class="p">,</span> <span class="n">getpid</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGALRM</span><span class="p">,</span> <span class="n">sig_alrm</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">alarm</span><span class="p">(</span><span class="n">nsec</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_urg</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">n</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="n">c</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">recv</span><span class="p">(</span><span class="n">servfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">c</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MSG_OOB</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EWOULDBLOCK</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;recv error&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">nprobes</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// reset counter
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">return</span><span class="p">;</span>  <span class="c1">// may interrupt client code
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">stativ</span> <span class="kt">void</span> <span class="nf">sig_alrm</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="o">++</span><span class="n">nprobes</span> <span class="o">&gt;</span> <span class="n">maxnprobes</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&#34;server is unreachable</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Send</span><span class="p">(</span><span class="n">servfd</span><span class="p">,</span> <span class="s">&#34;1&#34;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MSG_OOB</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">alarm</span><span class="p">(</span><span class="n">nsec</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span><span class="p">;</span>  <span class="c1">// may interrupt client code
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></div><p>        在这个例子中，客户每隔 $1$ 秒向服务器发送一个带外字节，服务器收取该字节将导致它向客户发回一个带外字节。每端都需要知道对端是否不复存在或不再可达。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">static</span> <span class="kt">int</span> <span class="n">servfd</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">static</span> <span class="kt">int</span> <span class="n">nsec</span><span class="p">;</span>  <span class="c1">// seconds between each alarm
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">static</span> <span class="kt">int</span> <span class="n">maxnalarms</span><span class="p">;</span>  <span class="c1">// alaram w/no client probe before quit
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">static</span> <span class="kt">int</span> <span class="n">nprobes</span><span class="p">;</span>  <span class="c1">// alarms since last client probe
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_urg</span><span class="p">(</span><span class="kt">int</span><span class="p">),</span> <span class="n">sig_alrm</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">heartbeat_serv</span><span class="p">(</span><span class="kt">int</span> <span class="n">esrvfd_arg</span><span class="p">,</span> <span class="kt">int</span> <span class="n">nsec_arg</span><span class="p">,</span> <span class="kt">int</span> <span class="n">maxnalarms_arg</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">servfd</span> <span class="o">=</span> <span class="n">servfd_arg</span><span class="p">;</span>  <span class="c1">// set globals for signal handlers
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">if</span> <span class="p">((</span><span class="n">nsec</span> <span class="o">=</span> <span class="n">nsec_arg</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">nsec</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">((</span><span class="n">maxnalarms</span> <span class="o">=</span> <span class="n">maxnalarms_arg</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">nsec</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">maxnalarms</span> <span class="o">=</span> <span class="n">nsec</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGURG</span><span class="p">,</span> <span class="n">sig_urg</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Fcntl</span><span class="p">(</span><span class="n">servfd</span><span class="p">,</span> <span class="n">F_SETOWN</span><span class="p">,</span> <span class="n">getpid</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGALRM</span><span class="p">,</span> <span class="n">sig_alrm</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">alarm</span><span class="p">(</span><span class="n">nsec</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_urg</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">n</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="n">c</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">recv</span><span class="p">(</span><span class="n">servfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">c</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MSG_OOB</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EWOULDBLOCK</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;recv error&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Send</span><span class="p">(</span><span class="n">servfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">c</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MSG_OOB</span><span class="p">);</span> <span class="c1">// echo back out-of-band type
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">nprobes</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// reset counter
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">return</span><span class="p">;</span>  <span class="c1">// may interrupt server code
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_alrm</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="o">++</span><span class="n">nprobes</span> <span class="o">&gt;</span> <span class="n">maxnalarms</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;no probes from client</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="n">alarm</span><span class="p">(</span><span class="n">nsec</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span><span class="p">;</span>  <span class="c1">// may interrupt server code
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></div>
 <script src=https://z217blog.cn/js/toc.js></script>
 
 <div>

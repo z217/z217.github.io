@@ -86,11 +86,11 @@
 
 <p>        $ioctl$ 函数传统上一直作为那些不适合归入其他精细定义类别的特性的系统接口。<code>POSIX</code>致力于摆脱处于标准化过程的特定功能的 $ioctl$ 接口，办法是为它们创造一些特殊的函数以取代 $ioctl$ 请求，办法是为它们创造一些特殊的函数以取代 $ioctl$ 请求。网络层程序经常在程序启动执行后使用 $ioctl$ 获取所在主机全部网络接口的信息，包括：接口地址、是否支持广播、是否支持多播等。</p>
 <h2 id="1-ioctl函数">1. <code>ioctl</code>函数</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;unistd.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 成功返回 $0$ ，出错返回-1
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">ioctl</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">request</span><span class="p">,</span> <span class="p">...</span> <span class="cm">/* void *arg */</span><span class="p">);</span>
-</code></pre></div><p>        第三个参数是一个指针，类型依赖于 $request$ 参数。我们可以把和网络相关的请求分为 $6$ 类：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;unistd.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 成功返回 $0$ ，出错返回-1
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">ioctl</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">request</span><span class="p">,</span> <span class="p">...</span> <span class="cm">/* void *arg */</span><span class="p">);</span>
+</span></span></code></pre></div><p>        第三个参数是一个指针，类型依赖于 $request$ 参数。我们可以把和网络相关的请求分为 $6$ 类：</p>
 <div class="div-table" data-fl-scrolls><table>
   <thead>
     <tr>
@@ -268,300 +268,300 @@
 </ul>
 <h2 id="4-接口配置">4. 接口配置</h2>
 <p>        处理网络接口的许多程序沿用的初始步骤之一就是从内核获取配置在系统中的所有接口。本任务由 $SIOCGIFCONF$ 请求完成，使用 $ifconf$ 结构，$ifconf$ 又使用 $ifreq$ 结构。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">struct</span> <span class="n">ifconf</span> <span class="p">{</span>
-  <span class="n">lint</span> <span class="n">ifc_len</span><span class="p">;</span>  <span class="c1">// 缓冲区大小
-</span><span class="c1"></span>  <span class="k">union</span> <span class="p">{</span>
-    <span class="n">caddr_t</span> <span class="n">ifcu_buf</span><span class="p">;</span>  <span class="c1">// 用户空间到内核空间的输入
-</span><span class="c1"></span>    <span class="k">struct</span> <span class="n">ifreq</span> <span class="o">*</span><span class="n">ifcu_req</span><span class="p">;</span>  <span class="c1">// 内核空间到用户空间的返回
-</span><span class="c1"></span>  <span class="p">}</span> <span class="n">ifc_ifcu</span><span class="p">;</span>
-<span class="p">};</span>
-
-<span class="cp">#define ifc_buf ifc_ifcu.ifcu_buf  </span><span class="c1">// 缓冲区地址
-</span><span class="c1"></span><span class="cp">#define ifc_req ifc_ifcu.ifcu_req  </span><span class="c1">// 返回的数组结构
-</span><span class="c1"></span>
-<span class="cp">#define IFNAMSIZ 16
-</span><span class="cp"></span>
-<span class="k">struct</span> <span class="n">ifreq</span> <span class="p">{</span>
-  <span class="kt">char</span> <span class="n">ifr_name</span><span class="p">[</span><span class="n">IFNAMSIZ</span><span class="p">];</span>  <span class="c1">// 接口名
-</span><span class="c1"></span>  <span class="k">union</span> <span class="p">{</span>
-    <span class="k">struct</span> <span class="n">sockaddr</span> <span class="n">ifru_addr</span><span class="p">;</span>
-    <span class="k">struct</span> <span class="n">sockaddr</span> <span class="n">ifru_dstaddr</span><span class="p">;</span>
-    <span class="k">struct</span> <span class="n">sockaddr</span> <span class="n">ifru_broadaddr</span><span class="p">;</span>
-    <span class="kt">short</span> <span class="n">ifru_flags</span><span class="p">;</span>
-    <span class="kt">int</span> <span class="n">ifru_metric</span><span class="p">;</span>
-    <span class="n">caddr_t</span> <span class="n">ifru_data</span><span class="p">;</span>
-  <span class="p">}</span> <span class="n">ifr_ifru</span><span class="p">;</span>
-<span class="p">};</span>
-
-<span class="cp">#define ifr_addr if_ifru.ifru_addr  </span><span class="c1">// 地址
-</span><span class="c1"></span><span class="cp">#define ifr_dstaddr ifr_ifru.ifru_dstaddr  </span><span class="c1">// p2p连接的对端
-</span><span class="c1"></span><span class="cp">#define ifr_broadaddr ifr_ifru.ifru_broadaddr  </span><span class="c1">// 广播地址
-</span><span class="c1"></span><span class="cp">#define ifr_flags ifr_ifru.ifru_flags  </span><span class="c1">// 标志
-</span><span class="c1"></span><span class="cp">#define ifr_metric ifr_ifru.ifru_metric  </span><span class="c1">// 测度
-</span><span class="c1"></span><span class="cp">#define ifr_data ifr_ifru.ifru_data  </span><span class="c1">// 接口使用数据
-</span></code></pre></div><p>        在调用 $ioctl$ 之前需要先分配一个缓冲区和一个 $ifconf$ 结构，然后初始化后者，$ioctl$ 的第三个参数指向 $ifconf$ 结构。假设内核返回 $2$ 个 $ifreq$ 结构，在 $ioctl$ 返回时通过同一个 $ifconf$ 结构返回，并修改 $ifc_-len$ 和 $ifcu_-req$ 字段，$ifreq$ 结构会被填入缓冲区中。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">ifconf</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">lint</span> <span class="n">ifc_len</span><span class="p">;</span>  <span class="c1">// 缓冲区大小
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">union</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">caddr_t</span> <span class="n">ifcu_buf</span><span class="p">;</span>  <span class="c1">// 用户空间到内核空间的输入
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">struct</span> <span class="n">ifreq</span> <span class="o">*</span><span class="n">ifcu_req</span><span class="p">;</span>  <span class="c1">// 内核空间到用户空间的返回
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="p">}</span> <span class="n">ifc_ifcu</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="cp">#define ifc_buf ifc_ifcu.ifcu_buf  </span><span class="c1">// 缓冲区地址
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#define ifc_req ifc_ifcu.ifcu_req  </span><span class="c1">// 返回的数组结构
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="cp">#define IFNAMSIZ 16
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">ifreq</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="n">ifr_name</span><span class="p">[</span><span class="n">IFNAMSIZ</span><span class="p">];</span>  <span class="c1">// 接口名
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">union</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">struct</span> <span class="n">sockaddr</span> <span class="n">ifru_addr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">struct</span> <span class="n">sockaddr</span> <span class="n">ifru_dstaddr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">struct</span> <span class="n">sockaddr</span> <span class="n">ifru_broadaddr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">short</span> <span class="n">ifru_flags</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">ifru_metric</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">caddr_t</span> <span class="n">ifru_data</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span> <span class="n">ifr_ifru</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="cp">#define ifr_addr if_ifru.ifru_addr  </span><span class="c1">// 地址
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#define ifr_dstaddr ifr_ifru.ifru_dstaddr  </span><span class="c1">// p2p连接的对端
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#define ifr_broadaddr ifr_ifru.ifru_broadaddr  </span><span class="c1">// 广播地址
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#define ifr_flags ifr_ifru.ifru_flags  </span><span class="c1">// 标志
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#define ifr_metric ifr_ifru.ifru_metric  </span><span class="c1">// 测度
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#define ifr_data ifr_ifru.ifru_data  </span><span class="c1">// 接口使用数据
+</span></span></span></code></pre></div><p>        在调用 $ioctl$ 之前需要先分配一个缓冲区和一个 $ifconf$ 结构，然后初始化后者，$ioctl$ 的第三个参数指向 $ifconf$ 结构。假设内核返回 $2$ 个 $ifreq$ 结构，在 $ioctl$ 返回时通过同一个 $ifconf$ 结构返回，并修改 $ifc_-len$ 和 $ifcu_-req$ 字段，$ifreq$ 结构会被填入缓冲区中。</p>
 <h2 id="5-get_ifi_info函数">5. <code>get_ifi_info</code>函数</h2>
 <p>        很多程序需要直到系统中的所有接口偶，于是可以开发一个名为 $get_-ifi_-info$ 的函数，它返回一个结构链表，其中每个结构对应一个当前处于 $up$ 状态的接口。首先实现 $unpifi.h$ 头文件。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="c1">// Out own header for the programs that need interface configuration info.
-</span><span class="c1"></span><span class="cp">#ifndef __unp_ifi_h
-</span><span class="cp">#define __unp_ifi_h
-</span><span class="cp"></span>
-<span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
-</span><span class="cp">#include</span> <span class="cpf">&lt;net/if.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="cp">#define IFI_NAME 16  </span><span class="c1">// same as IFNAMSIZ in &lt;net/if.h&gt;
-</span><span class="c1"></span><span class="cp">#define IFI_HADDR 8  </span><span class="c1">// allow for 64-bit EUI-64 in future
-</span><span class="c1"></span>
-<span class="k">struct</span> <span class="n">ifi_info</span> <span class="p">{</span>
-  <span class="kt">char</span> <span class="n">ifi_name</span><span class="p">[</span><span class="n">IFI_NAME</span><span class="p">];</span>  <span class="c1">// interface name, null-terminated
-</span><span class="c1"></span>  <span class="kt">short</span> <span class="n">ifi_index</span><span class="p">;</span>  <span class="c1">// interface index
-</span><span class="c1"></span>  <span class="kt">short</span> <span class="n">iff_mtu</span><span class="p">;</span>  <span class="c1">// interface MTU
-</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifi_haddr</span><span class="p">[</span><span class="n">IFI_HADDR</span><span class="p">];</span>  <span class="c1">// hadrware address
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifi_hlen</span><span class="p">;</span>  <span class="c1">// bytes in hardware address
-</span><span class="c1"></span>  <span class="kt">short</span> <span class="n">ifi_flags</span><span class="p">;</span>  <span class="c1">// IFF_xxx constants from &lt;net/if.h&gt;
-</span><span class="c1"></span>  <span class="kt">short</span> <span class="n">ifi_myflags</span><span class="p">;</span>  <span class="c1">// our own IFI_xxx flags
-</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">ifi_addr</span><span class="p">;</span>  <span class="c1">// primary address
-</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">ifi_brdaddr</span><span class="p">;</span>  <span class="c1">// broadcast address
-</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">ifi_dstaddr</span><span class="p">;</span>  <span class="c1">// destination address
-</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="n">ifi_next</span><span class="p">;</span>  <span class="c1">// next of these structures
-</span><span class="c1"></span><span class="p">};</span>
-
-<span class="cp">#define IFI_ALIAS 1  </span><span class="c1">// ifi_addr is an alias
-</span><span class="c1"></span>
-<span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="nf">get_ifi_info</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">);</span>
-<span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="nf">Get_ifi_info</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">);</span>
-<span class="kt">void</span> <span class="nf">free_ifi_info</span><span class="p">(</span><span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="p">);</span>
-
-<span class="cp">#endif  </span><span class="c1">// __unp_ifi_h
-</span></code></pre></div><p>        本函数返回一个本结构的链表，结构中包括了典型的应用程序可能关注的信息：接口名、接口索引、$MTU$ 、硬件地址、接口标志、接口地址、广播地址、点到点链路的目的地址。$free_-ifi_-info$ 负责释放空间。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpifi.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="n">ifi</span><span class="p">,</span> <span class="o">*</span><span class="n">ifihead</span><span class="p">;</span>
-  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">sa</span><span class="p">;</span>
-  <span class="n">u_char</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="n">family</span><span class="p">,</span> <span class="n">doaliases</span><span class="p">;</span>
-
-  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">)</span>
-    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: prifinfo &lt;inet4|inet6&gt; &lt;doaliases&gt;&#34;</span><span class="p">);</span>
-
-  <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">&#34;inet4&#34;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="n">family</span> <span class="o">=</span> <span class="n">AF_INET</span><span class="p">;</span>
-  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">&#34;inet6&#34;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="n">family</span> <span class="o">=</span> <span class="n">AF_INET6</span><span class="p">;</span>
-  <span class="k">else</span>
-    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;invalid &lt;address-family&gt;&#34;</span><span class="p">);</span>
-  <span class="n">doaliases</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
-
-  <span class="k">for</span> <span class="p">(</span><span class="n">ifihead</span> <span class="o">=</span> <span class="n">ifi</span> <span class="o">=</span> <span class="n">Get_ifi_info</span><span class="p">(</span><span class="n">family</span><span class="p">,</span> <span class="n">doaliases</span><span class="p">);</span>
-    <span class="n">ifi</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">;</span> <span class="n">ifi</span> <span class="o">=</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_next</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;%s: &#34;</span><span class="p">,</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_name</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_index</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
-      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;(%d) &#34;</span><span class="p">,</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_index</span><span class="p">);</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;&lt;&#34;</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_flags</span> <span class="o">&amp;</span> <span class="n">IFF_UP</span><span class="p">)</span> <span class="n">printf</span><span class="p">(</span><span class="s">&#34;UP &#34;</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_flags</span> <span class="o">&amp;</span> <span class="n">IFF_BROADCAST</span><span class="p">)</span> <span class="n">printf</span><span class="p">(</span><span class="s">&#34;BCAST &#34;</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_flags</span> <span class="o">&amp;</span> <span class="n">IFF_MULTICAST</span><span class="p">)</span> <span class="n">printf</span><span class="p">(</span><span class="s">&#34;MCAST &#34;</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_flags</span> <span class="o">&amp;</span> <span class="n">IFF_LOOPBACK</span><span class="p">)</span> <span class="n">printf</span><span class="p">(</span><span class="s">&#34;LOOP &#34;</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_flags</span> <span class="o">&amp;</span> <span class="n">IFF_POINTOPOINT</span><span class="p">)</span> <span class="n">printf</span><span class="p">(</span><span class="s">&#34;P2P &#34;</span><span class="p">);</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;&gt;</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
-
-    <span class="k">if</span> <span class="p">((</span><span class="n">i</span> <span class="o">=</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_hlen</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-      <span class="n">ptr</span> <span class="o">=</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_haddr</span><span class="p">;</span>
-      <span class="k">do</span> <span class="p">{</span>
-        <span class="n">printf</span><span class="p">(</span><span class="s">&#34;%s%x&#34;</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_hlen</span><span class="p">)</span> <span class="o">&gt;</span> <span class="s">&#34;  &#34;</span> <span class="o">:</span> <span class="s">&#34;:&#34;</span><span class="p">,</span> <span class="o">*</span><span class="n">ptr</span><span class="o">++</span><span class="p">);</span>
-      <span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="o">--</span><span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">);</span>
-      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
-    <span class="p">}</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_mtu</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
-      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;  MTU: %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_mtu</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">((</span><span class="n">sa</span> <span class="o">=</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_addr</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
-      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;  IP addr: %s</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">Sock_ntop_host</span><span class="p">(</span><span class="n">sa</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="o">*</span><span class="n">sa</span><span class="p">)));</span>
-    <span class="k">if</span> <span class="p">((</span><span class="n">sa</span> <span class="o">=</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_brdaddr</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
-      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;  broadcast addr: %s</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">Sock_ntop_host</span><span class="p">(</span><span class="n">sa</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="o">*</span><span class="n">sa</span><span class="p">)));</span>
-    <span class="k">if</span> <span class="p">((</span><span class="n">sa</span> <span class="o">=</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_dstaddr</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
-      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;  destination addr: %s</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">Sock_ntop_host</span><span class="p">(</span><span class="n">sa</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="o">*</span><span class="n">sa</span><span class="p">)));</span>
-  <span class="p">}</span>
-
-  <span class="n">free_ifi_info</span><span class="p">(</span><span class="n">ifihead</span><span class="p">);</span>
-  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-<span class="p">}</span>
-</code></pre></div><p>        第一命令行参数指定<code>IPv4</code>/<code>IPv6</code>地址，第二个命令行参数 $0$ 指定不返回地址别名。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unpifi.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="nf">get_ifi_info</span><span class="p">(</span><span class="kt">int</span> <span class="n">family</span><span class="p">,</span> <span class="kt">int</span> <span class="n">doaliases</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="n">ifi</span><span class="p">,</span> <span class="n">ifihead</span><span class="p">,</span> <span class="o">**</span><span class="n">ifipnext</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="n">len</span><span class="p">,</span> <span class="n">lastlen</span><span class="p">,</span> <span class="n">flags</span><span class="p">,</span> <span class="n">myflags</span><span class="p">,</span> <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">hlen</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="kt">char</span> <span class="o">*</span><span class="n">ptr</span><span class="p">,</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="n">lastname</span><span class="p">[</span><span class="n">IFNAMSIZ</span><span class="p">],</span> <span class="o">*</span><span class="n">cptr</span><span class="p">,</span> <span class="o">*</span><span class="n">haddr</span><span class="p">,</span> <span class="o">*</span><span class="n">sdlname</span><span class="p">;</span>
-  <span class="k">struct</span> <span class="n">ifconf</span> <span class="n">ifc</span><span class="p">;</span>
-  <span class="k">struct</span> <span class="n">ifreq</span> <span class="o">*</span><span class="n">ifr</span><span class="p">,</span> <span class="n">ifrcopy</span><span class="p">;</span>
-  <span class="k">struct</span> <span class="n">sockaddr_in</span> <span class="o">*</span><span class="n">sinptr</span><span class="p">;</span>
-  <span class="k">struct</span> <span class="n">sockaddr_in6</span> <span class="o">*</span><span class="n">sin6ptr</span><span class="p">;</span>
-
-  <span class="n">sockfd</span> <span class="o">=</span> <span class="n">Socket</span><span class="p">(</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">SOCK_DGRAM</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-  <span class="n">lastlen</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="n">len</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">ifreq</span><span class="p">);</span>  <span class="c1">// initial buffer size guess
-</span><span class="c1"></span>  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
-    <span class="n">buf</span> <span class="o">=</span> <span class="n">Malloc</span><span class="p">(</span><span class="n">len</span><span class="p">);</span>
-    <span class="n">ifc</span><span class="p">.</span><span class="n">ifc_len</span> <span class="o">=</span> <span class="n">len</span><span class="p">;</span>
-    <span class="n">ifc</span><span class="p">.</span><span class="n">ifc_buf</span> <span class="o">=</span> <span class="n">buf</span><span class="p">;</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SIOCGIFCONF</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ifc</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-      <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EINVAL</span> <span class="o">||</span> <span class="n">lastlen</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
-        <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;ioctl error&#34;</span><span class="p">);</span>
-    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-      <span class="k">if</span> <span class="p">(</span><span class="n">ifc</span><span class="p">.</span><span class="n">ifc_len</span> <span class="o">==</span> <span class="n">lastlen</span><span class="p">)</span>
-        <span class="k">break</span><span class="p">;</span>  <span class="c1">// success, len has not changed
-</span><span class="c1"></span>      <span class="n">lastlen</span> <span class="o">=</span> <span class="n">ifc</span><span class="p">.</span><span class="n">ifc_len</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="n">len</span> <span class="o">+=</span> <span class="mi">10</span> <span class="o">*</span><span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">ifreq</span><span class="p">);</span>  <span class="c1">// increment
-</span><span class="c1"></span>    <span class="n">free</span><span class="p">(</span><span class="n">buf</span><span class="p">);</span>
-  <span class="p">}</span>
-
-  <span class="n">ifihead</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-  <span class="n">ifipnext</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">ifihead</span><span class="p">;</span>
-  <span class="n">lastname</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="n">sdlname</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
-
-  <span class="k">for</span> <span class="p">(</span><span class="n">ptr</span> <span class="o">=</span> <span class="n">buf</span><span class="p">;</span> <span class="n">ptr</span> <span class="o">&lt;</span> <span class="n">buf</span> <span class="o">+</span> <span class="n">ifc</span><span class="p">.</span><span class="n">ifc_len</span><span class="p">;</span> <span class="p">)</span> <span class="p">{</span>
-    <span class="n">ifr</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">ifreq</span> <span class="o">*</span><span class="p">)</span> <span class="n">ptr</span><span class="p">;</span>
-
-<span class="cp">#ifdef HAVE_SOCKADDR_SA_LEN
-</span><span class="cp"></span>    <span class="n">len</span> <span class="o">=</span> <span class="n">max</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr</span><span class="p">),</span> <span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">.</span><span class="n">sa_len</span><span class="p">);</span>
-<span class="cp">#else
-</span><span class="cp"></span>    <span class="k">switch</span><span class="p">(</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">.</span><span class="n">sa_family</span><span class="p">)</span> <span class="p">{</span>
-<span class="cp">#ifdef IPV6
-</span><span class="cp"></span>    <span class="k">case</span> <span class="nl">AF_INET6</span><span class="p">:</span>
-      <span class="n">len</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in6</span><span class="p">);</span>
-      <span class="k">break</span><span class="p">;</span>
-<span class="cp">#endif
-</span><span class="cp"></span>    <span class="k">case</span> <span class="nl">AF_INET</span><span class="p">:</span>
-    <span class="k">default</span><span class="o">:</span>
-      <span class="n">len</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr</span><span class="p">);</span>
-      <span class="k">break</span><span class="p">;</span>
-    <span class="p">}</span>
-<span class="cp">#endif  </span><span class="c1">// HAVE_SOCKADDR_SA_LEN
-</span><span class="c1"></span>
-    <span class="n">ptr</span> <span class="o">+=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_name</span><span class="p">)</span> <span class="o">+</span> <span class="n">len</span><span class="p">;</span>  <span class="c1">// for next one in buffer
-</span><span class="c1"></span>
-<span class="cp">#ifdef HAVE_SOCKADDR_DL_STRUCT
-</span><span class="cp"></span>    <span class="c1">// assume that AF_LINK precedes AF_INET or AF_INET6
-</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">.</span><span class="n">sa_family</span> <span class="o">==</span> <span class="n">AF_LINK</span><span class="p">)</span> <span class="p">{</span>
-      <span class="k">struct</span> <span class="n">sockaddr_dl</span> <span class="o">*</span><span class="n">sal</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_dl</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">;</span>
-      <span class="n">sdlname</span> <span class="o">=</span> <span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_name</span><span class="p">;</span>
-      <span class="n">idx</span> <span class="o">=</span> <span class="n">sdl</span><span class="o">-&gt;</span><span class="n">sdl_index</span><span class="p">;</span>
-      <span class="n">haddr</span> <span class="o">=</span> <span class="n">sdl</span><span class="o">-&gt;</span><span class="n">sdl_data</span> <span class="o">+</span> <span class="n">sdl</span><span class="o">-&gt;</span><span class="n">sdl_nlen</span><span class="p">;</span>
-      <span class="n">hlen</span> <span class="o">=</span> <span class="n">sdl</span><span class="o">-&gt;</span><span class="n">sdl_alen</span><span class="p">;</span>
-    <span class="p">}</span>
-<span class="cp">#endif
-</span><span class="cp"></span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">.</span><span class="n">sa_family</span> <span class="o">!=</span> <span class="n">family</span><span class="p">)</span>
-      <span class="k">continue</span><span class="p">;</span>  <span class="c1">// ignore if not desired address family
-</span><span class="c1"></span>
-    <span class="n">myflags</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="k">if</span> <span class="p">((</span><span class="n">cptr</span> <span class="o">=</span> <span class="n">strchr</span><span class="p">(</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_name</span><span class="p">,</span> <span class="sc">&#39;:&#39;</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
-      <span class="o">*</span><span class="n">cptr</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// replace colon with null
-</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">strncmp</span><span class="p">(</span><span class="n">lastname</span><span class="p">,</span> <span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_name</span><span class="p">,</span> <span class="n">IFNAMSIZ</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-      <span class="k">if</span> <span class="p">(</span><span class="n">doaliases</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
-        <span class="k">continue</span><span class="p">;</span>  <span class="c1">// already processed this interface
-</span><span class="c1"></span>      <span class="n">myflags</span> <span class="o">=</span> <span class="n">IFI_ALIAS</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="n">memcpy</span><span class="p">(</span><span class="n">lastname</span><span class="p">,</span> <span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_name</span><span class="p">,</span> <span class="n">IFNAMSIZ</span><span class="p">);</span>
-
-    <span class="n">ifrcopy</span> <span class="o">=</span> <span class="o">*</span><span class="n">ifr</span><span class="p">;</span>
-    <span class="n">Ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SIOCGIFFLAGS</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">);</span>
-    <span class="n">flags</span> <span class="o">=</span> <span class="n">ifrcopy</span><span class="p">.</span><span class="n">ifr_flags</span><span class="p">;</span>
-    <span class="k">if</span> <span class="p">((</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">IFF_UP</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
-      <span class="k">continue</span><span class="p">;</span>  <span class="c1">// ignore if interface not up
-</span><span class="c1"></span>
-    <span class="n">ifi</span> <span class="o">=</span> <span class="n">Calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">ifi_info</span><span class="p">));</span>
-    <span class="o">*</span><span class="n">ifipnext</span> <span class="o">=</span> <span class="n">ifi</span><span class="p">;</span>  <span class="c1">// prev points to this new one
-</span><span class="c1"></span>    <span class="n">ifipnext</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_next</span><span class="p">;</span>  <span class="c1">// pointer to next one goes here
-</span><span class="c1"></span>
-    <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_flags</span> <span class="o">=</span> <span class="n">flags</span><span class="p">;</span>  <span class="c1">// IFF_xxx values
-</span><span class="c1"></span>    <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_myflags</span> <span class="o">=</span> <span class="n">myflags</span><span class="p">;</span>  <span class="c1">// IFI_xxx values
-</span><span class="c1"></span>
-<span class="cp">#if defined(SIOCGIFMTU) &amp;&amp; defined(HAVE_STRUCT_IFREQ_IFR_MTU)
-</span><span class="cp"></span>    <span class="n">Ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SIOCGIFMTU</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">);</span>
-    <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_mtu</span> <span class="o">=</span> <span class="n">ifrcopy</span><span class="p">.</span><span class="n">ifr_mtu</span><span class="p">;</span>
-<span class="cp">#else
-</span><span class="cp"></span>    <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_mtu</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-<span class="cp">#endif
-</span><span class="cp"></span>
-    <span class="n">memcpy</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_name</span><span class="p">,</span> <span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_name</span><span class="p">,</span> <span class="n">IFI_NAME</span><span class="p">);</span>
-    <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_name</span><span class="p">[</span><span class="n">IFI_NAME</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="sc">&#39;\0&#39;</span><span class="p">;</span>
-    <span class="c1">// If the sockaddr_dl is from a different interface, ignore it
-</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">sdlname</span> <span class="o">==</span> <span class="nb">NULL</span> <span class="o">||</span> <span class="n">strcmp</span><span class="p">(</span><span class="n">sdlname</span><span class="p">,</span> <span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_name</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
-      <span class="n">idx</span> <span class="o">=</span> <span class="n">hlen</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_index</span> <span class="o">=</span> <span class="n">idx</span><span class="p">;</span>
-    <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_hlen</span> <span class="o">=</span> <span class="n">hlen</span><span class="p">;</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_hlen</span> <span class="o">&gt;</span> <span class="n">IFI_HADDR</span><span class="p">)</span>
-      <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_hlen</span> <span class="o">=</span> <span class="n">IFI_HADDR</span><span class="p">;</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">hlen</span><span class="p">)</span>
-      <span class="n">memcpy</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_haddr</span><span class="p">,</span> <span class="n">haddr</span><span class="p">,</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_hlen</span><span class="p">);</span>
-
-    <span class="k">switch</span> <span class="p">(</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">.</span><span class="n">sa_family</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">case</span> <span class="nl">AF_INET</span><span class="p">:</span>
-      <span class="n">sinptr</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">;</span>
-      <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_addr</span> <span class="o">=</span> <span class="n">Calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span> <span class="k">struct</span> <span class="n">sockaddr_in</span><span class="p">));</span>
-      <span class="n">memcpy</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_addr</span><span class="p">,</span> <span class="n">sinptr</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span><span class="p">));</span>
-
-<span class="cp">#ifdef SIOCGIFBRDADDR
-</span><span class="cp"></span>      <span class="k">if</span> <span class="p">(</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">IFF_BROADCAST</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">Ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SIOCGIFBRDADDR</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">);</span>
-        <span class="n">sinptr</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">.</span><span class="n">ifr_broadaddr</span><span class="p">;</span>
-        <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_brdaddr</span> <span class="o">=</span> <span class="n">Calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span><span class="p">));</span>
-        <span class="n">memcpy</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_brdaddr</span><span class="p">,</span> <span class="n">sinptr</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span><span class="p">));</span>
-      <span class="p">}</span>
-<span class="cp">#endif
-</span><span class="cp"></span>
-<span class="cp">#ifdef SIOCGIFDSTADDR
-</span><span class="cp"></span>      <span class="k">if</span> <span class="p">(</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">IFF_POINTOPOINT</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">Ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">sIOCGIFDSTADDR</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">);</span>
-        <span class="n">sinptr</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">.</span><span class="n">ifr_dstaddr</span><span class="p">;</span>
-        <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_dstaddr</span> <span class="o">=</span> <span class="n">Calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span><span class="p">));</span>
-        <span class="n">memcpy</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_dstaddr</span><span class="p">,</span> <span class="n">sinptr</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span><span class="p">));</span>
-      <span class="p">}</span>
-<span class="cp">#endif
-</span><span class="cp"></span>
-      <span class="k">break</span><span class="p">;</span>
-
-    <span class="n">cast</span> <span class="nl">AF_INET6</span><span class="p">:</span>
-      <span class="n">sin6ptr</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in6</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">;</span>
-      <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_addr</span> <span class="o">=</span> <span class="n">Calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in6</span><span class="p">));</span>
-      <span class="n">memcpy</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_addr</span><span class="p">,</span> <span class="n">sin6ptr</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in6</span><span class="p">));</span>
-
-<span class="cp">#ifdef SIOCGIFDSTADDR
-</span><span class="cp"></span>      <span class="k">if</span> <span class="p">(</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">IFF_POINTOPOINT</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">Ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SIOCGIFDSTADDR</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">);</span>
-        <span class="n">sin6ptr</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in6</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">.</span><span class="n">ifr_dstaddr</span><span class="p">;</span>
-        <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_dstaddr</span> <span class="o">=</span> <span class="n">Calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in6</span><span class="p">));</span>
-        <span class="n">memcpy</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_dstaddr</span><span class="p">,</span> <span class="n">sin6ptr</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in6</span><span class="p">));</span>
-<span class="cp">#endif
-</span><span class="cp"></span>
-      <span class="k">break</span><span class="p">;</span>
-
-    <span class="k">default</span><span class="o">:</span>
-      <span class="k">break</span><span class="p">;</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-  <span class="n">free</span><span class="p">(</span><span class="n">buf</span><span class="p">);</span>
-  <span class="k">return</span> <span class="n">ifihead</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="kt">void</span> <span class="n">free_ifi_info</span><span class="p">(</span><span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="n">ifihead</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="n">ifi</span><span class="p">,</span> <span class="o">*</span><span class="n">ifinext</span><span class="p">;</span>
-  <span class="k">for</span> <span class="p">(</span><span class="n">ifi</span> <span class="o">=</span> <span class="n">ifihead</span><span class="p">;</span> <span class="n">ifi</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">;</span> <span class="n">ifi</span> <span class="o">=</span> <span class="n">ifinext</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_addr</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
-      <span class="n">free</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_addr</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_brdaddr</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
-      <span class="n">free</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_brdaddr</span><span class="p">;</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_dstaddr</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
-      <span class="n">free</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_dstaddr</span><span class="p">);</span>
-    <span class="n">ifinext</span> <span class="o">=</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_next</span><span class="p">;</span>  <span class="c1">// can&#39;t fetch ifi_next after free()
-</span><span class="c1"></span>    <span class="n">free</span><span class="p">(</span><span class="n">ifi</span><span class="p">);</span>  <span class="c1">// the ifi_info{} itself
-</span><span class="c1"></span>  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div><p>        首先创建一个用于 $ioctl$ 的<code>UDP</code>套接字。$SIOCGIFCONF$ 请求存在的一个严重问题是，在缓冲区的大小不足以存放结果时，一些实现不返回错误，而是截断结果并返回成功 ( 即 $ioctl$ 返回值为 $0$ )。这意味着，要知道缓冲区是否足够大的唯一方法是：发出请求，记下返回的长度，用更大的缓冲区发出请求，比较之前记下的长度和返回的长度，当两个长度相同时，代表缓冲区足够大。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="c1">// Out own header for the programs that need interface configuration info.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#ifndef __unp_ifi_h
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define __unp_ifi_h
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;net/if.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="cp">#define IFI_NAME 16  </span><span class="c1">// same as IFNAMSIZ in &lt;net/if.h&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#define IFI_HADDR 8  </span><span class="c1">// allow for 64-bit EUI-64 in future
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">ifi_info</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="n">ifi_name</span><span class="p">[</span><span class="n">IFI_NAME</span><span class="p">];</span>  <span class="c1">// interface name, null-terminated
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">short</span> <span class="n">ifi_index</span><span class="p">;</span>  <span class="c1">// interface index
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">short</span> <span class="n">iff_mtu</span><span class="p">;</span>  <span class="c1">// interface MTU
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifi_haddr</span><span class="p">[</span><span class="n">IFI_HADDR</span><span class="p">];</span>  <span class="c1">// hadrware address
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifi_hlen</span><span class="p">;</span>  <span class="c1">// bytes in hardware address
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">short</span> <span class="n">ifi_flags</span><span class="p">;</span>  <span class="c1">// IFF_xxx constants from &lt;net/if.h&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">short</span> <span class="n">ifi_myflags</span><span class="p">;</span>  <span class="c1">// our own IFI_xxx flags
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">ifi_addr</span><span class="p">;</span>  <span class="c1">// primary address
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">ifi_brdaddr</span><span class="p">;</span>  <span class="c1">// broadcast address
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">ifi_dstaddr</span><span class="p">;</span>  <span class="c1">// destination address
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="n">ifi_next</span><span class="p">;</span>  <span class="c1">// next of these structures
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="cp">#define IFI_ALIAS 1  </span><span class="c1">// ifi_addr is an alias
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="nf">get_ifi_info</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="nf">Get_ifi_info</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">free_ifi_info</span><span class="p">(</span><span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="cp">#endif  </span><span class="c1">// __unp_ifi_h
+</span></span></span></code></pre></div><p>        本函数返回一个本结构的链表，结构中包括了典型的应用程序可能关注的信息：接口名、接口索引、$MTU$ 、硬件地址、接口标志、接口地址、广播地址、点到点链路的目的地址。$free_-ifi_-info$ 负责释放空间。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unpifi.h&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="n">ifi</span><span class="p">,</span> <span class="o">*</span><span class="n">ifihead</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">sa</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">u_char</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">i</span><span class="p">,</span> <span class="n">family</span><span class="p">,</span> <span class="n">doaliases</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: prifinfo &lt;inet4|inet6&gt; &lt;doaliases&gt;&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">&#34;inet4&#34;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">family</span> <span class="o">=</span> <span class="n">AF_INET</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">&#34;inet6&#34;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">family</span> <span class="o">=</span> <span class="n">AF_INET6</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">else</span>
+</span></span><span class="line"><span class="cl">    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;invalid &lt;address-family&gt;&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">doaliases</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="n">ifihead</span> <span class="o">=</span> <span class="n">ifi</span> <span class="o">=</span> <span class="n">Get_ifi_info</span><span class="p">(</span><span class="n">family</span><span class="p">,</span> <span class="n">doaliases</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ifi</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">;</span> <span class="n">ifi</span> <span class="o">=</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_next</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;%s: &#34;</span><span class="p">,</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_name</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_index</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;(%d) &#34;</span><span class="p">,</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_index</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;&lt;&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_flags</span> <span class="o">&amp;</span> <span class="n">IFF_UP</span><span class="p">)</span> <span class="n">printf</span><span class="p">(</span><span class="s">&#34;UP &#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_flags</span> <span class="o">&amp;</span> <span class="n">IFF_BROADCAST</span><span class="p">)</span> <span class="n">printf</span><span class="p">(</span><span class="s">&#34;BCAST &#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_flags</span> <span class="o">&amp;</span> <span class="n">IFF_MULTICAST</span><span class="p">)</span> <span class="n">printf</span><span class="p">(</span><span class="s">&#34;MCAST &#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_flags</span> <span class="o">&amp;</span> <span class="n">IFF_LOOPBACK</span><span class="p">)</span> <span class="n">printf</span><span class="p">(</span><span class="s">&#34;LOOP &#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_flags</span> <span class="o">&amp;</span> <span class="n">IFF_POINTOPOINT</span><span class="p">)</span> <span class="n">printf</span><span class="p">(</span><span class="s">&#34;P2P &#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;&gt;</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">((</span><span class="n">i</span> <span class="o">=</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_hlen</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="n">ptr</span> <span class="o">=</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_haddr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">      <span class="k">do</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">printf</span><span class="p">(</span><span class="s">&#34;%s%x&#34;</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_hlen</span><span class="p">)</span> <span class="o">&gt;</span> <span class="s">&#34;  &#34;</span> <span class="o">:</span> <span class="s">&#34;:&#34;</span><span class="p">,</span> <span class="o">*</span><span class="n">ptr</span><span class="o">++</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="o">--</span><span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_mtu</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;  MTU: %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_mtu</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">((</span><span class="n">sa</span> <span class="o">=</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_addr</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;  IP addr: %s</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">Sock_ntop_host</span><span class="p">(</span><span class="n">sa</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="o">*</span><span class="n">sa</span><span class="p">)));</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">((</span><span class="n">sa</span> <span class="o">=</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_brdaddr</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;  broadcast addr: %s</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">Sock_ntop_host</span><span class="p">(</span><span class="n">sa</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="o">*</span><span class="n">sa</span><span class="p">)));</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">((</span><span class="n">sa</span> <span class="o">=</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_dstaddr</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="n">printf</span><span class="p">(</span><span class="s">&#34;  destination addr: %s</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">Sock_ntop_host</span><span class="p">(</span><span class="n">sa</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="o">*</span><span class="n">sa</span><span class="p">)));</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">free_ifi_info</span><span class="p">(</span><span class="n">ifihead</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        第一命令行参数指定<code>IPv4</code>/<code>IPv6</code>地址，第二个命令行参数 $0$ 指定不返回地址别名。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unpifi.h&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="nf">get_ifi_info</span><span class="p">(</span><span class="kt">int</span> <span class="n">family</span><span class="p">,</span> <span class="kt">int</span> <span class="n">doaliases</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="n">ifi</span><span class="p">,</span> <span class="n">ifihead</span><span class="p">,</span> <span class="o">**</span><span class="n">ifipnext</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="n">len</span><span class="p">,</span> <span class="n">lastlen</span><span class="p">,</span> <span class="n">flags</span><span class="p">,</span> <span class="n">myflags</span><span class="p">,</span> <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">hlen</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="o">*</span><span class="n">ptr</span><span class="p">,</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="n">lastname</span><span class="p">[</span><span class="n">IFNAMSIZ</span><span class="p">],</span> <span class="o">*</span><span class="n">cptr</span><span class="p">,</span> <span class="o">*</span><span class="n">haddr</span><span class="p">,</span> <span class="o">*</span><span class="n">sdlname</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">ifconf</span> <span class="n">ifc</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">ifreq</span> <span class="o">*</span><span class="n">ifr</span><span class="p">,</span> <span class="n">ifrcopy</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">sockaddr_in</span> <span class="o">*</span><span class="n">sinptr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">sockaddr_in6</span> <span class="o">*</span><span class="n">sin6ptr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">sockfd</span> <span class="o">=</span> <span class="n">Socket</span><span class="p">(</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">SOCK_DGRAM</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">lastlen</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">len</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">ifreq</span><span class="p">);</span>  <span class="c1">// initial buffer size guess
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">buf</span> <span class="o">=</span> <span class="n">Malloc</span><span class="p">(</span><span class="n">len</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ifc</span><span class="p">.</span><span class="n">ifc_len</span> <span class="o">=</span> <span class="n">len</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ifc</span><span class="p">.</span><span class="n">ifc_buf</span> <span class="o">=</span> <span class="n">buf</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SIOCGIFCONF</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ifc</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EINVAL</span> <span class="o">||</span> <span class="n">lastlen</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;ioctl error&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="k">if</span> <span class="p">(</span><span class="n">ifc</span><span class="p">.</span><span class="n">ifc_len</span> <span class="o">==</span> <span class="n">lastlen</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">break</span><span class="p">;</span>  <span class="c1">// success, len has not changed
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>      <span class="n">lastlen</span> <span class="o">=</span> <span class="n">ifc</span><span class="p">.</span><span class="n">ifc_len</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">len</span> <span class="o">+=</span> <span class="mi">10</span> <span class="o">*</span><span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">ifreq</span><span class="p">);</span>  <span class="c1">// increment
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">free</span><span class="p">(</span><span class="n">buf</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">ifihead</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">ifipnext</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">ifihead</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">lastname</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">sdlname</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="n">ptr</span> <span class="o">=</span> <span class="n">buf</span><span class="p">;</span> <span class="n">ptr</span> <span class="o">&lt;</span> <span class="n">buf</span> <span class="o">+</span> <span class="n">ifc</span><span class="p">.</span><span class="n">ifc_len</span><span class="p">;</span> <span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ifr</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">ifreq</span> <span class="o">*</span><span class="p">)</span> <span class="n">ptr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="cp">#ifdef HAVE_SOCKADDR_SA_LEN
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="n">len</span> <span class="o">=</span> <span class="n">max</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr</span><span class="p">),</span> <span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">.</span><span class="n">sa_len</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#else
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="k">switch</span><span class="p">(</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">.</span><span class="n">sa_family</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#ifdef IPV6
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="k">case</span> <span class="nl">AF_INET6</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">      <span class="n">len</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in6</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">      <span class="k">break</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#endif
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="k">case</span> <span class="nl">AF_INET</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">default</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">      <span class="n">len</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">      <span class="k">break</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#endif  </span><span class="c1">// HAVE_SOCKADDR_SA_LEN
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">    <span class="n">ptr</span> <span class="o">+=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_name</span><span class="p">)</span> <span class="o">+</span> <span class="n">len</span><span class="p">;</span>  <span class="c1">// for next one in buffer
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="cp">#ifdef HAVE_SOCKADDR_DL_STRUCT
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="c1">// assume that AF_LINK precedes AF_INET or AF_INET6
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">.</span><span class="n">sa_family</span> <span class="o">==</span> <span class="n">AF_LINK</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="k">struct</span> <span class="n">sockaddr_dl</span> <span class="o">*</span><span class="n">sal</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_dl</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">      <span class="n">sdlname</span> <span class="o">=</span> <span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_name</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">      <span class="n">idx</span> <span class="o">=</span> <span class="n">sdl</span><span class="o">-&gt;</span><span class="n">sdl_index</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">      <span class="n">haddr</span> <span class="o">=</span> <span class="n">sdl</span><span class="o">-&gt;</span><span class="n">sdl_data</span> <span class="o">+</span> <span class="n">sdl</span><span class="o">-&gt;</span><span class="n">sdl_nlen</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">      <span class="n">hlen</span> <span class="o">=</span> <span class="n">sdl</span><span class="o">-&gt;</span><span class="n">sdl_alen</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#endif
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">.</span><span class="n">sa_family</span> <span class="o">!=</span> <span class="n">family</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="k">continue</span><span class="p">;</span>  <span class="c1">// ignore if not desired address family
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">    <span class="n">myflags</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">((</span><span class="n">cptr</span> <span class="o">=</span> <span class="n">strchr</span><span class="p">(</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_name</span><span class="p">,</span> <span class="sc">&#39;:&#39;</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="o">*</span><span class="n">cptr</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// replace colon with null
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">strncmp</span><span class="p">(</span><span class="n">lastname</span><span class="p">,</span> <span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_name</span><span class="p">,</span> <span class="n">IFNAMSIZ</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="k">if</span> <span class="p">(</span><span class="n">doaliases</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">continue</span><span class="p">;</span>  <span class="c1">// already processed this interface
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>      <span class="n">myflags</span> <span class="o">=</span> <span class="n">IFI_ALIAS</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="n">memcpy</span><span class="p">(</span><span class="n">lastname</span><span class="p">,</span> <span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_name</span><span class="p">,</span> <span class="n">IFNAMSIZ</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">ifrcopy</span> <span class="o">=</span> <span class="o">*</span><span class="n">ifr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SIOCGIFFLAGS</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">flags</span> <span class="o">=</span> <span class="n">ifrcopy</span><span class="p">.</span><span class="n">ifr_flags</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">((</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">IFF_UP</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="k">continue</span><span class="p">;</span>  <span class="c1">// ignore if interface not up
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">    <span class="n">ifi</span> <span class="o">=</span> <span class="n">Calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">ifi_info</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">    <span class="o">*</span><span class="n">ifipnext</span> <span class="o">=</span> <span class="n">ifi</span><span class="p">;</span>  <span class="c1">// prev points to this new one
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">ifipnext</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_next</span><span class="p">;</span>  <span class="c1">// pointer to next one goes here
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">    <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_flags</span> <span class="o">=</span> <span class="n">flags</span><span class="p">;</span>  <span class="c1">// IFF_xxx values
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_myflags</span> <span class="o">=</span> <span class="n">myflags</span><span class="p">;</span>  <span class="c1">// IFI_xxx values
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="cp">#if defined(SIOCGIFMTU) &amp;&amp; defined(HAVE_STRUCT_IFREQ_IFR_MTU)
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="n">Ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SIOCGIFMTU</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_mtu</span> <span class="o">=</span> <span class="n">ifrcopy</span><span class="p">.</span><span class="n">ifr_mtu</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#else
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_mtu</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#endif
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl">    <span class="n">memcpy</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_name</span><span class="p">,</span> <span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_name</span><span class="p">,</span> <span class="n">IFI_NAME</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_name</span><span class="p">[</span><span class="n">IFI_NAME</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="sc">&#39;\0&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// If the sockaddr_dl is from a different interface, ignore it
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">sdlname</span> <span class="o">==</span> <span class="nb">NULL</span> <span class="o">||</span> <span class="n">strcmp</span><span class="p">(</span><span class="n">sdlname</span><span class="p">,</span> <span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_name</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="n">idx</span> <span class="o">=</span> <span class="n">hlen</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_index</span> <span class="o">=</span> <span class="n">idx</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_hlen</span> <span class="o">=</span> <span class="n">hlen</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_hlen</span> <span class="o">&gt;</span> <span class="n">IFI_HADDR</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_hlen</span> <span class="o">=</span> <span class="n">IFI_HADDR</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">hlen</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="n">memcpy</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_haddr</span><span class="p">,</span> <span class="n">haddr</span><span class="p">,</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_hlen</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">switch</span> <span class="p">(</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">.</span><span class="n">sa_family</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">case</span> <span class="nl">AF_INET</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">      <span class="n">sinptr</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">      <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_addr</span> <span class="o">=</span> <span class="n">Calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span> <span class="k">struct</span> <span class="n">sockaddr_in</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">      <span class="n">memcpy</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_addr</span><span class="p">,</span> <span class="n">sinptr</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="cp">#ifdef SIOCGIFBRDADDR
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>      <span class="k">if</span> <span class="p">(</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">IFF_BROADCAST</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SIOCGIFBRDADDR</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">sinptr</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">.</span><span class="n">ifr_broadaddr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_brdaddr</span> <span class="o">=</span> <span class="n">Calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">        <span class="n">memcpy</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_brdaddr</span><span class="p">,</span> <span class="n">sinptr</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#endif
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="cp">#ifdef SIOCGIFDSTADDR
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>      <span class="k">if</span> <span class="p">(</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">IFF_POINTOPOINT</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">sIOCGIFDSTADDR</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">sinptr</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">.</span><span class="n">ifr_dstaddr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_dstaddr</span> <span class="o">=</span> <span class="n">Calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">        <span class="n">memcpy</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_dstaddr</span><span class="p">,</span> <span class="n">sinptr</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#endif
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl">      <span class="k">break</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">cast</span> <span class="nl">AF_INET6</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">      <span class="n">sin6ptr</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in6</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">ifr</span><span class="o">-&gt;</span><span class="n">ifr_addr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">      <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_addr</span> <span class="o">=</span> <span class="n">Calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in6</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">      <span class="n">memcpy</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_addr</span><span class="p">,</span> <span class="n">sin6ptr</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in6</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="cp">#ifdef SIOCGIFDSTADDR
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>      <span class="k">if</span> <span class="p">(</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">IFF_POINTOPOINT</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SIOCGIFDSTADDR</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">sin6ptr</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in6</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">ifrcopy</span><span class="p">.</span><span class="n">ifr_dstaddr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_dstaddr</span> <span class="o">=</span> <span class="n">Calloc</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in6</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">        <span class="n">memcpy</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_dstaddr</span><span class="p">,</span> <span class="n">sin6ptr</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr_in6</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#endif
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl">      <span class="k">break</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">default</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">      <span class="k">break</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="n">free</span><span class="p">(</span><span class="n">buf</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">ifihead</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">free_ifi_info</span><span class="p">(</span><span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="n">ifihead</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">ifi_info</span> <span class="o">*</span><span class="n">ifi</span><span class="p">,</span> <span class="o">*</span><span class="n">ifinext</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="n">ifi</span> <span class="o">=</span> <span class="n">ifihead</span><span class="p">;</span> <span class="n">ifi</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">;</span> <span class="n">ifi</span> <span class="o">=</span> <span class="n">ifinext</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_addr</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="n">free</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_addr</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_brdaddr</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="n">free</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_brdaddr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_dstaddr</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="n">free</span><span class="p">(</span><span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_dstaddr</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ifinext</span> <span class="o">=</span> <span class="n">ifi</span><span class="o">-&gt;</span><span class="n">ifi_next</span><span class="p">;</span>  <span class="c1">// can&#39;t fetch ifi_next after free()
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">free</span><span class="p">(</span><span class="n">ifi</span><span class="p">);</span>  <span class="c1">// the ifi_info{} itself
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        首先创建一个用于 $ioctl$ 的<code>UDP</code>套接字。$SIOCGIFCONF$ 请求存在的一个严重问题是，在缓冲区的大小不足以存放结果时，一些实现不返回错误，而是截断结果并返回成功 ( 即 $ioctl$ 返回值为 $0$ )。这意味着，要知道缓冲区是否足够大的唯一方法是：发出请求，记下返回的长度，用更大的缓冲区发出请求，比较之前记下的长度和返回的长度，当两个长度相同时，代表缓冲区足够大。</p>
 <h2 id="6-接口操作">6. 接口操作</h2>
 <p>        $SIOCGIFCONF$ 请求为每个已配置的接口返回其名字以及一个套接字地址结构。我们接着可以发出多个接口类其他请求以设置或获取每个接口的其他特征。这些请求获取版本通常由 $netstat$ 程序发出，设置版本通常由 $ifconfig$ 程序发出。任何用户都可以获取接口信息，设置接口信息却要求具备超级用户权限。这些请求接受或返回一个 $ifreq$ 结构中的信息，而这个结构的地址则作为 $ioctl$ 调用的第三个参数指定。接口总是以其名字标识，在 $ifreq$ 结构的 $ifr_-name$ 成员中指定，如 $leo$ 、$lo0$ 和 $ppp0$ 等。</p>
 <ul>
@@ -580,19 +580,19 @@
 </ul>
 <h2 id="7-arp高速缓存操作">7. <code>ARP</code>高速缓存操作</h2>
 <p>        使用路由域套接字的系统往往改用路由套接字访问<code>ARP</code>高速缓存。这些请求使用 $arpreq$ 结构。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;net/if_arp.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="k">struct</span> <span class="n">arpreq</span> <span class="p">{</span>
-  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="n">arp_pa</span><span class="p">;</span>  <span class="c1">// protocol address
-</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="n">arp_ha</span><span class="p">;</span>  <span class="c1">// hadrware address
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">arp_flags</span><span class="p">;</span>  <span class="c1">// flags
-</span><span class="c1"></span><span class="p">};</span>
-
-<span class="cp">#define ATF_INUSE 0x01  </span><span class="c1">// entry in use
-</span><span class="c1"></span><span class="cp">#define ATF_COM 0x02  </span><span class="c1">// completed entry (hardware addr valid)
-</span><span class="c1"></span><span class="cp">#define ATF_PERM 0x04  </span><span class="c1">// permanent entry
-</span><span class="c1"></span><span class="cp">#define ATF_PUBL 0x08  </span><span class="c1">// published entry (respond for other host)
-</span></code></pre></div><p>        操纵<code>ARP</code>高速缓存的 $ioctl$ 请求有 $3$ 个：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;net/if_arp.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">arpreq</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="n">arp_pa</span><span class="p">;</span>  <span class="c1">// protocol address
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="n">arp_ha</span><span class="p">;</span>  <span class="c1">// hadrware address
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">int</span> <span class="n">arp_flags</span><span class="p">;</span>  <span class="c1">// flags
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="cp">#define ATF_INUSE 0x01  </span><span class="c1">// entry in use
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#define ATF_COM 0x02  </span><span class="c1">// completed entry (hardware addr valid)
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#define ATF_PERM 0x04  </span><span class="c1">// permanent entry
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#define ATF_PUBL 0x08  </span><span class="c1">// published entry (respond for other host)
+</span></span></span></code></pre></div><p>        操纵<code>ARP</code>高速缓存的 $ioctl$ 请求有 $3$ 个：</p>
 <ul>
 <li>$SIOCSARP$ ：把一个新的表项加到<code>ARP</code>高速缓存，或者修改其中已经存在的一个表项。其中 $arp_-pa$ 是一个含有<code>IP</code>地址的网际网套接字地址结构，$arp_-ha$ 则是一个通用套接字地址结构，它的 $sa_-family$ 值为 $AF_-UNSPEC$ ，$sa_-data$ 中含有硬件地址。$ATF_-PERM$ 和 $ATF_-PUBL$ 这两个标志也可以由应用程序指定，另外两个标志由内核设置；</li>
 <li>$SIOCDARP$ ：从<code>ARP</code>高速缓存删除一个表项，调用者指定要删除表项的网际网地址；</li>

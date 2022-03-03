@@ -117,8 +117,8 @@
 <h2 id="3-索引策略">3. 索引策略</h2>
 <h3 id="31-独立的列">3.1 独立的列</h3>
 <p>        如果查询中的列不是独立的，<code>MySQL</code>就不会使用索引。独立的列是指索引列不能是表达式的一部分，也不能是函数的参数。例如：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="k">SELECT</span><span class="w"> </span><span class="n">actor_id</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">sakila</span><span class="p">.</span><span class="n">actor</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">actor_id</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span><span class="w">
-</span></code></pre></div><h3 id="32-前缀索引和索引选择性">3.2 前缀索引和索引选择性</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">SELECT</span><span class="w"> </span><span class="n">actor_id</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">sakila</span><span class="p">.</span><span class="n">actor</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">actor_id</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></div><h3 id="32-前缀索引和索引选择性">3.2 前缀索引和索引选择性</h3>
 <p>        有时候需要索引很长的字符列，这会让索引变得大且慢。除了之前提到的模拟哈希索引外，也可以索引开始的部分字符，这样可以大大节约索引空间，但是也会降低选择性。选择性指的是不重复的值和记录总数的比值，越高代表查询效率越高。一般情况下某个列前缀的选择性也是足够高的，足以满足查询性能。对于 $BLOB$ 、$TEXT$ 或者很长的 $VARCHAR$ 类型的列，必须使用前缀索引，因为<code>MySQL</code>不允许索引这些列的完整长度。<br/>
         前缀索引是一种能使索引更小、更快的有效方法，但另一方面也有其缺点：<code>MySQL</code>无法使用前缀索引做 $ORDER\ \ BY$ 和 $GROUP\ \ BY$ ，也无法使用前缀索引做覆盖扫描。<br/>
         除了前缀索引外，有时候后缀索引也有用途。<code>MySQL</code>原生不支持反向索引，但是可以把字符串反转后存储，并基于此建立前缀索引。</p>

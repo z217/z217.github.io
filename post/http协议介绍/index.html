@@ -102,12 +102,12 @@
 <li><strong>隧道</strong>是在相隔甚远的客户端和服务器之间进行中转，并保持双方通信连接的应用程序。隧道的目的是确保客户端能与服务器进行安全的通信。</li>
 </ul>
 <h3 id="11-请求">1.1 请求</h3>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-http" data-lang="http"><span class="nf">GET</span> <span class="nn">/index.htm</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
-<span class="n">Host</span><span class="o">:</span> <span class="l">xxxx.com</span>
-</code></pre></div><p>        起始行开头的 $GET$ 表示请求访问服务器的类型，称为方法。$/index.htm$ 是请求访问的资源对象，也叫做<strong>请求</strong><code>URI</code> ( $Request\ \ URI$ ) 。最后的 $HTTP/1.1$ 即<code>HTTP</code>版本号，指明客户端使用的<code>HTTP</code>协议版本。<br/>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-http" data-lang="http"><span class="line"><span class="cl"><span class="nf">GET</span> <span class="nn">/index.htm</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+</span></span><span class="line"><span class="cl"><span class="n">Host</span><span class="o">:</span> <span class="l">xxxx.com</span>
+</span></span></code></pre></div><p>        起始行开头的 $GET$ 表示请求访问服务器的类型，称为方法。$/index.htm$ 是请求访问的资源对象，也叫做<strong>请求</strong><code>URI</code> ( $Request\ \ URI$ ) 。最后的 $HTTP/1.1$ 即<code>HTTP</code>版本号，指明客户端使用的<code>HTTP</code>协议版本。<br/>
         <code>HTTP</code>使用<code>URI</code>定位互联网上的资源，可以指定完整路径，也可以通过与 $Host$ 字段结合指定相对路径。如果不是访问特定资源而是对服务器本身发起请求，可以使用 $*$ 代替请求<code>URI</code>，如下：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-http" data-lang="http"><span class="nf">OPTIONS</span> <span class="nn">*</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
-</code></pre></div><p>        <code>HTTP/1.1</code>中可使用的方法如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-http" data-lang="http"><span class="line"><span class="cl"><span class="nf">OPTIONS</span> <span class="nn">*</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+</span></span></code></pre></div><p>        <code>HTTP/1.1</code>中可使用的方法如下：</p>
 <ul>
 <li>$GET$ ：请求访问已被<code>URI</code>识别的资源，经服务器段解析后返回响应内容；</li>
 <li>$POST$ ：请求访问已被<code>URI</code>识别的资源，数据被包含在请求体中，可能会导致新资源的创建和修改；</li>
@@ -120,29 +120,29 @@
 </ul>
 <p>        <code>HTTP/1.1</code>中提供了<strong>持久连接</strong> ( $HTTP\ \ Persistence\ \ Connections$ ，也称为 $HTTP\ \ keep-alive$ )，只要任意一端没有明确提出断开连接，则保持<code>TCP</code>连接状态。持久连接使得多数请求以<strong>管道化</strong> ( $pipelining$ ) 方式发送称为可能，即不用等待上一个请求的响应即可发送下一个请求。<br/>
         作为无状态协议，在登录等场景需要保存状态，因此引入了<code>Cookie</code>技术。<code>Cookie</code>通过在请求和响应报文中写入<code>Cookie</code>信息来控制客户端状态。根据从服务端发送的响应报文内一个叫做 $Set-Cookie$ 的首部字段信息，客户端会保存<code>Cookie</code>，并在下次发送请求时自动在报文中加入<code>Cookie</code>。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-http" data-lang="http"><span class="err"># 首次请求报文
-</span><span class="err"></span><span class="nf">GET</span> <span class="nn">/reader/</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
-<span class="n">Host</span><span class="o">:</span> <span class="l">xxx.com</span>
-</code></pre></div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-http" data-lang="http"><span class="err"># 响应报文
-</span><span class="err"></span><span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span> <span class="m">200</span> <span class="ne">OK</span>
-<span class="n">Date</span><span class="o">:</span> <span class="l">Thu, 12 Jul 2012 07:12:20 GMT</span>
-<span class="n">Server</span><span class="o">:</span> <span class="l">Apache</span>
-<span class="n">Set-Cookie</span><span class="o">:</span> <span class="l">sid=1342077140226724; path=/; expires=Wed, 10-Oct-12 07:12:20 GMT</span>
-<span class="n">Content-Type</span><span class="o">:</span> <span class="l">text/plain; charset=UTF-8</span>
-</code></pre></div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-http" data-lang="http"><span class="err"># 第二次请求
-</span><span class="err"></span><span class="nf">GET</span> <span class="nn">/image/</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
-<span class="n">Host</span><span class="o">:</span> <span class="l">xxx.com</span>
-<span class="n">Cookie</span><span class="o">:</span> <span class="l">sid=1342077140226724</span>
-</code></pre></div><p>        内容协商机制是指客户端和服务器端就响应的资源内容进行交涉，然后提供给客户端最为适合的资源。请求报文中的某些首部字段就是判断基准：$Accept$ 、$Accept-Charset$ 、$Accept-Encoding$ 、$Accept-Language$ 、$Content-Language$ 。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-http" data-lang="http"><span class="line"><span class="cl"><span class="err"># 首次请求报文
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="nf">GET</span> <span class="nn">/reader/</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+</span></span><span class="line"><span class="cl"><span class="n">Host</span><span class="o">:</span> <span class="l">xxx.com</span>
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-http" data-lang="http"><span class="line"><span class="cl"><span class="err"># 响应报文
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span> <span class="m">200</span> <span class="ne">OK</span>
+</span></span><span class="line"><span class="cl"><span class="n">Date</span><span class="o">:</span> <span class="l">Thu, 12 Jul 2012 07:12:20 GMT</span>
+</span></span><span class="line"><span class="cl"><span class="n">Server</span><span class="o">:</span> <span class="l">Apache</span>
+</span></span><span class="line"><span class="cl"><span class="n">Set-Cookie</span><span class="o">:</span> <span class="l">sid=1342077140226724; path=/; expires=Wed, 10-Oct-12 07:12:20 GMT</span>
+</span></span><span class="line"><span class="cl"><span class="n">Content-Type</span><span class="o">:</span> <span class="l">text/plain; charset=UTF-8</span>
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-http" data-lang="http"><span class="line"><span class="cl"><span class="err"># 第二次请求
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="nf">GET</span> <span class="nn">/image/</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+</span></span><span class="line"><span class="cl"><span class="n">Host</span><span class="o">:</span> <span class="l">xxx.com</span>
+</span></span><span class="line"><span class="cl"><span class="n">Cookie</span><span class="o">:</span> <span class="l">sid=1342077140226724</span>
+</span></span></code></pre></div><p>        内容协商机制是指客户端和服务器端就响应的资源内容进行交涉，然后提供给客户端最为适合的资源。请求报文中的某些首部字段就是判断基准：$Accept$ 、$Accept-Charset$ 、$Accept-Encoding$ 、$Accept-Language$ 、$Content-Language$ 。</p>
 <h3 id="12-响应">1.2 响应</h3>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-http" data-lang="http"><span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span> <span class="m">200</span> <span class="ne">OK</span>
-<span class="n">Date</span><span class="o">:</span> <span class="l">Tue, 10 Jul 2012 06:50:15 GMT</span>
-<span class="n">Content-Length</span><span class="o">:</span> <span class="l">362</span>
-<span class="n">Content-Type</span><span class="o">:</span> <span class="l">text/html</span>
-
-<span class="p">&lt;</span><span class="nt">html</span><span class="p">&gt;</span>
-......
-</code></pre></div><p>        $HTTP/1.1$ 指明服务器使用的<code>HTTP</code>版本，$200$ 表示请求的处理结果<strong>状态码</strong> ( $status\ \ code$ ) 和<strong>原因短语</strong> ( $reason-phrase$ ) 。下一行显示了创建响应的日期时间，是<strong>首部字段</strong> ( $header\ \ field$ ) 内的一个属性。接下来是以一空行分开的<strong>资源实体的主体</strong> ( $entity\ \ body$ )。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-http" data-lang="http"><span class="line"><span class="cl"><span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span> <span class="m">200</span> <span class="ne">OK</span>
+</span></span><span class="line"><span class="cl"><span class="n">Date</span><span class="o">:</span> <span class="l">Tue, 10 Jul 2012 06:50:15 GMT</span>
+</span></span><span class="line"><span class="cl"><span class="n">Content-Length</span><span class="o">:</span> <span class="l">362</span>
+</span></span><span class="line"><span class="cl"><span class="n">Content-Type</span><span class="o">:</span> <span class="l">text/html</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">&lt;</span><span class="nt">html</span><span class="p">&gt;</span>
+</span></span><span class="line"><span class="cl">......
+</span></span></code></pre></div><p>        $HTTP/1.1$ 指明服务器使用的<code>HTTP</code>版本，$200$ 表示请求的处理结果<strong>状态码</strong> ( $status\ \ code$ ) 和<strong>原因短语</strong> ( $reason-phrase$ ) 。下一行显示了创建响应的日期时间，是<strong>首部字段</strong> ( $header\ \ field$ ) 内的一个属性。接下来是以一空行分开的<strong>资源实体的主体</strong> ( $entity\ \ body$ )。</p>
 <h3 id="13-状态码">1.3 状态码</h3>
 <div class="div-table" data-fl-scrolls><table>
 <thead>
@@ -368,22 +368,22 @@
 <h2 id="7-websocket">7. <code>WebSocket</code></h2>
 <p>        <code>WebSocket</code>是<code>Web</code>浏览器与<code>Web</code>服务器之间的全双工通信标准。一旦<code>Web</code>服务器与客户端之间建立起<code>WebSocket</code>协议的通信连接，之后所有的通信都依靠这个专用协议进行，并且可以互相发送任意格式的数据。由于是建立在<code>HTTP</code>基础上的协议，因此连接的发起方仍是客户端，而一旦建立<code>WebSocket</code>通信连接，不论服务器还是客户端，任意一方都可以直接向对方发送报文。<br/>
         为了实现<code>WebSocket</code>通信，需要用到<code>HTTP</code>的 $Upgrade$ 首部字段。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-http" data-lang="http"><span class="nf">GET</span> <span class="nn">/chat</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
-<span class="n">Host</span><span class="o">:</span> <span class="l">server.example.com</span>
-<span class="n">Upgrade</span><span class="o">:</span> <span class="l">websocket</span>
-<span class="n">Connection</span><span class="o">:</span> <span class="l">Upgrade</span>
-<span class="n">Sec-WebSocket-Key</span><span class="o">:</span> <span class="l">dGhlIHNhbXBsZSBub25jZQ==</span>
-<span class="n">Origin</span><span class="o">:</span> <span class="l">http://example.com</span>
-<span class="n">Sec-WebSocket-Protocol</span><span class="o">:</span> <span class="l">chat, superchat</span>
-<span class="n">Sec-WebSocket-Version</span><span class="o">:</span> <span class="l">13</span>
-</code></pre></div><p>        $Sec-WebSocket-Key$ 字段内记录着握手过程中必不可少的键值。$Sec-WebSocket-Protocol$ 字段内记录使用的子协议，在连接分开使用时，定义连接的名称。<br/>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-http" data-lang="http"><span class="line"><span class="cl"><span class="nf">GET</span> <span class="nn">/chat</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+</span></span><span class="line"><span class="cl"><span class="n">Host</span><span class="o">:</span> <span class="l">server.example.com</span>
+</span></span><span class="line"><span class="cl"><span class="n">Upgrade</span><span class="o">:</span> <span class="l">websocket</span>
+</span></span><span class="line"><span class="cl"><span class="n">Connection</span><span class="o">:</span> <span class="l">Upgrade</span>
+</span></span><span class="line"><span class="cl"><span class="n">Sec-WebSocket-Key</span><span class="o">:</span> <span class="l">dGhlIHNhbXBsZSBub25jZQ==</span>
+</span></span><span class="line"><span class="cl"><span class="n">Origin</span><span class="o">:</span> <span class="l">http://example.com</span>
+</span></span><span class="line"><span class="cl"><span class="n">Sec-WebSocket-Protocol</span><span class="o">:</span> <span class="l">chat, superchat</span>
+</span></span><span class="line"><span class="cl"><span class="n">Sec-WebSocket-Version</span><span class="o">:</span> <span class="l">13</span>
+</span></span></code></pre></div><p>        $Sec-WebSocket-Key$ 字段内记录着握手过程中必不可少的键值。$Sec-WebSocket-Protocol$ 字段内记录使用的子协议，在连接分开使用时，定义连接的名称。<br/>
         对于升级请求，返回 $101\ \ Switching\ \ Protocols$ 响应。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-http" data-lang="http"><span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span> <span class="m">101</span> <span class="ne">Switching Protocols</span>
-<span class="n">Upgrade</span><span class="o">:</span> <span class="l">websocket</span>
-<span class="n">Connection</span><span class="o">:</span> <span class="l">Upgrade</span>
-<span class="n">Sec-WebSocket-Accept</span><span class="o">:</span> <span class="l">s3pPLMBiTxaQ9kYGzzhZRbK+xOo=</span>
-<span class="n">Sec-WebSocket-Protocol</span><span class="o">:</span> <span class="l">chat</span>
-</code></pre></div><p>        $Sec-WebSocket-Accept$ 字段值是由握手请求中的 $Sec-WebSocket-Key$ 的字段值生成的。在成功握手确立<code>WebSocket</code>连接后，通信时不再使用<code>HTTP</code>的数据帧，而是使用<code>WebSocket</code>独立的数据帧。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-http" data-lang="http"><span class="line"><span class="cl"><span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span> <span class="m">101</span> <span class="ne">Switching Protocols</span>
+</span></span><span class="line"><span class="cl"><span class="n">Upgrade</span><span class="o">:</span> <span class="l">websocket</span>
+</span></span><span class="line"><span class="cl"><span class="n">Connection</span><span class="o">:</span> <span class="l">Upgrade</span>
+</span></span><span class="line"><span class="cl"><span class="n">Sec-WebSocket-Accept</span><span class="o">:</span> <span class="l">s3pPLMBiTxaQ9kYGzzhZRbK+xOo=</span>
+</span></span><span class="line"><span class="cl"><span class="n">Sec-WebSocket-Protocol</span><span class="o">:</span> <span class="l">chat</span>
+</span></span></code></pre></div><p>        $Sec-WebSocket-Accept$ 字段值是由握手请求中的 $Sec-WebSocket-Key$ 的字段值生成的。在成功握手确立<code>WebSocket</code>连接后，通信时不再使用<code>HTTP</code>的数据帧，而是使用<code>WebSocket</code>独立的数据帧。</p>
 
 <script src=https://z217blog.cn/js/toc.js></script>
 

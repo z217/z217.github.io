@@ -93,21 +93,21 @@
 </ol>
 <p>        前两种操作可以复合使用，需要超级用户权限，最后一种任何进程都可以执行。</p>
 <h2 id="1-数据链路套接字地址结构">1. 数据链路套接字地址结构</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;net/if_dl.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="k">struct</span> <span class="n">sockaddr_dl</span> <span class="p">{</span>
-  <span class="kt">uint8_t</span> <span class="n">sdl_len</span><span class="p">;</span>
-  <span class="n">sa_family_t</span> <span class="n">sdl_family</span><span class="p">;</span>  <span class="c1">// AF_LINK
-</span><span class="c1"></span>  <span class="kt">uint16_t</span> <span class="n">sdl_index</span><span class="p">;</span>  <span class="c1">// 大于0的系统分配的索引
-</span><span class="c1"></span>  <span class="kt">uint8_t</span> <span class="n">sdl_type</span><span class="p">;</span>  <span class="c1">// IFT_ETHER等在&lt;net/if_types.h&gt;中定义的常值
-</span><span class="c1"></span>  <span class="kt">uint8_t</span> <span class="n">sdl_nlen</span><span class="p">;</span>  <span class="c1">// 名字长度，从sdl_data[0]开始
-</span><span class="c1"></span>  <span class="kt">uint8_t</span> <span class="n">sdl_alen</span><span class="p">;</span>  <span class="c1">// 链路层地址长度
-</span><span class="c1"></span>  <span class="kt">uint8_t</span> <span class="n">sdl_slen</span><span class="p">;</span>  <span class="c1">// 链路层选择器长度
-</span><span class="c1"></span>  <span class="kt">char</span> <span class="n">sdl_data</span><span class="p">[</span><span class="mi">12</span><span class="p">];</span>  <span class="c1">// 最小工作区域，可以扩大，包含i/f名称和链路层地址
-</span><span class="c1"></span><span class="p">};</span>
-
-<span class="cp">#define LLADDR(s)  ((caddr_t) ((s)-&gt;sdl_data + (s)-&gt;sdl_nlen))
-</span></code></pre></div><p>        每个接口都有一个唯一的索引。$sdl_-data$ 成员含有名字和链路层地址，名字从 $sdl_-data[0]$ 开始，并且不以空字符结尾。链路层地址从 $sdl_-data[sdl_-nlen]$ 开始，$LLADDR$ 宏返回指向链路层地址的指针。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;net/if_dl.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">sockaddr_dl</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">uint8_t</span> <span class="n">sdl_len</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">sa_family_t</span> <span class="n">sdl_family</span><span class="p">;</span>  <span class="c1">// AF_LINK
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">uint16_t</span> <span class="n">sdl_index</span><span class="p">;</span>  <span class="c1">// 大于0的系统分配的索引
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">uint8_t</span> <span class="n">sdl_type</span><span class="p">;</span>  <span class="c1">// IFT_ETHER等在&lt;net/if_types.h&gt;中定义的常值
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">uint8_t</span> <span class="n">sdl_nlen</span><span class="p">;</span>  <span class="c1">// 名字长度，从sdl_data[0]开始
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">uint8_t</span> <span class="n">sdl_alen</span><span class="p">;</span>  <span class="c1">// 链路层地址长度
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">uint8_t</span> <span class="n">sdl_slen</span><span class="p">;</span>  <span class="c1">// 链路层选择器长度
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">char</span> <span class="n">sdl_data</span><span class="p">[</span><span class="mi">12</span><span class="p">];</span>  <span class="c1">// 最小工作区域，可以扩大，包含i/f名称和链路层地址
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="cp">#define LLADDR(s)  ((caddr_t) ((s)-&gt;sdl_data + (s)-&gt;sdl_nlen))
+</span></span></span></code></pre></div><p>        每个接口都有一个唯一的索引。$sdl_-data$ 成员含有名字和链路层地址，名字从 $sdl_-data[0]$ 开始，并且不以空字符结尾。链路层地址从 $sdl_-data[sdl_-nlen]$ 开始，$LLADDR$ 宏返回指向链路层地址的指针。</p>
 <h2 id="2-套接字读写">2. 套接字读写</h2>
 <p>        创建一个路由套接字以后，进程可以通过写到该套接字向内核发送命令，通过从套接字读来从内核接收信息。路由套接字共有 $12$ 个路由消息，定义在 &lt;$net/route.h$&gt; 头文件中。</p>
 <div class="div-table" data-fl-scrolls><table>
@@ -222,59 +222,59 @@
 </tbody>
 </table></div>
 <p>        通过路由套接字交换的结构有 $5$ 个类型。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">struct</span> <span class="n">rt_msghdr</span> <span class="p">{</span>  <span class="c1">// defined in &lt;net/route.h&gt;
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">rtm_msglen</span><span class="p">;</span>  <span class="c1">// to skip over non-understood messages
-</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">rtm_version</span><span class="p">;</span>  <span class="c1">// future binary compatibility
-</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">rtm_type</span><span class="p">;</span>  <span class="c1">// message type
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">trm_index</span><span class="p">;</span>  <span class="c1">// index for associated ifp
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">rtm_flags</span><span class="p">;</span>  <span class="c1">// flags, incl . kern &amp;message, e.g., DONE
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">rtm_addrs</span><span class="p">;</span>  <span class="c1">// bitmask identifying sockaddrs in msg
-</span><span class="c1"></span>  <span class="n">pid_t</span> <span class="n">rtm_pid</span><span class="p">;</span>  <span class="c1">// identify sender
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">rtm_seq</span><span class="p">;</span>  <span class="c1">// for sender to identify action
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">rtm_errno</span><span class="p">;</span>  <span class="c1">// why failed
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">rtm_use</span><span class="p">;</span>  <span class="c1">// from rtentry
-</span><span class="c1"></span>  <span class="n">u_long</span> <span class="n">rtm_inits</span><span class="p">;</span>  <span class="c1">// which metrics we are initializing
-</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">rt_metricsrtm_rmx</span><span class="p">;</span>  <span class="c1">// metrics themselves
-</span><span class="c1"></span><span class="p">};</span>
-
-<span class="k">struct</span> <span class="n">if_msghdr</span> <span class="p">{</span>  <span class="c1">// defined in &lt;net/if.h&gt;
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifm_msglen</span><span class="p">;</span>  <span class="c1">// to skip over non-understood messages
-</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifm_version</span><span class="p">;</span>  <span class="c1">// future binary compatibility
-</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifm_type</span><span class="p">;</span>  <span class="c1">// message type
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifm_addrs</span><span class="p">;</span>  <span class="c1">// like rtm_addrs
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifm_flags</span><span class="p">;</span>  <span class="c1">// value of if_flags
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifm_index</span><span class="p">;</span>  <span class="c1">// index for associated ifp
-</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">if_data</span> <span class="n">ifm_data</span><span class="p">;</span>  <span class="c1">// statistics and other data about if
-</span><span class="c1"></span><span class="p">};</span>
-
-<span class="k">struct</span> <span class="n">ifa_msghdr</span> <span class="p">{</span>  <span class="c1">// defined in &lt;net/if.h&gt;
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifam_msglen</span><span class="p">;</span>  <span class="c1">// to skip over non-understood messages
-</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifam_version</span><span class="p">;</span>  <span class="c1">// future binary compatibility
-</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifam_type</span><span class="p">;</span>  <span class="c1">// message type
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifam_addrs</span><span class="p">;</span>  <span class="c1">// like rtm_addrs
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifam_flags</span><span class="p">;</span>  <span class="c1">// value of ifa_flags
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifam_index</span><span class="p">;</span>  <span class="c1">// index for associated ifp
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifam_metric</span><span class="p">;</span>  <span class="c1">// value of ifa_metric
-</span><span class="c1"></span><span class="p">};</span>
-
-<span class="k">struct</span> <span class="n">ifma_msghdr</span> <span class="p">{</span>  <span class="c1">// defined in &lt;net/if.h&gt;
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifmam_msglen</span><span class="p">;</span>  <span class="c1">// to skip over non-understood messages
-</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifmam_version</span><span class="p">;</span>  <span class="c1">// future binary compatibility
-</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifmam_type</span><span class="p">;</span>  <span class="c1">// message type
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifmam_addrs</span><span class="p">;</span>  <span class="c1">// like rtm_addrs
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifmam_flags</span><span class="p">;</span>  <span class="c1">// value of ifa_flags
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifmam_index</span><span class="p">;</span>  <span class="c1">// index for associated ifp
-</span><span class="c1"></span><span class="p">};</span>
-
-<span class="k">struct</span> <span class="n">if_announcemsghdr</span> <span class="p">{</span>  <span class="c1">// defined in &lt;net/if.h&gt;
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifan_msglen</span><span class="p">;</span>  <span class="c1">// to skip over non-understood messages
-</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifan_version</span><span class="p">;</span>  <span class="c1">// future binary compatibility
-</span><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifan_type</span><span class="p">;</span>  <span class="c1">// message type
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifan_index</span><span class="p">;</span>  <span class="c1">// index for associated ifp
-</span><span class="c1"></span>  <span class="kt">char</span> <span class="n">ifan_name</span><span class="p">[</span><span class="n">IFNAMSIZ</span><span class="p">];</span>  <span class="c1">// if name, e.g. &#34;en0&#34;
-</span><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifan_what</span><span class="p">;</span>  <span class="c1">// what type of announcement
-</span><span class="c1"></span><span class="p">};</span>
-</code></pre></div><p>        每个结构都有相同的前 $3$ 个成员：本消息的长度、版本和类型，类型是上表中第一列的常值之一，长度则允许应用程序跳过无法理解的消息类型。$rtm_-addr$ 、$ifm_-addrs$ 和 $ifam_-addrs$ 这 $3$ 个成员是<em><strong>数位掩码</strong></em> ( $bit$ $mask$ )，指明本消息后跟的套接字地址结构是 $8$ 个可能选择中的哪几个。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">rt_msghdr</span> <span class="p">{</span>  <span class="c1">// defined in &lt;net/route.h&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_short</span> <span class="n">rtm_msglen</span><span class="p">;</span>  <span class="c1">// to skip over non-understood messages
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_char</span> <span class="n">rtm_version</span><span class="p">;</span>  <span class="c1">// future binary compatibility
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_char</span> <span class="n">rtm_type</span><span class="p">;</span>  <span class="c1">// message type
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_short</span> <span class="n">trm_index</span><span class="p">;</span>  <span class="c1">// index for associated ifp
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">int</span> <span class="n">rtm_flags</span><span class="p">;</span>  <span class="c1">// flags, incl . kern &amp;message, e.g., DONE
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">int</span> <span class="n">rtm_addrs</span><span class="p">;</span>  <span class="c1">// bitmask identifying sockaddrs in msg
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">pid_t</span> <span class="n">rtm_pid</span><span class="p">;</span>  <span class="c1">// identify sender
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">int</span> <span class="n">rtm_seq</span><span class="p">;</span>  <span class="c1">// for sender to identify action
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">int</span> <span class="n">rtm_errno</span><span class="p">;</span>  <span class="c1">// why failed
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">int</span> <span class="n">rtm_use</span><span class="p">;</span>  <span class="c1">// from rtentry
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_long</span> <span class="n">rtm_inits</span><span class="p">;</span>  <span class="c1">// which metrics we are initializing
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">struct</span> <span class="n">rt_metricsrtm_rmx</span><span class="p">;</span>  <span class="c1">// metrics themselves
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">if_msghdr</span> <span class="p">{</span>  <span class="c1">// defined in &lt;net/if.h&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifm_msglen</span><span class="p">;</span>  <span class="c1">// to skip over non-understood messages
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifm_version</span><span class="p">;</span>  <span class="c1">// future binary compatibility
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifm_type</span><span class="p">;</span>  <span class="c1">// message type
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifm_addrs</span><span class="p">;</span>  <span class="c1">// like rtm_addrs
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifm_flags</span><span class="p">;</span>  <span class="c1">// value of if_flags
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifm_index</span><span class="p">;</span>  <span class="c1">// index for associated ifp
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">struct</span> <span class="n">if_data</span> <span class="n">ifm_data</span><span class="p">;</span>  <span class="c1">// statistics and other data about if
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">ifa_msghdr</span> <span class="p">{</span>  <span class="c1">// defined in &lt;net/if.h&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifam_msglen</span><span class="p">;</span>  <span class="c1">// to skip over non-understood messages
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifam_version</span><span class="p">;</span>  <span class="c1">// future binary compatibility
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifam_type</span><span class="p">;</span>  <span class="c1">// message type
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifam_addrs</span><span class="p">;</span>  <span class="c1">// like rtm_addrs
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifam_flags</span><span class="p">;</span>  <span class="c1">// value of ifa_flags
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifam_index</span><span class="p">;</span>  <span class="c1">// index for associated ifp
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifam_metric</span><span class="p">;</span>  <span class="c1">// value of ifa_metric
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">ifma_msghdr</span> <span class="p">{</span>  <span class="c1">// defined in &lt;net/if.h&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifmam_msglen</span><span class="p">;</span>  <span class="c1">// to skip over non-understood messages
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifmam_version</span><span class="p">;</span>  <span class="c1">// future binary compatibility
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifmam_type</span><span class="p">;</span>  <span class="c1">// message type
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifmam_addrs</span><span class="p">;</span>  <span class="c1">// like rtm_addrs
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">int</span> <span class="n">ifmam_flags</span><span class="p">;</span>  <span class="c1">// value of ifa_flags
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifmam_index</span><span class="p">;</span>  <span class="c1">// index for associated ifp
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">if_announcemsghdr</span> <span class="p">{</span>  <span class="c1">// defined in &lt;net/if.h&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifan_msglen</span><span class="p">;</span>  <span class="c1">// to skip over non-understood messages
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifan_version</span><span class="p">;</span>  <span class="c1">// future binary compatibility
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_char</span> <span class="n">ifan_type</span><span class="p">;</span>  <span class="c1">// message type
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifan_index</span><span class="p">;</span>  <span class="c1">// index for associated ifp
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">char</span> <span class="n">ifan_name</span><span class="p">[</span><span class="n">IFNAMSIZ</span><span class="p">];</span>  <span class="c1">// if name, e.g. &#34;en0&#34;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">u_short</span> <span class="n">ifan_what</span><span class="p">;</span>  <span class="c1">// what type of announcement
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></code></pre></div><p>        每个结构都有相同的前 $3$ 个成员：本消息的长度、版本和类型，类型是上表中第一列的常值之一，长度则允许应用程序跳过无法理解的消息类型。$rtm_-addr$ 、$ifm_-addrs$ 和 $ifam_-addrs$ 这 $3$ 个成员是<em><strong>数位掩码</strong></em> ( $bit$ $mask$ )，指明本消息后跟的套接字地址结构是 $8$ 个可能选择中的哪几个。</p>
 <div class="div-table" data-fl-scrolls><table>
   <thead>
     <tr>
@@ -358,13 +358,13 @@
 <p>        上述常值定义在 &lt;$net/route.h$&gt; 头文件中，当存在多个套接字地址结构时，它们总是按照表中所示的顺序排列。</p>
 <h2 id="3-sysctl">3. <code>sysctl</code></h2>
 <p>        使用 $sysctl$ 检查路由表和接口列表的进程不需要超级用户权限。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;sys/param.h&gt;</span><span class="cp">
-</span><span class="cp">#include</span> <span class="cpf">&lt;sys/sysctl.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 成功返回0，出错返回-1
-</span><span class="c1"></span><span class="kt">int</span> <span class="nf">sysctl</span><span class="p">(</span><span class="kt">int</span> <span class="o">*</span><span class="n">name</span><span class="p">,</span> <span class="n">u_int</span> <span class="n">namelen</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">oldp</span><span class="p">,</span> <span class="n">size_t</span> <span class="o">*</span><span class="n">oldlenp</span><span class="p">,</span>
-  <span class="kt">void</span> <span class="o">*</span><span class="n">newp</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">newlen</span><span class="p">);</span>
-</code></pre></div><p>        这个函数使用类似简单网络管理协议 ( $Simple$ $Network$ $Management$ $Protocol$ , $SNMP$ ) 中管理信息库 ( $management$ $information$ $base$ , $MIB$ ) 的名字。$name$ 参数是一个整数数组，$namelen$ 指定数组长度。数组的第一个元素指定本请求定向到内核的哪个子系统，第二个及之后元素依次细化指定该子系统的某个部分。为了获取某个值，$oldp$ 参数指向一个供内核存放该值的缓冲区。$oldlenp$ 是一个值-结果参数，函数被调用时，该值表示缓冲区中的数据量，返回时表示内核向该缓冲区存放的数据量。如果缓冲区不够大，就会返回 $ENOMEM$ 错误。特别地，$oldp$ 可以是一个空指针而 $oldlenp$ 是非空指针，这样内核可以确定返回的数据量，并通过 $oldlenp$ 返回。$newp$ 指向一个大小为 $newlen$ 的缓冲区，代表设置新值。如果不想设置新值，那么 $newp$ 应该为空指针，$newlen$ 为 $0$ 。<br>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/param.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/sysctl.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 成功返回0，出错返回-1
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">sysctl</span><span class="p">(</span><span class="kt">int</span> <span class="o">*</span><span class="n">name</span><span class="p">,</span> <span class="n">u_int</span> <span class="n">namelen</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">oldp</span><span class="p">,</span> <span class="n">size_t</span> <span class="o">*</span><span class="n">oldlenp</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="o">*</span><span class="n">newp</span><span class="p">,</span> <span class="n">size_t</span> <span class="n">newlen</span><span class="p">);</span>
+</span></span></code></pre></div><p>        这个函数使用类似简单网络管理协议 ( $Simple$ $Network$ $Management$ $Protocol$ , $SNMP$ ) 中管理信息库 ( $management$ $information$ $base$ , $MIB$ ) 的名字。$name$ 参数是一个整数数组，$namelen$ 指定数组长度。数组的第一个元素指定本请求定向到内核的哪个子系统，第二个及之后元素依次细化指定该子系统的某个部分。为了获取某个值，$oldp$ 参数指向一个供内核存放该值的缓冲区。$oldlenp$ 是一个值-结果参数，函数被调用时，该值表示缓冲区中的数据量，返回时表示内核向该缓冲区存放的数据量。如果缓冲区不够大，就会返回 $ENOMEM$ 错误。特别地，$oldp$ 可以是一个空指针而 $oldlenp$ 是非空指针，这样内核可以确定返回的数据量，并通过 $oldlenp$ 返回。$newp$ 指向一个大小为 $newlen$ 的缓冲区，代表设置新值。如果不想设置新值，那么 $newp$ 应该为空指针，$newlen$ 为 $0$ 。<br>
         通过 $sysctl$ ，我们可以获取各种系统信息，有文件系统、虚拟内存、内核限制等。我们感兴趣的是网络子系统，通过把 $name$ 数组的第一个元素设置为 $CTL_-NET$ 来指定。这些常值定义在 &lt;$sys/sysctl.h$&gt; 头文件中。第二个元素可以是：</p>
 <ul>
 <li>$AF_-INET$ ：获取或设置影响网际网协议的变量，下一级为使用 $IPPROTO_-xxx$ 指定的具体协议；</li>
@@ -448,24 +448,24 @@
 <li>每个接口的返回信息包括一个 $RTM_-IFINFO$ 消息和后跟零个或多个 $RTM_-NEWADDR$ 消息，其中每个 $RTM_-NEWADDR$ 消息对应已赋予该接口的一个地址。接在 $RTM_-IFINFO$ 消息首部之后的是一个数据链路套接字地址结构，接在每个 $RTM_-NEWADDR$ 消息首部之后的则是最多 $3$ 个套接字地址结构：接口地址、网络掩码和广播地址。</li>
 </ul>
 <h2 id="4-接口名字和索引函数">4. 接口名字和索引函数</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&lt;net/if.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="c1">// 成功返回接口索引，出错返回0
-</span><span class="c1"></span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="nf">if_nametoindex</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">ifname</span><span class="p">);</span>
-
-<span class="c1">// 成功返回接口名指针，出错返回NULL
-</span><span class="c1"></span><span class="kt">char</span> <span class="o">*</span><span class="nf">if_indextoname</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">ifindex</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">ifname</span><span class="p">);</span>
-
-<span class="c1">// 成功返回非空指针，出错返回NULL
-</span><span class="c1"></span><span class="k">struct</span> <span class="n">if_nameindex</span> <span class="o">*</span><span class="nf">if_nameindex</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
-
-<span class="kt">void</span> <span class="nf">if_freenameindex</span><span class="p">(</span><span class="k">struct</span> <span class="n">if_nameindex</span> <span class="o">*</span><span class="n">ptr</span><span class="p">);</span>
-
-<span class="k">struct</span> <span class="n">if_nameindex</span> <span class="p">{</span>
-  <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">if_index</span><span class="p">;</span>
-  <span class="kt">char</span> <span class="o">*</span><span class="n">if_name</span><span class="p">;</span>  <span class="c1">// null-terminated name
-</span><span class="c1"></span><span class="p">};</span>
-</code></pre></div><p>        上面 $4$ 个函数用于需要描述一个接口的场合，并且是为<code>IPv6</code> <code>API</code>引入的，不过也适用于<code>IPv4</code> <code>API</code>。这里存在一个基本概念，即每个接口都有一个唯一的名字和一个唯一的索引 ( 从 $1$ 开始 )。$if_-nametoindex$ 返回名字为 $ifname$ 的接口的索引。$if_-indextoname$ 返回索引为 $ifindex$ 的接口的名字。$ifname$ 参数指向一个大小为 $IFNAMSIZ$ 的缓冲区，调用者必须分配这个缓冲区以保存结果，调用成功时这个指针也是函数的返回值。$if_-nameindex$ 返回一个 $if_-namindex$ 结构数组，数组最后一个元素的 $if_-index$ 为 $0$ 且 $if_-name$ 为 $NULL$ 。该数组本身以及数组中各个元素指向的名字所用的内存空间由该函数动态获取，然后由 $if_-freenameindex$ 函数释放。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;net/if.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="c1">// 成功返回接口索引，出错返回0
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="nf">if_nametoindex</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">ifname</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 成功返回接口名指针，出错返回NULL
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">char</span> <span class="o">*</span><span class="nf">if_indextoname</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">ifindex</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">ifname</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 成功返回非空指针，出错返回NULL
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">struct</span> <span class="n">if_nameindex</span> <span class="o">*</span><span class="nf">if_nameindex</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">if_freenameindex</span><span class="p">(</span><span class="k">struct</span> <span class="n">if_nameindex</span> <span class="o">*</span><span class="n">ptr</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">if_nameindex</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">if_index</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="o">*</span><span class="n">if_name</span><span class="p">;</span>  <span class="c1">// null-terminated name
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></code></pre></div><p>        上面 $4$ 个函数用于需要描述一个接口的场合，并且是为<code>IPv6</code> <code>API</code>引入的，不过也适用于<code>IPv4</code> <code>API</code>。这里存在一个基本概念，即每个接口都有一个唯一的名字和一个唯一的索引 ( 从 $1$ 开始 )。$if_-nametoindex$ 返回名字为 $ifname$ 的接口的索引。$if_-indextoname$ 返回索引为 $ifindex$ 的接口的名字。$ifname$ 参数指向一个大小为 $IFNAMSIZ$ 的缓冲区，调用者必须分配这个缓冲区以保存结果，调用成功时这个指针也是函数的返回值。$if_-nameindex$ 返回一个 $if_-namindex$ 结构数组，数组最后一个元素的 $if_-index$ 为 $0$ 且 $if_-name$ 为 $NULL$ 。该数组本身以及数组中各个元素指向的名字所用的内存空间由该函数动态获取，然后由 $if_-freenameindex$ 函数释放。</p>
 
 <script src=https://z217blog.cn/js/toc.js></script>
 

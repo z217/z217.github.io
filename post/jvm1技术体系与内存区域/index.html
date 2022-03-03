@@ -135,7 +135,7 @@
 <h2 id="4-outofmemoryerror">4. <code>OutOfMemoryError</code></h2>
 <h3 id="41-java堆">4.1 <code>Java</code>堆</h3>
 <p>        <code>Java</code>堆的 $OutOfMemoryError$ 异常是实际应用中最常见的内存溢出异常：</p>
-<pre tabindex="0"><code>Exception in thread &quot;main&quot; java.lang.OutOfMemoryError: Java heap space
+<pre tabindex="0"><code>Exception in thread &#34;main&#34; java.lang.OutOfMemoryError: Java heap space
 </code></pre><p>        异常堆栈信息 $java.lang.OutOfMemoryError$ 之后会跟随 $Java\ \ heap\ \ space$ 。最常规的解决方案是通过内存映像分析工具 ( $Eclipse\ \ Memory\ \ Analyzer$ ) 对 $Dump$ 出的堆转储快照进行分析。要让虚拟机在内存溢出时 $Dump$ 出内存堆转储快照，可以通过参数 $-XX:+HeapDumpOnOutOfMemoryError$ 进行设置。第一步要先分清楚是<strong>内存泄漏</strong> ( $Memory\ \ Leak$ ) 还是<strong>内存溢出</strong> ( $Memory\ \ Overflow$ )。如果是内存泄漏，可以通过进一步工具找到泄露位置。而如果是内存溢出，那么就要检查虚拟机堆参数 ( $+Xmx$ 和 $+Xms$ )，再检查代码，尽量减少不合理的内存消耗。</p>
 <h3 id="42-虚拟机栈和本地方法栈">4.2 虚拟机栈和本地方法栈</h3>
 <p>        <code>HotSpot</code>虚拟机并没有区分虚拟机栈和本地方法栈，因此设置本地方法栈大小的参数 $+Xoss$ 虽然可以使用，但是没有任何效果。虚拟机栈和本地方法栈只能通过 $+Xss$ 参数设定。如之前讲述的一样，虚拟机栈和本地方法栈可能抛出 $StackOverflowError$ 和 $OutOfMemoryError$ 。<code>HotSpot</code>虚拟机不支持动态扩展栈，因此出现 $OutOfMemoryError$ 的情况只有最初创建线程时就无法申请到足够的内存的情况。在一般情况下，使用<code>HotSpot</code>虚拟机的默认参数下，对于一般的方法调用是足够的。但是如果是因为多线程导致的溢出，就需要减小最大堆和减小栈容量换取更多线程。当出现这种问题，报错信息会注明 $possibly\ \ out\ \ of\ \ memory\ \ or\ \ process/resource\ \ limits\ \ reached$ 。</p>

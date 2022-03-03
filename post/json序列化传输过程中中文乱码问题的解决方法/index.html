@@ -86,16 +86,16 @@
 
 <p>        今天在用<code>WebSocket</code>和<code>Servlet</code>写聊天室的时候发现传输中文会乱码的问题，起初以为是在用<code>jackson</code>的 $ObjectMapper$ 将对象转化为字节流的时候出现的问题，但是经过检查后发现不是。又检查了一遍编码，确认了网页的编码是<code>utf-8</code>，输入的字符串也是<code>utf-8</code>，然后发现问题是出在了<code>JSON</code>对象传输的过程中。最后在 <a href="https://stackoverflow.com/questions/8936984/uint8array-to-string-in-javascript">stackoverflow</a> 上找到了解法。</p>
 <p>        我的问题出在将经过<code>JSON</code>序列化之后的消息对象字符串转换为 $Uint8Array$ 以及将 $Uint8Array$ 转为消息对象的过程中，对此可以采用 $TextEncoder$ 和 $TextDecoder$ 对象。如下所示：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="kd">let</span> <span class="nx">encoder</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">TextEncoder</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">);</span>
-<span class="kd">let</span> <span class="nx">decoder</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">TextDecoder</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">);</span>
-<span class="kd">let</span> <span class="nx">message</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="nx">username</span><span class="o">:</span> <span class="s1">&#39;用户&#39;</span><span class="p">,</span>
-    <span class="nx">content</span><span class="o">:</span> <span class="s1">&#39;你好，世界！&#39;</span>
-<span class="p">};</span>
-
-<span class="kd">let</span> <span class="nx">array</span> <span class="o">=</span> <span class="nx">encoder</span><span class="p">.</span><span class="nx">encode</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">message</span><span class="p">));</span>
-<span class="kd">let</span> <span class="nx">newMessage</span> <span class="o">=</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">decoder</span><span class="p">.</span><span class="nx">decode</span><span class="p">(</span><span class="nx">array</span><span class="p">));</span>
-</code></pre></div><p>        在上例中，我们分别使用 $TextEncoder$ 和 $TextDecoder$ 以<code>utf-8</code>作为编码方式创建了编码器和译码器，之后声明了一个 $message$ 对象存储我们要传递的消息，使用<code>JSON</code>序列化该对象，并使用编码器进行编码，编码后得到的是可以进行传输的 $Uint8Array$ 对象，而对其使用译码器进行译码可以得到另一个 $newMessage$ 对象，该对象内存储的值与之前的 $message$ 相同，并且没有出现中文乱码的现象。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="kd">let</span> <span class="nx">encoder</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">TextEncoder</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="kd">let</span> <span class="nx">decoder</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">TextDecoder</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="kd">let</span> <span class="nx">message</span> <span class="o">=</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">username</span><span class="o">:</span> <span class="s1">&#39;用户&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">content</span><span class="o">:</span> <span class="s1">&#39;你好，世界！&#39;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">let</span> <span class="nx">array</span> <span class="o">=</span> <span class="nx">encoder</span><span class="p">.</span><span class="nx">encode</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">message</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl"><span class="kd">let</span> <span class="nx">newMessage</span> <span class="o">=</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">decoder</span><span class="p">.</span><span class="nx">decode</span><span class="p">(</span><span class="nx">array</span><span class="p">));</span>
+</span></span></code></pre></div><p>        在上例中，我们分别使用 $TextEncoder$ 和 $TextDecoder$ 以<code>utf-8</code>作为编码方式创建了编码器和译码器，之后声明了一个 $message$ 对象存储我们要传递的消息，使用<code>JSON</code>序列化该对象，并使用编码器进行编码，编码后得到的是可以进行传输的 $Uint8Array$ 对象，而对其使用译码器进行译码可以得到另一个 $newMessage$ 对象，该对象内存储的值与之前的 $message$ 相同，并且没有出现中文乱码的现象。</p>
 
 <script src=https://z217blog.cn/js/toc.js></script>
 

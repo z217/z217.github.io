@@ -86,17 +86,17 @@
 
 <h2 id="1-类型推导">1. 类型推导</h2>
 <p>        考虑这样一个模版：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-<span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="n">ParamType</span> <span class="n">param</span><span class="p">);</span>
-
-<span class="n">f</span><span class="p">(</span><span class="n">expr</span><span class="p">);</span>
-</code></pre></div><p>        编译器会使用 $expr$ 进行类型推导，一个是针对 $T$ 的，另一个是针对 $ParamType$ 的。这两个类型通常是不同的。例如：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-<span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="k">const</span> <span class="n">T</span> <span class="o">&amp;</span><span class="n">param</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-<span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
-</code></pre></div><p>        这时 $T$ 被推导为 $int$ ，$ParamType$ 被推导为 $const$ $int$ &amp; 。事实上，$T$ 的推导不仅取决于 $expr$ ，还取决于 $ParamType$ 。这里有三种情况：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="n">ParamType</span> <span class="n">param</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">f</span><span class="p">(</span><span class="n">expr</span><span class="p">);</span>
+</span></span></code></pre></div><p>        编译器会使用 $expr$ 进行类型推导，一个是针对 $T$ 的，另一个是针对 $ParamType$ 的。这两个类型通常是不同的。例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="k">const</span> <span class="n">T</span> <span class="o">&amp;</span><span class="n">param</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+</span></span></code></pre></div><p>        这时 $T$ 被推导为 $int$ ，$ParamType$ 被推导为 $const$ $int$ &amp; 。事实上，$T$ 的推导不仅取决于 $expr$ ，还取决于 $ParamType$ 。这里有三种情况：</p>
 <ul>
 <li>$ParamType$ 是一个指针或引用，但不是通用引用；</li>
 <li>$ParamType$ 是一个通用引用；</li>
@@ -108,267 +108,267 @@
 <li>如果 $expr$ 的类型是引用，忽略引用部分；</li>
 <li>根据剩下部分推导 $T$ ，并得出 $ParamType$ 。</li>
 </ol>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-<span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="n">T</span> <span class="o">&amp;</span><span class="n">param</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">27</span><span class="p">;</span>
-<span class="k">const</span> <span class="kt">int</span> <span class="n">cx</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>
-<span class="k">const</span> <span class="kt">int</span> <span class="o">&amp;</span><span class="n">rx</span> <span class="o">=</span> <span class="n">cx</span><span class="p">;</span>
-
-<span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">);</span> <span class="c1">// T为int, ParamType为int &amp;
-</span><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="n">cx</span><span class="p">);</span>  <span class="c1">// T为const int, ParamType为const int &amp;
-</span><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="n">rx</span><span class="p">);</span>  <span class="c1">// T为const int, ParamType为const int &amp;
-</span></code></pre></div><p>        注意第三个例子中，即使 $rx$ 是一个引用，$T$ 也会被推导为非引用。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="n">T</span> <span class="o">&amp;</span><span class="n">param</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">27</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">const</span> <span class="kt">int</span> <span class="n">cx</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">const</span> <span class="kt">int</span> <span class="o">&amp;</span><span class="n">rx</span> <span class="o">=</span> <span class="n">cx</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">);</span> <span class="c1">// T为int, ParamType为int &amp;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="n">cx</span><span class="p">);</span>  <span class="c1">// T为const int, ParamType为const int &amp;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="n">rx</span><span class="p">);</span>  <span class="c1">// T为const int, ParamType为const int &amp;
+</span></span></span></code></pre></div><p>        注意第三个例子中，即使 $rx$ 是一个引用，$T$ 也会被推导为非引用。</p>
 <h3 id="12-情况二">1.2 情况二</h3>
 <p>        如果 $ParamType$ 是一个通用引用，那么推导过程如下：</p>
 <ul>
 <li>如果 $expr$ 是左值，$T$ 和 $ParamType$ 都会被推导为左值引用；</li>
 <li>如果 $expr$ 是右值，那么适用上一个情况的规则。</li>
 </ul>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-<span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="n">T</span> <span class="o">&amp;&amp;</span><span class="n">param</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">27</span><span class="p">;</span>
-<span class="k">const</span> <span class="kt">int</span> <span class="n">cx</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>
-<span class="k">const</span> <span class="kt">int</span> <span class="o">&amp;</span><span class="n">rx</span> <span class="o">=</span> <span class="n">cx</span><span class="p">;</span>
-
-<span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>  <span class="c1">// T为int &amp;, paramType为int &amp;
-</span><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="n">cx</span><span class="p">);</span>  <span class="c1">// T为const int &amp;, paramType为const int &amp;
-</span><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="n">rx</span><span class="p">);</span>  <span class="c1">// T为const int &amp;, paramType为const int &amp;
-</span><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="mi">27</span><span class="p">);</span>  <span class="c1">// T为int, paramType为int &amp;&amp;
-</span></code></pre></div><h3 id="13-情况三">1.3 情况三</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="n">T</span> <span class="o">&amp;&amp;</span><span class="n">param</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">27</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">const</span> <span class="kt">int</span> <span class="n">cx</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">const</span> <span class="kt">int</span> <span class="o">&amp;</span><span class="n">rx</span> <span class="o">=</span> <span class="n">cx</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>  <span class="c1">// T为int &amp;, paramType为int &amp;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="n">cx</span><span class="p">);</span>  <span class="c1">// T为const int &amp;, paramType为const int &amp;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="n">rx</span><span class="p">);</span>  <span class="c1">// T为const int &amp;, paramType为const int &amp;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="mi">27</span><span class="p">);</span>  <span class="c1">// T为int, paramType为int &amp;&amp;
+</span></span></span></code></pre></div><h3 id="13-情况三">1.3 情况三</h3>
 <p>        当 $ParamType$ 既不是指针也不是引用时，采用传值方式。推导过程如下：</p>
 <ul>
 <li>如果 $expr$ 是引用，忽略引用部分；</li>
 <li>如果 $expr$ 是 $const$ ，忽略 $const$ ；</li>
 <li>如果 $expr$ 是 $volatile$ ，忽略 $volatile$ 。</li>
 </ul>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-<span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="n">T</span> <span class="n">param</span><span class="p">);</span>
-
-<span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">27</span><span class="p">;</span>
-<span class="k">const</span> <span class="kt">int</span> <span class="n">cx</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>
-<span class="k">const</span> <span class="kt">int</span> <span class="o">&amp;</span><span class="n">rx</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>
-<span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="k">const</span> <span class="n">ptr</span> <span class="o">=</span> <span class="s">&#34;pointers&#34;</span><span class="p">;</span>
-
-<span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>  <span class="c1">// T和ParamType都是int
-</span><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="n">cx</span><span class="p">);</span>  <span class="c1">// T和ParamType都是int
-</span><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="n">rx</span><span class="p">);</span>  <span class="c1">// T和ParamType都是int
-</span><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="n">ptr</span><span class="p">);</span>  <span class="c1">// T和ParamType都是const char *
-</span></code></pre></div><p>        最后一个例子中，由于 $const$ 被忽略，所以类型会被推导为 $const$ $char$ $\star$ 。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="n">T</span> <span class="n">param</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">27</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">const</span> <span class="kt">int</span> <span class="n">cx</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">const</span> <span class="kt">int</span> <span class="o">&amp;</span><span class="n">rx</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="k">const</span> <span class="n">ptr</span> <span class="o">=</span> <span class="s">&#34;pointers&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>  <span class="c1">// T和ParamType都是int
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="n">cx</span><span class="p">);</span>  <span class="c1">// T和ParamType都是int
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="n">rx</span><span class="p">);</span>  <span class="c1">// T和ParamType都是int
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">f</span><span class="p">(</span><span class="n">ptr</span><span class="p">);</span>  <span class="c1">// T和ParamType都是const char *
+</span></span></span></code></pre></div><p>        最后一个例子中，由于 $const$ 被忽略，所以类型会被推导为 $const$ $char$ $\star$ 。</p>
 <h3 id="14-数组">1.4 数组</h3>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">const</span> <span class="kt">char</span> <span class="n">name</span><span class="p">[]</span> <span class="o">=</span> <span class="s">&#34;name&#34;</span><span class="p">;</span>  <span class="c1">// 类型为const char[13]
-</span><span class="c1"></span>
-<span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">ptrToName</span> <span class="o">=</span> <span class="n">name</span><span class="p">;</span>
-</code></pre></div><p>        虽然 $name$ 和 $ptrToName$ 的类型不同，但是<code>C++</code>允许数组退化为一个指针。应用在函数上，体现为：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="kt">void</span> <span class="nf">myFunc</span><span class="p">(</span><span class="kt">int</span> <span class="n">param</span><span class="p">[]);</span>
-
-<span class="kt">void</span> <span class="nf">myFunc</span><span class="p">(</span><span class="kt">int</span> <span class="o">*</span><span class="n">param</span><span class="p">);</span>
-</code></pre></div><p>        上面这两个函数是等价的。将这个规则应用于模版：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-<span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="n">T</span> <span class="n">param</span><span class="p">);</span>
-
-<span class="n">f</span><span class="p">(</span><span class="n">name</span><span class="p">);</span>  <span class="c1">// T为const char *
-</span></code></pre></div><p>        虽然函数不能接收数组，但是可以接收数组引用。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-<span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="n">T</span> <span class="o">&amp;</span><span class="n">param</span><span class="p">);</span>
-
-<span class="n">f</span><span class="p">(</span><span class="n">name</span><span class="p">);</span>  <span class="c1">// T为const char[13], paramType为const char (&amp;)[13]
-</span></code></pre></div><p>        从而我们可以通过模版函数推导出数组大小：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">N</span><span class="o">&gt;</span>
-<span class="k">constexpr</span> <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">arraySize</span><span class="p">(</span><span class="n">T</span> <span class="p">(</span><span class="o">&amp;</span><span class="p">)[</span><span class="n">N</span><span class="p">])</span> <span class="k">noexcept</span> <span class="p">{</span>
-  <span class="k">return</span> <span class="n">N</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div><h3 id="15-函数">1.5 函数</h3>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="kt">void</span> <span class="nf">foo</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">double</span><span class="p">);</span>
-
-<span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-<span class="kt">void</span> <span class="n">f1</span><span class="p">(</span><span class="n">T</span> <span class="n">param</span><span class="p">);</span>
-
-<span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-<span class="kt">void</span> <span class="n">f2</span><span class="p">(</span><span class="n">T</span> <span class="o">&amp;</span><span class="n">param</span><span class="p">);</span>
-
-<span class="n">f1</span><span class="p">(</span><span class="n">foo</span><span class="p">);</span>  <span class="c1">// T和paramType为void (*)(int, double)
-</span><span class="c1"></span><span class="n">f2</span><span class="p">(</span><span class="n">foo</span><span class="p">);</span>  <span class="c1">// T和paramType为void (&amp;)(int, double)
-</span></code></pre></div><p>        与数组相同，函数也会退化为指针，但是对于引用，它们不会退化。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">const</span> <span class="kt">char</span> <span class="n">name</span><span class="p">[]</span> <span class="o">=</span> <span class="s">&#34;name&#34;</span><span class="p">;</span>  <span class="c1">// 类型为const char[13]
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">ptrToName</span> <span class="o">=</span> <span class="n">name</span><span class="p">;</span>
+</span></span></code></pre></div><p>        虽然 $name$ 和 $ptrToName$ 的类型不同，但是<code>C++</code>允许数组退化为一个指针。应用在函数上，体现为：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">myFunc</span><span class="p">(</span><span class="kt">int</span> <span class="n">param</span><span class="p">[]);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">myFunc</span><span class="p">(</span><span class="kt">int</span> <span class="o">*</span><span class="n">param</span><span class="p">);</span>
+</span></span></code></pre></div><p>        上面这两个函数是等价的。将这个规则应用于模版：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="n">T</span> <span class="n">param</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">f</span><span class="p">(</span><span class="n">name</span><span class="p">);</span>  <span class="c1">// T为const char *
+</span></span></span></code></pre></div><p>        虽然函数不能接收数组，但是可以接收数组引用。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="n">T</span> <span class="o">&amp;</span><span class="n">param</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">f</span><span class="p">(</span><span class="n">name</span><span class="p">);</span>  <span class="c1">// T为const char[13], paramType为const char (&amp;)[13]
+</span></span></span></code></pre></div><p>        从而我们可以通过模版函数推导出数组大小：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">N</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">constexpr</span> <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">arraySize</span><span class="p">(</span><span class="n">T</span> <span class="p">(</span><span class="o">&amp;</span><span class="p">)[</span><span class="n">N</span><span class="p">])</span> <span class="k">noexcept</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">N</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h3 id="15-函数">1.5 函数</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">foo</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">double</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">f1</span><span class="p">(</span><span class="n">T</span> <span class="n">param</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">f2</span><span class="p">(</span><span class="n">T</span> <span class="o">&amp;</span><span class="n">param</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">f1</span><span class="p">(</span><span class="n">foo</span><span class="p">);</span>  <span class="c1">// T和paramType为void (*)(int, double)
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">f2</span><span class="p">(</span><span class="n">foo</span><span class="p">);</span>  <span class="c1">// T和paramType为void (&amp;)(int, double)
+</span></span></span></code></pre></div><p>        与数组相同，函数也会退化为指针，但是对于引用，它们不会退化。</p>
 <h2 id="2-auto">2. <code>auto</code></h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">auto</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">27</span><span class="p">;</span>  <span class="c1">// int
-</span><span class="c1"></span><span class="k">const</span> <span class="k">auto</span> <span class="n">cx</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>  <span class="c1">// int
-</span><span class="c1"></span><span class="k">const</span> <span class="k">auto</span> <span class="o">&amp;</span><span class="n">rx</span> <span class="o">=</span> <span class="n">cx</span><span class="p">;</span> <span class="c1">// int
-</span><span class="c1"></span>
-<span class="k">const</span> <span class="kt">char</span> <span class="n">name</span><span class="p">[]</span> <span class="o">=</span> <span class="s">&#34;name&#34;</span><span class="p">;</span>
-<span class="k">auto</span> <span class="n">arr1</span> <span class="o">=</span> <span class="n">name</span><span class="p">;</span>  <span class="c1">// const char *
-</span><span class="c1"></span><span class="k">auto</span> <span class="o">&amp;</span><span class="n">arr2</span> <span class="o">=</span> <span class="n">name</span><span class="p">;</span>  <span class="c1">// const char (&amp;)[13]
-</span><span class="c1"></span>
-<span class="kt">void</span> <span class="nf">foo</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">double</span><span class="p">);</span>
-
-<span class="k">auto</span> <span class="n">f1</span> <span class="o">=</span> <span class="n">foo</span><span class="p">;</span>  <span class="c1">// void (*)(int, double)
-</span><span class="c1"></span><span class="k">auto</span> <span class="n">f2</span> <span class="o">=</span> <span class="n">foo</span><span class="p">;</span>  <span class="c1">// void (&amp;)(int, double)
-</span></code></pre></div><p>        $auto$ 类型推导除了一个例外，其他情况都和模版类型推导一样。<code>C++</code>中允许以下的类型声明方式：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">auto</span> <span class="n">x1</span> <span class="o">=</span> <span class="mi">27</span><span class="p">;</span>  <span class="c1">// int
-</span><span class="c1"></span><span class="k">auto</span> <span class="nf">x2</span><span class="p">(</span><span class="mi">27</span><span class="p">);</span>  <span class="c1">// int
-</span><span class="c1"></span><span class="k">auto</span> <span class="n">x3</span> <span class="o">=</span> <span class="p">{</span><span class="mi">27</span><span class="p">};</span>  <span class="c1">// std::initializer_list
-</span><span class="c1"></span><span class="k">auto</span> <span class="n">x4</span><span class="p">{</span><span class="mi">27</span><span class="p">};</span>  <span class="c1">// std::initializer_list
-</span></code></pre></div><p>        这就是 $auto$ 推导不同于模版推导的地方，使用花括号的变量声明会被推导为 $initializer_-list$ ，后者是一个模版。$initializer_-list$ 在实例化的过程中也要被推导，推导出的类型为 $initalizer_-list$&lt;$int$&gt; 。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">27</span><span class="p">;</span>  <span class="c1">// int
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">const</span> <span class="k">auto</span> <span class="n">cx</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>  <span class="c1">// int
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">const</span> <span class="k">auto</span> <span class="o">&amp;</span><span class="n">rx</span> <span class="o">=</span> <span class="n">cx</span><span class="p">;</span> <span class="c1">// int
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="k">const</span> <span class="kt">char</span> <span class="n">name</span><span class="p">[]</span> <span class="o">=</span> <span class="s">&#34;name&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">arr1</span> <span class="o">=</span> <span class="n">name</span><span class="p">;</span>  <span class="c1">// const char *
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">auto</span> <span class="o">&amp;</span><span class="n">arr2</span> <span class="o">=</span> <span class="n">name</span><span class="p">;</span>  <span class="c1">// const char (&amp;)[13]
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">foo</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">double</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">f1</span> <span class="o">=</span> <span class="n">foo</span><span class="p">;</span>  <span class="c1">// void (*)(int, double)
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">auto</span> <span class="n">f2</span> <span class="o">=</span> <span class="n">foo</span><span class="p">;</span>  <span class="c1">// void (&amp;)(int, double)
+</span></span></span></code></pre></div><p>        $auto$ 类型推导除了一个例外，其他情况都和模版类型推导一样。<code>C++</code>中允许以下的类型声明方式：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">x1</span> <span class="o">=</span> <span class="mi">27</span><span class="p">;</span>  <span class="c1">// int
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">auto</span> <span class="nf">x2</span><span class="p">(</span><span class="mi">27</span><span class="p">);</span>  <span class="c1">// int
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">auto</span> <span class="n">x3</span> <span class="o">=</span> <span class="p">{</span><span class="mi">27</span><span class="p">};</span>  <span class="c1">// std::initializer_list
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">auto</span> <span class="n">x4</span><span class="p">{</span><span class="mi">27</span><span class="p">};</span>  <span class="c1">// std::initializer_list
+</span></span></span></code></pre></div><p>        这就是 $auto$ 推导不同于模版推导的地方，使用花括号的变量声明会被推导为 $initializer_-list$ ，后者是一个模版。$initializer_-list$ 在实例化的过程中也要被推导，推导出的类型为 $initalizer_-list$&lt;$int$&gt; 。</p>
 <h2 id="3-decltype">3. <code>decltype</code></h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">const</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// decltype(i)为const int
-</span><span class="c1"></span>
-<span class="kt">bool</span> <span class="nf">f</span><span class="p">(</span><span class="k">const</span> <span class="n">Widget</span> <span class="o">&amp;</span><span class="n">w</span><span class="p">);</span>  <span class="c1">// decltype(f)是bool (const Widget &amp;)
-</span><span class="c1"></span>
-<span class="k">struct</span> <span class="nc">Point</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">x</span><span class="p">;</span>  <span class="c1">// decltype(Point::x)为int
-</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">y</span><span class="p">;</span>  <span class="c1">// decltype(Point::y)为int
-</span><span class="c1"></span><span class="p">};</span>
-
-<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">v</span><span class="p">;</span>  <span class="c1">// decltype(v)为std::vector&lt;int&gt;
-</span><span class="c1"></span>
-<span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// decltype(v[0])为int &amp;
-</span></code></pre></div><p>        $decltype$ 会返回精确的结果，主要用途是作为模版函数的返回类型，根据不同的形参返回不同的类型。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">Container</span><span class="p">,</span> <span class="k">typename</span> <span class="n">Index</span><span class="o">&gt;</span>
-<span class="k">auto</span> <span class="n">authAndAccess</span><span class="p">(</span><span class="n">Container</span> <span class="o">&amp;</span><span class="n">c</span><span class="p">,</span> <span class="n">Index</span> <span class="n">i</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="k">decltype</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="p">{</span>
-  <span class="n">authenticateUser</span><span class="p">();</span>
-  <span class="k">return</span> <span class="n">c</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
-<span class="p">}</span>
-</code></pre></div><p>        函数名称前的 $auto$ 不会做任何推导工作，只是暗示使用尾置返回类型。<code>C++11</code>允许自动推导单一语句的<code>lambda</code>表达式返回类型，<code>C++14</code>扩展到允许自动推导所有<code>lambda</code>表达式和函数，甚至包含多条语句。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">Container</span><span class="p">,</span> <span class="k">typename</span> <span class="n">Index</span><span class="o">&gt;</span>  <span class="c1">// C++14
-</span><span class="c1"></span><span class="k">auto</span> <span class="n">authAndAccess</span><span class="p">(</span><span class="n">Container</span> <span class="o">&amp;</span><span class="n">c</span><span class="p">,</span> <span class="n">Index</span> <span class="n">i</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">authenticateUser</span><span class="p">();</span>
-  <span class="k">return</span> <span class="n">c</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
-<span class="p">}</span>
-</code></pre></div><p>        由于 $auto$ 应用于函数时使用的是模版推导的方式，所以根据我们在<a href="#11-%E6%83%85%E5%86%B5%E4%B8%80">情况一</a>中所说的，如果表达式是一个引用，那么引用会被忽略，从而以下代码不合法：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="n">std</span><span class="o">::</span><span class="n">deque</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">d</span><span class="p">;</span>
-<span class="n">authAndAccess</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span> <span class="c1">// 编译失败
-</span></code></pre></div><p>        为了避免这种情况，我们应该使用 $decltype$ ，因为 $decltype$ 会返回精确类型，包括引用。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">Container</span><span class="p">,</span> <span class="k">typename</span> <span class="n">Index</span><span class="o">&gt;</span>
-<span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">authAndAccess</span><span class="p">(</span><span class="n">Container</span> <span class="o">&amp;</span><span class="n">c</span><span class="p">,</span> <span class="n">Index</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">authenticateUser</span><span class="p">();</span>
-  <span class="k">return</span> <span class="n">c</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
-<span class="p">}</span>
-</code></pre></div><p>        $decltype(auto)$ 是<code>C++14</code>引入的，允许我们通过 $decltype$ 方式推导返回值，而不是使用模版推导方式。在使用 $decltype(auto)$ 之后，函数会返回引用类型。<br>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">const</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// decltype(i)为const int
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">bool</span> <span class="nf">f</span><span class="p">(</span><span class="k">const</span> <span class="n">Widget</span> <span class="o">&amp;</span><span class="n">w</span><span class="p">);</span>  <span class="c1">// decltype(f)是bool (const Widget &amp;)
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Point</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">x</span><span class="p">;</span>  <span class="c1">// decltype(Point::x)为int
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">int</span> <span class="n">y</span><span class="p">;</span>  <span class="c1">// decltype(Point::y)为int
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">v</span><span class="p">;</span>  <span class="c1">// decltype(v)为std::vector&lt;int&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// decltype(v[0])为int &amp;
+</span></span></span></code></pre></div><p>        $decltype$ 会返回精确的结果，主要用途是作为模版函数的返回类型，根据不同的形参返回不同的类型。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">Container</span><span class="p">,</span> <span class="k">typename</span> <span class="n">Index</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">authAndAccess</span><span class="p">(</span><span class="n">Container</span> <span class="o">&amp;</span><span class="n">c</span><span class="p">,</span> <span class="n">Index</span> <span class="n">i</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="k">decltype</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">authenticateUser</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">c</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        函数名称前的 $auto$ 不会做任何推导工作，只是暗示使用尾置返回类型。<code>C++11</code>允许自动推导单一语句的<code>lambda</code>表达式返回类型，<code>C++14</code>扩展到允许自动推导所有<code>lambda</code>表达式和函数，甚至包含多条语句。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">Container</span><span class="p">,</span> <span class="k">typename</span> <span class="n">Index</span><span class="o">&gt;</span>  <span class="c1">// C++14
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">auto</span> <span class="n">authAndAccess</span><span class="p">(</span><span class="n">Container</span> <span class="o">&amp;</span><span class="n">c</span><span class="p">,</span> <span class="n">Index</span> <span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">authenticateUser</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">c</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        由于 $auto$ 应用于函数时使用的是模版推导的方式，所以根据我们在<a href="#11-%E6%83%85%E5%86%B5%E4%B8%80">情况一</a>中所说的，如果表达式是一个引用，那么引用会被忽略，从而以下代码不合法：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">deque</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">d</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">authAndAccess</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span> <span class="c1">// 编译失败
+</span></span></span></code></pre></div><p>        为了避免这种情况，我们应该使用 $decltype$ ，因为 $decltype$ 会返回精确类型，包括引用。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">Container</span><span class="p">,</span> <span class="k">typename</span> <span class="n">Index</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">authAndAccess</span><span class="p">(</span><span class="n">Container</span> <span class="o">&amp;</span><span class="n">c</span><span class="p">,</span> <span class="n">Index</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">authenticateUser</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">c</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        $decltype(auto)$ 是<code>C++14</code>引入的，允许我们通过 $decltype$ 方式推导返回值，而不是使用模版推导方式。在使用 $decltype(auto)$ 之后，函数会返回引用类型。<br>
         $decltype(auto) $ 也不局限于函数返回类型：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="n">Widget</span> <span class="n">w</span><span class="p">;</span>
-<span class="k">const</span> <span class="n">Widget</span> <span class="o">&amp;</span><span class="n">cw</span> <span class="o">=</span> <span class="n">w</span><span class="p">;</span>
-
-<span class="k">auto</span> <span class="n">myWidget1</span> <span class="o">=</span> <span class="n">cw</span><span class="p">;</span>  <span class="c1">// Widget
-</span><span class="c1"></span><span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">myWidget2</span> <span class="o">=</span> <span class="n">cw</span><span class="p">;</span>  <span class="c1">// const Widget &amp;
-</span></code></pre></div><p>        向 $authAndAccess$ 传递一个右值是不合法的，因为右值不能绑定到左值引用上。如果想要它支持左值和右值，需要修改为通用引用：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">Container</span><span class="p">,</span> <span class="k">typename</span> <span class="n">Index</span><span class="o">&gt;</span>
-<span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">authAndAccess</span><span class="p">(</span><span class="n">Container</span> <span class="o">&amp;&amp;</span><span class="n">c</span><span class="p">,</span> <span class="n">Index</span> <span class="n">i</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">authenticateUser</span><span class="p">();</span>
-  <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">Container</span><span class="o">&gt;</span><span class="p">(</span><span class="n">c</span><span class="p">)[</span><span class="n">i</span><span class="p">];</span>
-<span class="p">}</span>
-</code></pre></div><p>        $decltype$ 也存在一些特殊情况。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// decltype(x)为int
-</span><span class="c1"></span>            <span class="c1">// decltype((x))为int&amp;
-</span></code></pre></div><p>        在上述例子中，$decltype(int)$ 为 $int$ ，这没有问题，但是 $decltype((int))$ 却变成了 $int$ &amp; 。对于 $x$ 来说，它是一个左值，而<code>C++11</code>定义了 $(x)$ 也是一个左值，并且对后者的 $decltype$ 调用会返回引用类型。将这个特性应用在函数上，结果如下：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">f1</span><span class="p">()</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="k">return</span> <span class="n">x</span><span class="p">;</span>  <span class="c1">// int
-</span><span class="c1"></span><span class="p">}</span>
-
-<span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">f2</span><span class="p">()</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="k">return</span> <span class="p">(</span><span class="n">x</span><span class="p">);</span>  <span class="c1">// int &amp;
-</span><span class="c1"></span><span class="p">}</span>
-</code></pre></div><h2 id="4-类型诊断">4. 类型诊断</h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">Widget</span> <span class="n">w</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">const</span> <span class="n">Widget</span> <span class="o">&amp;</span><span class="n">cw</span> <span class="o">=</span> <span class="n">w</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">myWidget1</span> <span class="o">=</span> <span class="n">cw</span><span class="p">;</span>  <span class="c1">// Widget
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">myWidget2</span> <span class="o">=</span> <span class="n">cw</span><span class="p">;</span>  <span class="c1">// const Widget &amp;
+</span></span></span></code></pre></div><p>        向 $authAndAccess$ 传递一个右值是不合法的，因为右值不能绑定到左值引用上。如果想要它支持左值和右值，需要修改为通用引用：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">Container</span><span class="p">,</span> <span class="k">typename</span> <span class="n">Index</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">authAndAccess</span><span class="p">(</span><span class="n">Container</span> <span class="o">&amp;&amp;</span><span class="n">c</span><span class="p">,</span> <span class="n">Index</span> <span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">authenticateUser</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">Container</span><span class="o">&gt;</span><span class="p">(</span><span class="n">c</span><span class="p">)[</span><span class="n">i</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        $decltype$ 也存在一些特殊情况。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// decltype(x)为int
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="c1">// decltype((x))为int&amp;
+</span></span></span></code></pre></div><p>        在上述例子中，$decltype(int)$ 为 $int$ ，这没有问题，但是 $decltype((int))$ 却变成了 $int$ &amp; 。对于 $x$ 来说，它是一个左值，而<code>C++11</code>定义了 $(x)$ 也是一个左值，并且对后者的 $decltype$ 调用会返回引用类型。将这个特性应用在函数上，结果如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">f1</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">x</span><span class="p">;</span>  <span class="c1">// int
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">f2</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="p">(</span><span class="n">x</span><span class="p">);</span>  <span class="c1">// int &amp;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></div><h2 id="4-类型诊断">4. 类型诊断</h2>
 <p>        为了获取真实的推导结果，我们需要采取一些诊断方式。</p>
 <h3 id="41-编译器诊断">4.1 编译器诊断</h3>
 <p>        编译出错时，编译器会输出报错信息，这些信息中会包含推导结果。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="c1">// 声明一个模版类但不定义
-</span><span class="c1"></span><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-<span class="k">class</span> <span class="nc">TD</span><span class="p">;</span>
-</code></pre></div><p>        我们声明了一个模版类但不定义，从而在尝试实例化这个类的时候就会报错。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
-<span class="k">const</span> <span class="kt">int</span> <span class="o">*</span><span class="n">y</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">x</span><span class="p">;</span>
-
-<span class="n">TD</span><span class="o">&lt;</span><span class="k">decltype</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">&gt;</span> <span class="n">xType</span><span class="p">;</span>
-<span class="n">TD</span><span class="o">&lt;</span><span class="k">decltype</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">&gt;</span> <span class="n">yType</span><span class="p">;</span>
-</code></pre></div><p>        上面的代码产生类似于下面的错误：</p>
-<pre tabindex="0"><code>error: aggregate 'TD&lt;int&gt; xtype' has incomplete type and
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="c1">// 声明一个模版类但不定义
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">TD</span><span class="p">;</span>
+</span></span></code></pre></div><p>        我们声明了一个模版类但不定义，从而在尝试实例化这个类的时候就会报错。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">const</span> <span class="kt">int</span> <span class="o">*</span><span class="n">y</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">TD</span><span class="o">&lt;</span><span class="k">decltype</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">&gt;</span> <span class="n">xType</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">TD</span><span class="o">&lt;</span><span class="k">decltype</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">&gt;</span> <span class="n">yType</span><span class="p">;</span>
+</span></span></code></pre></div><p>        上面的代码产生类似于下面的错误：</p>
+<pre tabindex="0"><code>error: aggregate &#39;TD&lt;int&gt; xtype&#39; has incomplete type and
     cannot be defined
-error: aggregate 'TD&lt;const int *&gt; yType' has incomplete type and
+error: aggregate &#39;TD&lt;const int *&gt; yType&#39; has incomplete type and
     cannot be defined
 </code></pre><h3 id="42-运行时输出">4.2 运行时输出</h3>
 <p>        标准<code>I/O</code>提供了一种格式化输出的方法：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="k">typeid</span><span class="p">(</span><span class="n">x</span><span class="p">).</span><span class="n">name</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
-<span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="k">typeid</span><span class="p">(</span><span class="n">y</span><span class="p">).</span><span class="n">name</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
-</code></pre></div><p>        这种方法会产生一个 $std::type_-info$ 对象，并调用该对象的 $name$ 函数。要注意的是，这个函数不保证返回有意义的东西，比如<code>GNU</code>和<code>Clang</code>可能会返回 $i$ ( 表示 $int$ )，和 $PKi$ ( 表示 $pointer$ $to$ $\require{cancel}\bcancel{konst}$ $const$ $int$ )。<br>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="k">typeid</span><span class="p">(</span><span class="n">x</span><span class="p">).</span><span class="n">name</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="k">typeid</span><span class="p">(</span><span class="n">y</span><span class="p">).</span><span class="n">name</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+</span></span></code></pre></div><p>        这种方法会产生一个 $std::type_-info$ 对象，并调用该对象的 $name$ 函数。要注意的是，这个函数不保证返回有意义的东西，比如<code>GNU</code>和<code>Clang</code>可能会返回 $i$ ( 表示 $int$ )，和 $PKi$ ( 表示 $pointer$ $to$ $\require{cancel}\bcancel{konst}$ $const$ $int$ )。<br>
         考虑一个更复杂的例子：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-<span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="k">const</span> <span class="n">T</span> <span class="o">&amp;</span><span class="n">param</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;T=&#34;</span> <span class="o">&lt;&lt;</span> <span class="k">typeid</span><span class="p">(</span><span class="n">T</span><span class="p">).</span><span class="n">name</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;</span><span class="se">\n</span><span class="s">&#34;</span>
-            <span class="o">&lt;&lt;</span> <span class="s">&#34;param=&#34;</span> <span class="o">&lt;&lt;</span> <span class="k">typeid</span><span class="p">(</span><span class="n">param</span><span class="p">).</span><span class="n">name</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="n">createVec</span><span class="p">();</span>
-
-<span class="k">const</span> <span class="k">auto</span> <span class="n">vw</span> <span class="o">=</span> <span class="n">createVec</span><span class="p">();</span>
-<span class="c1">// ...
-</span><span class="c1"></span><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">vw</span><span class="p">.</span><span class="n">empty</span><span class="p">())</span> <span class="p">{</span>
-  <span class="n">f</span><span class="p">(</span><span class="o">&amp;</span><span class="n">vw</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
-<span class="p">}</span>
-</code></pre></div><p>        <code>GNU</code>和<code>Clang</code>会输出类似如下的结果：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="k">const</span> <span class="n">T</span> <span class="o">&amp;</span><span class="n">param</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;T=&#34;</span> <span class="o">&lt;&lt;</span> <span class="k">typeid</span><span class="p">(</span><span class="n">T</span><span class="p">).</span><span class="n">name</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;</span><span class="se">\n</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="o">&lt;&lt;</span> <span class="s">&#34;param=&#34;</span> <span class="o">&lt;&lt;</span> <span class="k">typeid</span><span class="p">(</span><span class="n">param</span><span class="p">).</span><span class="n">name</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="n">createVec</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">const</span> <span class="k">auto</span> <span class="n">vw</span> <span class="o">=</span> <span class="n">createVec</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">vw</span><span class="p">.</span><span class="n">empty</span><span class="p">())</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">f</span><span class="p">(</span><span class="o">&amp;</span><span class="n">vw</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        <code>GNU</code>和<code>Clang</code>会输出类似如下的结果：</p>
 <pre tabindex="0"><code>T=PK6Widget
 param=PK6Widget
 </code></pre><p>        数字 $6$ 是类名称的字符串长度。看起来这种输出方式好像可以理解，但是推导一下却发现不是这样的，因为 $T$ 和 $param$ 的类型输出一致，很明显这是错的。所以 $std::type_-info::name$ 的结果并不总是可信。相比于标准库，<code>Boost</code>库是更好的选择：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="cp">#include</span> <span class="cpf">&lt;boost/type_index.hpp&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-<span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="k">const</span> <span class="n">T</span> <span class="o">&amp;</span><span class="n">param</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">using</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="p">;</span>
-  <span class="k">using</span> <span class="n">boost</span><span class="o">::</span><span class="n">type_index</span><span class="o">::</span><span class="n">type_id_with_cvr</span><span class="p">;</span>
-
-  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;T=&#34;</span> <span class="o">&lt;&lt;</span> <span class="n">type_id_with_cvr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">().</span><span class="n">pretty_name</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;</span><span class="se">\n</span><span class="s">&#34;</span>
-       <span class="o">&lt;&lt;</span> <span class="s">&#34;param=&#34;</span> <span class="o">&lt;&lt;</span> <span class="n">type_id_with_cvr</span><span class="p">(</span><span class="k">decltype</span><span class="p">(</span><span class="n">param</span><span class="p">)</span><span class="o">&gt;</span><span class="p">().</span><span class="n">pretty_name</span><span class="p">()</span>
-       <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div><p>        在<code>GNU</code>和<code>Clang</code>环境下，会输出：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;boost/type_index.hpp&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="k">const</span> <span class="n">T</span> <span class="o">&amp;</span><span class="n">param</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">using</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">using</span> <span class="n">boost</span><span class="o">::</span><span class="n">type_index</span><span class="o">::</span><span class="n">type_id_with_cvr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;T=&#34;</span> <span class="o">&lt;&lt;</span> <span class="n">type_id_with_cvr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">().</span><span class="n">pretty_name</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;</span><span class="se">\n</span><span class="s">&#34;</span>
+</span></span><span class="line"><span class="cl">       <span class="o">&lt;&lt;</span> <span class="s">&#34;param=&#34;</span> <span class="o">&lt;&lt;</span> <span class="n">type_id_with_cvr</span><span class="p">(</span><span class="k">decltype</span><span class="p">(</span><span class="n">param</span><span class="p">)</span><span class="o">&gt;</span><span class="p">().</span><span class="n">pretty_name</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">       <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        在<code>GNU</code>和<code>Clang</code>环境下，会输出：</p>
 <pre tabindex="0"><code>T=Widget const *
 param=Widget const * const&amp;
 </code></pre><h2 id="5-再谈auto">5. 再谈<code>auto</code></h2>
 <p>        $auto$ 的概念很简单，但是如果使用不小心，会产生一些错误。以下列举了一些 $auto$ 的使用法则。</p>
 <h3 id="51-优先使用auto">5.1 优先使用<code>auto</code></h3>
 <p>        <code>C++</code>的变量声明是不会将变量清空的，这意味着当你使用：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="kt">int</span> <span class="n">x</span><span class="p">;</span>  <span class="c1">// 声明但不初始化
-</span></code></pre></div><p>        的时候，$x$ 的值是完全不确定的。使用 $auto$ 则可以避免这个问题，因为你不初始化便无法推导出结果。<br>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">x</span><span class="p">;</span>  <span class="c1">// 声明但不初始化
+</span></span></span></code></pre></div><p>        的时候，$x$ 的值是完全不确定的。使用 $auto$ 则可以避免这个问题，因为你不初始化便无法推导出结果。<br>
         此外，当有些变量名过于冗长时：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-<span class="kt">void</span> <span class="n">dwim</span><span class="p">(</span><span class="n">It</span> <span class="n">b</span><span class="p">,</span> <span class="n">It</span> <span class="n">e</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">while</span> <span class="p">(</span><span class="n">b</span> <span class="o">!=</span> <span class="n">e</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">typename</span> <span class="n">std</span><span class="o">::</span><span class="n">iterator_traits</span><span class="o">&lt;</span><span class="n">It</span><span class="o">&gt;::</span><span class="n">value_type</span>
-    <span class="n">currValue</span> <span class="o">=</span> <span class="o">*</span><span class="n">b</span><span class="p">;</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div><p>        我们也可以使用 $auto$ 简化。因为 $auto$ 使用类型推导技术，所以它还可表达一些只有编译器才能知道的类型：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">auto</span> <span class="n">derefUPLess</span> <span class="o">=</span> 
-  <span class="p">[](</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="o">&amp;</span><span class="n">p1</span><span class="p">,</span>
-     <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="o">&amp;</span><span class="n">p2</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="o">*</span><span class="n">p1</span> <span class="o">&lt;</span> <span class="o">*</span><span class="n">p2</span><span class="p">;</span>
-  <span class="p">};</span>
-</code></pre></div><p>        如果使用<code>C++14</code>，上述代码还可以继续简化：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">auto</span> <span class="n">derefUPLess</span> <span class="o">=</span>
-  <span class="p">[](</span><span class="k">const</span> <span class="k">auto</span> <span class="o">&amp;</span><span class="n">p1</span><span class="p">,</span> <span class="k">const</span> <span class="k">auto</span> <span class="o">&amp;</span><span class="n">p2</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="o">*</span><span class="n">p1</span> <span class="o">&lt;</span> <span class="o">*</span><span class="n">p2</span><span class="p">;</span>
-  <span class="p">};</span>
-</code></pre></div><p>        $auto$ 还可以避免一个问题，称之为<em><strong>类型快捷方式</strong></em> ( $type$ $shortcuts$ ) 问题。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">v</span><span class="p">;</span>
-<span class="kt">unsigned</span> <span class="n">sz</span> <span class="o">=</span> <span class="n">v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
-</code></pre></div><p>        $std::vector::size$ 的返回类型为 $std::vector$&lt;$int$&gt;$::size_-type$ ，后者实际上也是无符号整型。但是这会造成移植性问题，比如在 $64$ 位<code>Windows</code>系统中，前者为 $64$ 位，后者为 $32$ 位。通过使用 $auto$ ，我们可以避免这个问题。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="n">std</span><span class="o">::</span><span class="n">unordered_map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span> <span class="kt">int</span><span class="o">&gt;</span> <span class="n">m</span><span class="p">;</span>
-<span class="k">for</span> <span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span> <span class="kt">int</span><span class="o">&gt;</span> <span class="o">&amp;</span><span class="nl">p</span> <span class="p">:</span> <span class="n">m</span><span class="p">)</span> <span class="p">{</span>
-  <span class="c1">// ...
-</span><span class="c1"></span><span class="p">}</span>
-</code></pre></div><p>        上述代码好像没有问题，而且也能正常运行，但是还是有问题。$std::unordered_-map$ 的 $key$ 是一个常量，但是 $for$ 循环中声明的不是常量。从而编译器需要在每个遍历过程中不断创建临时对象，将该临时对象引用绑定到 $p$ ，并在每次迭代结束后销毁这个临时对象。同样，使用 $auto$ 也可以避免这个问题。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">dwim</span><span class="p">(</span><span class="n">It</span> <span class="n">b</span><span class="p">,</span> <span class="n">It</span> <span class="n">e</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">while</span> <span class="p">(</span><span class="n">b</span> <span class="o">!=</span> <span class="n">e</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">typename</span> <span class="n">std</span><span class="o">::</span><span class="n">iterator_traits</span><span class="o">&lt;</span><span class="n">It</span><span class="o">&gt;::</span><span class="n">value_type</span>
+</span></span><span class="line"><span class="cl">    <span class="n">currValue</span> <span class="o">=</span> <span class="o">*</span><span class="n">b</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        我们也可以使用 $auto$ 简化。因为 $auto$ 使用类型推导技术，所以它还可表达一些只有编译器才能知道的类型：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">derefUPLess</span> <span class="o">=</span> 
+</span></span><span class="line"><span class="cl">  <span class="p">[](</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="o">&amp;</span><span class="n">p1</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">     <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="o">&amp;</span><span class="n">p2</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="o">*</span><span class="n">p1</span> <span class="o">&lt;</span> <span class="o">*</span><span class="n">p2</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">};</span>
+</span></span></code></pre></div><p>        如果使用<code>C++14</code>，上述代码还可以继续简化：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">derefUPLess</span> <span class="o">=</span>
+</span></span><span class="line"><span class="cl">  <span class="p">[](</span><span class="k">const</span> <span class="k">auto</span> <span class="o">&amp;</span><span class="n">p1</span><span class="p">,</span> <span class="k">const</span> <span class="k">auto</span> <span class="o">&amp;</span><span class="n">p2</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="o">*</span><span class="n">p1</span> <span class="o">&lt;</span> <span class="o">*</span><span class="n">p2</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">};</span>
+</span></span></code></pre></div><p>        $auto$ 还可以避免一个问题，称之为<em><strong>类型快捷方式</strong></em> ( $type$ $shortcuts$ ) 问题。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">v</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">unsigned</span> <span class="n">sz</span> <span class="o">=</span> <span class="n">v</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+</span></span></code></pre></div><p>        $std::vector::size$ 的返回类型为 $std::vector$&lt;$int$&gt;$::size_-type$ ，后者实际上也是无符号整型。但是这会造成移植性问题，比如在 $64$ 位<code>Windows</code>系统中，前者为 $64$ 位，后者为 $32$ 位。通过使用 $auto$ ，我们可以避免这个问题。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">unordered_map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span> <span class="kt">int</span><span class="o">&gt;</span> <span class="n">m</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span> <span class="kt">int</span><span class="o">&gt;</span> <span class="o">&amp;</span><span class="nl">p</span> <span class="p">:</span> <span class="n">m</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></div><p>        上述代码好像没有问题，而且也能正常运行，但是还是有问题。$std::unordered_-map$ 的 $key$ 是一个常量，但是 $for$ 循环中声明的不是常量。从而编译器需要在每个遍历过程中不断创建临时对象，将该临时对象引用绑定到 $p$ ，并在每次迭代结束后销毁这个临时对象。同样，使用 $auto$ 也可以避免这个问题。</p>
 <h3 id="52-通过显式类型避免错误推导">5.2 通过显式类型避免错误推导</h3>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span> <span class="n">features</span><span class="p">(</span><span class="k">const</span> <span class="n">Widget</span> <span class="o">&amp;</span><span class="n">w</span><span class="p">);</span>
-
-<span class="k">auto</span> <span class="n">highPriority</span> <span class="o">=</span> <span class="n">features</span><span class="p">(</span><span class="n">w</span><span class="p">)[</span><span class="mi">5</span><span class="p">];</span>  <span class="c1">// 应该使用bool显式声明
-</span><span class="c1"></span><span class="n">processWidget</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">highPriority</span><span class="p">);</span>  <span class="c1">// 未定义行为
-</span></code></pre></div><p>        $processWidget$ 是一个未定义行为，因为 $std::vector$&lt;$bool$&gt;$::operator[\ ]$ 不会返回容器元素的引用，而是返回一个 $std::vecotr$&lt;$bool$&gt;$::reference$ 对象，从而 $auto$ 不会推导为 $bool$ 。虽然如此，但是 $reference$ 是可以隐式转换为 $bool$ 的，为什么这里还是未定义行为呢？因为 $reference$ 的行为依赖于具体实现，举例来讲，其中一种实现是包含一个指向结果的指针。这时，我们调用 $features$ ，后者返回一个临时 $vector$ 对象，$reference$ 的成员指针指向这个临时对象中的某个元素。之后临时对象销毁，从而导致 $reference$ 的成员指针变为了悬垂指针。<br>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span> <span class="n">features</span><span class="p">(</span><span class="k">const</span> <span class="n">Widget</span> <span class="o">&amp;</span><span class="n">w</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">highPriority</span> <span class="o">=</span> <span class="n">features</span><span class="p">(</span><span class="n">w</span><span class="p">)[</span><span class="mi">5</span><span class="p">];</span>  <span class="c1">// 应该使用bool显式声明
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">processWidget</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">highPriority</span><span class="p">);</span>  <span class="c1">// 未定义行为
+</span></span></span></code></pre></div><p>        $processWidget$ 是一个未定义行为，因为 $std::vector$&lt;$bool$&gt;$::operator[\ ]$ 不会返回容器元素的引用，而是返回一个 $std::vecotr$&lt;$bool$&gt;$::reference$ 对象，从而 $auto$ 不会推导为 $bool$ 。虽然如此，但是 $reference$ 是可以隐式转换为 $bool$ 的，为什么这里还是未定义行为呢？因为 $reference$ 的行为依赖于具体实现，举例来讲，其中一种实现是包含一个指向结果的指针。这时，我们调用 $features$ ，后者返回一个临时 $vector$ 对象，$reference$ 的成员指针指向这个临时对象中的某个元素。之后临时对象销毁，从而导致 $reference$ 的成员指针变为了悬垂指针。<br>
         $std::vector$&lt;$bool$&gt;$::reference$ 是代理类的一个应用，一些代理类被设计为对客户可见，比如 $std::shared_-ptr$ 和 $std::unique_-ptr$ ，其他代理类则与之相反。作为一个通则，不可见的代理类不应该使用 $auto$ 。因为这样类型的对象的生命周期通常被设计为不超过一条语句，使用 $auto$ 违反了它们的设计理念。<br>
         但是实际上，开发者并不知道哪些函数返回的是代理类，往往都是在跟踪一些问题时才能发现代理类。$auto$ 本身没问题，问题是 $auto$ 不会推导出你想要的类型。解决方案是使用另一种类型推导形式，称为<em><strong>显式类型初始化惯用法</strong></em> ( $the$ $explicitly$ $typed$ $initialized$ $idiom$ )。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="k">auto</span> <span class="n">highPriority</span> <span class="o">=</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="p">(</span><span class="n">features</span><span class="p">(</span><span class="n">w</span><span class="p">)[</span><span class="mi">5</span><span class="p">]);</span>
-</code></pre></div>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">highPriority</span> <span class="o">=</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="p">(</span><span class="n">features</span><span class="p">(</span><span class="n">w</span><span class="p">)[</span><span class="mi">5</span><span class="p">]);</span>
+</span></span></code></pre></div>
 <script src=https://z217blog.cn/js/toc.js></script>
 
 <div>

@@ -92,152 +92,152 @@
 <li>发起外出连接，即用于<code>TCP</code>的 $connect$ 函数。如果对一个非阻塞套接字调用 $connect$ ，而且连接不能立即建立，那么会立即返回 $EINPROGRESS$ 错误。</li>
 </ol>
 <h2 id="1-非阻塞读和写">1. 非阻塞读和写</h2>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
-</span><span class="cp">#include</span> <span class="cpf">&lt;time.h&gt;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="kt">char</span> <span class="o">*</span><span class="nf">gf_time</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
-
-<span class="kt">void</span> <span class="nf">str_cli</span><span class="p">(</span><span class="n">FILE</span> <span class="o">*</span><span class="n">fp</span><span class="p">,</span> <span class="kt">int</span> <span class="n">sockfd</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">maxfdp1</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">stdineof</span><span class="p">;</span>
-  <span class="n">ssize_t</span> <span class="n">n</span> <span class="p">,</span> <span class="n">nwritten</span><span class="p">;</span>
-  <span class="n">fd_set</span> <span class="n">rset</span><span class="p">,</span> <span class="n">wset</span><span class="p">;</span>
-  <span class="kt">char</span> <span class="n">to</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">],</span> <span class="n">fr</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">];</span>
-  <span class="kt">char</span> <span class="o">*</span><span class="n">toiptr</span><span class="p">,</span> <span class="o">*</span><span class="n">tooptr</span><span class="p">,</span> <span class="o">*</span><span class="n">friptr</span><span class="p">,</span> <span class="o">*</span><span class="n">froptr</span><span class="p">;</span>
-
-  <span class="n">val</span> <span class="o">=</span> <span class="n">Fcntl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">F_GETFL</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-  <span class="n">Fcntl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">F_SETFL</span><span class="p">,</span> <span class="n">val</span> <span class="o">|</span> <span class="n">O_NONBLOCK</span><span class="p">);</span>
-
-  <span class="n">val</span> <span class="o">=</span> <span class="n">Fcntl</span><span class="p">(</span><span class="n">STDIN_FILENO</span><span class="p">,</span> <span class="n">F_GETFL</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-  <span class="n">Fcntl</span><span class="p">(</span><span class="n">STDIN_FILENO</span><span class="p">,</span> <span class="n">F_SETFL</span><span class="p">,</span> <span class="n">val</span> <span class="o">|</span> <span class="n">O_NONBLOCK</span><span class="p">);</span>
-
-  <span class="n">val</span> <span class="o">=</span> <span class="n">Fcntl</span><span class="p">(</span><span class="n">STDOUT_FILENO</span><span class="p">,</span> <span class="n">F_GETFL</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-  <span class="n">Fcntl</span><span class="p">(</span><span class="n">STDOUT_FILENO</span><span class="p">,</span> <span class="n">F_SETFL</span><span class="p">,</span> <span class="n">val</span> <span class="o">|</span> <span class="n">O_NONBLOCK</span><span class="p">);</span>
-
-  <span class="n">toiptr</span> <span class="o">=</span> <span class="n">tooptr</span> <span class="o">=</span> <span class="n">to</span><span class="p">;</span>
-  <span class="n">friptr</span> <span class="o">=</span> <span class="n">froptr</span> <span class="o">=</span> <span class="n">fr</span><span class="p">;</span>
-  <span class="n">stdineof</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-
-  <span class="n">maxfdp1</span> <span class="o">=</span> <span class="n">max</span><span class="p">(</span><span class="n">max</span><span class="p">(</span><span class="n">STDIN_FILENO</span><span class="p">,</span> <span class="n">STDOUT_FILENO</span><span class="p">),</span> <span class="n">sockfd</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
-  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
-    <span class="n">FD_ZERO</span><span class="p">(</span><span class="o">&amp;</span><span class="n">rset</span><span class="p">);</span>
-    <span class="n">FD_ZERO</span><span class="p">(</span><span class="o">&amp;</span><span class="n">wset</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">stdineof</span> <span class="o">==</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">toiptr</span> <span class="o">&lt;</span> <span class="o">&amp;</span><span class="n">to</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">])</span>
-      <span class="n">FD_SET</span><span class="p">(</span><span class="n">STDIN_FILENO</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">);</span>  <span class="c1">// read from stdin
-</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">friptr</span> <span class="o">&lt;</span> <span class="o">&amp;</span><span class="n">fr</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">])</span>
-      <span class="n">FD_SET</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">);</span>  <span class="c1">// read from socket
-</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">tooptr</span> <span class="o">!=</span> <span class="n">toiptr</span><span class="p">)</span>
-      <span class="n">FD_SET</span><span class="p">(</span><span class="n">STDOUT_FILENO</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">wset</span><span class="p">);</span>  <span class="c1">// write to socket
-</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">froptr</span> <span class="o">!=</span> <span class="n">friptr</span><span class="p">)</span>
-      <span class="n">FD_SET</span><span class="p">(</span><span class="n">STDOUT_FILENO</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">wset</span><span class="p">);</span>  <span class="c1">// write to stdout
-</span><span class="c1"></span>
-    <span class="n">Select</span><span class="p">(</span><span class="n">maxfdp1</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">set</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">wset</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-
-    <span class="k">if</span> <span class="p">(</span><span class="n">FD_ISSET</span><span class="p">(</span><span class="n">STDIN_FILENO</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">))</span> <span class="p">{</span>
-      <span class="k">if</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="n">STDIN_FILENO</span><span class="p">,</span> <span class="n">toiptr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">to</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">]</span> <span class="o">-</span> <span class="n">toiptr</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EWOULDBLOCK</span><span class="p">)</span>
-          <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;read error on stdin&#34;</span><span class="p">);</span>
-      <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&#34;%s: EOF on stdin</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">gf_time</span><span class="p">());</span>
-        <span class="n">stdineof</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>  <span class="c1">// all done withn stdin
-</span><span class="c1"></span>        <span class="k">if</span> <span class="p">(</span><span class="n">tooptr</span> <span class="o">==</span> <span class="n">toiptr</span><span class="p">)</span>
-          <span class="n">Shutdown</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SHUT_WR</span><span class="p">);</span>  <span class="c1">// send FIN
-</span><span class="c1"></span>      <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-        <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&#34;%s: read %d bytes from stdin</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">gf_time</span><span class="p">(),</span> <span class="n">n</span><span class="p">);</span>
-        <span class="n">toiptr</span> <span class="o">+=</span> <span class="n">n</span><span class="p">;</span>
-        <span class="n">FD_SET</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">wset</span><span class="p">);</span>  <span class="c1">// try and write to socket below
-</span><span class="c1"></span>      <span class="p">}</span>
-    <span class="p">}</span>
-
-    <span class="k">if</span> <span class="p">(</span><span class="n">FD_ISSET</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">))</span> <span class="p">{</span>
-      <span class="k">if</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">reada</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">friptr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">fr</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">]</span> <span class="o">-</span> <span class="n">friptr</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EWOULDBLOCK</span><span class="p">)</span>
-          <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;read error on socket&#34;</span><span class="p">);</span>
-      <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&#34;%s: EOF on socket</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">gf_time</span><span class="p">());</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">stdineof</span><span class="p">)</span>
-          <span class="k">return</span><span class="p">;</span>  <span class="c1">// normal termination
-</span><span class="c1"></span>        <span class="k">else</span>
-          <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;str_cli: server terminated prematurely&#34;</span><span class="p">);</span>
-      <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-        <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&#34;%s: read %d bytes from socket</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">gf_time</span><span class="p">(),</span> <span class="n">n</span><span class="p">);</span>
-        <span class="n">friptr</span> <span class="o">+=</span> <span class="n">n</span><span class="p">;</span>
-        <span class="n">FD_SET</span><span class="p">(</span><span class="n">STDOUT_FILENO</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">wset</span><span class="p">);</span>  <span class="c1">// try and write below
-</span><span class="c1"></span>      <span class="p">}</span>
-    <span class="p">}</span>
-
-    <span class="k">if</span> <span class="p">(</span><span class="n">FD_ISSET</span><span class="p">(</span><span class="n">STDOUT_FILENO</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">wset</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">friptr</span> <span class="o">-</span> <span class="n">froptr</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">))</span> <span class="p">{</span>
-      <span class="k">if</span> <span class="p">((</span><span class="n">nwritten</span> <span class="o">=</span> <span class="n">write</span><span class="p">(</span><span class="n">STDOUT_FILENO</span><span class="p">,</span> <span class="n">froptr</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EWOULDBLOCK</span><span class="p">)</span>
-          <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;write error to stdout&#34;</span><span class="p">);</span>
-      <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-        <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&#34;%s: wrote %d bytes to stdout</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">gf_time</span><span class="p">(),</span> <span class="n">nwritten</span><span class="p">);</span>
-        <span class="n">froptr</span> <span class="o">+=</span> <span class="n">nwritten</span><span class="p">;</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">froptr</span> <span class="o">==</span> <span class="n">friptr</span><span class="p">)</span>
-          <span class="n">froptr</span> <span class="o">=</span> <span class="n">friptr</span> <span class="o">=</span> <span class="n">fr</span><span class="p">;</span>  <span class="c1">// back to beginning of buffer
-</span><span class="c1"></span>      <span class="p">}</span>
-    <span class="p">}</span>
-
-    <span class="k">if</span> <span class="p">(</span><span class="n">FD_ISSET</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">wset</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">toiptr</span> <span class="o">-</span> <span class="n">tooptr</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">))</span> <span class="p">{</span>
-      <span class="k">if</span> <span class="p">((</span><span class="n">nwritten</span> <span class="o">=</span> <span class="n">write</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">tooptr</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EWOULDBLOCK</span><span class="p">)</span>
-          <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;write error to socket&#34;</span><span class="p">);</span>
-      <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-        <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&#34;%s: wrote %d bytes to socket</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">gf_time</span><span class="p">(),</span> <span class="n">nwritten</span><span class="p">);</span>
-        <span class="n">tooptr</span> <span class="o">+=</span> <span class="n">nwritten</span><span class="p">;</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">tooptr</span> <span class="o">==</span> <span class="n">toiptr</span><span class="p">)</span> <span class="p">{</span>
-          <span class="n">toiptr</span> <span class="o">=</span> <span class="n">tooptr</span> <span class="o">=</span> <span class="n">to</span><span class="p">;</span>  <span class="c1">// back to beginning of buffer
-</span><span class="c1"></span>          <span class="k">if</span> <span class="p">(</span><span class="n">stdineof</span><span class="p">)</span>
-            <span class="n">Shutdown</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SHUT_WR</span><span class="p">);</span>  <span class="c1">// send FIN
-</span><span class="c1"></span>        <span class="p">}</span>
-      <span class="p">}</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-
-<span class="kt">char</span> <span class="o">*</span><span class="nf">gf_time</span><span class="p">()</span> <span class="p">{</span>
-  <span class="k">struct</span> <span class="n">timeval</span> <span class="n">tv</span><span class="p">;</span>
-  <span class="k">static</span> <span class="kt">char</span> <span class="n">str</span><span class="p">[</span><span class="mi">30</span><span class="p">];</span>
-  <span class="kt">char</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span>
-
-  <span class="k">if</span> <span class="p">(</span><span class="n">gettimeofday</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tv</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;gettimeofday error&#34;</span><span class="p">);</span>
-
-  <span class="n">ptr</span> <span class="o">=</span> <span class="n">ctime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tv</span><span class="p">.</span><span class="n">tv_sec</span><span class="p">);</span>
-  <span class="n">strcpy</span><span class="p">(</span><span class="n">str</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ptr</span><span class="p">[</span><span class="mi">11</span><span class="p">]);</span>
-  <span class="c1">// Fri Sep 13 00:00:00 1986\n\0
-</span><span class="c1"></span>  <span class="c1">// 0123456789012345678901234 5
-</span><span class="c1"></span>  <span class="n">snprintf</span><span class="p">(</span><span class="n">str</span> <span class="o">+</span> <span class="mi">8</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">str</span><span class="p">)</span> <span class="o">-</span> <span class="mi">8</span><span class="p">,</span> <span class="s">&#34;.%06ld&#34;</span><span class="p">,</span> <span class="n">tv</span><span class="p">.</span><span class="n">tv_usec</span><span class="p">);</span>
-
-  <span class="k">return</span> <span class="n">str</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div><ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;time.h&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">char</span> <span class="o">*</span><span class="nf">gf_time</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">str_cli</span><span class="p">(</span><span class="n">FILE</span> <span class="o">*</span><span class="n">fp</span><span class="p">,</span> <span class="kt">int</span> <span class="n">sockfd</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">maxfdp1</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">stdineof</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">ssize_t</span> <span class="n">n</span> <span class="p">,</span> <span class="n">nwritten</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">fd_set</span> <span class="n">rset</span><span class="p">,</span> <span class="n">wset</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="n">to</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">],</span> <span class="n">fr</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="o">*</span><span class="n">toiptr</span><span class="p">,</span> <span class="o">*</span><span class="n">tooptr</span><span class="p">,</span> <span class="o">*</span><span class="n">friptr</span><span class="p">,</span> <span class="o">*</span><span class="n">froptr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">val</span> <span class="o">=</span> <span class="n">Fcntl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">F_GETFL</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Fcntl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">F_SETFL</span><span class="p">,</span> <span class="n">val</span> <span class="o">|</span> <span class="n">O_NONBLOCK</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">val</span> <span class="o">=</span> <span class="n">Fcntl</span><span class="p">(</span><span class="n">STDIN_FILENO</span><span class="p">,</span> <span class="n">F_GETFL</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Fcntl</span><span class="p">(</span><span class="n">STDIN_FILENO</span><span class="p">,</span> <span class="n">F_SETFL</span><span class="p">,</span> <span class="n">val</span> <span class="o">|</span> <span class="n">O_NONBLOCK</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">val</span> <span class="o">=</span> <span class="n">Fcntl</span><span class="p">(</span><span class="n">STDOUT_FILENO</span><span class="p">,</span> <span class="n">F_GETFL</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Fcntl</span><span class="p">(</span><span class="n">STDOUT_FILENO</span><span class="p">,</span> <span class="n">F_SETFL</span><span class="p">,</span> <span class="n">val</span> <span class="o">|</span> <span class="n">O_NONBLOCK</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">toiptr</span> <span class="o">=</span> <span class="n">tooptr</span> <span class="o">=</span> <span class="n">to</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">friptr</span> <span class="o">=</span> <span class="n">froptr</span> <span class="o">=</span> <span class="n">fr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">stdineof</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">maxfdp1</span> <span class="o">=</span> <span class="n">max</span><span class="p">(</span><span class="n">max</span><span class="p">(</span><span class="n">STDIN_FILENO</span><span class="p">,</span> <span class="n">STDOUT_FILENO</span><span class="p">),</span> <span class="n">sockfd</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">FD_ZERO</span><span class="p">(</span><span class="o">&amp;</span><span class="n">rset</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">FD_ZERO</span><span class="p">(</span><span class="o">&amp;</span><span class="n">wset</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">stdineof</span> <span class="o">==</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">toiptr</span> <span class="o">&lt;</span> <span class="o">&amp;</span><span class="n">to</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">      <span class="n">FD_SET</span><span class="p">(</span><span class="n">STDIN_FILENO</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">);</span>  <span class="c1">// read from stdin
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">friptr</span> <span class="o">&lt;</span> <span class="o">&amp;</span><span class="n">fr</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">])</span>
+</span></span><span class="line"><span class="cl">      <span class="n">FD_SET</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">);</span>  <span class="c1">// read from socket
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">tooptr</span> <span class="o">!=</span> <span class="n">toiptr</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="n">FD_SET</span><span class="p">(</span><span class="n">STDOUT_FILENO</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">wset</span><span class="p">);</span>  <span class="c1">// write to socket
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">froptr</span> <span class="o">!=</span> <span class="n">friptr</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="n">FD_SET</span><span class="p">(</span><span class="n">STDOUT_FILENO</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">wset</span><span class="p">);</span>  <span class="c1">// write to stdout
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">    <span class="n">Select</span><span class="p">(</span><span class="n">maxfdp1</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">set</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">wset</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">FD_ISSET</span><span class="p">(</span><span class="n">STDIN_FILENO</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="k">if</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="n">STDIN_FILENO</span><span class="p">,</span> <span class="n">toiptr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">to</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">]</span> <span class="o">-</span> <span class="n">toiptr</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EWOULDBLOCK</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">          <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;read error on stdin&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&#34;%s: EOF on stdin</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">gf_time</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">        <span class="n">stdineof</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>  <span class="c1">// all done withn stdin
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">if</span> <span class="p">(</span><span class="n">tooptr</span> <span class="o">==</span> <span class="n">toiptr</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">          <span class="n">Shutdown</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SHUT_WR</span><span class="p">);</span>  <span class="c1">// send FIN
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>      <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&#34;%s: read %d bytes from stdin</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">gf_time</span><span class="p">(),</span> <span class="n">n</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">toiptr</span> <span class="o">+=</span> <span class="n">n</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">FD_SET</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">wset</span><span class="p">);</span>  <span class="c1">// try and write to socket below
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>      <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">FD_ISSET</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="k">if</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">reada</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">friptr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">fr</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">]</span> <span class="o">-</span> <span class="n">friptr</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EWOULDBLOCK</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">          <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;read error on socket&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&#34;%s: EOF on socket</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">gf_time</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">stdineof</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">          <span class="k">return</span><span class="p">;</span>  <span class="c1">// normal termination
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">else</span>
+</span></span><span class="line"><span class="cl">          <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;str_cli: server terminated prematurely&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&#34;%s: read %d bytes from socket</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">gf_time</span><span class="p">(),</span> <span class="n">n</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">friptr</span> <span class="o">+=</span> <span class="n">n</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">FD_SET</span><span class="p">(</span><span class="n">STDOUT_FILENO</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">wset</span><span class="p">);</span>  <span class="c1">// try and write below
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>      <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">FD_ISSET</span><span class="p">(</span><span class="n">STDOUT_FILENO</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">wset</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">friptr</span> <span class="o">-</span> <span class="n">froptr</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="k">if</span> <span class="p">((</span><span class="n">nwritten</span> <span class="o">=</span> <span class="n">write</span><span class="p">(</span><span class="n">STDOUT_FILENO</span><span class="p">,</span> <span class="n">froptr</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EWOULDBLOCK</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">          <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;write error to stdout&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&#34;%s: wrote %d bytes to stdout</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">gf_time</span><span class="p">(),</span> <span class="n">nwritten</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">froptr</span> <span class="o">+=</span> <span class="n">nwritten</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">froptr</span> <span class="o">==</span> <span class="n">friptr</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">          <span class="n">froptr</span> <span class="o">=</span> <span class="n">friptr</span> <span class="o">=</span> <span class="n">fr</span><span class="p">;</span>  <span class="c1">// back to beginning of buffer
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>      <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">FD_ISSET</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">wset</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">toiptr</span> <span class="o">-</span> <span class="n">tooptr</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="k">if</span> <span class="p">((</span><span class="n">nwritten</span> <span class="o">=</span> <span class="n">write</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">tooptr</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EWOULDBLOCK</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">          <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;write error to socket&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">&#34;%s: wrote %d bytes to socket</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">gf_time</span><span class="p">(),</span> <span class="n">nwritten</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">tooptr</span> <span class="o">+=</span> <span class="n">nwritten</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">tooptr</span> <span class="o">==</span> <span class="n">toiptr</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">          <span class="n">toiptr</span> <span class="o">=</span> <span class="n">tooptr</span> <span class="o">=</span> <span class="n">to</span><span class="p">;</span>  <span class="c1">// back to beginning of buffer
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>          <span class="k">if</span> <span class="p">(</span><span class="n">stdineof</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="n">Shutdown</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SHUT_WR</span><span class="p">);</span>  <span class="c1">// send FIN
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">char</span> <span class="o">*</span><span class="nf">gf_time</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">timeval</span> <span class="n">tv</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="kt">char</span> <span class="n">str</span><span class="p">[</span><span class="mi">30</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">gettimeofday</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tv</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;gettimeofday error&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">ptr</span> <span class="o">=</span> <span class="n">ctime</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tv</span><span class="p">.</span><span class="n">tv_sec</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">strcpy</span><span class="p">(</span><span class="n">str</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ptr</span><span class="p">[</span><span class="mi">11</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// Fri Sep 13 00:00:00 1986\n\0
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// 0123456789012345678901234 5
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">snprintf</span><span class="p">(</span><span class="n">str</span> <span class="o">+</span> <span class="mi">8</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">str</span><span class="p">)</span> <span class="o">-</span> <span class="mi">8</span><span class="p">,</span> <span class="s">&#34;.%06ld&#34;</span><span class="p">,</span> <span class="n">tv</span><span class="p">.</span><span class="n">tv_usec</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">str</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><ul>
 <li>维护两个缓冲区：$to$ 容纳从标准输入到服务器的数据，$fr$ 容纳从服务器到标准输出的数据。其中 $toiptr$ 指针指向从标准输入读入的数据存放的起始字节，$tooptr$ 指向下一个应当向套接字写入的字节；$friptr$ 指向从从套接字读入的数据存放的起始字节，$ftoptr$ 指向下一个应当向标准输出写入的字节。一旦 $tooptr$ 移动到 $toiptr$ 这两个指针就一起恢复到缓冲区开始，$froptr$ 和 $friptr$ 同理；</li>
 <li>$fcntl$ 把 $3$ 个描述符都设置为非阻塞；</li>
 <li>如果发生 $EWOULDBLOCK$ 错误，就忽略。通常情况下这种情况不会发生，因为 $select$ 已经告诉我们该描述符可读；</li>
 </ul>
 <p>        可以发现使用非阻塞<code>I/O</code>比较复杂，需要进行缓冲区管理，但是确可以让代码在批量模式下运行速度提高。然而考虑到结果代码的复杂性，像上述方式那样使用非阻塞式<code>I/O</code>是不值得的。我们发现，每当需要使用非阻塞式<code>I/O</code>时，更简单的办法通常是把应用程序任务划分到多个进程或多个线程。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="kt">void</span> <span class="nf">str_cli</span><span class="p">(</span><span class="n">FILE</span> <span class="o">*</span><span class="n">fp</span><span class="p">,</span> <span class="kt">int</span> <span class="n">sockfd</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">pid_t</span> <span class="n">pid</span><span class="p">;</span>
-  <span class="kt">char</span> <span class="n">sendline</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">],</span> <span class="n">recvline</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">];</span>
-
-  <span class="k">if</span> <span class="p">((</span><span class="n">pid</span> <span class="o">=</span> <span class="n">Fork</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// child: server-&gt;stdout
-</span><span class="c1"></span>    <span class="k">while</span> <span class="p">(</span><span class="n">Readline</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">recvline</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
-      <span class="n">Fputs</span><span class="p">(</span><span class="n">recvline</span><span class="p">,</span> <span class="n">stdout</span><span class="p">);</span>
-    <span class="n">kill</span><span class="p">(</span><span class="n">getppid</span><span class="p">(),</span> <span class="n">SIGTERM</span><span class="p">);</span>  <span class="c1">// in case parent still running
-</span><span class="c1"></span>    <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-  <span class="p">}</span>
-
-  <span class="c1">// parent: stdin-&gt;server
-</span><span class="c1"></span>  <span class="k">while</span> <span class="p">(</span><span class="n">Fgets</span><span class="p">(</span><span class="n">sendline</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">,</span> <span class="n">fp</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
-    <span class="n">Writen</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">sendline</span><span class="p">,</span> <span class="n">strlen</span><span class="p">(</span><span class="n">sendline</span><span class="p">));</span>
-
-  <span class="n">Shutdown</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SHUT_WR</span><span class="p">);</span>  <span class="c1">// EOF on stdin, send FIN
-</span><span class="c1"></span>  <span class="n">pause</span><span class="p">();</span>
-  <span class="k">return</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div><p>        这个函数一开始就调用 $fork$ 把当前进程划分为一个父进程和一个子进程，前者负责将数据从标准输入传递给服务器，后者负责将数据从服务器传递给标准输出。父进程完成数据复制后调用 $pause$ 让自己休眠，直到捕获一个信号 ( 来自子进程的 $SIGTERM$ ) 信号，该信号的默认行为是终止进程。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">str_cli</span><span class="p">(</span><span class="n">FILE</span> <span class="o">*</span><span class="n">fp</span><span class="p">,</span> <span class="kt">int</span> <span class="n">sockfd</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">pid_t</span> <span class="n">pid</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="n">sendline</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">],</span> <span class="n">recvline</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">((</span><span class="n">pid</span> <span class="o">=</span> <span class="n">Fork</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// child: server-&gt;stdout
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">while</span> <span class="p">(</span><span class="n">Readline</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">recvline</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="n">Fputs</span><span class="p">(</span><span class="n">recvline</span><span class="p">,</span> <span class="n">stdout</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">kill</span><span class="p">(</span><span class="n">getppid</span><span class="p">(),</span> <span class="n">SIGTERM</span><span class="p">);</span>  <span class="c1">// in case parent still running
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="c1">// parent: stdin-&gt;server
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">while</span> <span class="p">(</span><span class="n">Fgets</span><span class="p">(</span><span class="n">sendline</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">,</span> <span class="n">fp</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Writen</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">sendline</span><span class="p">,</span> <span class="n">strlen</span><span class="p">(</span><span class="n">sendline</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">Shutdown</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SHUT_WR</span><span class="p">);</span>  <span class="c1">// EOF on stdin, send FIN
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">pause</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        这个函数一开始就调用 $fork$ 把当前进程划分为一个父进程和一个子进程，前者负责将数据从标准输入传递给服务器，后者负责将数据从服务器传递给标准输出。父进程完成数据复制后调用 $pause$ 让自己休眠，直到捕获一个信号 ( 来自子进程的 $SIGTERM$ ) 信号，该信号的默认行为是终止进程。</p>
 <h2 id="2-非阻塞connect">2. 非阻塞<code>connect</code></h2>
 <p>        当在一个非阻塞的<code>TCP</code>套接字上调用 $connect$ 时，$connect$ 将立即返回 $EINPROGRESS$ 错误，不过已经发起的<code>TCP</code>三次握手会继续进行。我们接着使用 $select$ 检测这个连接或成功或失败的已建立条件。非阻塞的 $connect$ 有以下用途：</p>
 <ol>
@@ -250,59 +250,59 @@
 <li>如果连接到的服务器在同一个主机上，连接通常会立刻建立；</li>
 <li>源自 $Berkeley$ 的实现 ( 和<code>POSIX</code> ) 有关于 $select$ 和非阻塞 $connect$ 的两个规则：(a)当连接成功建立时，描述符变为可写；(b)当连接过程遇到错误时，描述符会变为既可读又可写。</li>
 </ul>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="kt">int</span> <span class="nf">connect_nonb</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">saptr</span><span class="p">,</span>
-  <span class="n">socklen_t</span> <span class="n">salen</span><span class="p">,</span> <span class="kt">int</span> <span class="n">nsec</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">flags</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">error</span><span class="p">;</span>
-  <span class="n">socklen_t</span> <span class="n">len</span><span class="p">;</span>
-  <span class="n">fd_set</span> <span class="n">rset</span><span class="p">,</span> <span class="n">wset</span><span class="p">;</span>
-  <span class="k">struct</span> <span class="n">timeval</span> <span class="n">tval</span><span class="p">;</span>
-
-  <span class="n">flags</span> <span class="o">=</span> <span class="n">Fcntl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">F_GETFL</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-  <span class="n">Fcntl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">F_SETFL</span><span class="p">,</span> <span class="n">flags</span> <span class="o">|</span> <span class="n">O_NONBLOCK</span><span class="p">);</span>
-
-  <span class="n">error</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="k">if</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">connect</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">saptr</span><span class="p">,</span> <span class="n">salen</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EINPROGRESS</span><span class="p">)</span>
-      <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
-
-  <span class="c1">// do whatever we want while the connect is taking place
-</span><span class="c1"></span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="k">goto</span> <span class="n">done</span><span class="p">;</span>  <span class="c1">// connect completed immediately
-</span><span class="c1"></span>
-  <span class="n">FD_ZERO</span><span class="p">(</span><span class="o">&amp;</span><span class="n">rset</span><span class="p">);</span>
-  <span class="n">FD_SET</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">);</span>
-  <span class="n">wset</span> <span class="o">=</span> <span class="n">rset</span><span class="p">;</span>
-  <span class="n">tval</span><span class="p">.</span><span class="n">tv_sec</span> <span class="o">=</span> <span class="n">nsec</span><span class="p">;</span>
-  <span class="n">tval</span><span class="p">.</span><span class="n">tv_usec</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-
-  <span class="k">if</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">Select</span><span class="p">(</span><span class="n">sockfd</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">wset</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span>
-    <span class="n">nsec</span> <span class="o">?</span> <span class="o">&amp;</span><span class="nl">tval</span> <span class="p">:</span> <span class="nb">NULL</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">close</span><span class="p">(</span><span class="n">sockfd</span><span class="p">);</span>  <span class="c1">// timeout
-</span><span class="c1"></span>    <span class="n">errno</span> <span class="o">=</span> <span class="n">ETIMEDOUT</span><span class="p">;</span>
-    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
-  <span class="p">}</span>
-
-  <span class="k">if</span> <span class="p">(</span><span class="n">FD_ISSET</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">)</span> <span class="o">||</span> <span class="n">FD_ISSET</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">wset</span><span class="p">))</span> <span class="p">{</span>
-    <span class="n">len</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">error</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">getsockopt</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SOL_SOCKET</span><span class="p">,</span> <span class="n">SO_ERROR</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">error</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">len</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
-      <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
-  <span class="p">}</span> <span class="k">else</span>
-    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;select error: sockfd not set&#34;</span><span class="p">);</span>
-
-<span class="nl">done</span><span class="p">:</span>
-  <span class="n">Fcntl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">F_SETFL</span><span class="p">,</span> <span class="n">flags</span><span class="p">);</span>  <span class="c1">// resotre file status flags
-</span><span class="c1"></span>  <span class="k">if</span> <span class="p">(</span><span class="n">error</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">close</span><span class="p">(</span><span class="n">sockfd</span><span class="p">);</span>  <span class="c1">// just in cast
-</span><span class="c1"></span>    <span class="n">errno</span> <span class="o">=</span> <span class="n">error</span><span class="p">;</span>
-    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
-  <span class="p">}</span>
-
-  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div><p>        如果 $select$ 返回 $0$ ，那么就代表发生超时，于是返回 $ETIMEOUT$ 错误，同时关闭套接字。如果描述符变为可读或可写，我们就调用 $getsockopt$ 取得其待处理的错误 ( 使用 $SO_-ERROR$ ) 。如果连接成功建立，该值将为 $0$ ；如果发生错误，该值就是对应的 $errno$ 。这里会有一个移植性问题，发生错误时，源自 $Berkeley$ 的实现会在变量 $error$ 中返回错误，$getsockopt$ 返回 $0$ ；然而<code>Solaris</code>却让 $getsockopt$ 返回 $-1$ ，并设置 $errno$ 变量。如果 $getsockopt$ 返回的 $error$ 为非 $0$ 值，就把该值存入 $errno$ ，并返回 $-1$ 。<br>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">connect_nonb</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">saptr</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="n">socklen_t</span> <span class="n">salen</span><span class="p">,</span> <span class="kt">int</span> <span class="n">nsec</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">flags</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">error</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">socklen_t</span> <span class="n">len</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">fd_set</span> <span class="n">rset</span><span class="p">,</span> <span class="n">wset</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">timeval</span> <span class="n">tval</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">flags</span> <span class="o">=</span> <span class="n">Fcntl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">F_GETFL</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Fcntl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">F_SETFL</span><span class="p">,</span> <span class="n">flags</span> <span class="o">|</span> <span class="n">O_NONBLOCK</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">error</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">connect</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">saptr</span><span class="p">,</span> <span class="n">salen</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EINPROGRESS</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="c1">// do whatever we want while the connect is taking place
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">goto</span> <span class="n">done</span><span class="p">;</span>  <span class="c1">// connect completed immediately
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">  <span class="n">FD_ZERO</span><span class="p">(</span><span class="o">&amp;</span><span class="n">rset</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">FD_SET</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">wset</span> <span class="o">=</span> <span class="n">rset</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">tval</span><span class="p">.</span><span class="n">tv_sec</span> <span class="o">=</span> <span class="n">nsec</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">tval</span><span class="p">.</span><span class="n">tv_usec</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="n">Select</span><span class="p">(</span><span class="n">sockfd</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">wset</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">nsec</span> <span class="o">?</span> <span class="o">&amp;</span><span class="nl">tval</span> <span class="p">:</span> <span class="nb">NULL</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">close</span><span class="p">(</span><span class="n">sockfd</span><span class="p">);</span>  <span class="c1">// timeout
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">errno</span> <span class="o">=</span> <span class="n">ETIMEDOUT</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">FD_ISSET</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">)</span> <span class="o">||</span> <span class="n">FD_ISSET</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">wset</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">len</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">error</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">getsockopt</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SOL_SOCKET</span><span class="p">,</span> <span class="n">SO_ERROR</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">error</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">len</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span> <span class="k">else</span>
+</span></span><span class="line"><span class="cl">    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;select error: sockfd not set&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nl">done</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Fcntl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">F_SETFL</span><span class="p">,</span> <span class="n">flags</span><span class="p">);</span>  <span class="c1">// resotre file status flags
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">if</span> <span class="p">(</span><span class="n">error</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">close</span><span class="p">(</span><span class="n">sockfd</span><span class="p">);</span>  <span class="c1">// just in cast
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">errno</span> <span class="o">=</span> <span class="n">error</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        如果 $select$ 返回 $0$ ，那么就代表发生超时，于是返回 $ETIMEOUT$ 错误，同时关闭套接字。如果描述符变为可读或可写，我们就调用 $getsockopt$ 取得其待处理的错误 ( 使用 $SO_-ERROR$ ) 。如果连接成功建立，该值将为 $0$ ；如果发生错误，该值就是对应的 $errno$ 。这里会有一个移植性问题，发生错误时，源自 $Berkeley$ 的实现会在变量 $error$ 中返回错误，$getsockopt$ 返回 $0$ ；然而<code>Solaris</code>却让 $getsockopt$ 返回 $-1$ ，并设置 $errno$ 变量。如果 $getsockopt$ 返回的 $error$ 为非 $0$ 值，就把该值存入 $errno$ ，并返回 $-1$ 。<br>
         套接字的各种实现以及非阻塞 $connect$ 会带来移植性问题。首先，调用 $select$ 之前可能连接已经建立并且有来自对端的数据到达，这种情况下即使未发生错误，套接字也是可读可写的。其次，我们不能假设套接字的可写条件是 $select$ 返回套接字操作成功条件的唯一方法，该问题的解决方法多种多样：</p>
 <ol>
 <li>调用 $getpeername$ 代替 $getsockopt$ 。如果 $getpeername$ 返回 $ENOTCONN$ ，就代表连接建立失败，我们必须接着以 $SO_-ERROR$ 调用 $getsockopt$ 取得待处理的错误；</li>
@@ -312,39 +312,39 @@
 <p>        非阻塞 $connect$ 是最难移植的部分，使用该技术必须准备解决移植性问题，特别是较老的实现。避免移植性问题的一个较简单的技术是为每个连接创建一个线程。</p>
 <h2 id="3-非阻塞accept">3. 非阻塞<code>accept</code></h2>
 <p>        当有一个已完成的连接准备好被 $accept$ 时，$select$ 将作为可读描述符返回该连接的监听套接字。因此，如果我们使用 $select$ 在某个监听套接字上等待一个外来连接，那么就没有必要把该监听套接字设置为非阻塞。不过，这里可能存在一个问题。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
-</span><span class="cp"></span>
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">sockfd</span><span class="p">;</span>
-  <span class="k">struct</span> <span class="n">linger</span> <span class="n">ling</span><span class="p">;</span>
-  <span class="k">struct</span> <span class="n">sockaddr_in</span> <span class="n">servaddr</span><span class="p">;</span>
-
-  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
-    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: tcpcli &lt;IPaddress&gt;&#34;</span><span class="p">);</span>
-
-  <span class="n">sockfd</span> <span class="o">=</span> <span class="n">Socket</span><span class="p">(</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">SOCK_STREAM</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
-  <span class="n">bzero</span><span class="p">(</span><span class="o">&amp;</span><span class="n">servaddr</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">servaddr</span><span class="p">));</span>
-  <span class="n">servaddr</span><span class="p">.</span><span class="n">sin_family</span> <span class="o">=</span> <span class="n">AF_INET</span><span class="p">;</span>
-  <span class="n">servaddr</span><span class="p">.</span><span class="n">sin_port</span> <span class="o">=</span> <span class="n">htons</span><span class="p">(</span><span class="n">SERV_PORT</span><span class="p">);</span>
-  <span class="n">Inet_pton</span><span class="p">(</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">servaddr</span><span class="p">.</span><span class="n">sin_addr</span><span class="p">);</span>
-
-  <span class="n">Connect</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">servaddr</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">servaddr</span><span class="p">));</span>
-
-  <span class="n">ling</span><span class="p">.</span><span class="n">l_onoff</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>  <span class="c1">// cause RST to be sent on close()
-</span><span class="c1"></span>  <span class="n">ling</span><span class="p">.</span><span class="n">l_linger</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="n">Setsockopt</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SOL_SOCKET</span><span class="p">,</span> <span class="n">SO_LINGER</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ling</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">ling</span><span class="p">));</span>
-  <span class="n">Close</span><span class="p">(</span><span class="n">sockfd</span><span class="p">);</span>
-
-  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-<span class="p">}</span>
-</code></pre></div><p>        上述程序在连接建立后会发送一个<code>RST</code>给服务器。假设服务器代码如下：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="k">if</span> <span class="p">(</span><span class="n">FD_ISSET</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">))</span> <span class="p">{</span>  <span class="c1">// new client connection
-</span><span class="c1"></span>  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;listening socket readable</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
-  <span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
-  <span class="n">clilen</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">cliaddr</span><span class="p">);</span>
-  <span class="n">connfd</span> <span class="o">=</span> <span class="n">Accept</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">cliaddr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">clilen</span><span class="p">);</span>
-<span class="p">}</span>
-</code></pre></div><p>        上述代码模拟一个繁忙的服务器，无法在 $select$ 返回可读时立即调用 $accept$ 。通常情况下没有问题，但是客户程序会在连接建立后立即发送<code>RST</code>，导致连接在调用 $accept$ 前已经中止。源自 $Berkeley$ 的实现不把这个中止的连接返回给服务器，其他实现应该返回 $ECONNABORTED$ 错误，却往往返回 $EPROTO$ 错误。考虑源自 $Berkeley$ 的实现，在这个例子中，服务器会一直阻塞在 $accept$ 调用上，直到其他客户建立一个连接。这个问题的解决办法是：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">sockfd</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">linger</span> <span class="n">ling</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">sockaddr_in</span> <span class="n">servaddr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;usage: tcpcli &lt;IPaddress&gt;&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">sockfd</span> <span class="o">=</span> <span class="n">Socket</span><span class="p">(</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">SOCK_STREAM</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">bzero</span><span class="p">(</span><span class="o">&amp;</span><span class="n">servaddr</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">servaddr</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">  <span class="n">servaddr</span><span class="p">.</span><span class="n">sin_family</span> <span class="o">=</span> <span class="n">AF_INET</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">servaddr</span><span class="p">.</span><span class="n">sin_port</span> <span class="o">=</span> <span class="n">htons</span><span class="p">(</span><span class="n">SERV_PORT</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Inet_pton</span><span class="p">(</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">&amp;</span><span class="n">servaddr</span><span class="p">.</span><span class="n">sin_addr</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">Connect</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">servaddr</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">servaddr</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">ling</span><span class="p">.</span><span class="n">l_onoff</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>  <span class="c1">// cause RST to be sent on close()
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">ling</span><span class="p">.</span><span class="n">l_linger</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Setsockopt</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">SOL_SOCKET</span><span class="p">,</span> <span class="n">SO_LINGER</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ling</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">ling</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Close</span><span class="p">(</span><span class="n">sockfd</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        上述程序在连接建立后会发送一个<code>RST</code>给服务器。假设服务器代码如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="k">if</span> <span class="p">(</span><span class="n">FD_ISSET</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">rset</span><span class="p">))</span> <span class="p">{</span>  <span class="c1">// new client connection
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">printf</span><span class="p">(</span><span class="s">&#34;listening socket readable</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">clilen</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">cliaddr</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">connfd</span> <span class="o">=</span> <span class="n">Accept</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">cliaddr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">clilen</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        上述代码模拟一个繁忙的服务器，无法在 $select$ 返回可读时立即调用 $accept$ 。通常情况下没有问题，但是客户程序会在连接建立后立即发送<code>RST</code>，导致连接在调用 $accept$ 前已经中止。源自 $Berkeley$ 的实现不把这个中止的连接返回给服务器，其他实现应该返回 $ECONNABORTED$ 错误，却往往返回 $EPROTO$ 错误。考虑源自 $Berkeley$ 的实现，在这个例子中，服务器会一直阻塞在 $accept$ 调用上，直到其他客户建立一个连接。这个问题的解决办法是：</p>
 <ol>
 <li>当使用 $select$ 监听套接字上是否有连接准备好被 $accept$ 时，总是把这个监听套接字设置为非阻塞；</li>
 <li>在后续的 $accept$ 调用中忽略 $EWOULDBLOCK$ ( 源自 $Berkeley$ 实现，客户中止连接时 )、$ECONNABORTED$ ( <code>POSIX</code>实现，客户中止连接时 )、$EPROTO$ ( <code>SVR4</code>实现，客户中止连接时 ) 和 $EINTR$ ( 如果有信号被捕获 )。</li>
