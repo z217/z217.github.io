@@ -7,7 +7,21 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2022, z217 and the hugo authors, all rights reserved.</copyright>
-    <lastBuildDate>Thu, 03 Mar 2022 13:38:11 +0800</lastBuildDate><atom:link href="https://z217blog.cn/post/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Fri, 04 Mar 2022 14:04:32 +0800</lastBuildDate><atom:link href="https://z217blog.cn/post/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>EffectiveModernCpp（4）：引用</title>
+      <link>https://z217blog.cn/post/effectivemoderncpp4/</link>
+      <pubDate>Fri, 04 Mar 2022 14:04:32 +0800</pubDate>
+      
+      <guid>https://z217blog.cn/post/effectivemoderncpp4/</guid>
+      <description>1. move和forward  $std::move$ 和 $std::forward$ 理论上什么都没有做，仅仅是负责转换。
+template&amp;lt;typename T&amp;gt; typename remove_reference&amp;lt;T&amp;gt;::type &amp;amp;&amp;amp; move(T &amp;amp;&amp;amp;param) { using ReturnType = typename remove_reference&amp;lt;T&amp;gt;::type &amp;amp;&amp;amp;; return static_cast&amp;lt;ReturnType&amp;gt;(param); }  以上为C++11的 $std::move$ 示例实现，尽管不完全满足标准，但是已经十分接近了。$std::move$ 接受一个对象引用，返回一个指向同一对象的引用。&amp;amp;&amp;amp; 表示 $std::move$ 返回一个右值引用，但是由于引用折叠的存在，为了防止其被折叠为左值引用，我们使用了 $std::remove_-reference$ 。
+$std::move$ 可以在C++14中以更简单的方式实现。
+template&amp;lt;typename T&amp;gt; decltype(auto) move(T &amp;amp;&amp;amp;param) { using ReturnType = remove_reference_t&amp;lt;T&amp;gt; &amp;amp;&amp;amp;; return static_cast&amp;lt;ReturnType&amp;gt;(param); }  假设你有一个类，它用于表示一段注解：
+class Annotation { public: explicit Annotation(std::string text); // ... };  考虑到你需要的只是读取 $text$ ，并不用修改，所以你自然而然地想到 $const$ ：
+class Annotation { public: explicit Annotation(const std::string text); // .</description>
+    </item>
+    
     <item>
       <title>EffectiveModernCpp（3）：智能指针</title>
       <link>https://z217blog.cn/post/effectivemoderncpp3/</link>
