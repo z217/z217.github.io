@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/jquery.floatingscroll.css>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+    integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <script src=https://z217blog.cn/js/jquery.floatingscroll.min.js></script>
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="/friend" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">EffectiveModernCpp（5）：Lambda</h1>
+
+
+
+
+<p>        <code>Lambda</code>可以做的事情都可以通过其他方式完成，它的作用是简化我们的编写。对于标准库中的许多 $if$ 算法 ( $std::find_-if$ 、$std::remove_-if$ 等 ) ，它们通常需要繁琐的谓词。但是通过<code>lambda</code>表达式，这些算法的使用就变得非常方便。<br>
+        <strong>闭包</strong> ( $closure$ ) 是<code>lambda</code>创建的运行时对象，根据捕获模式，闭包会持有捕获数据的副本或者引用。<strong>闭包类</strong> ( $closure$ $lcass$ ) 是从闭包中实例化出的类。每个<code>lambda</code>都会生成唯一的闭包类。<code>lambda</code>中的语句是闭包类成员函数中的指令。</p>
+<h2 id="1-捕获模式">1. 捕获模式</h2>
+<p>        <code>C++11</code>有两种默认的捕获模式：引用捕获和值捕获。引用捕获会带来悬垂引用问题，值捕获可能会让你觉得能解决悬垂引用问题 ( 但是并不能 )，还会让你觉得你的闭包是独立的 ( 实际上也不是 )。<br>
+        引用捕获会导致闭包中包含了对局部变量或者某个形参的引用，如果该<code>lambda</code>的生命周期超过了局部变量的生命周期，那么闭包中将出现悬垂引用。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">using</span> <span class="n">FilterContainer</span> <span class="o">=</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">bool</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="o">&gt;&gt;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">FilterContainer</span> <span class="n">filters</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">addDivisorFilter</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">auto</span> <span class="n">calc1</span> <span class="o">=</span> <span class="n">computeSomeValue1</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="k">auto</span> <span class="n">calc2</span> <span class="o">=</span> <span class="n">computeSomeValue2</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="k">auto</span> <span class="n">divisor</span> <span class="o">=</span> <span class="n">computeDivisor</span><span class="p">(</span><span class="n">calc1</span><span class="p">,</span> <span class="n">calc2</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">filters</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="kt">int</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">value</span> <span class="o">%</span> <span class="n">divisor</span> <span class="o">==</span> <span class="mi">0</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        这个代码是一个定时炸弹。$divisor$ 的生命周期在 $addDivisorFilter$ 返回时就结束了，这会导致 $filters$ 出现未定义行为。<br>
+        一个解决问题的办法是值捕获。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">filters</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">  <span class="p">[</span><span class="o">=</span><span class="p">](</span><span class="kt">int</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">value</span> <span class="o">%</span> <span class="n">divisor</span> <span class="o">==</span> <span class="mi">0</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">);</span>
+</span></span></code></pre></div><p>        这可以解决上面例子的问题。但是要注意，通常情况下，值捕获并不能完全解决悬垂引用的问题。假设你捕获的是指针，随着函数结束，指针指向对象被删除，这还是会导致指针悬垂。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">void</span> <span class="n">addFilter</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">divisor</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">Widget</span><span class="o">::</span><span class="n">addFilter</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">filters</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="p">[</span><span class="o">=</span><span class="p">](</span><span class="kt">int</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">value</span> <span class="o">%</span> <span class="n">divisor</span> <span class="o">==</span> <span class="mi">0</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        这个代码看起来好像正确，<code>lambda</code>成功捕获了 $divisor$ 。我们换种写法再来看看：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">Widget</span><span class="o">::</span><span class="n">addFilter</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">filters</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="p">[](</span><span class="kt">int</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">value</span> <span class="o">%</span> <span class="n">divisor</span> <span class="o">==</span> <span class="mi">0</span><span class="p">;</span> <span class="p">}</span>  <span class="c1">// 错误
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        出错了？可能因为我们没有捕获吧，再来一次：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">Widget</span><span class="o">::</span><span class="n">addFilter</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">filters</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="p">[</span><span class="n">divisor</span><span class="p">](</span><span class="kt">int</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// 错误
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>      <span class="k">return</span> <span class="n">value</span> <span class="o">%</span> <span class="n">divisor</span> <span class="o">==</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        还是错的？明明已经显式捕获了 $divisor$ 了，为什么还是错了？因为 $divisor$ 并不是一个局部变量，而是一个成员变量。闭包只会捕获在它创建时的作用域的非静态局部变量，而在这个作用域里，$divisor$ 并不是一个局部变量。那为什么第一个版本的代码可以运行呢？因为这里隐式地捕获了 $this$ 指针，并且编译器将<code>lambda</code>内部的 $divisor$ 替换成了 $this$-&gt;$divisor$ 。也就是说，在编译器看来，实际上是这样的：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">Widget</span><span class="o">::</span><span class="n">addFilter</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">auto</span> <span class="n">currentObjectPtr</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">filters</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="p">[</span><span class="n">currentObjectPtr</span><span class="p">](</span><span class="kt">int</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="k">return</span> <span class="n">value</span> <span class="o">%</span> <span class="n">currentObjectPtr</span><span class="o">-&gt;</span><span class="n">divisor</span> <span class="o">==</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        但是这种隐式的捕获 $this$ 也存在问题，如果 $Widget$ 先于 $filters$ 被删除了怎么办。一种办法是显式拷贝一份数据：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">Widget</span><span class="o">::</span><span class="n">addFilter</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">auto</span> <span class="n">divisorCopy</span> <span class="o">=</span> <span class="n">divisor</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">filters</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="p">[</span><span class="n">divisor</span><span class="p">](</span><span class="kt">int</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="k">return</span> <span class="n">value</span> <span class="o">%</span> <span class="n">divisorCopy</span> <span class="o">==</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        在<code>C++14</code>中，我们可以使用更好的捕获方式。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">Widget</span><span class="o">::</span><span class="n">addFilter</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">filters</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="p">[</span><span class="n">divisor</span> <span class="o">=</span> <span class="n">divisor</span><span class="p">](</span><span class="kt">int</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="k">return</span> <span class="n">value</span> <span class="o">%</span> <span class="n">divisor</span> <span class="o">==</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        使用默认的值捕获还会带来一个问题，它让你觉得闭包是独立的。但是这是错误的，<code>lambda</code>并不会独立于局部变量和参数。一个声明为 $static$ 的类内或全局变量也能在<code>lambda</code>中使用，但是无法被捕获。值捕获可能会诱导你误以为捕获了这些变量。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">addDivisorFilter</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="k">auto</span> <span class="n">calc1</span> <span class="o">=</span> <span class="n">computeSomeValue1</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="k">auto</span> <span class="n">calc2</span> <span class="o">=</span> <span class="n">computeSomeValue2</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="k">auto</span> <span class="n">divisor</span> <span class="o">=</span> <span class="n">computeDivisor</span><span class="p">(</span><span class="n">calc1</span><span class="p">,</span> <span class="n">calc2</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">filters</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="p">[</span><span class="o">=</span><span class="p">](</span><span class="kt">int</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">value</span> <span class="o">%</span> <span class="n">divisor</span> <span class="o">==</span> <span class="mi">0</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="o">++</span><span class="n">divisor</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        上面的例子就表现了闭包不独立的一面。虽然它使用了值捕获模式，但是它并没有捕获任何值，并且我们在最后修改了 $divisor$ ，也是会影响到<code>lambda</code>中的 $divisor$ 。简单地来讲，对于这些变量，我们不是值捕获，而是引用捕获。<br>
+        值捕获会给人带来种种错觉，这也是为什么我们不建议使用值捕获。</p>
+<h2 id="2-初始化捕获">2. 初始化捕获</h2>
+<p>        在某些场景下，值捕获和引用捕获都不能满足我们的需求。假设现在有一个只能被移动的对象 ( $std::unique_-ptr$ 或 $std::future$ )，你想要在闭包内使用它。这个问题是<code>C++11</code>无法实现的，但是如果是<code>C++14</code>，它支持闭包的移动捕获，从而可以解决这个问题。<br>
+        <code>C++11</code>的一个缺点就是缺少移动捕获。一种解决措施是直接添加该特性，但是<code>C++14</code>选择了另一种方法，它们引入了一种新的捕获机制，它非常灵活，可以实现包括移动捕获在内的许多功能，称为初始化捕获。使用初始化捕获可以让你指定：</p>
+<ol>
+<li>闭包内的数据成员名称；</li>
+<li>初始化闭包内数据成员的表达式。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">bool</span> <span class="n">isValidated</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">bool</span> <span class="nf">isProcessed</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">bool</span> <span class="nf">isArchived</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">pw</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">func</span> <span class="o">=</span>
+</span></span><span class="line"><span class="cl">  <span class="p">[</span><span class="n">pw</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">pw</span><span class="p">)]</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">pw</span><span class="o">-&gt;</span><span class="n">isValidated</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="n">pw</span><span class="o">-&gt;</span><span class="n">isArchived</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="p">};</span>
+</span></span></code></pre></div><p>        上面的例子展示了初始化捕获的使用，$=$ 左侧是闭包类中数据成员的名称，右侧是初始化表达式。左右两侧的作用域不同，前者作用于闭包类内，后者作用于闭包上方的声明对象。<br>
+        如果你一定要在<code>C++11</code>中使用，那么可以这样实现：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">func</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">  <span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="o">&amp;</span><span class="n">pw</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">pw</span><span class="o">-&gt;</span><span class="n">isValidated</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="n">pw</span><span class="o">-&gt;</span><span class="n">isArchived</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="p">},</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">pw</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">);</span>
+</span></span></code></pre></div><p>        $std::bind$ 产生函数对象，对象中含有传递给 $std::bind$ 的所有参数的副本，如果是以左值方式传递的，那么就是拷贝构造的，如果是以右值方式传递的，就是移动构造的。当调用生成的函数对象时，对象内的成员将传递给调用对象。以这种形式构造的绑定对象的生命周期与闭包对象相同，因此可以将绑定对象中的成员视为闭包对象成员。<br>
+        默认情况下，从<code>lambda</code>生成的闭包类中的 $operator(\ )$ 函数为 $const$ ，但是 $std::bind$ 生成的不一定是 $const$ 。如果将<code>lambda</code>声明为 $mutable$ ，那么 $operator(\ )$ 就是非 $const$ 的。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">func</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">  <span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="o">&amp;</span><span class="n">pw</span><span class="p">)</span> <span class="k">mutable</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">pw</span><span class="o">-&gt;</span><span class="n">isValidated</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="n">pw</span><span class="o">-&gt;</span><span class="n">isArchived</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="p">},</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">pw</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">);</span>
+</span></span></code></pre></div><p>        另一种模拟实现方式是不使用<code>lambda</code>：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">IsValAndArch</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="k">using</span> <span class="n">DataType</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">explicit</span> <span class="nf">IsValAndArch</span><span class="p">(</span><span class="n">DataType</span> <span class="o">&amp;&amp;</span><span class="n">ptr</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="o">:</span> <span class="n">pw</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">ptr</span><span class="p">))</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">bool</span> <span class="nf">operator</span><span class="p">()()</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">pw</span><span class="o">-&gt;</span><span class="n">isValidated</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="n">pw</span><span class="o">-&gt;</span><span class="n">isArchived</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">DataType</span> <span class="n">pw</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">func</span> <span class="o">=</span> <span class="n">IsValAndArch</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span><span class="p">());</span>
+</span></span></code></pre></div><p>        当然，这种方式比<code>lambda</code>表达式复杂的多。</p>
+<h2 id="3-auto参数">3. <code>auto</code>参数</h2>
+<p>        <code>C++14</code>中的<code>lambda</code>表达式参数可以使用 $auto$ 关键字。假设存在这么个<code>lambda</code>：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">f</span> <span class="o">=</span> <span class="p">[](</span><span class="k">auto</span> <span class="n">x</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nf">func</span><span class="p">(</span><span class="n">normalize</span><span class="p">(</span><span class="n">x</span><span class="p">));</span> <span class="p">}</span>
+</span></span></code></pre></div><p>        对应的闭包类就会类似这样：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">SomeCompilerGeneratedClassName</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">auto</span> <span class="k">operator</span><span class="p">()(</span><span class="n">T</span> <span class="n">x</span><span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nf">func</span><span class="p">(</span><span class="n">normalize</span><span class="p">(</span><span class="n">x</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        在这个例子中，虽然函数既可以接收左值也可以接收右值，但是转发出去的永远是个左值。解决这个问题的方法是使用完美转发。但是，新的问题又来了，$std::forward$ 的类型是什么？<br>
+        一般来讲，使用完美转发需要知道转发对象的类型。在模版函数中，我们通过 $T$ 表示，但是<code>lambda</code>表达式中没有 $T$ 。我们可以通过 $decltype$ 解决这个问题：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">f</span> <span class="o">=</span> <span class="p">[](</span><span class="k">auto</span> <span class="o">&amp;&amp;</span><span class="n">param</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="nf">func</span><span class="p">(</span><span class="n">normalize</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="k">decltype</span><span class="p">(</span><span class="n">param</span><span class="p">)</span><span class="o">&gt;</span><span class="p">(</span><span class="n">param</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        同样，对于多参数情况，可以这样解决：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">f</span> <span class="o">=</span> <span class="p">[](</span><span class="k">auto</span> <span class="o">&amp;&amp;</span><span class="p">...</span><span class="n">params</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="nf">func</span><span class="p">(</span><span class="n">normalize</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                <span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="k">decltype</span><span class="p">(</span><span class="n">params</span><span class="p">)</span><span class="o">&gt;</span><span class="p">(</span><span class="n">params</span><span class="p">)...));</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><h2 id="4-使用lambda代替bind">4. 使用<code>lambda</code>代替<code>bind</code></h2>
+<p>        <code>C++11</code>的 $std::bind$ 是<code>C++98</code>的 $std::bind1st$ 和 $std::bind2nd$ 的后续实现，但是它在 $2005$ 年时就进入了<code>TR1</code>文档，成为了标准库的一部分。这意味着人们使用 $bind$ 的经验会比<code>lambda</code>更多。在<code>C++11</code>中，<code>lambda</code>并不能完全代替 $bind$ ，但是在<code>C++14</code>中，这种情况改变了，<code>lambda</code>具有了更强大功能。<br>
+        优先使用<code>lambda</code>而不是 $std::bind$ 的一个重要原因是<code>lambda</code>更易于理解：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">using</span> <span class="n">Time</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">time_point</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">enum</span> <span class="k">class</span> <span class="nc">Sound</span> <span class="p">{</span> <span class="n">Beep</span><span class="p">,</span> <span class="n">Siren</span><span class="p">,</span> <span class="n">Whistle</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="k">using</span> <span class="n">Duration</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">duration</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">setSoundL</span> <span class="o">=</span> <span class="p">[](</span><span class="n">Sound</span> <span class="n">s</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">using</span> <span class="k">namespace</span> <span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">using</span> <span class="k">namespace</span> <span class="n">std</span><span class="o">::</span><span class="n">literals</span><span class="p">;</span>  <span class="c1">// C++14 suffixes
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">setAlarm</span><span class="p">(</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="n">h</span><span class="p">,</span>  <span class="c1">// alaram to go off
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>           <span class="n">s</span><span class="p">,</span>  <span class="c1">// in an hour for
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>           <span class="mi">30</span><span class="n">s</span><span class="p">);</span>  <span class="c1">// 30 seconds
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></code></pre></div><p>        上面的代码很容易就让人看懂了。而如果我们使用 $bind$ ：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">using</span> <span class="k">namespace</span> <span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">using</span> <span class="k">namespace</span> <span class="n">std</span><span class="o">::</span><span class="n">literals</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">using</span> <span class="k">namespace</span> <span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">setSoundB</span> <span class="o">=</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="n">setAlaram</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">plus</span><span class="o">&lt;&gt;</span><span class="p">(),</span> <span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">(),</span> <span class="mi">1</span><span class="n">h</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">            <span class="n">_1</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="mi">30</span><span class="n">s</span><span class="p">);</span>
+</span></span></code></pre></div><p>        代码没有那么直观，因为需要读者将占位符 $_-1$ 映射到生成函数中的位置；其次 $bind$ 并没有标识该占位符的类型，读者还必须查阅 $setAlaram$ 的声明。你还可以发现这里我们使用了两个 $bind$ ，第二个 $bind$ 负责在外层 $bind$ 生成的函数对象被调用时动态生成时间。如果不使用第二个 $bind$ ，时间会在第一个 $bind$ 被调用时就确定下来，不符合我们的要求。<br>
+        如果是<code>C++11</code>，那么情况会更糟糕，因为模版参数不能省略：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">using</span> <span class="k">namespace</span> <span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">using</span> <span class="k">namespace</span> <span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">setSoundB</span> <span class="o">=</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">setAlaram</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">plus</span><span class="o">&lt;</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">time_point</span><span class="o">&gt;</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">              <span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">              <span class="n">hours</span><span class="p">(</span><span class="mi">1</span><span class="p">)),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">_1</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">seconds</span><span class="p">(</span><span class="mi">30</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">);</span>
+</span></span></code></pre></div><p>        还不够糟糕吗？让我们再重载一下 $setAlaram$ ：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">enum</span> <span class="k">class</span> <span class="nc">Volume</span> <span class="p">{</span> <span class="n">Normal</span><span class="p">,</span> <span class="n">Loud</span><span class="p">,</span> <span class="n">LoudPlusPlus</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">setAlaram</span><span class="p">(</span><span class="n">Time</span> <span class="n">t</span><span class="p">,</span> <span class="n">Sound</span> <span class="n">s</span><span class="p">,</span> <span class="n">Duration</span> <span class="n">d</span><span class="p">,</span> <span class="n">Volume</span> <span class="n">v</span><span class="p">);</span>
+</span></span></code></pre></div><p>        现在有两个版本的 $setAlaram$ 了。幸运的是，<code>lambda</code>版本依然可以使用。但是 $bind$ 版本会失败，因为编译器无法确定它将要使用哪个版本。为了解决这个问题，我们必须进行类型转换：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">using</span> <span class="n">SetAlaram3ParamType</span> <span class="o">=</span> <span class="kt">void</span> <span class="p">(</span><span class="o">*</span><span class="p">)(</span><span class="n">Time</span> <span class="n">t</span><span class="p">,</span> <span class="n">Sound</span> <span class="n">s</span><span class="p">,</span> <span class="n">Duration</span> <span class="n">d</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">setSoundB</span> <span class="o">=</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="k">static_cast</span><span class="o">&lt;</span><span class="n">SetAlaram3ParamType</span><span class="o">&gt;</span><span class="p">(</span><span class="n">setAlaram</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">plus</span><span class="o">&lt;&gt;</span><span class="p">(),</span> <span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">(),</span> <span class="mi">1</span><span class="n">h</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">_1</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="mi">30</span><span class="n">s</span><span class="p">);</span>
+</span></span></code></pre></div><p>        在这里 $setAlaram$ 是通过函数指针传递的，编译器不太可能会对函数指针进行内联。这意味着，与<code>lambda</code>版本相比，$bind$ 版本还可能存在效率问题。<br>
+        对于没有使用过 $bind$ 的人来说，他对其实现一无所知。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">enum</span> <span class="k">class</span> <span class="nc">CompLevel</span> <span class="p">{</span> <span class="n">Low</span><span class="p">,</span> <span class="n">Normal</span><span class="p">,</span> <span class="n">High</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="n">Widget</span> <span class="nf">compress</span><span class="p">(</span><span class="k">const</span> <span class="n">Widget</span> <span class="o">&amp;</span><span class="n">w</span><span class="p">,</span> <span class="n">CompLevel</span> <span class="n">lev</span><span class="p">);</span>
+</span></span></code></pre></div><p>        如果我们想创建一个函数，压缩特定的 $Widget$ 对象，那么使用 $bind$ 的版本看起来会是这样：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">Widget</span> <span class="n">w</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">using</span> <span class="k">namespace</span> <span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">compressRateB</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="n">compress</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">_1</span><span class="p">);</span>
+</span></span></code></pre></div><p>        问题来了，我们将 $w$ 传递给了 $bind$ ，那么它在 $bind$ 函数对象中是怎么存储的呢？答案是值方式存储。这与<code>lambda</code>不同，$bind$ 永远只能以值方式存储。相比起来，<code>lambda</code>就明显得多了：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">compressRateL</span> <span class="o">=</span> <span class="p">[</span><span class="n">w</span><span class="p">](</span><span class="n">CompLevel</span> <span class="n">lev</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="nf">compress</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">lev</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        很明显这里的 $w$ 是值方式存储的。</p>
+
+<script src=https://z217blog.cn/js/toc.js></script>
+
+<div>
+    <a href="javascript:void(0);" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+    <div id="sidetoc">
+        <header>
+            <h4>EffectiveModernCpp（5）：Lambda</h4>
+        </header>
+        <nav id="TableOfContents">
+            <ul></ul>
+        </nav>
+    </div>
+    <script>
+        isTocOpen = true;
+    </script>
+</div>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/effectivemoderncpp4/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+<script type="text/javascript">
+    if (isTocOpen) tocInit();
+</script>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:zihan.zhouchn@outlook.com">zihan.zhouchn@outlook.com</a>
+            </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2022, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        let all = MathJax.Hub.getAllJax(),
+            i;
+        
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+</main>
+</body>
+
+</html>
