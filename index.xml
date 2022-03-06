@@ -7,7 +7,22 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2022, z217 and the hugo authors, all rights reserved.</copyright>
-    <lastBuildDate>Sat, 05 Mar 2022 16:29:15 +0800</lastBuildDate><atom:link href="https://z217blog.cn/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sun, 06 Mar 2022 17:28:50 +0800</lastBuildDate><atom:link href="https://z217blog.cn/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>EffectiveModernCpp（7）：通用技巧</title>
+      <link>https://z217blog.cn/post/effectivemoderncpp7/</link>
+      <pubDate>Sun, 06 Mar 2022 17:28:50 +0800</pubDate>
+      
+      <guid>https://z217blog.cn/post/effectivemoderncpp7/</guid>
+      <description>C++中的通用技巧总是存在适合使用的场景和不适合使用的场景。描述一个适合使用某项通用技巧的场景通常是很简单的，但是也存在两个例外。接下来会描述这两个例外。
+1. 值传递  有些函数的参数是可以拷贝的。
+class Widget { public: void addName(const std::string &amp;amp;newName) { names.push_back(newName); } void addName(std::string &amp;amp;&amp;amp;newName) { names.push_back(std::move(newName)); } private: std::vector&amp;lt;std::string&amp;gt; names; };  对于左值，我们调用拷贝构造函数，而对于右值，我们调用移动函数。这很合理，但是有点难受，因为我们要重载这个函数，这意味着更多的代码、更多的文档。我们可以使用通用引用改善这个问题：
+class Widget { public: template&amp;lt;typename T&amp;gt; void addName(T &amp;amp;&amp;amp;newName) { names.push_back(std::forward&amp;lt;T&amp;gt;(newName)); } // ... };  但是，正如我们之前所说的，通用引用也会带来新问题。而且，因为它是模版函数，所以定义也要放在头文件中。在模版函数实例化的过程中，根据类型的不同，这个函数也会实例化很多个版本。
+既然如此，我们能不能只用一个函数解决这个问题？答案是使用值传递。
+class Widget { public: void addName(std::string newName) { names.push_back(std::move(newName)); } // ... };  因为 $newName$ 是通过值传递的，这意味着它是一个副本，所以我们可以使用移动。但是值传递会不会带来效率问题？在C++98中，可以肯定的是 $newName$ 在传递过来的时候已经经过一次拷贝了。然而在C++11中并不是，它可能是左值拷贝或者右值移动。
+Widget w; std::string name(&amp;#34;Bart&amp;#34;); w.</description>
+    </item>
+    
     <item>
       <title>EffectiveModernCpp（6）：并发</title>
       <link>https://z217blog.cn/post/effectivemoderncpp6/</link>

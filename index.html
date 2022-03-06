@@ -88,6 +88,24 @@
     
     
     <div class="list-item">
+        <a class="entry-title" href="https://z217blog.cn/post/effectivemoderncpp7/">EffectiveModernCpp（7）：通用技巧</a>
+        
+        
+        <p>《Effective Modern C&#43;&#43;》读书笔记（7）</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2022 Mar 06 17:28
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: C&C++
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
         <a class="entry-title" href="https://z217blog.cn/post/effectivemoderncpp6/">EffectiveModernCpp（6）：并发</a>
         
         
@@ -159,24 +177,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="https://z217blog.cn/post/effectivemoderncpp2/">EffectiveModernCpp（2）：使用现代C&#43;&#43;语法</a>
-        
-        
-        <p>《Effective Modern C&#43;&#43;》读书笔记（2）</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2022 Mar 02 14:09
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: C&C++
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -185,6 +185,166 @@
     <div class="section-title">μblog</div>
     <div class="posts">
         
+        
+        <div class="post">
+            
+            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/effectivemoderncpp7/">EffectiveModernCpp（7）：通用技巧</a></h1>
+            <div class="post-content">
+                
+                
+                <p>        <code>C++</code>中的通用技巧总是存在适合使用的场景和不适合使用的场景。描述一个适合使用某项通用技巧的场景通常是很简单的，但是也存在两个例外。接下来会描述这两个例外。</p>
+<h2 id="1-值传递">1. 值传递</h2>
+<p>        有些函数的参数是可以拷贝的。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="n">addName</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">newName</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">names</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">newName</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">addName</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;&amp;</span><span class="n">newName</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">names</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">newName</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span> <span class="n">names</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        对于左值，我们调用拷贝构造函数，而对于右值，我们调用移动函数。这很合理，但是有点难受，因为我们要重载这个函数，这意味着更多的代码、更多的文档。我们可以使用通用引用改善这个问题：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="n">addName</span><span class="p">(</span><span class="n">T</span> <span class="o">&amp;&amp;</span><span class="n">newName</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">names</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">newName</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></code></pre></div><p>        但是，正如我们之前所说的，通用引用也会带来新问题。而且，因为它是模版函数，所以定义也要放在头文件中。在模版函数实例化的过程中，根据类型的不同，这个函数也会实例化很多个版本。<br>
+        既然如此，我们能不能只用一个函数解决这个问题？答案是使用值传递。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="n">addName</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">newName</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">names</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">newName</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></code></pre></div><p>        因为 $newName$ 是通过值传递的，这意味着它是一个副本，所以我们可以使用移动。但是值传递会不会带来效率问题？在<code>C++98</code>中，可以肯定的是 $newName$ 在传递过来的时候已经经过一次拷贝了。然而在<code>C++11</code>中并不是，它可能是左值拷贝或者右值移动。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">Widget</span> <span class="n">w</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">(</span><span class="s">&#34;Bart&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">w</span><span class="p">.</span><span class="n">addName</span><span class="p">(</span><span class="n">name</span><span class="p">);</span>  <span class="c1">// 左值
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">w</span><span class="p">.</span><span class="n">addName</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s">&#34;Jenne&#34;</span><span class="p">);</span>  <span class="c1">// 右值
+</span></span></span></code></pre></div><p>        在第一次调用中，因为参数是左值，所以调用了一次拷贝构造函数。但在第二次调用中，因为参数是右值，所以调用的是移动构造函数。<br>
+        回顾我们之前列举的三种方式，比较一下它们的开销：</p>
+<ol>
+<li>重载版本：在重载版本中，参数传递不会带来开销，但是在 $push_-back$ 的时候存在开销，分别是一次拷贝和一次移动；</li>
+<li>通用引用：同样的，参数传递没有开销，但是在 $push_-back$ 的时候存在开销，也是一次拷贝和一次移动；</li>
+<li>值传递：无论是左值还是右值，都必须构造一次 $newName$ ，分别对应一次拷贝和一次移动。在之后的 $push_-back$ 调用中还需要进行一次移动。</li>
+</ol>
+<p>        总结下来，值传递方式总是会多一次移动操作。但是根据我们之前所说的，移动操作的开销很低，所以问题不是很大，而且这种方式也可以有效避免代码膨胀。<br>
+        当然，使用值传递是有前提的：</p>
+<ul>
+<li>只对存在拷贝函数的对象使用。如果函数没有拷贝函数，那么我们只需要一个接收右值的函数即可；</li>
+<li>只对移动操作开销小的对象使用；</li>
+<li>只对肯定会进行拷贝/移动的参数使用。如果函数不一定会进行拷贝/移动操作，那么值传递会带来不必要的开销。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="n">addName</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">newName</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">((</span><span class="n">newName</span><span class="p">.</span><span class="n">length</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">minLen</span><span class="p">)</span> <span class="o">&amp;&amp;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">(</span><span class="n">newName</span><span class="p">.</span><span class="n">length</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="n">maxLen</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="n">names</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">newName</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span> <span class="n">names</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        这种情况下参数不一定会被拷贝/移动，如果没有发生拷贝/移动，那么它相比其他模式就多了一次拷贝。<br>
+        即使你的函数处理的是一个移动比拷贝开销小的对象，值传递也不一定更合适，因为对象复制存在两种方式，一种是构造函数，另一种是赋值运算符。在上面的例子中，我们使用的是构造函数。让我们分析下使用运算符的情况：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Password</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="k">explicit</span> <span class="n">Password</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">pwd</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="o">:</span> <span class="n">text</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">pwd</span><span class="p">))</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">changeTo</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">newPwd</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">text</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">newPwd</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">text</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        让我们来使用这个类：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">initPwd</span><span class="p">(</span><span class="s">&#34;Supercalifragilisticexpialidocious&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">Password</span> <span class="nf">p</span><span class="p">(</span><span class="n">initPwd</span><span class="p">);</span>
+</span></span></code></pre></div><p>        $p.text$ 通过构造函数创建，从值传递的参数移动到 $text$ 。让我们修改下 $text$ ：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">newPassword</span> <span class="o">=</span> <span class="s">&#34;Beware the Jabberwock&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">p</span><span class="p">.</span><span class="n">chanegTo</span><span class="p">(</span><span class="n">newPassword</span><span class="p">);</span>
+</span></span></code></pre></div><p>        $changeTo$ 接收一个左值，这个左值通过拷贝构造函数构造，这会导致一次动态内存分配。之后调用移动赋值运算符，这会导致之前 $text$ 的空间被释放。也就是说 $chanegTo$ 涉及两次动态内存操作。<br>
+        让我们对比下使用引用的情况：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Password</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">void</span> <span class="n">changeTo</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">newPwd</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">text</span> <span class="o">=</span> <span class="n">newPwd</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">text</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        在这种情况中，因为新密码比旧密码短，所以 $text$ 不需要重新分配，可以继续使用之前的空间。<br>
+        对比下来，我们发现值传递相比引用传递多了一次空间动态释放的操作，这比移动操作的开销大得多。当然，如果新密码比旧密码长，那么引用传递还是不可避免地要进行一次空间分配和销毁。这种情况下，值传递就和引用传递效率相同了。<br>
+        总之，我们的结论就是是否使用值传递取决于传递的类型中左值和右值的比例，如果左值比较多，就意味着上面的情况发生概率会更大，因此更适合引用传递。对于 $std::string$ 来说，如果字符串比较短，且编译器使用了短字符串优化技术，那么也可以避免动态内存的问题。<br>
+        对于需要尽可能高效的程序来说，值传递不是一个好选择，因为会多一次移动。而且，如果加入了一些其他逻辑，那么值传递相比其他传递方式也会多出无意义的开销。还有一个与性能无关的问题，就是值传递会导致多态类出现<em><strong>切片问题</strong></em> ( $slicing$ $problem$ )。<code>C++11</code>并没有从根本上改变值传递，它只是区分了左值和右值，实现移动语义。对于特殊场景，值传递提供了一种简单的实现方式，以及接近引用传递的效率。</p>
+<h2 id="2-emplace">2. <code>emplace</code></h2>
+<p>        假设存在一个容器，元素类型为 $std::string$ ，我们要往容器里添加新元素，可以这样：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span> <span class="n">vs</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">vs</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="s">&#34;xyzzy&#34;</span><span class="p">);</span>
+</span></span></code></pre></div><p>        我们通过 $push_-back$ 传入的元素应该总是 $std::string$ 类型的。这很合理，而且 $push_-back$ 也对左值和右值进行了重载，意味着性能也不错。<br>
+        但是，对于执着于性能的人来说，还不够好，因为在调用 $push_-back$ 的时候多了一次临时对象的构造和销毁。这个问题可以通过 $emplace_-back$ 解决：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">vs</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="s">&#34;xyzzy&#34;</span><span class="p">);</span>
+</span></span></code></pre></div><p>        与 $push_-back$ 使用重载不同，$emplace_-back$ 使用的是完美转发，这意味着不会有临时对象的构造，而是直接在 $vector$ 内构造了 $string$ 。<br>
+        $emplace$ 函数和 $push$ 函数是对应的，意味着支持 $push_-back$ 的容器也支持 $emplace_-back$ ，支持 $push_-front$ 的容器也支持 $emplace_-front$ 。这个对应关系也体现在 $insert$ 函数上，有 $insert$ 函数的容器也支持 $emplace$ 。<br>
+        $emplace$ 函数优于 $insert$ 的原因是它们灵活的接口，前者接收构造函数参数，而后者接收构造完成的对象。理论上，我们应该在所有可能的地方使用 $emplace$ 。当然，理论是理论，实际还是有些场景更适合 $insert$ 的。这些场景不易描述，而且依赖于具体参数类型、容器类型、插入的位置、函数异常安全性等，所以我们的建议是使用<code>benchmark</code>进行测试。<br>
+        然而，大部分场景并不值得这样的测试，我们需要的更多是一些启发式的方法。在以下条件满足时，我们可以认为 $emplace$ 优于 $insert$ ：</p>
+<ol>
+<li>值在容器内直接构造，而不是赋值。上面的例子中我们是将元素插入空位置，我们考虑插入非空位置的情况：</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span> <span class="n">vs</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">vs</span><span class="p">.</span><span class="n">emplace</span><span class="p">(</span><span class="n">vs</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="s">&#34;xyzzy&#34;</span><span class="p">);</span>
+</span></span></code></pre></div><p>        假设 $vs$ 非空，那么这次 $emplace$ 调用将通过移动函数插入，移动函数需要一个已存在的对象，意味着需要创建一个临时对象。</p>
+<ol start="2">
+<li>传递的参数类型与容器持有元素类型不同。$emplace$ 的优势在于不需要创建临时对象，但是当传入的对象本身就不需要创建临时对象时，$emplace$ 的优势也就不存在了；</li>
+<li>容器允许重复值或者插入的值不是重复值。如果容器不允许重复，$emplace$ 通常需要创建一个节点，然后与容器当前值比较，如果不存在，那么就引用之前创建的节点，否则就销毁之前创建的节点。所以，插入重复值时 $emplace$ 也没有优势。</li>
+</ol>
+<p>        使用 $emplace$ 函数时还要注意另外两个问题，第一个是资源管理的问题。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">killWidget</span><span class="p">(</span><span class="n">Widget</span> <span class="o">*</span><span class="n">pWidget</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">list</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;&gt;</span> <span class="n">ptrs</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">ptrs</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span><span class="p">(</span><span class="k">new</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">killWidget</span><span class="p">));</span>
+</span></span></code></pre></div><p>        这里我们创建了一个存储智能指针的容器，你可能会想到使用 $emplace$ 代替：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">ptrs</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="k">new</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">killWidget</span><span class="p">);</span>
+</span></span></code></pre></div><p>        但是，我们并不建议使用 $emplace$ 。考虑我们之前讲智能指针时提到的问题，这里因为智能指针要指定删除器，所以不能通过 $std::make_-shared$ 创建。假设插入的时候出现异常，使用 $push_-back$ 的版本不会有问题，因为 $shared_-ptr$ 已经被创建，而且指定了删除器，所以资源会被释放。但是使用 $emplace_-back$ 的版本，因为 $shared_-ptr$ 并没有被创建，这意味着 $killWidget$ 不会被调用，从而资源不会被释放。<br>
+        如我们讲智能指针时提到的，不应该在调用的时候构造 $shared_-ptr$ ，而是应该先构造再调用，所以代码应该这样写：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="n">spw</span><span class="p">(</span><span class="k">new</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">killWidget</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">ptrs</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">spw</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl"><span class="n">ptrs</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">spw</span><span class="p">));</span>
+</span></span></code></pre></div><p>        这样的话无论哪种方式都没有问题，当然，这样 $emplace$ 也就失去优势了。<br>
+        $emplace$ 函数的第二个要注意的地方是与显式构造函数的交互。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">regex</span><span class="o">&gt;</span> <span class="n">regexes</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">regexes</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="k">nullptr</span><span class="p">);</span>
+</span></span></code></pre></div><p>        很神奇的是，上面的代码可以运行，但是下面的代码会出错：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">regex</span> <span class="n">r</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>  <span class="c1">// 错误
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">regexes</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="k">nullptr</span><span class="p">);</span>  <span class="c1">// 错误
+</span></span></span></code></pre></div><p>        理解这个问题，我们需要先知道 $std::regex$ 可以从字符串中构建，它其中一个构造函数接收一个 $const$ $char$ $\star$ 字符串，$push_-back$ 版本报错的原因是这个构造函数是一个显式构造函数，不接受从 $nullptr$ 的隐式转换。$emplace_-back$ 使用的是直接初始化，即括号初始化：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">regex</span> <span class="n">r1</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>  <span class="c1">// 错误
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">std</span><span class="o">::</span><span class="n">regex</span> <span class="n">r2</span><span class="p">(</span><span class="k">nullptr</span><span class="p">);</span>
+</span></span></code></pre></div><p>        括号初始化是可以运行的，这也是为什么 $emplace_-back$ 版本可以运行。所以，在使用 $emplace$ 函数的时候，我们也要注意参数是否正确。</p>
+
+            </div>
+            <div class="meta post-footer">
+                <span>2022 Mar 6 17:28</span>
+                <a href="https://z217blog.cn/post/effectivemoderncpp7/"><i class="fas fa-link"></i> link</a>
+            </div>
+        </div>
         
         <div class="post">
             
@@ -1239,327 +1399,6 @@
             <div class="meta post-footer">
                 <span>2022 Mar 4 14:04</span>
                 <a href="https://z217blog.cn/post/effectivemoderncpp4/"><i class="fas fa-link"></i> link</a>
-            </div>
-        </div>
-        
-        <div class="post">
-            
-            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/effectivemoderncpp3/">EffectiveModernCpp（3）：智能指针</a></h1>
-            <div class="post-content">
-                
-                
-                <p>        智能指针包裹了原始指针，行为类似于被包裹的原始指针，但是避免了原始指针的很多陷阱。<code>C++11</code>中存在四种智能指针：</p>
-<ul>
-<li>$std::auto_-ptr$ ；</li>
-<li>$std::unique_-ptr$ ；</li>
-<li>$std::shared_-ptr$ ；</li>
-<li>$std::weak_-ptr$ 。</li>
-</ul>
-<p>        它们都是设计于帮助管理动态分配的对象生命周期的，会在适当的时间通过适当的方式销毁对象，避免出现资源泄露或者异常行为。<br>
-        $std::auto_-ptr$ 是<code>C++98</code>的遗留，<code>C++11</code>使用 $std::unique_-ptr$ 替代了它。$std::unique_-ptr$ 在 $std::auto_-ptr$ 的基础上可以做更多的事情，在任何方面都比 $std::auto_-ptr$ 好。</p>
-<h2 id="1-unique_ptr">1. <code>unique_ptr</code></h2>
-<p>        当你需要一个智能指针的时候，$std::unique_-ptr$ 通常是最适合的。默认情况下，$std::unique_-ptr$ 等同于原始指针，并且对于大部分操作，它们的操作完全相同。<br>
-        $unique_-ptr$ 体现了专有语义，一个非空的 $unique_-ptr$ 始终持有其指向的内容。在这个前提下，移动拷贝会转移指针的所有权，拷贝操作则是完全不允许的。当 $unique_-ptr$ 销毁时，它会调用其关联的析构函数。<br>
-        $unique_-ptr$ 的常见用法是作为对象工厂函数的返回值。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Investment</span> <span class="p">{};</span>
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Sock</span><span class="o">:</span> <span class="k">public</span> <span class="n">Investment</span> <span class="p">{};</span>
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Bond</span><span class="o">:</span> <span class="k">public</span> <span class="n">Investment</span> <span class="p">{};</span>
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">RealEstate</span><span class="o">:</span> <span class="k">public</span> <span class="n">Investment</span> <span class="p">{};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="p">...</span><span class="n">Ts</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Investment</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">makeInvestment</span><span class="p">(</span><span class="n">Ts</span><span class="o">&amp;&amp;</span><span class="p">...</span> <span class="n">params</span><span class="p">);</span>
-</span></span></code></pre></div><p>        默认情况下，$unique_-ptr$ 持有指针的销毁通过 $delete$ 进行，但是也可以自定义一个析构函数。如果创建的对象需要在析构前写一条日志，可以这样实现：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">delInvmt</span> <span class="o">=</span> <span class="p">[](</span><span class="n">Investment</span> <span class="o">*</span><span class="n">pInvestment</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">makeLogEntry</span><span class="p">(</span><span class="n">pInvestment</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="k">delete</span> <span class="n">pInvestment</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="p">...</span><span class="n">Ts</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Investment</span><span class="p">,</span> <span class="k">decltype</span><span class="p">(</span><span class="n">delInvmt</span><span class="p">)</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">makeInvestment</span><span class="p">(</span><span class="n">Ts</span><span class="o">&amp;&amp;</span><span class="p">...</span> <span class="n">params</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Investment</span><span class="p">,</span> <span class="k">decltype</span><span class="p">(</span><span class="n">delInvmt</span><span class="p">)</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="n">pInv</span><span class="p">(</span><span class="k">nullptr</span><span class="p">,</span> <span class="n">delInvmt</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="cm">/* a Stock object should be created */</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">pInv</span><span class="p">.</span><span class="n">reset</span><span class="p">(</span><span class="k">new</span> <span class="n">Stock</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">Ts</span><span class="o">&gt;</span><span class="p">(</span><span class="n">params</span><span class="p">)...));</span>
-</span></span><span class="line"><span class="cl">  <span class="k">else</span> <span class="nf">if</span> <span class="p">(</span><span class="cm">/* a Bond object should be created */</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">pInv</span><span class="p">.</span><span class="n">reset</span><span class="p">(</span><span class="k">new</span> <span class="n">Bond</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">Ts</span><span class="o">&gt;</span><span class="p">(</span><span class="n">params</span><span class="p">)...));</span>
-</span></span><span class="line"><span class="cl">  <span class="k">else</span> <span class="nf">if</span> <span class="p">(</span><span class="cm">/* a RealEstate ojbect should be created */</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">pInv</span><span class="p">.</span><span class="n">reset</span><span class="p">(</span><span class="k">new</span> <span class="n">RealEstate</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">Ts</span><span class="o">&gt;</span><span class="p">(</span><span class="n">params</span><span class="p">)...));</span>
-</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">pInv</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>        在上述代码中我们通过基类指针删除子类对象，这意味着基类的析构函数必须是虚析构函数。<br>
-        当使用默认删除器时，我们可以假设 $unique_-ptr$ 的大小和原始指针相同。以函数指针的方式指定删除器时，通常会使 $unique_-ptr$ 的大小从一个字长增长为两个字长。对于删除器函数对象来说，函数中存储的状态数决定了其大小。如果一个函数没有状态 ( 比如没有捕获对象的<code>lambda</code>表达式 ) ，那么它也没有大小。从而如果我们使用无捕获的<code>lambda</code>函数来声明删除器，$unique_-ptr$ 的大小还是一个字长。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">delInvmt</span> <span class="o">=</span> <span class="p">[](</span><span class="n">Investment</span> <span class="o">*</span><span class="n">pInvestment</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">makeLogEntry</span><span class="p">(</span><span class="n">pInvestment</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="k">delete</span> <span class="n">pInvestment</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1">// unique_ptr为Investment *大小
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">Ts</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Investment</span><span class="p">,</span> <span class="k">decltype</span><span class="p">(</span><span class="n">delInvmt</span><span class="p">)</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">makeInvestment</span><span class="p">(</span><span class="n">Ts</span> <span class="o">&amp;&amp;</span><span class="p">...</span><span class="n">params</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">delInvmt2</span><span class="p">(</span><span class="n">Investment</span> <span class="o">*</span><span class="n">pInvestment</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">makeLogEntry</span><span class="p">(</span><span class="n">pInvestment</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="k">delete</span> <span class="n">pInvestment</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1">// unique_ptr为Investment *大小加上至少一个函数指针的大小
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">Ts</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Investment</span><span class="p">,</span> <span class="kt">void</span> <span class="p">(</span><span class="o">*</span><span class="p">)(</span><span class="n">Investment</span> <span class="o">*</span><span class="p">)</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">makeInvestment</span><span class="p">(</span><span class="n">Ts</span> <span class="o">&amp;&amp;</span><span class="p">..</span><span class="n">params</span><span class="p">);</span>
-</span></span></code></pre></div><p>        具有很多状态的删除器会导致 $unique_-ptr$ 变得很大，如果这种情况发生，你需要修改删除器函数。<br>
-        $unique_-ptr$ 还支持数组形式 ( $unique_-ptr$&lt;$T[\ ]$&gt; )，并且会自动匹配，比如数组形式就可以使用 $[\ ]$ 运算符。但是理论上这种形式不会被使用，因为我们不应该使用原始数组，而应该使用 $std::vector$ 等容器。使用原始数组的唯一情况是作为<code>C</code> <code>API</code>的入参或者返回值。<br>
-        $unique_-ptr$ 还有一个功能是可以轻松地转为 $std::shared_-ptr$ ：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Investment</span><span class="o">&gt;</span> <span class="n">sp</span> <span class="o">=</span> <span class="n">makeInvestment</span><span class="p">(</span><span class="n">arguments</span><span class="p">);</span>
-</span></span></code></pre></div><p>        这也是为什么 $unique_-ptr$ 适合作为工厂函数的返回类型，因为它们并不知道调用者想要怎么使用返回值，而 $unique_-ptr$ 给予了调用者足够的灵活度。</p>
-<h2 id="2-shared_ptr">2. <code>shared_ptr</code></h2>
-<p>        通过 $std::shared_-ptr$ 访问的对象生命周期由指向它的指针们所共享，所有指向它的 $shared_-ptr$ 都能相互合作确保在它不再使用的时候析构。$shared_-ptr$ 通过引用计数来确保当前指针是最后一个指向资源的指针。引用计数暗示着性能问题：</p>
-<ul>
-<li>$shared_-ptr$ 的大小是原始指针的两倍；</li>
-<li>引用计数必须动态分配；</li>
-<li>修改引用计数必须是原子操作。</li>
-</ul>
-<p>        类似于 $unique_-ptr$ ，$shared_-ptr$ 也可以指定自定义的删除器。但是对于 $unique_-ptr$ 来说，删除器是类型的一部分，$shared_-ptr$ 不是。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">loggingDel</span> <span class="o">=</span> <span class="p">[](</span><span class="n">Widget</span> <span class="o">*</span><span class="n">pw</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">makeLogEntry</span><span class="p">(</span><span class="n">pw</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="k">delete</span> <span class="n">pw</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="p">,</span> <span class="k">decltype</span><span class="p">(</span><span class="n">logginDel</span><span class="p">)</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">upw</span><span class="p">(</span><span class="k">new</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">loggingDel</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="n">spw</span><span class="p">(</span><span class="k">new</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">loggingDel</span><span class="p">);</span>
-</span></span></code></pre></div><p>        $shared_-ptr$ 的设计更为灵活，它可以让同类型的指针使用不同的删除器函数。<br>
-        另一个与 $unique_-ptr$ 不同的是，自定义的删除器不会影响 $shared_-ptr$ 的大小。不管删除器是什么形式，$shared_-ptr$ 永远都是两个指针的大小。<br>
-        $shared_-ptr$ 对象包含了所指对象的引用计数，它是一个更大的数据结构，通常称为<strong>控制块</strong> ( $control$ $block$ )。控制块包含除了引用计数值之外的一个自定义删除器的拷贝，如果用户还指定了自定义的分配器，控制器也会包含一个分配器的拷贝。控制块可能还包含一些额外的数据，比如次级引用计数 $weak$ $count$ 等。<br>
-        当 $shared_-ptr$ 被创建，对象控制块也就被创建了。通常，对于一个创建指向对象的 $shared_-ptr$ 函数来说无法知道是否有其他的 $shared_-ptr$ 已经指向了那个对象。所以控制块的创建会遵循以下规则：</p>
-<ul>
-<li>$std::make_-shared$ 会创建控制块；</li>
-<li>从 $unique_-ptr$ 构造的 $shared_-ptr$ 会创建控制块；</li>
-<li>从原始指针上构造的 $shared_-ptr$ 会创建控制块。</li>
-</ul>
-<p>        这些规则的存在使得一个原始指针对象可能关联多个控制块，从而存在多个引用计数，更糟糕的是，这可能会导致对象被销毁多次。所以，这也给 $shared_-ptr$ 的使用衍生出来两条法则：</p>
-<ol>
-<li>避免通过原始指针构造 $shared_-ptr$ ，应该尽量使用 $make_-shared$ 代替；</li>
-<li>当存在另一个 $shared_-ptr$ 时，通过另一个 $shared_-ptr$ 对象来构造新的 $shared_-ptr$ 对象。</li>
-</ol>
-<p>        在这里要注意一个特殊情况，那就是 $this$ 指针。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
-</span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">void</span> <span class="n">process</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;&gt;</span> <span class="n">processedWidgets</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">Widget</span><span class="o">::</span><span class="n">process</span><span class="p">()</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">processedWidget</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>  <span class="c1">// 错误用法
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
-</span></span></code></pre></div><p>        上面的代码错误在于使用 $this$ 传递，由原始指针构造的 $shared_-ptr$ 会创建一个控制块。为了解决这个问题，<code>C++</code>引入了 $std::enable_-shared_-from_-this$ ，它是一个用作基类的模版类，可以从该类型的 $this$ 对象上安全创建 $shared_-ptr$ 。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span><span class="o">:</span> <span class="k">public</span> <span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
-</span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">void</span> <span class="n">process</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">Widget</span><span class="o">::</span><span class="n">process</span><span class="p">()</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">processedWidgets</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">shared_from_this</span><span class="p">());</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>        通过 $shared_-from_-this$ ，我们可以在不创建新控制块的前提下创建指向当前对象的 $shared_-ptr$ 。<br>
-        为了避免客户端在创建第一个 $shared_-ptr$ 之前就调用 $shared_-from_-this$ ，我们可以通过工厂模式创建对象。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span><span class="o">:</span> <span class="k">public</span> <span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
-</span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">Ts</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="n">create</span><span class="p">(</span><span class="n">Ts</span> <span class="o">&amp;&amp;</span><span class="p">...</span><span class="n">params</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">process</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
-</span></span><span class="line"><span class="cl">  <span class="n">Widget</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span></code></pre></div><p>        控制块的实现比你想象的更复杂一些，它使用了继承，包含虚析构函数，这意味着使用 $shared_-ptr$ 也会带来使用虚函数的成本。这么一看，$shared_-ptr$ 的开销要比你想的大得多。但是这是可以接受的，因为它提供的功能比这些开销的价值更大。在通常情况下，$shared_-ptr$ 创建控制块会使用默认删除器和默认分配器，从而控制块只需要三个字长，它的分配基本上是无开销的。对 $shared_-ptr$ 进行解引用操作的开销不会比原始指针高。对引用计数进行原子操作需要承担一两个原子操作的开销；对于每个 $shared_-ptr$ 指向的对象来说，控制块中的虚函数机制产生的开销只需要承受一次，即对象被销毁的时候。通过这些开销的代价，我们得到了自动管理动态分配资源生命周期的功能。在大多数时候，我们都可以使用 $shared_-ptr$ 来管理动态资源。<br>
-        与 $unique_-ptr$ 不同，$shared_-ptr$ 无法处理数组，它从设计之初就是用于单个对象的。我们应该使用 $std::vector$ 等容器来代替原始数组。</p>
-<h2 id="3-weak_ptr">3. <code>weak_ptr</code></h2>
-<p>        $std::weak_-ptr$ 是一个类似于 $std::shared_-ptr$ 的指针，但是不参与资源所有权的共享，即不影响引用计数。这种类型的指针用于解决 $shared_-ptr$ 无法解决的问题——悬垂指针。<br>
-        $weak_-ptr$ 不能解引用，也不能测试是否为空，因为它不是一个独立的智能指针，而是 $shared_-ptr$ 的增强。$weak_-ptr$ 通常从 $shared_-ptr$ 上创建，并且不会影响 $shared_-ptr$ 的引用计数。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">spw</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">weak_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="n">wpw</span><span class="p">(</span><span class="n">spw</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl"><span class="n">spw</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="p">(</span><span class="n">wpw</span><span class="p">.</span><span class="n">expired</span><span class="p">())</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
-</span></span></code></pre></div><p>        $weak_-ptr$ 通过 $expired$ 来判断是否悬垂。但是通常，我们需要在 $weak_-ptr$ 未失效时进行解引用操作，可惜的是，并没有这样的函数。引入解引用会导致竞态条件：在 $expired$ 和解引用操作之间，如果其它线程的操作导致指向对象的析构，解引用会产生未定义行为。从这个角度来看，$weak_-ptr$ 应该从 $shared_-ptr$ 中创建，并且只用于判断指针是否无效。<br>
-        为了满足解引用的需求，我们可以从 $weak_-ptr$ 中创建一个 $shared_-ptr$ 。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="c1">// if wpw is expired, spw1 is nullptr
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="n">spw1</span> <span class="o">=</span> <span class="n">wpw</span><span class="p">.</span><span class="n">lock</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl"><span class="c1">// same as above
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">auto</span> <span class="n">spw2</span> <span class="o">=</span> <span class="n">wpw</span><span class="p">.</span><span class="n">lock</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl"><span class="c1">// if wpw is expired, throw std::bad_weak_ptr
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="n">spw3</span><span class="p">(</span><span class="n">wpw</span><span class="p">);</span>
-</span></span></code></pre></div><p>        以上三种方式都可以创建一个 $shared_-ptr$ 。<br>
-        单从效率的角度来看，$weak_-ptr$ 和 $shared_-ptr$ 基本相同。两者的大小相同，使用相同的控制块。要注意 $weak_-ptr$ 也有引用计数，即之前提过的 $weak$ $count$ 。$weak_-ptr$ 也会对引用计数进行操作，同样的，这些操作是原子的。控制块只会在 $weak$ $count$ 为 $0$ 的时候析构。</p>
-<h2 id="4-make_unique和make_shared">4. <code>make_unique</code>和<code>make_shared</code></h2>
-<p>        $std::make_-shared$ 是<code>C++11</code>标准的一部分，$std::make_-unique$ 则是<code>C++14</code>加入的。但是一个<code>C++11</code>版本的 $make_-unique$ 也是很容易实现的：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">Ts</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">make_unique</span><span class="p">(</span><span class="n">Ts</span> <span class="o">&amp;&amp;</span><span class="p">...</span><span class="n">params</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">(</span><span class="k">new</span> <span class="n">T</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">Ts</span><span class="o">&gt;</span><span class="p">(</span><span class="n">params</span><span class="p">)...));</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>        $make_-unique$ 负责的只是将参数完美转发到 $unique_-ptr$ 的构造函数中，虽然这种形式不支持数组和自定义析构。<br>
-        除了 $std::make_-shared$ 和 $std::make_-unique$ 之外，还有第三个函数 $std::allocate_-shared$ ，它和 $std::make_-shared$ 一样，除了第一个参数是分配器。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="nf">upw1</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span><span class="p">());</span>
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="n">upw2</span><span class="p">(</span><span class="k">new</span> <span class="n">Widget</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="nf">spw1</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span><span class="p">());</span>
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="n">spw2</span><span class="p">(</span><span class="k">new</span> <span class="n">Widget</span><span class="p">);</span>
-</span></span></code></pre></div><p>        可以看到，相比于使用 $new$ 的版本，$make$ 版本不会重复声明类型。而且不使用 $make_-shared$ 函数构造 $shared_-ptr$ 的版本实际上进行了两次内存分配，一次是 $Widget$ ，另一次则是控制块。相比之下，$make_-shared$ 只会分配一块内存，同时容纳 $Widget$ 和控制块。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">processWidget</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="n">spw</span><span class="p">,</span> <span class="kt">int</span> <span class="n">priority</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">computePriority</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1">// potential resource leak
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">processWidget</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span><span class="p">(</span><span class="k">new</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">computePriority</span><span class="p">());</span>
-</span></span></code></pre></div><p>        上面这段代码可能会发生泄露。在 $processWidget$ 开始运行之前，程序必须先动态分配 $Widget$ 对象、构造 $shared_-ptr$ 和运行 $computePriority$ 。但是要注意，编译器不需要按序执行代码，除了 $shared_-ptr$ 必须在 $Widget$ 创建之后构造。如果程序在创建了 $Widget$ 之后，运行 $computePriority$ ，并且发生异常，那么就会导致 $Widget$ 泄露，因为它永远不会被释放。这个问题的解决是使用 $make_-shared$ ：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">processWidget</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span><span class="p">(),</span> <span class="n">computePriority</span><span class="p">());</span>
-</span></span></code></pre></div><p>        $make_-shared$ 把之前的创建 $Widget$ 对象和构造 $shared_-ptr$ 合为一步，从而避免了泄露。<br>
-        倾向于使用 $make$ 函数并不意味着所有地方都要使用，比如在需要指定删除器时，显然就不应该使用 $make$ 函数。除此之外，$make$ 函数也有其单一概念语法的限制。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">upv</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&gt;</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">spv</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&gt;</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">);</span>
-</span></span></code></pre></div><p>        我们在统一初始化的章节讲过，对于使用 $std::initializer_-list$ 的构造函数，花括号初始化和小括号初始化行为不同。但是对于 $make$ 函数，它们的行为是确定的，上面的代码都会生成长度为 $10$ 的 $vector$ 。但是当我们想要使用花括号初始化时，我们只能使用 $new$ ，或者手动创建一个初始化列表。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">initList</span> <span class="o">=</span> <span class="p">{</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">};</span>
-</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">spv</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&gt;</span><span class="p">(</span><span class="n">initList</span><span class="p">);</span>
-</span></span></code></pre></div><p>        一些类重载了 $new$ 和 $delete$ 运算符，但是这些运算符往往只会精确地分配指定对象大小的内存。但是对于智能指针来说，它们往往需要大于对象内存大小的空间，所以使用 $make$ 函数创建重载了 $new$ 和 $delete$ 运算符的对象也是不合理的。<br>
-        但是要注意，在使用 $new$ 构造智能指针时，一定要确保尽快将结果传递到智能指针构造函数中，以避免潜在的泄露可能。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">processWidget</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="n">spw</span><span class="p">,</span> <span class="kt">int</span> <span class="n">priority</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">computePriority</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">cusDel</span><span class="p">(</span><span class="n">Widget</span> <span class="o">*</span><span class="n">ptr</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="n">spw</span><span class="p">(</span><span class="k">new</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">cusDel</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl"><span class="n">processWidget</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">spw</span><span class="p">),</span> <span class="n">computePriority</span><span class="p">());</span>
-</span></span></code></pre></div><p>        通常情况下，$std::move$ 也是不需要的，但是当你确定了这个对象仅作为右值使用时，就可以通过 $std::move$ 提升性能。</p>
-<h2 id="5-pimpl惯用法">5. <code>Pimpl</code>惯用法</h2>
-<p>        $Pimpl$ ( $Pointer$ $to$ $implementation$ ) 惯用法是一种将类数据成员指向一个包含具体实现的类的指针，并将主类的数据成员移动到实现类的办法。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">private</span><span class="o">:</span>
-</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">data</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="n">Gadget</span> <span class="n">g1</span><span class="p">,</span> <span class="n">g2</span><span class="p">,</span> <span class="n">g3</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span></code></pre></div><p>        在上面这个类中，为了编译，我们需要包含 &lt;$string$&gt; 、&lt;$vector$&gt; 以及自定义头文件 $gadget.h$ ，这会增加 $Widget$ 的编译时间，并且如果后续有修改，也要重新编译。<code>C++98</code>中可以使用 $Pimpl$ 惯用法修改代码：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">private</span><span class="o">:</span>
-</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="nc">Impl</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="n">Impl</span> <span class="o">*</span><span class="n">pImpl</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span></code></pre></div><p>        这样可以避免包含许多头文件。这里使用了一个<strong>未完成类型</strong> ( $incomplete$ $type$ )，它被声明，但没有被定义。我们在 $widget.h$ 头文件中声明 $Impl$ ，并在 $widget.cpp$ 文件中实现这个结构。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;gadget.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;string&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
-</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Widget</span><span class="o">::</span><span class="n">Impl</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">data</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="n">Gadget</span> <span class="n">g1</span><span class="p">,</span> <span class="n">g2</span><span class="p">,</span> <span class="n">g3</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">Widget</span><span class="o">::</span><span class="n">Widget</span><span class="p">()</span> <span class="o">:</span> <span class="n">pImpl</span><span class="p">(</span><span class="k">new</span> <span class="n">Impl</span><span class="p">)</span> <span class="p">{}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">Widget</span><span class="o">::~</span><span class="n">Widget</span><span class="p">()</span> <span class="p">{</span> <span class="k">delete</span> <span class="n">Impl</span><span class="p">;</span> <span class="p">}</span>
-</span></span></code></pre></div><p>        我们可以使用智能指针修改上面的代码：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">private</span><span class="o">:</span>
-</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="nc">Impl</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Impl</span><span class="o">&gt;</span> <span class="n">pImpl</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span></code></pre></div><hr>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;widget.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;gadget.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;string&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
-</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Widget</span><span class="o">::</span><span class="n">Impl</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">data</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="n">Gadget</span> <span class="n">g1</span><span class="p">,</span> <span class="n">g2</span><span class="p">,</span> <span class="n">g3</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">Widget</span><span class="o">::</span><span class="n">Widget</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">  <span class="o">:</span> <span class="n">pImpl</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">Imple</span><span class="o">&gt;</span><span class="p">())</span> <span class="p">{}</span>
-</span></span></code></pre></div><p>        通过智能指针，我们就不需要析构函数了，因为智能指针会负责释放这块区域。但是如果你尝试着使用 $Widget$ ，会发现它报错了。因为编译器给我们自动生成了一个析构函数，在这个析构函数里，编译器会调用 $unique_-ptr$ 的析构函数，后者的默认行为会在 $delete$ 之前调用 $static_-assert$ 确保原始指针不会指向一个不完整类型。问题也恰好出现在这里，$Widget$ 的析构函数并不知道 $Impl$ 的定义，便认为它是一个不完整类型。因为这个析构函数是隐式 $inline$ 的，并不会在 $widget.cpp$ 文件中寻找其定义，自然也就发现不了 $Impl$ 的定义。<br>
-        解决这个问题的办法是让编译器在调用析构函数前发现 $widget.cpp$ 中定义的结构体，所以只要把析构函数的定义搬到 $widget.cpp$ 文件中即可。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
-</span></span><span class="line"><span class="cl">  <span class="n">Widget</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl">  <span class="o">~</span><span class="n">Widget</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
-</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="nc">Impl</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Impl</span><span class="o">&gt;</span> <span class="n">pImpl</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span></code></pre></div><hr>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;widget.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;gadget.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;string&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
-</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Widget</span><span class="o">::</span><span class="n">Impl</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">data</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="n">Gadget</span> <span class="n">g1</span><span class="p">,</span> <span class="n">g2</span><span class="p">,</span> <span class="n">g3</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">Widget</span><span class="o">::</span><span class="n">Widget</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">  <span class="o">:</span> <span class="n">pImpl</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">Impl</span><span class="o">&gt;</span><span class="p">())</span> <span class="p">{}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">Widget</span><span class="o">::~</span><span class="n">Widget</span><span class="p">()</span> <span class="o">=</span> <span class="k">default</span><span class="p">;</span>
-</span></span></code></pre></div><p>        这样，编译器就会在寻找析构函数的定义之前，发现 $Impl$ 结构体的成员。<br>
-        同样的，这个问题也会影响到所有自动生成的特殊函数。我们的解决办法也是一样的。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
-</span></span><span class="line"><span class="cl">  <span class="n">Widget</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl">  <span class="o">~</span><span class="n">Widget</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl">  <span class="n">Widget</span><span class="p">(</span><span class="n">Widget</span> <span class="o">&amp;&amp;</span><span class="n">rhs</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="n">Widget</span> <span class="o">&amp;</span><span class="k">operator</span><span class="o">=</span><span class="p">(</span><span class="n">Widget</span> <span class="o">&amp;&amp;</span><span class="n">rhs</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
-</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="nc">Impl</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Impl</span><span class="o">&gt;</span> <span class="n">pImpl</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span></code></pre></div><hr>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;widget.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;gadget.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;string&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
-</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Widget</span><span class="o">::</span><span class="n">Impl</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">data</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="n">Gadget</span> <span class="n">g1</span><span class="p">,</span> <span class="n">g2</span><span class="p">,</span> <span class="n">g3</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">Widget</span><span class="o">::</span><span class="n">Widget</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">  <span class="o">:</span> <span class="n">pImpl</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">Impl</span><span class="o">&gt;</span><span class="p">())</span> <span class="p">{}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">Widget</span><span class="o">::~</span><span class="n">Widget</span><span class="p">()</span> <span class="o">=</span> <span class="k">default</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">Widget</span><span class="o">::</span><span class="n">Widget</span><span class="p">(</span><span class="n">Widget</span> <span class="o">&amp;&amp;</span><span class="n">rhs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">  <span class="o">:</span> <span class="n">pImpl</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">Impl</span><span class="o">&gt;</span><span class="p">(</span><span class="o">*</span><span class="n">rhs</span><span class="p">.</span><span class="n">pImpl</span><span class="p">))</span> <span class="p">{}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">Widget</span> <span class="o">&amp;</span><span class="n">Widget</span><span class="o">::</span><span class="k">operator</span><span class="o">=</span><span class="p">(</span><span class="n">Widget</span> <span class="o">&amp;&amp;</span><span class="n">rhs</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="o">*</span><span class="n">pImpl</span> <span class="o">=</span> <span class="o">*</span><span class="n">rhs</span><span class="p">.</span><span class="n">pImpl</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="o">*</span><span class="k">this</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>        要注意 $unique_-ptr$ 并不允许拷贝构造，所以我们需要进行深拷贝。<br>
-        如果我们在 $Widget$ 中使用的不是 $unique_-ptr$ ，而是 $shared_-ptr$ ，我们会发现上面的问题不再存在了。这是由于 $unique_-ptr$ 和 $shared_-ptr$ 存储删除器的方式不同，$unique_-ptr$ 的删除器是它的一部分，从而 $unique_-ptr$ 的删除器必须在编译期时确定，而 $shared_-ptr$ 不需要。</p>
-
-            </div>
-            <div class="meta post-footer">
-                <span>2022 Mar 3 13:38</span>
-                <a href="https://z217blog.cn/post/effectivemoderncpp3/"><i class="fas fa-link"></i> link</a>
             </div>
         </div>
         

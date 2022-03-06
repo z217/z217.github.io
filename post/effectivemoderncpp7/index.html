@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/jquery.floatingscroll.css>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+    integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <script src=https://z217blog.cn/js/jquery.floatingscroll.min.js></script>
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="/friend" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">EffectiveModernCpp（7）：通用技巧</h1>
+
+
+
+
+<p>        <code>C++</code>中的通用技巧总是存在适合使用的场景和不适合使用的场景。描述一个适合使用某项通用技巧的场景通常是很简单的，但是也存在两个例外。接下来会描述这两个例外。</p>
+<h2 id="1-值传递">1. 值传递</h2>
+<p>        有些函数的参数是可以拷贝的。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="n">addName</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">newName</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">names</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">newName</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">addName</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;&amp;</span><span class="n">newName</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">names</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">newName</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span> <span class="n">names</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        对于左值，我们调用拷贝构造函数，而对于右值，我们调用移动函数。这很合理，但是有点难受，因为我们要重载这个函数，这意味着更多的代码、更多的文档。我们可以使用通用引用改善这个问题：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="n">addName</span><span class="p">(</span><span class="n">T</span> <span class="o">&amp;&amp;</span><span class="n">newName</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">names</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">newName</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></code></pre></div><p>        但是，正如我们之前所说的，通用引用也会带来新问题。而且，因为它是模版函数，所以定义也要放在头文件中。在模版函数实例化的过程中，根据类型的不同，这个函数也会实例化很多个版本。<br>
+        既然如此，我们能不能只用一个函数解决这个问题？答案是使用值传递。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="n">addName</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">newName</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">names</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">newName</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></code></pre></div><p>        因为 $newName$ 是通过值传递的，这意味着它是一个副本，所以我们可以使用移动。但是值传递会不会带来效率问题？在<code>C++98</code>中，可以肯定的是 $newName$ 在传递过来的时候已经经过一次拷贝了。然而在<code>C++11</code>中并不是，它可能是左值拷贝或者右值移动。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">Widget</span> <span class="n">w</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">(</span><span class="s">&#34;Bart&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">w</span><span class="p">.</span><span class="n">addName</span><span class="p">(</span><span class="n">name</span><span class="p">);</span>  <span class="c1">// 左值
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">w</span><span class="p">.</span><span class="n">addName</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s">&#34;Jenne&#34;</span><span class="p">);</span>  <span class="c1">// 右值
+</span></span></span></code></pre></div><p>        在第一次调用中，因为参数是左值，所以调用了一次拷贝构造函数。但在第二次调用中，因为参数是右值，所以调用的是移动构造函数。<br>
+        回顾我们之前列举的三种方式，比较一下它们的开销：</p>
+<ol>
+<li>重载版本：在重载版本中，参数传递不会带来开销，但是在 $push_-back$ 的时候存在开销，分别是一次拷贝和一次移动；</li>
+<li>通用引用：同样的，参数传递没有开销，但是在 $push_-back$ 的时候存在开销，也是一次拷贝和一次移动；</li>
+<li>值传递：无论是左值还是右值，都必须构造一次 $newName$ ，分别对应一次拷贝和一次移动。在之后的 $push_-back$ 调用中还需要进行一次移动。</li>
+</ol>
+<p>        总结下来，值传递方式总是会多一次移动操作。但是根据我们之前所说的，移动操作的开销很低，所以问题不是很大，而且这种方式也可以有效避免代码膨胀。<br>
+        当然，使用值传递是有前提的：</p>
+<ul>
+<li>只对存在拷贝函数的对象使用。如果函数没有拷贝函数，那么我们只需要一个接收右值的函数即可；</li>
+<li>只对移动操作开销小的对象使用；</li>
+<li>只对肯定会进行拷贝/移动的参数使用。如果函数不一定会进行拷贝/移动操作，那么值传递会带来不必要的开销。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="n">addName</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">newName</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">((</span><span class="n">newName</span><span class="p">.</span><span class="n">length</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">minLen</span><span class="p">)</span> <span class="o">&amp;&amp;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">(</span><span class="n">newName</span><span class="p">.</span><span class="n">length</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="n">maxLen</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="n">names</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">newName</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span> <span class="n">names</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        这种情况下参数不一定会被拷贝/移动，如果没有发生拷贝/移动，那么它相比其他模式就多了一次拷贝。<br>
+        即使你的函数处理的是一个移动比拷贝开销小的对象，值传递也不一定更合适，因为对象复制存在两种方式，一种是构造函数，另一种是赋值运算符。在上面的例子中，我们使用的是构造函数。让我们分析下使用运算符的情况：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Password</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="k">explicit</span> <span class="n">Password</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">pwd</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="o">:</span> <span class="n">text</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">pwd</span><span class="p">))</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">changeTo</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">newPwd</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">text</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">newPwd</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">text</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        让我们来使用这个类：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">initPwd</span><span class="p">(</span><span class="s">&#34;Supercalifragilisticexpialidocious&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">Password</span> <span class="nf">p</span><span class="p">(</span><span class="n">initPwd</span><span class="p">);</span>
+</span></span></code></pre></div><p>        $p.text$ 通过构造函数创建，从值传递的参数移动到 $text$ 。让我们修改下 $text$ ：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">newPassword</span> <span class="o">=</span> <span class="s">&#34;Beware the Jabberwock&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">p</span><span class="p">.</span><span class="n">chanegTo</span><span class="p">(</span><span class="n">newPassword</span><span class="p">);</span>
+</span></span></code></pre></div><p>        $changeTo$ 接收一个左值，这个左值通过拷贝构造函数构造，这会导致一次动态内存分配。之后调用移动赋值运算符，这会导致之前 $text$ 的空间被释放。也就是说 $chanegTo$ 涉及两次动态内存操作。<br>
+        让我们对比下使用引用的情况：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Password</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">void</span> <span class="n">changeTo</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">newPwd</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">text</span> <span class="o">=</span> <span class="n">newPwd</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">text</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        在这种情况中，因为新密码比旧密码短，所以 $text$ 不需要重新分配，可以继续使用之前的空间。<br>
+        对比下来，我们发现值传递相比引用传递多了一次空间动态释放的操作，这比移动操作的开销大得多。当然，如果新密码比旧密码长，那么引用传递还是不可避免地要进行一次空间分配和销毁。这种情况下，值传递就和引用传递效率相同了。<br>
+        总之，我们的结论就是是否使用值传递取决于传递的类型中左值和右值的比例，如果左值比较多，就意味着上面的情况发生概率会更大，因此更适合引用传递。对于 $std::string$ 来说，如果字符串比较短，且编译器使用了短字符串优化技术，那么也可以避免动态内存的问题。<br>
+        对于需要尽可能高效的程序来说，值传递不是一个好选择，因为会多一次移动。而且，如果加入了一些其他逻辑，那么值传递相比其他传递方式也会多出无意义的开销。还有一个与性能无关的问题，就是值传递会导致多态类出现<em><strong>切片问题</strong></em> ( $slicing$ $problem$ )。<code>C++11</code>并没有从根本上改变值传递，它只是区分了左值和右值，实现移动语义。对于特殊场景，值传递提供了一种简单的实现方式，以及接近引用传递的效率。</p>
+<h2 id="2-emplace">2. <code>emplace</code></h2>
+<p>        假设存在一个容器，元素类型为 $std::string$ ，我们要往容器里添加新元素，可以这样：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span> <span class="n">vs</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">vs</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="s">&#34;xyzzy&#34;</span><span class="p">);</span>
+</span></span></code></pre></div><p>        我们通过 $push_-back$ 传入的元素应该总是 $std::string$ 类型的。这很合理，而且 $push_-back$ 也对左值和右值进行了重载，意味着性能也不错。<br>
+        但是，对于执着于性能的人来说，还不够好，因为在调用 $push_-back$ 的时候多了一次临时对象的构造和销毁。这个问题可以通过 $emplace_-back$ 解决：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">vs</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="s">&#34;xyzzy&#34;</span><span class="p">);</span>
+</span></span></code></pre></div><p>        与 $push_-back$ 使用重载不同，$emplace_-back$ 使用的是完美转发，这意味着不会有临时对象的构造，而是直接在 $vector$ 内构造了 $string$ 。<br>
+        $emplace$ 函数和 $push$ 函数是对应的，意味着支持 $push_-back$ 的容器也支持 $emplace_-back$ ，支持 $push_-front$ 的容器也支持 $emplace_-front$ 。这个对应关系也体现在 $insert$ 函数上，有 $insert$ 函数的容器也支持 $emplace$ 。<br>
+        $emplace$ 函数优于 $insert$ 的原因是它们灵活的接口，前者接收构造函数参数，而后者接收构造完成的对象。理论上，我们应该在所有可能的地方使用 $emplace$ 。当然，理论是理论，实际还是有些场景更适合 $insert$ 的。这些场景不易描述，而且依赖于具体参数类型、容器类型、插入的位置、函数异常安全性等，所以我们的建议是使用<code>benchmark</code>进行测试。<br>
+        然而，大部分场景并不值得这样的测试，我们需要的更多是一些启发式的方法。在以下条件满足时，我们可以认为 $emplace$ 优于 $insert$ ：</p>
+<ol>
+<li>值在容器内直接构造，而不是赋值。上面的例子中我们是将元素插入空位置，我们考虑插入非空位置的情况：</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span> <span class="n">vs</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">vs</span><span class="p">.</span><span class="n">emplace</span><span class="p">(</span><span class="n">vs</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="s">&#34;xyzzy&#34;</span><span class="p">);</span>
+</span></span></code></pre></div><p>        假设 $vs$ 非空，那么这次 $emplace$ 调用将通过移动函数插入，移动函数需要一个已存在的对象，意味着需要创建一个临时对象。</p>
+<ol start="2">
+<li>传递的参数类型与容器持有元素类型不同。$emplace$ 的优势在于不需要创建临时对象，但是当传入的对象本身就不需要创建临时对象时，$emplace$ 的优势也就不存在了；</li>
+<li>容器允许重复值或者插入的值不是重复值。如果容器不允许重复，$emplace$ 通常需要创建一个节点，然后与容器当前值比较，如果不存在，那么就引用之前创建的节点，否则就销毁之前创建的节点。所以，插入重复值时 $emplace$ 也没有优势。</li>
+</ol>
+<p>        使用 $emplace$ 函数时还要注意另外两个问题，第一个是资源管理的问题。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">killWidget</span><span class="p">(</span><span class="n">Widget</span> <span class="o">*</span><span class="n">pWidget</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">list</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;&gt;</span> <span class="n">ptrs</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">ptrs</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span><span class="p">(</span><span class="k">new</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">killWidget</span><span class="p">));</span>
+</span></span></code></pre></div><p>        这里我们创建了一个存储智能指针的容器，你可能会想到使用 $emplace$ 代替：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">ptrs</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="k">new</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">killWidget</span><span class="p">);</span>
+</span></span></code></pre></div><p>        但是，我们并不建议使用 $emplace$ 。考虑我们之前讲智能指针时提到的问题，这里因为智能指针要指定删除器，所以不能通过 $std::make_-shared$ 创建。假设插入的时候出现异常，使用 $push_-back$ 的版本不会有问题，因为 $shared_-ptr$ 已经被创建，而且指定了删除器，所以资源会被释放。但是使用 $emplace_-back$ 的版本，因为 $shared_-ptr$ 并没有被创建，这意味着 $killWidget$ 不会被调用，从而资源不会被释放。<br>
+        如我们讲智能指针时提到的，不应该在调用的时候构造 $shared_-ptr$ ，而是应该先构造再调用，所以代码应该这样写：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="n">spw</span><span class="p">(</span><span class="k">new</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">killWidget</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">ptrs</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">spw</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl"><span class="n">ptrs</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">spw</span><span class="p">));</span>
+</span></span></code></pre></div><p>        这样的话无论哪种方式都没有问题，当然，这样 $emplace$ 也就失去优势了。<br>
+        $emplace$ 函数的第二个要注意的地方是与显式构造函数的交互。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">regex</span><span class="o">&gt;</span> <span class="n">regexes</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">regexes</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="k">nullptr</span><span class="p">);</span>
+</span></span></code></pre></div><p>        很神奇的是，上面的代码可以运行，但是下面的代码会出错：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">regex</span> <span class="n">r</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>  <span class="c1">// 错误
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">regexes</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="k">nullptr</span><span class="p">);</span>  <span class="c1">// 错误
+</span></span></span></code></pre></div><p>        理解这个问题，我们需要先知道 $std::regex$ 可以从字符串中构建，它其中一个构造函数接收一个 $const$ $char$ $\star$ 字符串，$push_-back$ 版本报错的原因是这个构造函数是一个显式构造函数，不接受从 $nullptr$ 的隐式转换。$emplace_-back$ 使用的是直接初始化，即括号初始化：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">regex</span> <span class="n">r1</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>  <span class="c1">// 错误
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">std</span><span class="o">::</span><span class="n">regex</span> <span class="n">r2</span><span class="p">(</span><span class="k">nullptr</span><span class="p">);</span>
+</span></span></code></pre></div><p>        括号初始化是可以运行的，这也是为什么 $emplace_-back$ 版本可以运行。所以，在使用 $emplace$ 函数的时候，我们也要注意参数是否正确。</p>
+
+<script src=https://z217blog.cn/js/toc.js></script>
+
+<div>
+    <a href="javascript:void(0);" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+    <div id="sidetoc">
+        <header>
+            <h4>EffectiveModernCpp（7）：通用技巧</h4>
+        </header>
+        <nav id="TableOfContents">
+            <ul></ul>
+        </nav>
+    </div>
+    <script>
+        isTocOpen = true;
+    </script>
+</div>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/effectivemoderncpp6/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+<script type="text/javascript">
+    if (isTocOpen) tocInit();
+</script>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:zihan.zhouchn@outlook.com">zihan.zhouchn@outlook.com</a>
+            </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2022, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        let all = MathJax.Hub.getAllJax(),
+            i;
+        
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+</main>
+</body>
+
+</html>
