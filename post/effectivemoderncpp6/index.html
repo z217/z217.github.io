@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/jquery.floatingscroll.css>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+    integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <script src=https://z217blog.cn/js/jquery.floatingscroll.min.js></script>
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="/friend" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">EffectiveModernCpp（6）：并发</h1>
+
+
+
+
+<p>        <code>C++11</code>的最伟大标志之一是将并发整合到语言和库中，允许开发者通过标准库写出跨平台的多线程程序。</p>
+<h2 id="1-stdasync">1. <code>std::async</code></h2>
+<p>        如果开发者想要异步执行 $doAsyncWork$ 函数，有两种方式，一种是创建 $std::thread$ ：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">doAsyncWork</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="kr">thread</span> <span class="n">t</span><span class="p">(</span><span class="n">doAsyncWork</span><span class="p">);</span>
+</span></span></code></pre></div><p>        另一种是创建 $std::async$ ：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">fut</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">async</span><span class="p">(</span><span class="n">doAsyncWork</span><span class="p">);</span>
+</span></span></code></pre></div><p>        通常我们会选择第二种方法，一是因为它代码量更少，二是可以获取返回值。更进一步，如果 $doAsyncWork$ 发生异常，我们还可以通过 $get$ 获取异常。<br>
+        基于线程与基于任务的最根本区别在于抽象层次的高低。基于任务的方式将开发者从线程管理中解放出来。<code>C++</code>的线程有三种含义：</p>
+<ul>
+<li>硬件线程 ( $Hardware$ $threads$ )，即计算机真正执行计算的线程，每个<code>CPU</code>核心都会提供一个或多个硬件线程；</li>
+<li>软件线程 ( $Software$ $threads$ )，是操作系统管理的在硬件线程上执行的线程。通常情况下，软件线程的数量会大于硬件线程；</li>
+<li>$std::thread$ ，是<code>C++</code>执行过程的对象，作为软件线程的句柄。</li>
+</ul>
+<p>        软件线程是有限的，如果你创建的软件线程的数量大于计算机最大能提供的数量，会抛出 $std::system_-error$ 错误。即使线程调用的函数是 $noexcept$ 的，这个错误依然会发生。<br>
+        设计良好的程序必须避免这种错误，一种有效的方法是在当前线程执行 $doAsyncWork$ ，但是这可能会导致负载不均衡，尤其是当前线程是<code>GUI</code>线程的时候，程序可能会陷入长时间未响应的状态；另一种办法是等待当前线程结束后再新创建线程，但是如果当前线程在等待 $doAsyncWork$ 的结果，这时程序就会陷入死锁。<br>
+        即使我们没有超出最大线程数，可用资源也会约束我们的程序。如果当前软件线程数大于硬件线程数，就会发生上下文切换。线程的上下文切换会带来开销，如果这时软件线程运行的<code>CPU</code>核心与之前的硬件线程所在的核心不同，这个开销会更高，因为(a)<code>CPU</code>缓存需要重新载入；(b)新线程缓存会覆盖老线程缓存，导致老线程再次在当前核心运行时又要重新载入缓存。<br>
+        避免这种资源开销的问题是很难的，因为软件线程与硬件线程的最佳比例取决于软件线程的执行效率，一个很明显的例子就是计算密集型程序和<code>I/O</code>密集型程序的执行效率是不同的。这个比例还依赖于上下文切换的开销和<code>CPU</code>缓存的使用效率。而且，对某种类型硬件和平台进行优化并不意味着换种硬件或者平台依然还有着这种效率。<br>
+        相比于直接使用 $std::thread$ ，$std::async$ 可以把调整最优线程数量的工作交给标准库实现，而且也可以减少资源超额的可能。$std::async$ 并不保证开启一个新线程，只是保证会执行该函数。我们也可以选择性地通过调用程序让它在当前线程执行。如果在<code>GUI</code>程序中使用 $std::async$ 出现了相应变慢的问题，我们还可以通过 $std::launch::async$ 来指定调度策略。<br>
+        最新的线程调度算法会使用线程池来避免资源问题，并且通过工作窃取算法提升跨核心的负载均衡。<code>C++</code>标准库虽然没有要求使用线程池或者工作窃取算法，但是库开发者们在标准库中使用了这些技术。使用基于任务的开发模式，处理资源和负载均衡的问题就交给了库开发者，而如果使用基于线程的开发模式，这些工作就落在了我们头上，更不用说还要考虑跨平台问题了。<br>
+        当然，这不意味着 $std::async$ 总是比 $std::thread$ 好。在一些场景中，$std::thread$ 是更好的选择：</p>
+<ul>
+<li>需要访问非常基础的线程<code>API</code>。<code>C++</code>的并发<code>API</code>通常是通过操作系统提供的系统级<code>API</code> ( $pthreads$ 或者 $windows$ $threads$ ) 来实现的。系统级<code>API</code>允许更加灵活的操作方式，例如优先级。为了提供对底层系统级<code>API</code>的访问，$std::thread$ 提供了 $native_-handler$ 成员函数，而 $std::async$ 没有；</li>
+<li>需要优化应用线程调度。对于一些特定系统平台运行的程序，经过优化，可以比<code>C++</code>标准库更有效率；</li>
+<li>需要实现<code>C++</code>并发<code>API</code>之外的线程技术，例如自己实现一个线程池。</li>
+</ul>
+<h2 id="2-启动策略">2. 启动策略</h2>
+<p>        当调用 $std::async$ 时，你通常希望该函数被异步执行，但它不一定会这样做。$std::async$ 有两种策略，通过 $std::launch$ 域的枚举表示：</p>
+<ul>
+<li>$std::launch::async$ ：函数必须异步执行，即在不同线程执行；</li>
+<li>$std::launch::deferred$ ：函数延迟到调用 $get$ 或者 $wait$ 时才执行，这种策略下是同步执行的。</li>
+</ul>
+<p>        但是 $std::async$ 的默认策略不是上面中的任何一个，而是它们的或，这意味着它可以异步也可以同步，当然，这也会使得它们的行为变得不可预测。默认启动策略也导致使用线程本地变量比较麻烦，因为无法知道哪个线程的本地变量会被访问。默认启动策略还会影响到基于超时机制的 $wait$ 循环：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">using</span> <span class="k">namespace</span> <span class="n">std</span><span class="o">::</span><span class="n">literals</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">f</span><span class="p">()</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">fut</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">async</span><span class="p">(</span><span class="n">f</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">while</span><span class="p">(</span><span class="n">fut</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">)</span> <span class="o">!=</span> <span class="n">std</span><span class="o">::</span><span class="n">future_status</span><span class="o">::</span><span class="n">ready</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></div><p>        如果 $f$ 异步执行，那么这个循环没有问题；但如果 $f$ 同步执行，$wait_-for$ 将总是返回 $std::futre_-status::deferred$ ，导致循环永远不会停止。解决办法也很简单，只要检查 $f$ 是否延迟执行即可。很不幸的是，我们并没有直接办法得知 $f$ 是否延迟执行，只能通过超时函数获取：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">fut</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">async</span><span class="p">(</span><span class="n">f</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="p">(</span><span class="n">fut</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="mi">0</span><span class="n">s</span><span class="p">)</span> <span class="o">==</span> <span class="n">std</span><span class="o">::</span><span class="n">future_status</span><span class="o">::</span><span class="n">deferred</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">while</span> <span class="p">(</span><span class="n">fut</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">)</span> <span class="o">!=</span> <span class="n">std</span><span class="o">::</span><span class="n">future_status</span><span class="o">::</span><span class="n">ready</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        总结起来，只有在以下条件满足时，我们才会使用默认策略：</p>
+<ul>
+<li>不需要严格并行执行；</li>
+<li>不需要读写线程本地变量；</li>
+<li>保证在之后会对 $future$ 调用 $get$ 或 $wait$ ；</li>
+<li>使用 $wait_-for$ 或 $wait_-until$ 时处理 $deferred$ 状态。</li>
+</ul>
+<p>        如果无法满足以上条件，我们建议使用 $async$ 策略。实际上，我们可以自己编写一个使用 $async$ 作为默认策略的函数：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">F</span><span class="p">,</span> <span class="k">typename</span> <span class="p">...</span><span class="n">Ts</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">inline</span> <span class="n">std</span><span class="o">::</span><span class="n">future</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">std</span><span class="o">::</span><span class="n">result_of</span><span class="o">&lt;</span><span class="n">F</span><span class="p">(</span><span class="n">Ts</span><span class="p">...)</span><span class="o">&gt;::</span><span class="n">type</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="n">reallyAsync</span><span class="p">(</span><span class="n">F</span> <span class="o">&amp;&amp;</span><span class="n">f</span><span class="p">,</span> <span class="n">Ts</span> <span class="o">&amp;&amp;</span><span class="p">...</span><span class="n">params</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">async</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">launch</span><span class="o">::</span><span class="n">async</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">F</span><span class="o">&gt;</span><span class="p">(</span><span class="n">f</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">Ts</span><span class="o">&gt;</span><span class="p">(</span><span class="n">params</span><span class="p">)...);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        这个函数接收一个可调用对象以及对象参数，然后完美转发给 $std::async$ ，并选择 $async$ 策略。<br>
+        在<code>C++14</code>中，我们可以这样实现：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">F</span><span class="p">,</span> <span class="k">typename</span> <span class="p">...</span><span class="n">Ts</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">inline</span> <span class="k">auto</span> <span class="n">reallyAsync</span><span class="p">(</span><span class="n">F</span> <span class="o">&amp;&amp;</span><span class="n">f</span><span class="p">,</span> <span class="n">Ts</span> <span class="o">&amp;&amp;</span><span class="p">...</span><span class="n">params</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">async</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">launch</span><span class="o">::</span><span class="n">async</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">f</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">Ts</span><span class="o">&gt;</span><span class="p">(</span><span class="n">params</span><span class="p">)...);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h2 id="3-join">3. <code>join</code></h2>
+<p>        $std::thread$ 有两个状态——可连接和不可连接。可连接状态的 $thread$ 绑定一个底层正在运行的异步线程，或者可能运行的线程，比如一个等待被调度或者阻塞的 $thread$ 。绑定到一个已经运行完成的底层线程的 $thread$ 也是可连接的。<br>
+        不可连接的 $thread$ 包括：</p>
+<ul>
+<li>默认构造函数构造的 $thread$ ，这种 $thread$ 没有函数可以执行，无法绑定到底层线程；</li>
+<li>被移动的 $thread$ ，移动会把当前 $thread$ 对底层线程的绑定转移到另一个 $thread$ 上；</li>
+<li>经过 $join$ 的 $thread$ ，$join$ 之后 $thread$ 和底层线程的绑定会在执行完成后切断；</li>
+<li>经过 $detach$ 的 $thread$ ，$detach$ 会切断 $thread$ 和底层线程的绑定。</li>
+</ul>
+<p>        如果一个线程是可连接的，那么当它的析构函数被调用时，程序也将中止。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">constexpr</span> <span class="k">auto</span> <span class="n">tenMillion</span> <span class="o">=</span> <span class="mi">10&#39;000&#39;000</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">bool</span> <span class="nf">doWork</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">bool</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="o">&gt;</span> <span class="n">filter</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="kt">int</span> <span class="n">maxVal</span> <span class="o">=</span> <span class="n">tenMillion</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">goodVals</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="kr">thread</span> <span class="n">t</span><span class="p">([</span><span class="o">&amp;</span><span class="n">filter</span><span class="p">,</span> <span class="n">maxVal</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">goodVals</span><span class="p">]</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="p">(</span><span class="k">auto</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">maxVal</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="k">if</span> <span class="p">(</span><span class="n">filter</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="n">goodVals</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">});</span>
+</span></span><span class="line"><span class="cl">  <span class="k">auto</span> <span class="n">nh</span> <span class="o">=</span> <span class="n">t</span><span class="p">.</span><span class="n">native_handle</span><span class="p">();</span>  <span class="c1">// set thread&#39;s priority
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">if</span> <span class="p">(</span><span class="n">conditionsAreStatisfied</span><span class="p">())</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">t</span><span class="p">.</span><span class="n">join</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="n">performComputation</span><span class="p">(</span><span class="n">goodVals</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        这里如果 $conditionAreStatisfied$ 返回 $true$ ，那么程序会正常结束。但是如果返回的是 $false$ ，或者抛出异常，那么 $t$ 会在 $doWork$ 结束时被析构，从而程序中止。<br>
+        你或许会疑惑为什么要这样设计，因为另外两种方式更糟：</p>
+<ul>
+<li>隐式 $join$ 。这种情况下 $thread$ 的析构函数需要等待其绑定的底层异步线程执行完成，这会影响性能，而且如果出现问题会难以追踪。并且，$doWork$ 已经结束了，我们也没必要让它继续过滤；</li>
+<li>隐式 $detach$ 。这种情况下，$thread$ 和底层线程的绑定被切断，线程会继续运行，这会带来更严重的调试问题。在 $doWork$ 返回后，$goodVals$ 也会被销毁，但是线程并不知道，它会继续在对应的内存位置调用 $push_-back$ 。然而这时 $doWork$ 的栈帧已经被弹出，所以线程会在未知的地方修改数据。</li>
+</ul>
+<p>        销毁可连接的线程会带来可怕的后果，所以我们也应该确保如果 $thread$ 会离开当前作用域，就把它们设置为不可连接的。但是覆盖每一个分支是很难的。一种通用的解决方案就是将这些操作放在对象析构函数中，这种对象也被称为 $RAII$ ( $Resource$ $Acquisition$ $Is$ $Initialization$ ) 对象。标准库没有 $RAII$ 的 $std::thread$ 类，可能是标准委员会拒绝将 $join$ 和 $detach$ 作为默认选项，不知道如何去实现这个类。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ThreadRAII</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="k">enum</span> <span class="k">class</span> <span class="nc">DtorAction</span> <span class="p">{</span> <span class="n">join</span><span class="p">,</span> <span class="n">detach</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">  <span class="n">ThreadRAII</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="kr">thread</span> <span class="o">&amp;</span><span class="n">t</span><span class="p">,</span> <span class="n">DtorAction</span> <span class="n">a</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="o">:</span> <span class="n">action</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="n">t</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">t</span><span class="p">))</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">  <span class="n">ThreadRAII</span><span class="p">(</span><span class="n">ThreadRAII</span> <span class="o">&amp;&amp;</span><span class="p">)</span> <span class="o">=</span> <span class="k">default</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">ThreadRAII</span> <span class="o">&amp;</span><span class="k">operator</span><span class="o">=</span><span class="p">(</span><span class="n">ThreadRAII</span> <span class="o">&amp;&amp;</span><span class="p">)</span> <span class="o">=</span> <span class="k">default</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="o">~</span><span class="n">ThreadRAII</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">t</span><span class="p">.</span><span class="n">joinable</span><span class="p">())</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="k">if</span> <span class="p">(</span><span class="n">action</span> <span class="o">==</span> <span class="n">DtorAction</span><span class="o">::</span><span class="n">join</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">t</span><span class="p">.</span><span class="n">join</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">t</span><span class="p">.</span><span class="n">detach</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="kr">thread</span> <span class="o">&amp;</span><span class="n">get</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">t</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">DtorAction</span> <span class="n">action</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="kr">thread</span> <span class="n">t</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        $std::thread$ 无法复制，所以我们只能通过移动构造。提供 $get$ 函数可以避免 $ThreadRAII$ 复制整个 $std::thread$ 接口。因为在一个不可连接的 $thread$ 上调用 $join$ 或 $detach$ 是未定义行为，所以我们需要先判断它的连接性。$ThreadRAII$ 存在析构函数，所以编译器不会自动生成移动函数，但很明显它是可以移动的，所以我们需要显式声明。<br>
+        有了 $ThreadRAII$ ，我们可以修改之前的代码：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">bool</span> <span class="nf">doWork</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">bool</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="o">&gt;</span> <span class="n">filter</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="kt">int</span> <span class="n">maxVal</span> <span class="o">=</span> <span class="n">tenMillion</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">goodVals</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">ThreadRAII</span> <span class="n">t</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="kr">thread</span><span class="p">([</span><span class="o">&amp;</span><span class="n">filter</span><span class="p">,</span> <span class="n">maxVal</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">goodVals</span><span class="p">]</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="k">for</span> <span class="p">(</span><span class="k">auto</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">maxVal</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">filter</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="n">goodVals</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}),</span>
+</span></span><span class="line"><span class="cl">    <span class="n">ThreadRAII</span><span class="o">::</span><span class="n">DtorAction</span><span class="o">::</span><span class="n">join</span>
+</span></span><span class="line"><span class="cl">  <span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="k">auto</span> <span class="n">nh</span> <span class="o">=</span> <span class="n">t</span><span class="p">.</span><span class="n">get</span><span class="p">().</span><span class="n">native_handle</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">if</span> <span class="p">(</span><span class="n">conditionAreStatisfied</span><span class="p">())</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">t</span><span class="p">.</span><span class="n">get</span><span class="p">().</span><span class="n">join</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="n">performComputation</span><span class="p">(</span><span class="n">goodVals</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        虽然 $join$ 也可能导致性能异常，但是相比于未定义行为和程序中止，这个选择还是更好一些。</p>
+<h2 id="4-线程析构">4. 线程析构</h2>
+<p>        可连接的 $std::thread$ 会绑定底层线程，异步的 $std::future$ 也与底层线程有相似的关系，从而它们都可以被视为底层线程的句柄。<br>
+        当然，它们的行为有很大不同。$thread$ 的析构可能会导致程序中止，但是 $future$ 的析构就像隐式 $join$ 或者隐式 $detach$ ，不会导致程序中止。<br>
+        $future$ 实际上是通信信道的一端，被调用者将数据写入信道 ( 通过 $std::promise$ )，调用者使用 $future$ 读取结果。问题来了，这些数据会存放在哪？肯定不能作为局部变量，因为会在调用结束后被销毁；同样也不能存储在 $future$ 内，因为它可能会被用于创建 $std::shared_-future$ ，这会导致数据被拷贝，但不是所有数据都能被拷贝。<br>
+        因为与被调用者关联的对象和与调用者关联的对象都不适合存储，所以这些数据必须存在其他位置，而且这个位置还必须能被被调用者和调用者访问。这个位置称为<strong>共享状态</strong> ( $shared$ $state$ )，通常是基于堆的对象。标准并未共享状态的类型、接口和实现，所以具体实现依赖于标准库作者。$future$ 的析构行为依赖于共享状态：</p>
+<ul>
+<li>非 $deferred$ 任务的最后一个与共享状态关联的 $future$ 的析构函数会阻塞到任务完成才运行。本质上，它相当于对 $future$ 所在的执行 $thread$ 进行了隐式 $join$ ；</li>
+<li>其他类型的 $future$ 的析构函数只是简单地进行析构。对于异步执行的任务，它类似于执行了 $detach$ 。如果一个 $deferred$ 的 $future$ 是当前任务的最后的 $future$ ，那么这个任务将不会被执行。</li>
+</ul>
+<p>        在大多数情况下，$future$ 析构函数会直接销毁 $future$ ，不会进行 $join$ 或 $detach$ ，而是仅仅销毁 $future$ 的数据成员。只有在满足以下条件时才会出现例外：</p>
+<ul>
+<li>共享状态是因为 $std::async$ 的调用而被创建的；</li>
+<li>启动策略是 $std::launch::async$ ；</li>
+<li>当前 $future$ 是共享状态关联的最后一个 $future$ 。对于 $std::future$ 来说，这个条件永远为真；而对于 $std::shared_-future$ 来说，它可能为假。</li>
+</ul>
+<p>        只有同时满足上面三个条件，$future$ 的析构函数才会在异步任务执行完成前阻塞。<br>
+        由于没有<code>API</code>来判断 $future$ 关联的共享状态是否是由于 $std::async$ 的调用创建的，所以我们也无法判断这个 $future$ 是否会阻塞。因为只有通过 $std::async$ 创建的共享状态才会有这个问题，所以我们可以通过用其他方式创建共享状态来避免这个问题。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">calcValue</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">package_task</span><span class="o">&lt;</span><span class="kt">int</span> <span class="p">()</span><span class="o">&gt;</span> <span class="n">pt</span><span class="p">(</span><span class="n">calcValue</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">fut</span> <span class="o">=</span> <span class="n">pt</span><span class="p">.</span><span class="n">get_future</span><span class="p">();</span>
+</span></span></code></pre></div><p>        上面通过 $std::package_-task$ 创建的 $future$ 就不会有这样的问题。$std::package_-task$ 对象可以通过 $thread$ 执行，也可以通过 $std::async$ ，当然这样就违背了我们使用它的初衷了。还要注意 $std::package_-task$ 不可拷贝，只能移动：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="kr">thread</span> <span class="n">t</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">pt</span><span class="p">));</span>
+</span></span></code></pre></div><h2 id="5-一次性通知">5. 一次性通知</h2>
+<p>        有时候，我们需要通过一个任务通知另一个异步执行的任务。一个很明显的解决方案就是通过条件变量，我们将修改条件的任务称为检测任务，对条件做出反应的任务称为反应任务，反应任务等待一个条件变量，检测任务在适时改变条件变量。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span> <span class="n">cv</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">cv</span><span class="p">.</span><span class="n">notify_one</span><span class="p">();</span>
+</span></span></code></pre></div><p>        如果有多个反应任务，可以通过 $notify_-all$ 通知。由于多个线程访问同一个变量，所以我们需要一些同步手段：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span> <span class="n">cv</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">mutex</span> <span class="n">m</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span> <span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">cv</span><span class="p">.</span><span class="n">wait</span><span class="p">(</span><span class="n">lk</span><span class="p">);</span>
+</span></span></code></pre></div><p>        条件变量的一个问题是它必须使用互斥锁，即使在不需要互斥锁的情况。此外，有两个情况要注意：</p>
+<ul>
+<li>如果检测任务在反应任务 $wait$ 前 $notify$ ，反应任务还是会被挂起；</li>
+<li>$wait$ 可能存在虚假唤醒的，我们可以用<code>lambda</code>解决这个问题：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">cv</span><span class="p">.</span><span class="n">wait</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span> <span class="p">[]</span> <span class="p">{</span> <span class="k">return</span> <span class="cm">/* if the event has occurred */</span> <span class="p">});</span>
+</span></span></code></pre></div><p>        另一个解决方案是通过原子类：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span> <span class="n">flag</span><span class="p">(</span><span class="nb">false</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">flag</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+</span></span></code></pre></div><p>        反应线程轮询该标志：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="n">flag</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></div><p>        这种方案的缺点是存在轮询的无意义开销，在轮询的时候线程无法做其他事，只能一次次地检测条件变量。所以，相比之下还是更建议使用条件变量。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span> <span class="n">cv</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">mutex</span> <span class="n">m</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">bool</span> <span class="nf">flag</span><span class="p">(</span><span class="nb">false</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span> <span class="n">g</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">flag</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="n">cv</span><span class="p">.</span><span class="n">notify_one</span><span class="p">();</span>
+</span></span></code></pre></div><hr>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span> <span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">cv</span><span class="p">.</span><span class="n">wait</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span> <span class="p">[]</span> <span class="p">{</span> <span class="k">return</span> <span class="n">flag</span><span class="p">;</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// ...
+</span></span></span></code></pre></div><p>        这个代码解决了我们之前的问题，但还是有点古怪，因为反应线程和检测线程通过同一个变量通信。一个可选的替代方案是通过 $future::wait$ 来避免使用条件变量。检测任务使用 $std::promise$ ，反应任务则使用 $std::future$ 或者 $std::shared_-future$ 。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">promise</span><span class="o">&lt;</span><span class="kt">void</span><span class="o">&gt;</span> <span class="n">p</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">p</span><span class="p">.</span><span class="n">set_value</span><span class="p">();</span>
+</span></span></code></pre></div><hr>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">p</span><span class="p">.</span><span class="n">get_future</span><span class="p">().</span><span class="n">wait</span><span class="p">();</span>
+</span></span></code></pre></div><p>        这种方式不需要条件变量和互斥锁，而且反应任务也会被阻塞。看上去很完美，但是又有新问题。因为共享状态一般是在堆上存储的，这会涉及动态内存的分配和释放；而且，$std::promise$ 只能设置一次，不能重复使用。<br>
+        一次性通信可以用在许多地方。假设你只是想要挂起一个线程，从而避免下一次需要时再次创建，或者是想在线程运行前进行设置，都可以通过 $future$ 实现：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">promise</span><span class="o">&lt;</span><span class="kt">void</span><span class="o">&gt;</span> <span class="n">p</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">react</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">detect</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">detect</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="kr">thread</span> <span class="n">t</span><span class="p">([]</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">p</span><span class="p">.</span><span class="n">get_future</span><span class="p">().</span><span class="n">wait</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="n">react</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="p">});</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">p</span><span class="p">.</span><span class="n">set_value</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">t</span><span class="p">.</span><span class="n">join</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        这里我们只创建了一个 $thread$ ，如果需要多个 $thread$ ，可以使用 $shared_-future$ 。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">promise</span><span class="o">&lt;</span><span class="kt">void</span><span class="o">&gt;</span> <span class="n">p</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">react</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">detect</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">detect</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">auto</span> <span class="n">sf</span> <span class="o">=</span> <span class="n">p</span><span class="p">.</span><span class="n">get_future</span><span class="p">().</span><span class="n">share</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kr">thread</span><span class="o">&gt;</span> <span class="n">vt</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">threadsToRun</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">vt</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">([</span><span class="n">sf</span><span class="p">]</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="n">sf</span><span class="p">.</span><span class="n">wait</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">      <span class="n">react</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="p">});</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">p</span><span class="p">.</span><span class="n">set_value</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="k">auto</span> <span class="o">&amp;</span><span class="nl">t</span> <span class="p">:</span> <span class="n">vt</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="n">t</span><span class="p">.</span><span class="n">join</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h2 id="6-stdatomic和volatile">6. <code>std::atomic</code>和<code>volatile</code></h2>
+<p>        与其他编程语言不同，<code>C++</code>中的 $volatile$ 并没有关于并发的能力。开发者有时候会对 $volatile$ 和 $std::atomic$ 感到困惑。$std::atomic$ 会给某个类型提供原子性，它的行为类似于内部使用互斥锁保护一段临界区，但是是通过特殊的更有效率的机器指令实现的。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">ai</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">ai</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">ai</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="o">++</span><span class="n">ai</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="o">--</span><span class="n">ai</span><span class="p">;</span>
+</span></span></code></pre></div><p>        如果没有其他线程访问 $ai$ ，那么 $ai$ 的值只可能是 $0$ 、$10$ 和 $11$ 之间的一个。要注意 $std::cout$ 对 $ai$ 的访问只保证了它读取时是原子的，而在之后调用 $operator$&lt;&lt; 的时候并不是原子的。对于 $ai$ 的递增和递减操作，它们都是 $read-modifiy-write$ ( $RMW$ ) 操作，$atomic$ 保证它们是原子执行的。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">volatile</span> <span class="kt">int</span> <span class="nf">vi</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">vi</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">vi</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="o">++</span><span class="n">vi</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="o">--</span><span class="n">vi</span><span class="p">;</span>
+</span></span></code></pre></div><p>        $volatile$ 在多线程中不会保证任何事。在这段代码中，$vi$ 的值可能是任意一个，因为可能存在数据竞争。<br>
+        $RMW$ 操作不是仅有的在 $atomic$ 有效而 $volatile$ 无效的例子。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span> <span class="n">valVailable</span><span class="p">(</span><span class="nb">false</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">imptValue</span> <span class="o">=</span> <span class="n">computeImportantValue</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="n">valAvailable</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+</span></span></code></pre></div><p>        就代码编写角度，我们能看到 $valAvailable$ 是在 $imptValue$ 之后赋值的，并且这个顺序不应该改变。但是对于编译器来说不是，编译器不知道它们的依赖关系，因此可能会重排这些指令。即使编译器没有重排，底层硬件也可能进行重排。$atomic$ 会限制这种重排，体现在源代码中，就是在对 $atomic$ 变量完成写入之前不会执行其他指令。这种禁止指令重排序的功能也是 $volatile$ 所不具有的。<br>
+        一般内存会保证一个值不变，直到被修改。如果一个值被多次修改，编译器也可能进行优化：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>
+</span></span></code></pre></div><p>        编译器可能会略去一次对 $y$ 的赋值，因为它很明显是重复的。同样的：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">x</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">x</span> <span class="o">=</span> <span class="mi">20</span><span class="p">;</span>
+</span></span></code></pre></div><p>        编译器可能直接略去第一个赋值语句，因为它也是不必要的。<br>
+        这些代码看上去很蠢，但是对于编译器来说很常见，因为模版实例化、内联函数以及指令重排序会导致很多这样的代码出现，编译器需要负责对这些代码进行优化。<br>
+        还要注意的是，我们上面的例子是在一般内存的前提下。有些特殊的内存，比如用于内存映射<code>I/O</code>的内存，实际上是与外围设备 ( 比如传感器、显示器、打印机或者网络端口等 ) 通信，而不是读写<code>RAM</code>。这种情况下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>
+</span></span></code></pre></div><p>        这种代码就不能进行优化了，因为 $x$ 的值可能是某个传感器的上报值，第一次读取和第二次读取的结果可能是不同的。类似的，对 $x$ 的写可能是写入多条指令，也不能进行优化。<br>
+        面对这种问题，$volatile$ 的价值就被体现了。声明为 $volatile$ 的变量所在的内存不会被编译器优化。这是 $std::atomic$ 无法做到的，而且我们也不能对 $atomic$ 对象进行以下操作：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>
+</span></span></code></pre></div><p>        因为 $atomic$ 没有拷贝函数。之所以没有，是因为拷贝涉及到读取和写入，而硬件通常无法在一次原子操作内同时进行读取和写入。如果要从 $x$ 进行构造，可以使用 $load$ 和 $store$ ：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">y</span><span class="p">(</span><span class="n">x</span><span class="p">.</span><span class="n">load</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl"><span class="n">y</span><span class="p">.</span><span class="n">store</span><span class="p">(</span><span class="n">x</span><span class="p">.</span><span class="n">load</span><span class="p">());</span>
+</span></span></code></pre></div><p>        当然，这种操作不是原子的，而是分为两次原子操作进行。这里 $x$ 读出了两次，编译器可能通过寄存器优化：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">register</span> <span class="o">=</span> <span class="n">x</span><span class="p">.</span><span class="n">load</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">y</span><span class="p">(</span><span class="k">register</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">y</span><span class="p">.</span><span class="n">store</span><span class="p">(</span><span class="k">register</span><span class="p">);</span>
+</span></span></code></pre></div><p>        当然，对于特殊内存来说，肯定不能进行这种优化。<br>
+        总的来说，$std::atomic$ 应用于并发场景，$volatile$ 则应用于特殊内存场景。它们也可以结合使用：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">volatile</span> <span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">vai</span><span class="p">;</span>
+</span></span></code></pre></div><p>        一些开发者喜欢使用 $load$ 和 $store$ 而不是 $=$ ，因为这可以强调它们是原子变量。这也有一些道理，因为对原子变量的访问确实会慢些，不过更多的还是习惯问题。</p>
+
+<script src=https://z217blog.cn/js/toc.js></script>
+
+<div>
+    <a href="javascript:void(0);" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+    <div id="sidetoc">
+        <header>
+            <h4>EffectiveModernCpp（6）：并发</h4>
+        </header>
+        <nav id="TableOfContents">
+            <ul></ul>
+        </nav>
+    </div>
+    <script>
+        isTocOpen = true;
+    </script>
+</div>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/effectivemoderncpp5/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+<script type="text/javascript">
+    if (isTocOpen) tocInit();
+</script>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:zihan.zhouchn@outlook.com">zihan.zhouchn@outlook.com</a>
+            </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2022, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        let all = MathJax.Hub.getAllJax(),
+            i;
+        
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+</main>
+</body>
+
+</html>

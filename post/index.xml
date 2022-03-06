@@ -7,7 +7,27 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2022, z217 and the hugo authors, all rights reserved.</copyright>
-    <lastBuildDate>Sat, 05 Mar 2022 13:29:53 +0800</lastBuildDate><atom:link href="https://z217blog.cn/post/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sat, 05 Mar 2022 16:29:15 +0800</lastBuildDate><atom:link href="https://z217blog.cn/post/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>EffectiveModernCpp（6）：并发</title>
+      <link>https://z217blog.cn/post/effectivemoderncpp6/</link>
+      <pubDate>Sat, 05 Mar 2022 16:29:15 +0800</pubDate>
+      
+      <guid>https://z217blog.cn/post/effectivemoderncpp6/</guid>
+      <description>C++11的最伟大标志之一是将并发整合到语言和库中，允许开发者通过标准库写出跨平台的多线程程序。
+1. std::async  如果开发者想要异步执行 $doAsyncWork$ 函数，有两种方式，一种是创建 $std::thread$ ：
+int doAsyncWork(); std::thread t(doAsyncWork);  另一种是创建 $std::async$ ：
+auto fut = std::async(doAsyncWork);  通常我们会选择第二种方法，一是因为它代码量更少，二是可以获取返回值。更进一步，如果 $doAsyncWork$ 发生异常，我们还可以通过 $get$ 获取异常。
+基于线程与基于任务的最根本区别在于抽象层次的高低。基于任务的方式将开发者从线程管理中解放出来。C++的线程有三种含义：
+ 硬件线程 ( $Hardware$ $threads$ )，即计算机真正执行计算的线程，每个CPU核心都会提供一个或多个硬件线程； 软件线程 ( $Software$ $threads$ )，是操作系统管理的在硬件线程上执行的线程。通常情况下，软件线程的数量会大于硬件线程； $std::thread$ ，是C++执行过程的对象，作为软件线程的句柄。   软件线程是有限的，如果你创建的软件线程的数量大于计算机最大能提供的数量，会抛出 $std::system_-error$ 错误。即使线程调用的函数是 $noexcept$ 的，这个错误依然会发生。
+设计良好的程序必须避免这种错误，一种有效的方法是在当前线程执行 $doAsyncWork$ ，但是这可能会导致负载不均衡，尤其是当前线程是GUI线程的时候，程序可能会陷入长时间未响应的状态；另一种办法是等待当前线程结束后再新创建线程，但是如果当前线程在等待 $doAsyncWork$ 的结果，这时程序就会陷入死锁。
+即使我们没有超出最大线程数，可用资源也会约束我们的程序。如果当前软件线程数大于硬件线程数，就会发生上下文切换。线程的上下文切换会带来开销，如果这时软件线程运行的CPU核心与之前的硬件线程所在的核心不同，这个开销会更高，因为(a)CPU缓存需要重新载入；(b)新线程缓存会覆盖老线程缓存，导致老线程再次在当前核心运行时又要重新载入缓存。
+避免这种资源开销的问题是很难的，因为软件线程与硬件线程的最佳比例取决于软件线程的执行效率，一个很明显的例子就是计算密集型程序和I/O密集型程序的执行效率是不同的。这个比例还依赖于上下文切换的开销和CPU缓存的使用效率。而且，对某种类型硬件和平台进行优化并不意味着换种硬件或者平台依然还有着这种效率。
+相比于直接使用 $std::thread$ ，$std::async$ 可以把调整最优线程数量的工作交给标准库实现，而且也可以减少资源超额的可能。$std::async$ 并不保证开启一个新线程，只是保证会执行该函数。我们也可以选择性地通过调用程序让它在当前线程执行。如果在GUI程序中使用 $std::async$ 出现了相应变慢的问题，我们还可以通过 $std::launch::async$ 来指定调度策略。
+最新的线程调度算法会使用线程池来避免资源问题，并且通过工作窃取算法提升跨核心的负载均衡。C++标准库虽然没有要求使用线程池或者工作窃取算法，但是库开发者们在标准库中使用了这些技术。使用基于任务的开发模式，处理资源和负载均衡的问题就交给了库开发者，而如果使用基于线程的开发模式，这些工作就落在了我们头上，更不用说还要考虑跨平台问题了。
+当然，这不意味着 $std::async$ 总是比 $std::thread$ 好。在一些场景中，$std::thread$ 是更好的选择：</description>
+    </item>
+    
     <item>
       <title>EffectiveModernCpp（5）：Lambda</title>
       <link>https://z217blog.cn/post/effectivemoderncpp5/</link>
