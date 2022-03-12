@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/jquery.floatingscroll.css>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+    integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <script src=https://z217blog.cn/js/jquery.floatingscroll.min.js></script>
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="/friend" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">C&#43;&#43; Templates（2）：非类模版参数</h1>
+
+
+
+
+<h2 id="1-非类模版参数">1. 非类模版参数</h2>
+<h3 id="11-非类模版参数类">1.1 非类模版参数类</h3>
+<p>        你可以实现一个固定大小的 $Stack$ ，这样就可以避开内存管理的开销。为了让 $Stack$ 更加灵活，你可以让用户决定最大大小。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;array&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;cassert&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">Maxsize</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Stack</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">Maxsize</span><span class="o">&gt;</span> <span class="n">elems</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">numElems</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Stack</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">push</span><span class="p">(</span><span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">elem</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">pop</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">top</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">bool</span> <span class="nf">empty</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span> <span class="k">return</span> <span class="n">numElems</span> <span class="o">==</span> <span class="mi">0</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">size_T</span> <span class="n">size</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span> <span class="k">return</span> <span class="n">numElems</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">Maxsize</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="n">Stack</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">Maxsize</span><span class="o">&gt;::</span><span class="n">Stack</span><span class="p">()</span> <span class="o">:</span> <span class="n">numElems</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">Maxsize</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">Stack</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">Maxsize</span><span class="o">&gt;::</span><span class="n">push</span><span class="p">(</span><span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">elem</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">assert</span><span class="p">(</span><span class="n">numElems</span> <span class="o">&lt;</span> <span class="n">Maxsize</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">elems</span><span class="p">[</span><span class="n">numElems</span><span class="p">]</span> <span class="o">=</span> <span class="n">elem</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="o">++</span><span class="n">numElems</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">Maxsize</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">Stack</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">Maxsize</span><span class="o">&gt;::</span><span class="n">pop</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">assert</span><span class="p">(</span><span class="o">!</span><span class="n">elems</span><span class="p">.</span><span class="n">empty</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">  <span class="o">--</span><span class="n">numElems</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">Maxsize</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">Stack</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">Maxsize</span><span class="o">&gt;::</span><span class="n">top</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">assert</span><span class="p">(</span><span class="o">!</span><span class="n">elems</span><span class="p">.</span><span class="n">empty</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">elems</span><span class="p">[</span><span class="n">numElems</span> <span class="o">-</span> <span class="mi">1</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        $Maxsize$ 的类型是 $int$ ，它指定了 $Stack$ 内部 $array$ 成员的大小。此外，它也用于 $push$ 函数中检查栈是否已满。<br>
+        你也可以指定一个默认类型和大小：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span> <span class="o">=</span> <span class="kt">int</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">Maxsize</span> <span class="o">=</span> <span class="mi">100</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Stack</span><span class="p">;</span>
+</span></span></code></pre></div><p>        然而，这不是一个好设计。默认值应该是一个符合直觉且正确的值，但是不管是 $int$ 还是 $100$ 都不够通用。所以，最好还是把这些交给用户决定。</p>
+<h3 id="12-非类模版参数函数">1.2 非类模版参数函数</h3>
+<p>        你也可以为函数定义非类模版参数。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="kt">int</span> <span class="n">Val</span><span class="p">,</span> <span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="n">T</span> <span class="n">addValue</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">Val</span><span class="p">;</span> <span class="p">}</span>
+</span></span></code></pre></div><p>        这种类型的函数在将函数或者操作作为模版参数时是否有用。例如，<code>C++</code>标准库中你就可以传入该函数的一个实例来实现为每个元素加上一个值：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">tranform</span><span class="p">(</span><span class="n">source</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">source</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">              <span class="n">dest</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">addValue</span><span class="o">&lt;</span><span class="mi">5</span><span class="p">,</span> <span class="kt">int</span><span class="o">&gt;</span><span class="p">);</span>
+</span></span></code></pre></div><p>        注意你必须同时指定 $Val$ 和类型 $int$ 。类型推导只会在立即调用时进行，并且 $std::transform$ 也需要一个完全类型来确定它第四个参数的模版类型。<br>
+        同样的，你也可以指定一个默认值：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">auto</span> <span class="n">Val</span><span class="p">,</span> <span class="k">typename</span> <span class="n">T</span> <span class="o">=</span> <span class="k">decltype</span><span class="p">(</span><span class="n">Val</span><span class="p">)</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="n">T</span> <span class="n">foo</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="n">T</span> <span class="n">Val</span> <span class="o">=</span> <span class="n">T</span><span class="p">{}</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="n">T</span> <span class="n">bar</span><span class="p">();</span>
+</span></span></code></pre></div><h3 id="13-非类模版参数的限制">1.3 非类模版参数的限制</h3>
+<p>        非类模版参数有一些限制。一般，你只能使用整型常量、对象/函数/成员指针、对象/函数的左值引用或者 $std::nullptr_-t$ 。浮点数和类对象是不能使用的。<br>
+        当传递给指针或引用模版类型时，对象不能是字符串常量、临时变量、数据成员或者其他子对象。在<code>C++17</code>之前，这些限制随着<code>C++</code>版本被渐渐放宽了，之前的版本还存在一些额外限制：</p>
+<ul>
+<li>在<code>C++11</code>之前，对象必须具有外部链接；</li>
+<li>在<code>C++11</code>/<code>C++14</code>，对象必须具有外部或内部链接；</li>
+<li><code>C++17</code>开始允许无链接对象。</li>
+</ul>
+<p>        因此这样是不行的：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="kt">char</span> <span class="k">const</span><span class="o">*</span> <span class="n">name</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MyClass</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">MyClass</span><span class="o">&lt;</span><span class="s">&#34;hello&#34;</span><span class="o">&gt;</span> <span class="n">x</span><span class="p">;</span>  <span class="c1">// 错误
+</span></span></span></code></pre></div><p>        但是，这样是可以的 ( 取决于<code>C++</code>版本 )：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">extern</span> <span class="kt">char</span> <span class="k">const</span> <span class="n">s03</span><span class="p">[]</span> <span class="o">=</span> <span class="s">&#34;hi&#34;</span><span class="p">;</span>  <span class="c1">// 外部链接
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">char</span> <span class="k">const</span> <span class="n">s11</span><span class="p">[]</span> <span class="o">=</span> <span class="s">&#34;hi&#34;</span><span class="p">;</span>  <span class="c1">// 内部链接
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Message</span><span class="o">&lt;</span><span class="n">s03</span><span class="o">&gt;</span> <span class="n">m03</span><span class="p">;</span>  <span class="c1">// 所有版本
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">Message</span><span class="o">&lt;</span><span class="n">s11</span><span class="o">&gt;</span> <span class="n">m11</span><span class="p">;</span>  <span class="c1">// C++11
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">static</span> <span class="kt">char</span> <span class="k">const</span> <span class="n">s17</span><span class="p">[]</span> <span class="o">=</span> <span class="s">&#34;hi&#34;</span><span class="p">;</span>  <span class="c1">// 无链接
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">Message</span><span class="o">&lt;</span><span class="n">s17</span><span class="o">&gt;</span> <span class="n">m17</span><span class="p">;</span>  <span class="c1">// C++17
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></div><h3 id="14-auto">1.4 <code>auto</code></h3>
+<p>        从<code>C++17</code>开始，你可以通过 $auto$ 类型参数来接收任意一个允许的非类模版参数。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;array&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;cassert&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="k">auto</span> <span class="n">Maxsize</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Stack</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="k">using</span> <span class="n">size_type</span> <span class="o">=</span> <span class="k">decltype</span><span class="p">(</span><span class="n">Maxsize</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">Maxsize</span><span class="o">&gt;</span> <span class="n">elems</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">size_type</span> <span class="n">numElems</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Stack</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">push</span><span class="p">(</span><span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">elem</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">pop</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">top</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">bool</span> <span class="nf">empty</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span> <span class="k">return</span> <span class="n">numElems</span> <span class="o">--</span> <span class="mi">0</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="n">size_type</span> <span class="nf">size</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span> <span class="k">return</span> <span class="n">numElems</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="k">auto</span> <span class="n">Maxsize</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="n">Stack</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">Maxsize</span><span class="o">&gt;::</span><span class="n">Stack</span><span class="p">()</span> <span class="o">:</span> <span class="n">numElems</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="k">auto</span> <span class="n">Maxsize</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">Stack</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">Maxsize</span><span class="o">&gt;::</span><span class="n">push</span><span class="p">(</span><span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">elem</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">assert</span><span class="p">(</span><span class="n">numElems</span> <span class="o">&lt;</span> <span class="n">Maxsize</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">elems</span><span class="p">[</span><span class="n">numElems</span><span class="p">]</span> <span class="o">=</span> <span class="n">elem</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="o">++</span><span class="n">numElems</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="k">auto</span> <span class="n">Maxsize</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">Stack</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">Maxsize</span><span class="o">&gt;::</span><span class="n">pop</span><span class="p">()</span> <span class="p">{</span> 
+</span></span><span class="line"><span class="cl">  <span class="n">assert</span><span class="p">(</span><span class="o">!</span><span class="n">elems</span><span class="p">.</span><span class="n">empty</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">  <span class="o">--</span><span class="n">numElems</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="k">auto</span> <span class="n">Maxsize</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">Stack</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">Maxsize</span><span class="o">&gt;::</span><span class="n">top</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">assert</span><span class="p">(</span><span class="o">!</span><span class="n">elems</span><span class="p">.</span><span class="n">empty</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">elems</span><span class="p">[</span><span class="n">numElems</span> <span class="o">-</span> <span class="mi">1</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        你也可以结合 $decltype$ 使用：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">N</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">C</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">C</span><span class="o">&lt;</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">&gt;</span> <span class="n">x</span><span class="p">;</span>
+</span></span></code></pre></div><p>        这样 $N$ 就可以成为一个引用类型。</p>
+<h2 id="2-变长模版">2. 变长模版</h2>
+<h3 id="21-变长模版">2.1 变长模版</h3>
+<p>        <code>C++11</code>开始，你可使用变长参数模版。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">print</span><span class="p">()</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">Types</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">print</span><span class="p">(</span><span class="n">T</span> <span class="n">firstArg</span><span class="p">,</span> <span class="n">Types</span><span class="p">...</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">firstArg</span> <span class="o">&lt;&lt;</span> <span class="sc">&#39;\n&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">print</span><span class="p">(</span><span class="n">args</span><span class="p">...);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        你也可以这样实现：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">print</span><span class="p">(</span><span class="n">T</span> <span class="n">arg</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">arg</span> <span class="o">&lt;&lt;</span> <span class="sc">&#39;\n&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">Types</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">print</span><span class="p">(</span><span class="n">T</span> <span class="n">firstArg</span><span class="p">,</span> <span class="n">Types</span><span class="p">...</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">print</span><span class="p">(</span><span class="n">firstArg</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">print</span><span class="p">(</span><span class="n">args</span><span class="p">...);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        这种方式实现的依据是，如果两个函数模版不同之处只有模版尾部是否具有变长参数，那么没有变长参数的函数模版调用优先级更高。<br>
+        <code>C++11</code>也引入了新的运算符 $sizeof\dots$ ：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">Types</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">print</span><span class="p">(</span><span class="n">T</span> <span class="n">firstArg</span><span class="p">,</span> <span class="n">Types</span><span class="p">...</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="k">sizeof</span><span class="p">...(</span><span class="n">Types</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="sc">&#39;\n&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="k">sizeof</span><span class="p">...(</span><span class="n">args</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="sc">&#39;\n&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        上面两次调用会打印剩余的参数数量，结果都相同。<br>
+        你可能认为我们可以像这样使用该运算符：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">Types</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">print</span><span class="p">(</span><span class="n">T</span> <span class="n">firstArg</span><span class="p">,</span> <span class="n">Types</span><span class="p">...</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">firstArg</span> <span class="o">&lt;&lt;</span> <span class="sc">&#39;\n&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="k">sizeof</span><span class="p">...(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">print</span><span class="p">(</span><span class="n">args</span><span class="p">...);</span>  <span class="c1">// 错误
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        然而，这种方式是错误的。一段代码是否会被使用是运行时决定的，而不是编译时决定的，这意味着编译器必须实例化所有代码，其中包括了调用无参数版本的 $print$ ，因为并没有这样的 $print$ 函数重载，所以产生了编译错误。</p>
+<h3 id="22-折叠表达式">2.2 折叠表达式</h3>
+<p>        <code>C++17</code>开始我们可以使用二元运算符来计算参数集里所有参数的运算结果。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">foldSum</span><span class="p">(</span><span class="n">T</span><span class="p">...</span> <span class="n">s</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="p">(...</span> <span class="o">+</span> <span class="n">s</span><span class="p">);</span> <span class="p">}</span>
+</span></span></code></pre></div><p>        如果参数集为空，表达式的格式就不正确，这时 &amp;&amp; 运算符返回 $true$ ，|| 运算符返回 $false$ ，逗号运算符返回 $void$ 。</p>
+<div class="div-table" data-fl-scrolls><table>
+<thead>
+<tr>
+<th style="text-align:left">折叠表达式</th>
+<th style="text-align:left">效果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">$(\dots\ op\ pack)$</td>
+<td style="text-align:left">$(((pack_1\ op\ pack_2)\ op\ pack_3)\ \dots\ op\ pack_N)$</td>
+</tr>
+<tr>
+<td style="text-align:left">$(pack\ op\ \dots)$</td>
+<td style="text-align:left">$(pack_1\ op\ (\dots\ (pack_{N-1}\ op\ pack_N)))$</td>
+</tr>
+<tr>
+<td style="text-align:left">$(init\ op\ \dots\ op\ pack)$</td>
+<td style="text-align:left">$(((init\ op\ pack_1)\ op\ pack2)\ \dots\ op\ pack_N)$</td>
+</tr>
+<tr>
+<td style="text-align:left">$(pack\ op\ \dots\ op\ init)$</td>
+<td style="text-align:left">$(pack_1\ op\ (\dots\ (pack_N\ op\ init)))$</td>
+</tr>
+</tbody>
+</table></div>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Node</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">value</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Node</span><span class="o">*</span> <span class="n">left</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Node</span><span class="o">*</span> <span class="n">right</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Node</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="o">:</span> <span class="n">value</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">left</span><span class="p">(</span><span class="k">nullptr</span><span class="p">),</span> <span class="n">right</span><span class="p">(</span><span class="k">nullptr</span><span class="p">)</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">left</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">Node</span><span class="o">::</span><span class="n">left</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">right</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">Node</span><span class="o">::</span><span class="n">right</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">TP</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="n">Node</span><span class="o">*</span> <span class="n">traverse</span><span class="p">(</span><span class="n">T</span> <span class="n">np</span><span class="p">,</span> <span class="n">TP</span><span class="p">...</span> <span class="n">paths</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="p">(</span><span class="n">np</span><span class="o">-&gt;*</span><span class="p">...</span><span class="o">-&gt;*</span><span class="n">paths</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Node</span><span class="o">*</span> <span class="n">root</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Node</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">  <span class="n">root</span><span class="o">-&gt;</span><span class="n">left</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Node</span><span class="p">{</span><span class="mi">1</span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">  <span class="n">root</span><span class="o">-&gt;</span><span class="n">left</span><span class="o">-&gt;</span><span class="n">right</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Node</span><span class="p">{</span><span class="mi">2</span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">Node</span><span class="o">*</span> <span class="n">node</span> <span class="o">=</span> <span class="n">traverse</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        通过折叠表达式，我们可以简化之前的打印函数：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">Types</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">print</span><span class="p">(</span><span class="n">Types</span> <span class="k">const</span><span class="o">&amp;</span><span class="p">...</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="p">...</span> <span class="o">&lt;&lt;</span> <span class="n">args</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="sc">&#39;\n&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        你会注意到这次元素之间没有空格隔开。为了解决这个问题，我们需要重载 $operator$&lt;&lt; 函数：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">AddSpace</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">ref</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">AddSpace</span><span class="p">(</span><span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">r</span><span class="p">)</span> <span class="o">:</span> <span class="n">ref</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">  <span class="k">friend</span> <span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span> <span class="k">operator</span><span class="o">&lt;&lt;</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span> <span class="n">os</span><span class="p">,</span> <span class="n">AddSpace</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">s</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">os</span> <span class="o">&lt;&lt;</span> <span class="n">s</span><span class="p">.</span><span class="n">ref</span> <span class="o">&lt;&lt;</span> <span class="sc">&#39; &#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">Args</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">print</span><span class="p">(</span><span class="n">Args</span><span class="p">...</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="p">...</span> <span class="o">&lt;&lt;</span> <span class="n">AddSpace</span><span class="p">(</span><span class="n">args</span><span class="p">))</span> <span class="o">&lt;&lt;</span> <span class="sc">&#39;\n&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h3 id="23-变长模版应用">2.3 变长模版应用</h3>
+<p>        变长模版在泛型库中有很多应用。一个典型的例子是转发一系列的参数，例如：</p>
+<ul>
+<li>构造一个使用智能指针的对象；</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">sp</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;&gt;</span><span class="p">(</span><span class="mf">4.2</span><span class="p">,</span> <span class="mf">7.7</span><span class="p">);</span>
+</span></span></code></pre></div><ul>
+<li>构造线程；</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="kr">thread</span> <span class="n">t</span><span class="p">(</span><span class="n">foo</span><span class="p">,</span> <span class="mi">42</span><span class="p">,</span> <span class="s">&#34;hello&#34;</span><span class="p">);</span>
+</span></span></code></pre></div><ul>
+<li>给 $vector$ 传递新元素的构造参数；</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Customer</span><span class="o">&gt;</span> <span class="n">v</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">v</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="s">&#34;Tim&#34;</span><span class="p">,</span> <span class="s">&#34;Jovi&#34;</span><span class="p">,</span> <span class="mi">1962</span><span class="p">);</span>
+</span></span></code></pre></div><p>        通常，参数会使用完美转发。相应的，声明会变成：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">std</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">Args</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">make_shared</span><span class="o">&lt;</span><span class="n">Args</span><span class="o">&amp;&amp;</span><span class="p">...</span> <span class="n">args</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">class</span> <span class="nc">thread</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">F</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">Args</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">explicit</span> <span class="kr">thread</span><span class="p">(</span><span class="n">F</span><span class="o">&amp;&amp;</span> <span class="n">f</span><span class="p">,</span> <span class="n">Args</span><span class="o">&amp;&amp;</span><span class="p">...</span> <span class="n">args</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="k">typename</span> <span class="n">Allocator</span> <span class="o">=</span> <span class="n">allocator</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">class</span> <span class="nc">vector</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">Args</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">reference</span> <span class="n">emplace_back</span><span class="p">(</span><span class="n">Args</span><span class="o">&amp;&amp;</span><span class="p">...</span> <span class="n">args</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h3 id="23-变长模版和变长表达式">2.3 变长模版和变长表达式</h3>
+<p>        除了上面的例子，参数集还可以在其他地方出现，例如表达式、类模版、$using$ 语句甚至推导指引。<br>
+        除了直接转发，你还可以对参数集进行计算：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">printDobuled</span><span class="p">(</span><span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span><span class="p">...</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">print</span><span class="p">(</span><span class="n">args</span> <span class="o">+</span> <span class="n">args</span><span class="p">...);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        这个函数会把每个值打印两遍。<br>
+        你也可以让每个数加 $1$ ，注意 $1$ 和 $\dots$ 之间要隔开：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">addOne</span><span class="p">(</span><span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span><span class="p">...</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">print</span><span class="p">(</span><span class="n">args</span> <span class="o">+</span> <span class="mf">1.</span><span class="p">..);</span>  <span class="c1">// 错误
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">print</span><span class="p">(</span><span class="n">args</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">...);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">print</span><span class="p">((</span><span class="n">args</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)...);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        同理，你也可以在编译期对变长模版进行计算。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T1</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">TN</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">constexpr</span> <span class="kt">bool</span> <span class="n">isHomogeneous</span><span class="p">(</span><span class="n">T1</span><span class="p">,</span> <span class="n">TN</span><span class="p">...)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">is_same_v</span><span class="o">&lt;</span><span class="n">T1</span><span class="p">,</span> <span class="n">TN</span><span class="o">&gt;</span> <span class="o">&amp;&amp;</span> <span class="p">...);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        作为另一个例子，变长模版也可以用于列表索引：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">C</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">Idx</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">printElems</span><span class="p">(</span><span class="n">C</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">coll</span><span class="p">,</span> <span class="n">Idx</span><span class="p">...</span> <span class="n">idx</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">print</span><span class="p">(</span><span class="n">coll</span><span class="p">[</span><span class="n">idx</span><span class="p">]...);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        你也可以结合非类模版参数使用：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">size_t</span><span class="p">...</span> <span class="n">Idx</span><span class="p">,</span> <span class="k">typename</span> <span class="n">C</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">printIdx</span><span class="p">(</span><span class="n">C</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">coll</span><span class="p">)</span> <span class="p">{</span> <span class="n">print</span><span class="p">(</span><span class="n">coll</span><span class="p">[</span><span class="n">Idx</span><span class="p">]...);</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span> <span class="n">coll</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#34;good&#34;</span><span class="p">,</span> <span class="s">&#34;times&#34;</span><span class="p">,</span> <span class="s">&#34;say&#34;</span><span class="p">,</span> <span class="s">&#34;bye&#34;</span><span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="n">printIdx</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="o">&gt;</span><span class="p">(</span><span class="n">coll</span><span class="p">);</span>
+</span></span></code></pre></div><p>        变长模版也可以作为类模版，$std::tuple$ 和 $std::variant$ 就是很好的例子。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">Elements</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Tuple</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">Types</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Variant</span><span class="p">;</span>
+</span></span></code></pre></div><p>        你也可以定义一个表示一个列表的类型：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">size_t</span><span class="p">...</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Indices</span> <span class="p">{};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">size_t</span><span class="p">...</span> <span class="n">Idx</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">printByIdx</span><span class="p">(</span><span class="n">T</span> <span class="n">t</span><span class="p">,</span> <span class="n">Indices</span><span class="o">&lt;</span><span class="n">Idx</span><span class="p">...</span><span class="o">&gt;</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">print</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">get</span><span class="o">&lt;</span><span class="n">Idx</span><span class="o">&gt;</span><span class="p">(</span><span class="n">t</span><span class="p">)...);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span> <span class="mi">5</span><span class="o">&gt;</span> <span class="n">arr</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#34;Hello&#34;</span><span class="p">,</span> <span class="s">&#34;my&#34;</span><span class="p">,</span> <span class="s">&#34;new&#34;</span><span class="p">,</span> <span class="s">&#34;!&#34;</span><span class="p">,</span> <span class="s">&#34;World&#34;</span><span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="n">printByIdx</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Indices</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="o">&gt;</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">t</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_tuple</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="s">&#34;monkeys&#34;</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">printByIdx</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Indices</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="o">&gt;</span><span class="p">());</span>
+</span></span></code></pre></div><p>        变长模版也可以应用于推导指引中。<code>C++</code>标准库中就有一个例子：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">std</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">U</span><span class="o">&gt;</span> <span class="n">array</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">U</span><span class="p">...)</span>
+</span></span><span class="line"><span class="cl">    <span class="o">-&gt;</span> <span class="n">array</span><span class="o">&lt;</span><span class="n">enable_if_t</span><span class="o">&lt;</span><span class="p">(</span><span class="n">is_same_v</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">U</span><span class="o">&gt;</span> <span class="o">&amp;&amp;</span> <span class="p">...),</span> <span class="n">T</span><span class="o">&gt;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">             <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">...(</span><span class="n">U</span><span class="p">))</span><span class="o">&gt;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        最后，考虑下面这个例子：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;string&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;unordered_set&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Customer</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Customer</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">n</span><span class="p">)</span> <span class="o">:</span> <span class="n">name</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">getName</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span> <span class="k">return</span> <span class="n">name</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">CustomerEq</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">bool</span> <span class="nf">operator</span><span class="p">()(</span><span class="n">Customer</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">c1</span><span class="p">,</span> <span class="n">Customer</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">c2</span><span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">c1</span><span class="p">.</span><span class="n">getName</span><span class="p">()</span> <span class="o">==</span> <span class="n">c2</span><span class="p">.</span><span class="n">getName</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">CustomerHash</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="k">operator</span><span class="p">()(</span><span class="n">Customer</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">c</span><span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">hash</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span><span class="p">()(</span><span class="n">c</span><span class="p">.</span><span class="n">getName</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">Bases</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Overloader</span> <span class="o">:</span> <span class="n">Bases</span><span class="p">...</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">using</span> <span class="n">Bases</span><span class="o">::</span><span class="k">operator</span><span class="p">()...;</span>  <span class="c1">// C++17
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">using</span> <span class="n">CustomerOP</span> <span class="o">=</span> <span class="n">Overloader</span><span class="o">&lt;</span><span class="n">CustomerHash</span><span class="p">,</span> <span class="n">CustomerEq</span><span class="o">&gt;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">unordered_set</span><span class="o">&lt;</span><span class="n">Customer</span><span class="p">,</span> <span class="n">CustomerHash</span><span class="p">,</span> <span class="n">CustomerEq</span><span class="o">&gt;</span> <span class="n">coll1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">unordered_set</span><span class="o">&lt;</span><span class="n">Customer</span><span class="p">,</span> <span class="n">CustomerOP</span><span class="p">,</span> <span class="n">CustomerOP</span><span class="o">&gt;</span> <span class="n">coll2</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        通过继承变长基类，我们让 $CustomerOP$ 拥有了两个 $operator(\ )$ 函数，其中一个用于比较，另一个用于求哈希值。</p>
+
+<script src=https://z217blog.cn/js/toc.js></script>
+
+<div>
+    <a href="javascript:void(0);" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+    <div id="sidetoc">
+        <header>
+            <h4>C&#43;&#43; Templates（2）：非类模版参数</h4>
+        </header>
+        <nav id="TableOfContents">
+            <ul></ul>
+        </nav>
+    </div>
+    <script>
+        isTocOpen = true;
+    </script>
+</div>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/cpptemplates1/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+<script type="text/javascript">
+    if (isTocOpen) tocInit();
+</script>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:zihan.zhouchn@outlook.com">zihan.zhouchn@outlook.com</a>
+            </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2022, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        let all = MathJax.Hub.getAllJax(),
+            i;
+        
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+</main>
+</body>
+
+</html>
