@@ -88,6 +88,24 @@
     
     
     <div class="list-item">
+        <a class="entry-title" href="https://z217blog.cn/post/cpptemplates5/">C&#43;&#43; Templates（5）：编译时编程</a>
+        
+        
+        <p>《C&#43;&#43; Templates》读书笔记（5），个人翻译</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2022 Mar 14 12:33
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: C&C++
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
         <a class="entry-title" href="https://z217blog.cn/post/cpptemplates4/">C&#43;&#43; Templates（4）：移动与引用</a>
         
         
@@ -159,24 +177,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="https://z217blog.cn/post/effectivemoderncpp7/">EffectiveModernCpp（7）：通用技巧</a>
-        
-        
-        <p>《Effective Modern C&#43;&#43;》读书笔记（7）</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2022 Mar 06 17:28
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: C&C++
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -185,6 +185,246 @@
     <div class="section-title">μblog</div>
     <div class="posts">
         
+        
+        <div class="post">
+            
+            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/cpptemplates5/">C&#43;&#43; Templates（5）：编译时编程</a></h1>
+            <div class="post-content">
+                
+                
+                <h2 id="1-模版元编程">1. 模版元编程</h2>
+<p>        模版在编译期实例化，这使得一些<code>C++</code>模版特性可以在实例化阶段进行一系列递归的语言编程。所以，我们可以使用模版来作为程序计算。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="n">p</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="n">d</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">DoIsPrime</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="k">constexpr</span> <span class="kt">bool</span> <span class="n">value</span> <span class="o">=</span>
+</span></span><span class="line"><span class="cl">    <span class="p">(</span><span class="n">p</span> <span class="o">%</span> <span class="n">d</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">DoIsPrime</span><span class="o">&lt;</span><span class="n">p</span><span class="p">,</span> <span class="n">d</span> <span class="o">-</span> <span class="mi">1</span><span class="o">&gt;::</span><span class="n">value</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="n">p</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">DoIsPrime</span><span class="o">&lt;</span><span class="n">p</span><span class="p">,</span> <span class="mi">2</span><span class="o">&gt;</span><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="k">constexpr</span> <span class="kt">bool</span> <span class="n">value</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="n">p</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">IsPrime</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="k">constexpr</span> <span class="kt">bool</span> <span class="n">value</span> <span class="o">=</span>
+</span></span><span class="line"><span class="cl">    <span class="n">DoIsPrime</span><span class="o">&lt;</span><span class="n">p</span><span class="p">,</span> <span class="n">p</span> <span class="o">/</span> <span class="mi">2</span><span class="o">&gt;::</span><span class="n">value</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">IsPrime</span><span class="o">&lt;</span><span class="mi">0</span><span class="o">&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="k">constexpr</span> <span class="kt">bool</span> <span class="n">value</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">IsPrime</span><span class="o">&lt;</span><span class="mi">1</span><span class="o">&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="k">constexpr</span> <span class="kt">bool</span> <span class="n">value</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">IsPrime</span><span class="o">&lt;</span><span class="mi">2</span><span class="o">&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="k">constexpr</span> <span class="kt">bool</span> <span class="n">value</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">IsPrime</span><span class="o">&lt;</span><span class="mi">3</span><span class="o">&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="k">constexpr</span> <span class="kt">bool</span> <span class="n">value</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        上面的代码计算一个数是否为质数。$DoIsPrime$ 会递归地展开表达式。例如：</p>
+<pre tabindex="0"><code>IsPrime&lt;9&gt;::value
+</code></pre><p>        会展开为：</p>
+<pre tabindex="0"><code>DoIsPrime&lt;9, 4&gt;::value
+</code></pre><p>        然后按照以下顺序继续展开：</p>
+<pre tabindex="0"><code>9 % 4 != 0 &amp;&amp; DoIsPrime&lt;9, 3&gt;::value
+
+9 % 4 != 0 &amp;&amp; 9 % 3 != 0 &amp;&amp; DoIsPrime&lt;9, 2&gt;::value
+
+9 % 4 != 0 &amp;&amp; 9 % 3 != 0 &amp;&amp; 9 % 2 != 0
+</code></pre><p>        从而得到 $false$ ，于是 $9$ 不是质数。<br>
+        注意所有的这些运算都会在编译期完成。虽然模版语法很丑，但是它在一些库中被证实是有效的。</p>
+<h2 id="2-constexpr">2. <code>constexpr</code></h2>
+<p>        $constexpr$ 是<code>C++11</code>引入的新特性，极大地简化了多种形式的编译期运算。特别的，如果给予了合适的输入，$constexpr$ 函数可以在编译期就完成计算。在<code>C++11</code>中，$constexpr$ 函数有着严格的限制。在<code>C++14</code>，大部分限制都被移除了。当然，一个有效的 $constexpr$ 函数还是要求所有计算阶段在编译期都是可行且有效的。现阶段，堆分配或者抛出异常等行为还是不允许的。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">constexpr</span> <span class="kt">bool</span> <span class="nf">doIsPrime</span><span class="p">(</span><span class="kt">unsigned</span> <span class="n">p</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="n">d</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">d</span> <span class="o">!=</span> <span class="mi">2</span> <span class="o">?</span> <span class="p">(</span><span class="n">p</span> <span class="o">%</span> <span class="n">d</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">doIsPrime</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">d</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="o">:</span> <span class="p">(</span><span class="n">p</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">constexpr</span> <span class="kt">bool</span> <span class="nf">isPrime</span><span class="p">(</span><span class="kt">unsigned</span> <span class="n">p</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">p</span> <span class="o">&lt;</span> <span class="mi">4</span> <span class="o">?</span> <span class="o">!</span><span class="p">(</span><span class="n">p</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">               <span class="o">:</span> <span class="n">doIsPrime</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">p</span> <span class="o">/</span> <span class="mi">2</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        上面是我们使用 $constexpr$ 函数实现的求质数。因为在<code>C++11</code>中，$constexpr$ 有着只能有一条语句的限制，所以我们只能使用三目运算符来选择分支，通过递归来遍历元素。但是因为它使用的是普通<code>C++</code>函数的代码，所以第一印象要比模版编程好。<br>
+        <code>C++14</code>中，$constexpr$ 函数可以使用更多的控制结构，所以与其使用笨重的模版代码或者神秘的一行代码，不如直接使用 $for$ 循环：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">constexpr</span> <span class="kt">bool</span> <span class="nf">isPrime</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">p</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">d</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span> <span class="n">d</span> <span class="o">&lt;=</span> <span class="n">p</span> <span class="o">/</span> <span class="mi">2</span><span class="p">;</span> <span class="n">d</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">p</span> <span class="o">%</span> <span class="n">d</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">p</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        不管是<code>C++11</code>版本的还是<code>C++14</code>版本的，我们都能在入参是编译时常量的前提下，在编译期就完成计算。但是编译器不一定会这样做。如果上下文需要一个编译期常量 ( 比如数组长度或非类模版参数 )，编译器就会尝试让 $constexpr$ 函数在编译期计算，并且会在无法计算时报错。在其他情况下，如果不需要一个编译期常量，编译期可能会也可能不会在编译期计算，这时如果编译期计算失败，不会产生编译错误，而是变为一个运行时调用。例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">constexpr</span> <span class="kt">bool</span> <span class="n">b1</span> <span class="o">=</span> <span class="n">isPrime</span><span class="p">(</span><span class="mi">9</span><span class="p">);</span>  <span class="c1">// 编译期计算
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">const</span> <span class="kt">bool</span> <span class="n">b2</span> <span class="o">=</span> <span class="n">isPrime</span><span class="p">(</span><span class="mi">9</span><span class="p">);</span>  <span class="c1">// 如果在命名空间内就在编译期计算
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">bool</span> <span class="nf">isfiftySevenIsPrime</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">isPrime</span><span class="p">(</span><span class="mi">7</span><span class="p">);</span>  <span class="c1">// 编译期计算或者运行时计算
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">isPrime</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>  <span class="c1">// 运行时计算
+</span></span></span></code></pre></div><h2 id="3-部分特例化的执行分支选择">3. 部分特例化的执行分支选择</h2>
+<p>        像 $isPrime$ 这种函数在编译期测试的一个有趣应用就是使用部分特例化来实现在编译时选择不同的实现版本。例如，我们可以根据模版参数是否是质数来选择：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="kt">int</span> <span class="n">SZ</span><span class="p">,</span> <span class="kt">bool</span> <span class="o">=</span> <span class="n">isPrime</span><span class="p">(</span><span class="n">SZ</span><span class="p">)</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Helper</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="kt">int</span> <span class="n">SZ</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Helper</span><span class="o">&lt;</span><span class="n">SZ</span><span class="p">,</span> <span class="nb">false</span><span class="o">&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="kt">int</span> <span class="n">SZ</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Helper</span><span class="o">&lt;</span><span class="n">SZ</span><span class="p">,</span> <span class="nb">true</span><span class="o">&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">SZ</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">long</span> <span class="n">foo</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">SZ</span><span class="o">&gt;</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">coll</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Helper</span><span class="o">&lt;</span><span class="n">SZ</span><span class="o">&gt;</span> <span class="n">h</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></div><p>        这里我们根据 $array$ 大小是否是质数来选择不同的 $Helper$ 特例化。这种使用部分特例化在一些根据参数属性来决定调用的方式在函数模版中被广泛使用。上面的代码中，我们列出了两种特例化情况。实际上，我们只需要列出一种就行了：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="kt">int</span> <span class="n">SZ</span><span class="p">,</span> <span class="kt">bool</span> <span class="o">=</span> <span class="n">isPrime</span><span class="p">(</span><span class="n">SZ</span><span class="p">)</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Helper</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="kt">int</span> <span class="n">SZ</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Helper</span><span class="o">&lt;</span><span class="n">SZ</span><span class="p">,</span> <span class="nb">true</span><span class="o">&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></code></pre></div><p>        由于函数模版不支持部分特例化，你必须使用其他机制来在特定条件下改变函数实现：</p>
+<ul>
+<li>使用类内静态函数成员；</li>
+<li>使用 $std::enable_-if$ ；</li>
+<li>使用<code>SFINAE</code>；</li>
+<li>使用编译时 $if$ 。</li>
+</ul>
+<h2 id="4-sfinae">4. <code>SFINAE</code></h2>
+<p>        对多种参数类型进行函数重载在<code>C++</code>中很常见。当编译期看到对重载函数的调用时，它必须考虑每个候选版本，检查参数然后选择最匹配的版本。如果这些候选版本内存在函数模版，编译期首先要去判断应该使用什么模版参数，然后使用这个参数代替函数参数和返回值类型，最后再将它像普通函数那样检查是否匹配。然而，这个替代的过程可能会产生问题，导致无意义的构造。为了避免这种无意义的构造产生的错误，<code>C++</code>语言规定了这种替代问题产生的错误会被忽略。这就是我们所说的<code>SFINAE</code> ( $substitution$ $failure$ $is$ $not$ $an$ $error$ ) 原则。<br>
+        注意这里所说替代过程与按照需求实例化是不同的，替代可能会在实例化的结果是不需要的结果时发生，从而编译器可以根据替代结果判断是需要还是不需要。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="n">N</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">len</span><span class="p">(</span><span class="n">T</span> <span class="p">(</span><span class="o">&amp;</span><span class="p">)[</span><span class="n">N</span><span class="p">])</span> <span class="p">{</span> <span class="k">return</span> <span class="n">N</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">typename</span> <span class="n">T</span><span class="o">::</span><span class="n">size_type</span> <span class="n">len</span><span class="p">(</span><span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">t</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">t</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        这里我们定义了两个模版函数，它们都是 $len$ 的重载，第一个版本接收一个数组，第二个版本没有约束，但是要求类型具有 $size_-type$ 成员。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">a</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">len</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>  <span class="c1">// 匹配数组
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">len</span><span class="p">(</span><span class="s">&#34;tmp&#34;</span><span class="p">);</span>  <span class="c1">// 匹配数组
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">v</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">len</span><span class="p">(</span><span class="n">v</span><span class="p">);</span>  <span class="c1">// 匹配size_type
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span><span class="o">*</span> <span class="n">p</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">len</span><span class="p">(</span><span class="n">p</span><span class="p">);</span>  <span class="c1">// 错误
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">allocator</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">len</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>  <span class="c1">// 错误
+</span></span></span></code></pre></div><p>        当我们传入数组时，虽然数组也能匹配 $T$ ，但无法匹配 $size_-type$ ，如果实例化会产生错误。对于原始指针，因为哪个模版都无法匹配，所以会产生一个错误。$std::allocator$ 虽然也具有 $size_-type$ 成员，但是因为没有 $size$ 函数，所以也会产生错误。<br>
+        忽略一个候选版本可能会导致编译期选择另一个更差匹配的版本，例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="n">N</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">len</span><span class="p">(</span><span class="n">T</span> <span class="p">(</span><span class="o">&amp;</span><span class="p">)[</span><span class="n">N</span><span class="p">])</span> <span class="p">{</span> <span class="k">return</span> <span class="n">N</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">typename</span> <span class="n">T</span><span class="o">::</span><span class="n">size_type</span> <span class="n">len</span><span class="p">(</span><span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">t</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">t</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">len</span><span class="p">(...)</span> <span class="p">{</span> <span class="k">return</span> <span class="mi">0</span><span class="p">;</span> <span class="p">}</span>
+</span></span></code></pre></div><p>        我们提供了一个通用版本，有着最差的匹配，但是总是可以匹配，理论上这种后备函数应该抛出异常或者声明一个静态断言，输出有效的错误信息。这时，对于原始数组和 $vector$ ，有着更优的匹配。但是对于指针，只能匹配到通用版本。$allocator$ 会匹配第二版本和第三个版本，但是第二个版本是更优匹配，所以它还是会匹配第二个版本，虽然它会产生一个错误。<br>
+        随着时间的推移，<code>SFINAE</code>在模版设计中变得越来越重要和流行，并且这个缩写也变成了动词。如果我们想要通过<code>SFINAE</code>机制来确保一个函数模版会在特定条件下产生错误代码从而被忽略，我们会说&quot;我们<code>SFINAE</code>了这个函数“。并且无论何时当你在<code>C++</code>标准库中读到某个函数模版注释着”最好不要作为重载函数解析除非&hellip;“时，意味着这个函数模版在特定条件下被<code>SFINAE</code>了。<br>
+        例如，$std::thread$ 声明了一个构造函数：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">std</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">class</span> <span class="nc">thread</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">F</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">Args</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">explicit</span> <span class="kr">thread</span><span class="p">(</span><span class="n">F</span><span class="o">&amp;&amp;</span> <span class="n">f</span><span class="p">,</span> <span class="n">Args</span><span class="o">&amp;&amp;</span><span class="p">...</span> <span class="n">args</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        这段代码有着以下的注释：</p>
+<blockquote>
+<p>注释：如果 $decay_-t$&lt;$F$&gt; 的类型与 $std::thread$ 相同，这个构造函数最好不要作为重载函数解析。</p>
+</blockquote>
+<p>        这意味着如果将 $std::thread$ 作为第一个模版参数传入，这个模版构造函数会被忽略。因为有时候这种类似的成员函数比起预定义的拷贝或者移动构造函数有着更优的匹配。通过<code>SFINAE</code> $thread$ 的模版构造函数，我们可以确保在接收另一个 $thread$ 作为参数的情况下预定义的拷贝或者移动构造函数总是会被调用。<br>
+        在这种就事论事的情况下使用这项技术可能显得有些笨重。幸运的是，标准库提供了更方便的禁用模版的工具。这些工具中，我们最熟悉的就是 $std::enable_-if$ 了。因此，$std::thread$ 构造函数的一个典型声明为：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">std</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">class</span> <span class="nc">thread</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">    <span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">F</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">Args</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">             <span class="k">typename</span> <span class="o">=</span> <span class="n">enable_if_t</span><span class="o">&lt;!</span><span class="n">is_same_v</span><span class="o">&lt;</span><span class="n">decay_t</span><span class="o">&lt;</span><span class="n">F</span><span class="o">&gt;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                                    <span class="kr">thread</span><span class="o">&gt;&gt;&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">explicit</span> <span class="kr">thread</span><span class="p">(</span><span class="n">F</span><span class="o">&amp;&amp;</span> <span class="n">f</span><span class="p">,</span> <span class="n">Args</span><span class="o">&amp;&amp;</span><span class="p">...</span> <span class="n">args</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h3 id="41-使用decltype的sfinae表达式">4.1 使用<code>decltype</code>的<code>SFINAE</code>表达式</h3>
+<p>        编写一条在特定条件下正确<code>SFINAE</code>函数模版的表达式是不简单的。例如，我们想要确保函数模版 $len$ 在模版参数具有 $size_-type$ 成员但是没有 $size$ 函数成员时忽略，从而避免类似于 $allocator$ 的错误。有一个通用模版可以处理这种情况：</p>
+<ul>
+<li>使用尾置返回语句确定返回类型；</li>
+<li>使用 $decltype$ 和逗号运算符定义返回值类型；</li>
+<li>所有必须为有效值的表达式放在逗号运算符之前；</li>
+<li>表示真实返回类型的对象放在逗号运算符之后。</li>
+</ul>
+<p>        例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">len</span><span class="p">(</span><span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">t</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="o">-&gt;</span> <span class="k">decltype</span><span class="p">((</span><span class="kt">void</span><span class="p">)(</span><span class="n">t</span><span class="p">.</span><span class="n">size</span><span class="p">()),</span> <span class="n">T</span><span class="o">::</span><span class="n">size_type</span><span class="p">())</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">t</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        $decltype$ 使用逗号分离的表达式列表，最后一个表达式 $T::size_-type(\ )$ 表示真正的返回类型，而在最后一个逗号之前的表达式必须是有效的。我们将第一个表达式的运算结果转为 $void$ ，用于避免用户重载逗号运算符带来的问题。<br>
+        注意 $decltype$ 参数是一个没有计算的操作，这意味着我们可以创建一个不调用构造函数的虚拟对象。</p>
+<h2 id="5-编译时if">5. 编译时<code>if</code></h2>
+<p>        部分特例化、<code>SFINAE</code>和 $std::enable_-if$ 一起使用，可以让我们启用或禁用模版。<code>C++17</code>额外引入了编译时 $if$ 语句，允许根据编译时条件来启用或者禁用某些特定语句。使用 $if$ $constexpr$ ，编译器可以在编译期通过表达式确定进入 $then$ 分支还是 $else$ 分支。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">Types</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">print</span><span class="p">(</span><span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">firstArg</span><span class="p">,</span> <span class="n">Types</span> <span class="k">const</span><span class="o">&amp;</span><span class="p">...</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">firstArg</span> <span class="o">&lt;&lt;</span> <span class="sc">&#39;\n&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="nf">constexpr</span><span class="p">(</span><span class="k">sizeof</span><span class="p">...(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">print</span><span class="p">(</span><span class="n">args</span><span class="p">...);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        这里如果 $print$ 只接收了一个参数，那么 $if$ 表达式将为 $false$ ，从而不会继续递归，并且代码也不会实例化。<br>
+        代码不会实例化意味着只会进行第一个翻译阶段 ( 定义阶段 )，这时检查不依赖于模版参数的代码正确性。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">foo</span><span class="p">(</span><span class="n">T</span> <span class="n">t</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="nf">constexpr</span><span class="p">(</span><span class="n">Std</span><span class="o">::</span><span class="n">is_integral_v</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">t</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="n">foo</span><span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">undeclared</span><span class="p">(</span><span class="n">t</span><span class="p">);</span>  <span class="c1">// 如果没有声明并且进入else分支，错误
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">undeclared</span><span class="p">();</span>  <span class="c1">// 如果没有声明，即使未进入else分支也会错误
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">static_assert</span><span class="p">(</span><span class="nb">false</span><span class="p">,</span> <span class="s">&#34;no integral&#34;</span><span class="p">);</span>  <span class="c1">// 总是会判断，即使未进入else分支
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">static_assert</span><span class="p">(</span><span class="o">!</span><span class="n">std</span><span class="o">::</span><span class="n">is_integral_v</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="s">&#34;no integral&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        注意 $if$ $constexpr$ 语句可以在任何函数中使用，不局限于模版。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="k">constexpr</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">numeric_limits</span><span class="o">&lt;</span><span class="kt">char</span><span class="o">&gt;::</span><span class="n">is_signed</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">foo</span><span class="p">(</span><span class="mi">42</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">undeclared</span><span class="p">(</span><span class="mi">42</span><span class="p">);</span>  <span class="c1">// 如果没有声明，错误
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">static_assert</span><span class="p">(</span><span class="nb">false</span><span class="p">,</span> <span class="s">&#34;unsigned&#34;</span><span class="p">);</span>  <span class="c1">// 即使未进入else分支也会判断
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">static_assert</span><span class="p">(</span><span class="o">!</span><span class="n">std</span><span class="o">::</span><span class="n">numeric_limits</span><span class="o">&lt;</span><span class="kt">char</span><span class="o">&gt;::</span><span class="n">is_signed</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                  <span class="s">&#34;char is unsigned&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div>
+            </div>
+            <div class="meta post-footer">
+                <span>2022 Mar 14 12:33</span>
+                <a href="https://z217blog.cn/post/cpptemplates5/"><i class="fas fa-link"></i> link</a>
+            </div>
+        </div>
         
         <div class="post">
             
@@ -1391,318 +1631,6 @@
             <div class="meta post-footer">
                 <span>2022 Mar 12 14:57</span>
                 <a href="https://z217blog.cn/post/cpptemplates2/"><i class="fas fa-link"></i> link</a>
-            </div>
-        </div>
-        
-        <div class="post">
-            
-            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/cpptemplates1/">C&#43;&#43; Templates（1）：函数模版和类模版</a></h1>
-            <div class="post-content">
-                
-                
-                <p>        前面都是一些基础概念，快速过一下。</p>
-<h2 id="1-函数模版">1. 函数模版</h2>
-<p>        函数模版提供了一种可以被不同类型调用的函数行为。换句话说，函数模版表示一组类似的函数。它的表现类似于普通函数，除了一些元素类型未指定。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">T</span> <span class="n">max</span><span class="p">(</span><span class="n">T</span> <span class="n">a</span><span class="p">,</span> <span class="n">T</span> <span class="n">b</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">b</span> <span class="o">&lt;</span> <span class="n">a</span> <span class="o">?</span> <span class="nl">a</span> <span class="p">:</span> <span class="n">b</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>  <span class="c1">// 2
-</span></span></span></code></pre></div><p>        关键字<code>typename</code>声明了一个类型参数 $T$ ，由于历史原因，你也可以使用<code>class</code>关键字声明。$T$ 表示一个任意类型，会根据不同的调用而改变。在上面的例子中，类型 $T$ 必须支持 $operator$&lt; 函数并且可拷贝。<code>C++17</code>也允许在 $T$ 既不可拷贝也不可移动的情况下传入一个右值。在上面的例子中，$T$ 的类型是 $int$ 。将模版参数用具体类型代替的过程称为<strong>实例化</strong> ( $instantiation$ )，实例化会产生一个模版实例。<br>
-        注意到 $void$ 也可以作为模版参数：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">T</span> <span class="n">foo</span><span class="p">(</span><span class="n">T</span><span class="o">*</span><span class="p">)</span> <span class="p">{}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="o">*</span><span class="n">vp</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="n">foo</span><span class="p">(</span><span class="n">vp</span><span class="p">);</span>
-</span></span></code></pre></div><p>        模版会进行两阶段编译：</p>
-<ol>
-<li><strong>定义阶段</strong> ( $definition$ $time$ )，即没有实例化的阶段，编译器会检查模版代码是否正确，包括语法检查、调用检查、$static_-assert$ 等；</li>
-<li><strong>实例化阶段</strong> ( $instantiation$ $time$ )，模版代码会被再次检查，这次包括了所有依赖于模版参数的部分。</li>
-</ol>
-<p>        有些编译器并不会在定义阶段进行完全检查，这意味着有些问题只有在实例化的时候才能发现。<br>
-        在类型推导时，如果存在隐式类型转换，那么会应用以下规则：</p>
-<ul>
-<li>当参数以引用传递时，即使是一些普通的转换也不能进行参数推导，使用相同模版参数类型 $T$ 的参数类型必须一致；</li>
-<li>当参数以值传递时，只支持一些普通的类型<strong>退化</strong> ( $decay$ )，包括：忽略 $const$ 或 $volatile$ 、引用转化为非引用以及数组或函数转为裸指针。在这种情况下，使用相同模版参数类型 $T$ 的参数类型必须在进行参数退化后保持一致。</li>
-</ul>
-<p>        函数模版类型推导也不支持默认参数：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="n">T</span> <span class="o">=</span> <span class="s">&#34;&#34;</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">f</span><span class="p">();</span>  <span class="c1">// 错误
-</span></span></span></code></pre></div><p>        正确的使用方式如下：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="n">T</span> <span class="o">=</span> <span class="s">&#34;&#34;</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">f</span><span class="p">();</span>
-</span></span></code></pre></div><p>        当我们使用两个模版参数时：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T1</span><span class="p">,</span> <span class="k">typename</span> <span class="n">T2</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">T1</span> <span class="n">max</span><span class="p">(</span><span class="n">T1</span> <span class="n">a</span><span class="p">,</span> <span class="n">T2</span> <span class="n">b</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">b</span> <span class="o">&lt;</span> <span class="n">a</span> <span class="o">?</span> <span class="nl">a</span> <span class="p">:</span> <span class="n">b</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>        看上去一切正常，但是考虑一下返回值，如果我们传入了一个浮点数和一个整型，那么返回值就永远会是浮点数，因为我们先传入了浮点数。<code>C++</code>提供了几种方式解决这个问题。<br>
-        第一种解决方案是再加入一个模版参数，作为返回值类型：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T1</span><span class="p">,</span> <span class="k">typename</span> <span class="n">T2</span><span class="p">,</span> <span class="k">typename</span> <span class="n">RT</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">RT</span> <span class="n">max</span><span class="p">(</span><span class="n">T1</span><span class="p">,</span> <span class="n">T2</span><span class="p">);</span>
-</span></span></code></pre></div><p>        但是这样声明，编译器因为不知道返回类型，所以我们必须在调用时显式指定类型：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="o">::</span><span class="n">max</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="kt">double</span><span class="p">,</span> <span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mf">7.2</span><span class="p">);</span>
-</span></span></code></pre></div><p>        也可以通过调换声明顺序从而只显式指定第一个参数类型：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">RT</span><span class="p">,</span> <span class="n">typenamet</span> <span class="n">T1</span><span class="p">,</span> <span class="k">typename</span> <span class="n">T2</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">RT</span> <span class="n">max</span><span class="p">(</span><span class="n">T1</span><span class="p">,</span> <span class="n">T2</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="o">::</span><span class="n">max</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mf">7.2</span><span class="p">);</span>
-</span></span></code></pre></div><p>        这种多一个类型参数的方式其实并没有什么优势，因为就算是之前的单类型参数的版本，我们也可以通过类型转换来显式指定返回值。相比之下，这种写法就显得很啰嗦了。<br>
-        第二种解决方案是让编译器自动推导。从<code>C++14</code>开始，函数返回值允许使用 $auto$ 关键字。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T1</span><span class="p">,</span> <span class="k">typename</span> <span class="n">T2</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">max</span><span class="p">(</span><span class="n">T1</span><span class="p">,</span> <span class="n">T2</span><span class="p">);</span>
-</span></span></code></pre></div><p>        函数返回值推导让编译器根据函数的返回语句推导参数的类型。当然，前提是可以推导，如果函数不可用或者具有多条返回不同类型的 $return$ 语句，那么编译器也无能为力。在<code>C++11</code>，我们也可以通过尾置返回类型解决这个问题：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T1</span><span class="p">,</span> <span class="k">typename</span> <span class="n">T2</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">max</span><span class="p">(</span><span class="n">T1</span> <span class="n">a</span><span class="p">,</span> <span class="n">T2</span> <span class="n">b</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="k">decltype</span><span class="p">(</span><span class="n">b</span> <span class="o">&lt;</span> <span class="n">a</span> <span class="o">?</span> <span class="nl">a</span> <span class="p">:</span> <span class="n">b</span><span class="p">);</span>
-</span></span></code></pre></div><p>        这里的比较并不那么必要，我们可以直接使用 $true$ 代替：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T1</span><span class="p">,</span> <span class="k">typename</span> <span class="n">T2</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">max</span><span class="p">(</span><span class="n">T1</span> <span class="n">a</span><span class="p">,</span> <span class="n">T2</span> <span class="n">b</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="k">decltype</span><span class="p">(</span><span class="nb">true</span> <span class="o">?</span> <span class="nl">a</span> <span class="p">:</span> <span class="n">b</span><span class="p">);</span>
-</span></span></code></pre></div><p>        这种方案也存在一个缺点：返回类型可能是一个引用类型，因为 $decltype$ 关键字是精确的推导。为了避免这种情况，我们可以使用 $traits$ ：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;type_traits&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T1</span><span class="p">,</span> <span class="k">typename</span> <span class="n">T2</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">max</span><span class="p">(</span><span class="n">T1</span> <span class="n">a</span><span class="p">,</span> <span class="n">T2</span> <span class="n">b</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="k">typename</span> <span class="n">std</span><span class="o">::</span><span class="n">decay</span><span class="o">&lt;</span><span class="k">decltype</span><span class="p">(</span><span class="nb">true</span> <span class="o">?</span> <span class="nl">a</span> <span class="p">:</span> <span class="n">b</span><span class="p">)</span><span class="o">&gt;::</span><span class="n">type</span><span class="p">;</span>
-</span></span></code></pre></div><p>        当然，如果你使用<code>C++14</code>的自动返回类型推导，那么 $traits$ 的使用也是不必要的。<br>
-        第三种解决方案是使用 $std::common_-type$ ：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;type_traits&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T1</span><span class="p">,</span> <span class="k">typename</span> <span class="n">T2</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">common_type_t</span><span class="o">&lt;</span><span class="n">T1</span><span class="p">,</span> <span class="n">T2</span><span class="o">&gt;</span> <span class="n">max</span><span class="p">(</span><span class="n">T1</span><span class="p">,</span> <span class="n">T2</span><span class="p">);</span>
-</span></span></code></pre></div><p>        从<code>C++11</code>开始，标准库就提供了一种选择最通用类型的机制 $std::common_-type$ ，它接收两个或多个不同的参数，并且会返回退化之后的类型。<br>
-        我们也可以结合默认模版参数来解决这个问题：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;type_traits&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T1</span><span class="p">,</span> <span class="k">typename</span> <span class="n">T2</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">         <span class="k">typename</span> <span class="n">RT</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">decay_t</span><span class="o">&lt;</span><span class="k">decltype</span><span class="p">(</span><span class="nb">true</span> <span class="o">?</span> <span class="n">T1</span><span class="p">()</span> <span class="o">:</span> <span class="n">T2</span><span class="p">())</span><span class="o">&gt;&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">RT</span> <span class="n">max</span><span class="p">(</span><span class="n">T1</span><span class="p">,</span> <span class="n">T2</span><span class="p">);</span>
-</span></span></code></pre></div><p>        不过这种实现要求我们可以调用 $T1$ 和 $T2$ 的默认构造函数。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;type_traits&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T1</span><span class="p">,</span> <span class="k">typename</span> <span class="n">T2</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">         <span class="k">typename</span> <span class="n">RT</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">common_type_t</span><span class="o">&lt;</span><span class="n">T1</span><span class="p">,</span> <span class="n">T2</span><span class="o">&gt;&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">RT</span> <span class="n">max</span><span class="p">(</span><span class="n">T1</span><span class="p">,</span> <span class="n">T2</span><span class="p">);</span>
-</span></span></code></pre></div><p>        默认模版参数里也可以使用 $common_-type$ ，这样就可以避开默认构造函数。通过默认模版参数，我们既可以让编译器自动推导，也可以显式指定：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">a</span> <span class="o">=</span> <span class="o">::</span><span class="n">max</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mf">7.2</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">b</span> <span class="o">=</span> <span class="o">::</span><span class="n">max</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span> <span class="kt">int</span><span class="p">,</span> <span class="kt">long</span> <span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span><span class="mf">7.2</span><span class="p">,</span> <span class="mi">4</span><span class="p">);</span>
-</span></span></code></pre></div><p>        考虑模版函数和普通函数同时存在的情况：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">max</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">T</span> <span class="n">max</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">T</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="o">::</span><span class="n">max</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">42</span><span class="p">);</span>  <span class="c1">// call the nontemplate version
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="o">::</span><span class="n">max</span><span class="p">(</span><span class="mf">7.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">);</span>  <span class="c1">// call max&lt;double&gt;
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="o">::</span><span class="n">max</span><span class="o">&lt;&gt;</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">42</span><span class="p">);</span>  <span class="c1">// call max&lt;int&gt;
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="o">::</span><span class="n">max</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">42</span><span class="p">);</span>  <span class="c1">// call max&lt;double&gt;
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="o">::</span><span class="n">max</span><span class="p">(</span><span class="sc">&#39;a&#39;</span><span class="p">,</span> <span class="mf">42.7</span><span class="p">);</span>  <span class="c1">// call the nontemplate version
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
-</span></span></code></pre></div><p>        你可能会疑惑，为什么我们通常使用传值而不是传引用。通常来讲，传引用更适合一些类类型而不是简单值类型。而且，在很多情况下，传值也是更好的选择：</p>
-<ul>
-<li>语法简单；</li>
-<li>编译器可以进行更好的优化措施；</li>
-<li>移动操作通常很快；</li>
-<li>有时候甚至既不会发生拷贝也不会进行移动。</li>
-</ul>
-<p>        此外，对于模版，也需要从一些特定角度考虑：</p>
-<ul>
-<li>模版必须既能适用于简单类型也能适用于复杂类型，有时候适合复杂类型的方式并不适合普通类型；</li>
-<li>如果你还是需要以引用方式调用的话，可以使用 $std::ref$ 或者 $std::cref$ ；</li>
-<li>虽然以值方式传递字符串常量和原始数组存在者问题，但是可以肯定的是，以引用方式传递它们只会导致更麻烦的问题。</li>
-</ul>
-<p>        通常，函数模版没有必要声明为 $inline$ 。与普通函数不同，我们可以在头文件内定义非内联函数模版。唯一的例外就是如果你要为某个特定类型进行完全特例化，这时特例化的代码就不再是泛型代码了。</p>
-<h2 id="2-类模版">2. 类模版</h2>
-<p>        类似于函数，类也可以被参数化。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;cassert&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Stack</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
-</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">elems</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
-</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="n">push</span><span class="p">(</span><span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">elem</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">pop</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl">  <span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">top</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="kt">bool</span> <span class="nf">empty</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span> <span class="k">return</span> <span class="n">elems</span><span class="p">.</span><span class="n">empty</span><span class="p">();</span> <span class="p">}</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">Stack</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">push</span><span class="p">(</span><span class="n">T</span> <span class="k">const</span> <span class="o">&amp;</span><span class="n">elem</span><span class="p">)</span> <span class="p">{</span> <span class="n">elems</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">elem</span><span class="p">);</span> <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">Stack</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">pop</span><span class="p">()</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">assert</span><span class="p">(</span><span class="o">!</span><span class="n">elems</span><span class="p">.</span><span class="n">empty</span><span class="p">());</span>
-</span></span><span class="line"><span class="cl">  <span class="n">elems</span><span class="p">.</span><span class="n">pop_back</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">T</span> <span class="k">const</span> <span class="o">&amp;</span><span class="n">Stack</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">top</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">assert</span><span class="p">(</span><span class="o">!</span><span class="n">elems</span><span class="p">.</span><span class="n">empty</span><span class="p">());</span>
-</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">elems</span><span class="p">.</span><span class="n">back</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>        在一个类内使用不带模版参数类型的类名与带模版参数的类名等价，但是在类外使用的时候必须声明模版参数类型。与普通类型不同，模版类的定义只能在模版类内部或者相同块作用域内。<br>
-        一个类模版通常会被用于多种操作，这意味着类必须提供多种重载函数，但是这些函数只有在被调用时才会实例化。如果实例化的类型不支持对应操作，那么就会产生编译错误。这带来了一个问题，我们怎么知道一个实例化之后的模版能进行哪些操作呢？<strong>概念</strong> ( $concept$ ) 是<code>C++20</code>引入的，用于表示一组模版库内经常会被使用的约束，通过概念可以约束只有实现了特定操作的类型才能实例化模版。但是，<code>C++11</code>没有概念，我们只能通过 $static_-assert$ 以及 $traits$ 进行一些基本的约束。<br>
-        我们可以通过友元函数重载 $Stack$ 的 &lt;&lt; 运算符：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Stack</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">void</span> <span class="nf">printOn</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span> <span class="n">strm</span><span class="p">)</span> <span class="k">const</span><span class="p">;</span>  
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">friend</span> <span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span> <span class="k">operator</span><span class="o">&lt;&lt;</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span> <span class="n">strm</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                                  <span class="n">Stack</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">s</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="n">s</span><span class="p">.</span><span class="n">printOn</span><span class="p">(</span><span class="n">strm</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">strm</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="p">}</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span></code></pre></div><p>        上面这种方式声明的 $operator$&lt;&lt; 函数是一个非模版函数，但是会在必要的时候实例化。然而，如果我们不在类内定义这个友元函数，那么我们就要指定模版。有两种方式可以指定函数模版。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Stack</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">U</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="k">friend</span> <span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span> <span class="k">operator</span><span class="o">&lt;&lt;</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span><span class="p">,</span> <span class="n">Stack</span><span class="o">&lt;</span><span class="n">U</span><span class="o">&gt;</span> <span class="k">const</span><span class="o">&amp;</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span></code></pre></div><p>        第一种方式使用了一个新的模版参数 $U$ 。要注意，在这里是不能再次使用 $T$ 的。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Stack</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span> <span class="k">operator</span><span class="o">&lt;&lt;</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span><span class="p">,</span> <span class="n">Stack</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="k">const</span><span class="o">&amp;</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Stack</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">friend</span> <span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span> <span class="k">operator</span><span class="o">&lt;&lt;</span> <span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span><span class="p">,</span> <span class="n">Stack</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="k">const</span><span class="o">&amp;</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span></code></pre></div><p>        第二种方式先将 $operator$&lt;&lt; 声明为一个模版函数，并在模版类内指定以 $T$ 为模版参数实例化的 $operator$&lt;&lt; 函数作为友元函数。<br>
-        模版类允许特例化，类似于函数模版重载。要注意，如果你需要特例化一个模版类，那么你也必须特例化类内的所有函数。虽然你也可以只特例化模版类的某个函数，但是一旦你这么做了，你就不能再使用这个类型特例化模版类了。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;stack1.hpp&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;deque&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;string&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;cassert&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Stack</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
-</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">deque</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span> <span class="n">elems</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
-</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="n">push</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="k">const</span><span class="o">&amp;</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">pop</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">top</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="kt">bool</span> <span class="nf">empty</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span> <span class="k">return</span> <span class="n">elems</span><span class="p">.</span><span class="n">empty</span><span class="p">();</span> <span class="p">}</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">Stack</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;::</span><span class="n">push</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">elem</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">elems</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">elem</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">Stack</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;::</span><span class="n">pop</span><span class="p">()</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">assert</span><span class="p">(</span><span class="o">!</span><span class="n">elems</span><span class="p">.</span><span class="n">empty</span><span class="p">());</span>
-</span></span><span class="line"><span class="cl">  <span class="n">elems</span><span class="p">.</span><span class="n">pop_back</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">Stack</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;::</span><span class="n">top</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">assert</span><span class="p">(</span><span class="o">!</span><span class="n">elems</span><span class="p">.</span><span class="n">empty</span><span class="p">());</span>
-</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">elems</span><span class="p">.</span><span class="n">back</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>        除了像上面这样特例化之外，模版类还允许部分特例化，即提供特定条件下的实现。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;stack1.hpp&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Stack</span><span class="o">&lt;</span><span class="n">T</span><span class="o">*&gt;</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
-</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">*&gt;</span> <span class="n">elems</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
-</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="n">push</span><span class="p">(</span><span class="n">T</span><span class="o">*</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="n">T</span><span class="o">*</span> <span class="nf">pop</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl">  <span class="n">T</span><span class="o">*</span> <span class="nf">top</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="kt">bool</span> <span class="nf">empty</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span> <span class="k">return</span> <span class="n">elems</span><span class="p">.</span><span class="n">empty</span><span class="p">();</span> <span class="p">}</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">Stack</span><span class="o">&lt;</span><span class="n">T</span><span class="o">*&gt;::</span><span class="n">push</span><span class="p">(</span><span class="n">T</span><span class="o">*</span> <span class="n">elem</span><span class="p">)</span> <span class="p">{</span> <span class="n">elems</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">elem</span><span class="p">);</span> <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">T</span><span class="o">*</span> <span class="n">Stack</span><span class="o">&lt;</span><span class="n">T</span><span class="o">*&gt;::</span><span class="n">pop</span><span class="p">()</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">assert</span><span class="p">(</span><span class="o">!</span><span class="n">elems</span><span class="p">.</span><span class="n">empty</span><span class="p">());</span>
-</span></span><span class="line"><span class="cl">  <span class="n">T</span><span class="o">*</span> <span class="n">p</span> <span class="o">=</span> <span class="n">elems</span><span class="p">.</span><span class="n">back</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl">  <span class="n">elems</span><span class="p">.</span><span class="n">pop_back</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">p</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">T</span><span class="o">*</span> <span class="n">Stack</span><span class="o">&lt;</span><span class="n">T</span><span class="o">*&gt;::</span><span class="n">top</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">assert</span><span class="p">(</span><span class="o">!</span><span class="n">elems</span><span class="p">.</span><span class="n">empty</span><span class="p">());</span>
-</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">elems</span><span class="p">.</span><span class="n">back</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>        与模版函数一样，模版类也可以指定一个默认模版参数：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;cassert&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="k">typename</span> <span class="n">Cont</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Stack</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
-</span></span><span class="line"><span class="cl">  <span class="n">Cont</span> <span class="n">elems</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
-</span></span></code></pre></div><p>        从<code>C++17</code>开始，如果编译器可以推导出类型的话，你可以跳过模版类类型显式声明语句</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">Stack</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">intStack1</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="n">Stack</span> <span class="n">intStack2</span> <span class="o">=</span> <span class="n">intStack1</span><span class="p">;</span>  <span class="c1">// Stack&lt;int&gt;
-</span></span></span></code></pre></div><p>        也可以结合构造函数使用：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Stack</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
-</span></span><span class="line"><span class="cl">  <span class="n">Stack</span><span class="p">()</span> <span class="o">=</span> <span class="k">default</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="n">Stack</span><span class="p">(</span><span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">elem</span><span class="p">)</span> <span class="o">:</span> <span class="n">elems</span><span class="p">({</span><span class="n">elem</span><span class="p">})</span> <span class="p">{}</span>
-</span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">Stack</span> <span class="n">intStack</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-</span></span></code></pre></div><p>        理论上，你也可以这样使用：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">Stack</span> <span class="n">stringStack</span> <span class="o">=</span> <span class="s">&#34;bottom&#34;</span><span class="p">;</span>  <span class="c1">// Stack&lt;char const[7]&gt;
-</span></span></span></code></pre></div><p>        但是，这会带来一大堆问题。因为这种方式推导出来的类型是未退化的类型，这意味着我们无法再添加其他长度的字符串。出于这个原因，在一些时候我们建议使用传值方式的构造函数。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Stack</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
-</span></span><span class="line"><span class="cl">  <span class="n">Stack</span><span class="p">(</span><span class="n">T</span> <span class="n">elem</span><span class="p">)</span> <span class="o">:</span> <span class="n">elems</span><span class="p">({</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">elem</span><span class="p">)})</span> <span class="p">{}</span>
-</span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">Stack</span> <span class="n">stringStack</span> <span class="o">=</span> <span class="s">&#34;bottom&#34;</span><span class="p">;</span>  <span class="c1">// Stack&lt;char const*&gt;
-</span></span></span></code></pre></div><p>        有时候，与其让编译器自己推导，不如我们自己指定一种类型。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">Stack</span><span class="p">(</span><span class="kt">char</span> <span class="k">const</span><span class="o">*</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Stack</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">Stack</span> <span class="n">stringStack</span><span class="p">{</span><span class="s">&#34;bottom&#34;</span><span class="p">};</span>  <span class="c1">// Stack&lt;std::string&gt;
-</span></span></span></code></pre></div><p>        这种技巧称为推导指引，在<code>C++17</code>被引入。它定义了在当前作用域内，所有以字符串常量作为参数构造的 $Stack$ ，其模版参数类型都为 $std::string$ 。<br>
-        聚合类 ( 没有显式或者继承的构造器，没有私有或受保护的非静态成员，没有虚函数，非 $private$ 或者 $protected$ 继承的类 ) 也可以使用模版。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">ValueWithComment</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">T</span> <span class="n">value</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">comment</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">ValueWithComment</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">vc</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="n">vc</span><span class="p">.</span><span class="n">value</span> <span class="o">=</span> <span class="mi">42</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="n">vc</span><span class="p">.</span><span class="n">comment</span> <span class="o">=</span> <span class="s">&#34;initial value&#34;</span><span class="p">;</span>
-</span></span></code></pre></div><p>        从<code>C++17</code>开始，你也可以为聚合类定义推导指引。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">ValueWithComment</span><span class="p">(</span><span class="kt">char</span> <span class="k">const</span><span class="o">*</span><span class="p">,</span> <span class="kt">char</span> <span class="k">const</span><span class="o">*</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">  <span class="o">-&gt;</span> <span class="n">ValueWithComment</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span><span class="p">;</span>
-</span></span></code></pre></div><p>        标准库容器 $std::array$ 就是一个聚合类。</p>
-
-            </div>
-            <div class="meta post-footer">
-                <span>2022 Mar 11 14:03</span>
-                <a href="https://z217blog.cn/post/cpptemplates1/"><i class="fas fa-link"></i> link</a>
             </div>
         </div>
         
