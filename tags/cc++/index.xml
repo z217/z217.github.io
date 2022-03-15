@@ -7,7 +7,19 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2022, z217 and the hugo authors, all rights reserved.</copyright>
-    <lastBuildDate>Mon, 14 Mar 2022 12:33:51 +0800</lastBuildDate><atom:link href="https://z217blog.cn/tags/cc++/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Mon, 14 Mar 2022 15:57:27 +0800</lastBuildDate><atom:link href="https://z217blog.cn/tags/cc++/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>C&#43;&#43; Templates（6）：模版实践与泛型库</title>
+      <link>https://z217blog.cn/post/cpptemplates6/</link>
+      <pubDate>Mon, 14 Mar 2022 15:57:27 +0800</pubDate>
+      
+      <guid>https://z217blog.cn/post/cpptemplates6/</guid>
+      <description>1. 包含模式 1.1 链接错误  大部分C/C++程序员通常以这种方式组织非模版代码：
+ 类和其他类型声明在头文件中； 全局变量和非内联函数只在头文件中声明，定义在另一个单独的翻译单元中。   这种方式让类型定义在整个程序中可用并且避免了链接过程中重复定义的错误。在这种方便方式的前提下，很多初学模版的程序员会对将定义声明在头文件中的方式感到抱怨。如果我们将模版函数的声明和定义分开：
+#ifndef MYFIRST_HPP #define MYFIRST_HPP  template&amp;lt;typename T&amp;gt; void printTypeof(T const&amp;amp;); #endif // MYFIRST_HPP  #include &amp;lt;iostream&amp;gt;#include &amp;lt;typeinfo&amp;gt;#include &amp;#34;myfirst.hpp&amp;#34; template&amp;lt;typename T&amp;gt; void printTypeof(T const&amp;amp; x) { std::cout &amp;lt;&amp;lt; typeid(x).name() &amp;lt;&amp;lt; &amp;#39;\n&amp;#39;; }  #include &amp;#34;myfirst.cpp&amp;#34; int main() { double ice = 3.0; printTypeof(ice); }  C++编译器很可能会编译这个程序，但是链接器会产生错误，错误为没有 $printTypeof$ 函数的定义。这个错误的原因是函数模版的定义无法被实例化。要实例化一个模版，编译器必须知道应该实例化哪些定义以及哪些模版参数应该被实例化。不幸的是，在上面的例子中，这两个信息都被单独编译了。因此，当我们的编译器想实例化 $printTypeof$ 的调用但是没有看到定义时，它只能假设这个定义在别处被提供了并且创建了一个引用 ( 给链接器解析 )。另一方面，当编译器处理 $myfirst.cpp$ 文件时，并没有任何提示说明它应该实例化出特定类型参数的模版定义，从而链接器无法解析出先前创建的引用。
+1.2 头文件中的模版  之前问题的通用解决方案是采用与宏和内联函数相同的方式：在头文件中定义声明的模版。</description>
+    </item>
+    
     <item>
       <title>C&#43;&#43; Templates（5）：编译时编程</title>
       <link>https://z217blog.cn/post/cpptemplates5/</link>

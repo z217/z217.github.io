@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/jquery.floatingscroll.css>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+    integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <script src=https://z217blog.cn/js/jquery.floatingscroll.min.js></script>
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="/friend" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">C&#43;&#43; Templates（6）：模版实践与泛型库</h1>
+
+
+
+
+<h2 id="1-包含模式">1. 包含模式</h2>
+<h3 id="11-链接错误">1.1 链接错误</h3>
+<p>        大部分<code>C/C++</code>程序员通常以这种方式组织非模版代码：</p>
+<ul>
+<li>类和其他类型声明在头文件中；</li>
+<li>全局变量和非内联函数只在头文件中声明，定义在另一个单独的翻译单元中。</li>
+</ul>
+<p>        这种方式让类型定义在整个程序中可用并且避免了链接过程中重复定义的错误。在这种方便方式的前提下，很多初学模版的程序员会对将定义声明在头文件中的方式感到抱怨。如果我们将模版函数的声明和定义分开：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#ifndef MYFIRST_HPP
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define MYFIRST_HPP
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">printTypeof</span><span class="p">(</span><span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="cp">#endif </span><span class="c1">// MYFIRST_HPP
+</span></span></span></code></pre></div><hr>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;typeinfo&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;myfirst.hpp&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">printTypeof</span><span class="p">(</span><span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">x</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="k">typeid</span><span class="p">(</span><span class="n">x</span><span class="p">).</span><span class="n">name</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="sc">&#39;\n&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><hr>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;myfirst.cpp&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">double</span> <span class="n">ice</span> <span class="o">=</span> <span class="mf">3.0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">printTypeof</span><span class="p">(</span><span class="n">ice</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        <code>C++</code>编译器很可能会编译这个程序，但是链接器会产生错误，错误为没有 $printTypeof$ 函数的定义。这个错误的原因是函数模版的定义无法被实例化。要实例化一个模版，编译器必须知道应该实例化哪些定义以及哪些模版参数应该被实例化。不幸的是，在上面的例子中，这两个信息都被单独编译了。因此，当我们的编译器想实例化 $printTypeof$ 的调用但是没有看到定义时，它只能假设这个定义在别处被提供了并且创建了一个引用 ( 给链接器解析 )。另一方面，当编译器处理 $myfirst.cpp$ 文件时，并没有任何提示说明它应该实例化出特定类型参数的模版定义，从而链接器无法解析出先前创建的引用。</p>
+<h3 id="12-头文件中的模版">1.2 头文件中的模版</h3>
+<p>        之前问题的通用解决方案是采用与宏和内联函数相同的方式：在头文件中定义声明的模版。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#ifndef MYFIRST_HPP
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define MYFIRST_HPP
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;typeinfo&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">printTypeof</span><span class="p">(</span><span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">printTypeof</span><span class="p">(</span><span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">x</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="k">typeid</span><span class="p">(</span><span class="n">x</span><span class="p">).</span><span class="n">name</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="sc">&#39;\n&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="cp">#endif </span><span class="c1">// MYFIRST_HPP
+</span></span></span></code></pre></div><p>        这种组织模版的方式称为包含模式。通过这种方式，程序现在可以正常编译、链接和执行了。<br>
+        这里有几点我们要注意下。最重要的一点是这种方式使得包含头文件的开销变得相当大。在这个例子中，开销主要不是来源于模版定义的代码体积，而是我们在定义模版的过程中使用的其他两个头文件—— $iostream$ 和 $typeinfo$ 。你会发现这两个头文件中有着一大堆代码，因为它们本身也有着很多模版定义。<br>
+        在实践中，这个问题很重要，因为它会导致一些重要程序的编译时间增加。因此，我们将通过一些可行的方法来解决这个问题，包括预编译头和显式模版特例化。尽管存在编译时间问题，我们还是推荐使用包含模式来组织你的模版，直到有新的更好的机制推出。<strong>模块</strong> ( $modules$ ) 在<code>C++20</code>被引入，这是一种允许程序员以更加逻辑化的方式组织代码的机制，通过它，编译器可以独立编译所有声明并且之后可以在需要的时候选择性地高效地导入处理好的声明。<br>
+        另一个要注意的点是包含模式下非内联模版函数和内联函数以及宏是不同的，它们不会在被调用时展开。相反，当它们被实例化时，会创建一个函数副本。因为这是自动进行的，编译器可能会在两个不同的文件中创建相同的副本。理论上，这不应该由我们来关心，这是<code>C++</code>编译系统该关心的。工程上这种方式大部分时候是可以的，我们完全不需要解决这个问题。对于大型项目，当它们创建自己的代码库，这个问题可能偶尔会出现。<br>
+        最后，我们还要注意在上面的例子中，适用于普通函数模版的方式，也适用于类模版中的成员函数和静态数据成员，同样也适用于成员函数模版。</p>
+<h2 id="2-模版和内联">2. 模版和内联</h2>
+<p>        将函数声明为内联是一种在运行时提升程序速度的通用手段。$inline$ 关键字暗示在函数调用时，会优先将函数体内联替代调用，而不是执行函数调用机制。然而，函数实现会忽略这种暗示。因此，$inline$ 能保证的效果只有允许函数定义在一个程序内多次出现 ( 因为定义会在头文件里并且被多次包含 )。<br>
+        类似于内联函数，函数模版也可以在多个翻译单元中被定义，通常通过在头文件中定义并被多个源文件包含实现。这不意味着函数模版会是默认内联的，它是完全由编译器决定的。可能会有点出人意料，通常编译器评估一个函数内联后是否能提升性能的能力比程序员更好。因此，不同编译器处理 $inline$ 关键字的方式是不同的，甚至取决于你指定的编译方式。<br>
+        尽管如此，通过合适的监测工具，程序员可以比编译器知道更多的信息，因此希望覆盖编译器的决定 ( 例如在针对不同平台调优时 )。有时候只能通过编译器属性实现这个功能，例如 $noinline$ 或者 $always_-inline$ 。<br>
+        完全实例化函数模版的行为与普通函数一样，它们的定义只能出现一次，除非被定义为 $inline$ 。</p>
+<h2 id="3-预编译头">3. 预编译头</h2>
+<p>        就算没有模版，<code>C++</code>头文件也是很大的，需要编译很久。模版增加了这种趋势，这种让程序员等到抓狂的情况，驱使了供应商实现一种称为<strong>预编译头</strong> ( $precompiled$ $headers$ ，$PCH$ ) 的方法。这个方法在标准之外，行为取决于特定的供应商。尽管我们没有提到在多种<code>C++</code>编译系统中怎么创建和使用预编译头文件，但是了解一下它们是怎么工作的是很有帮助的。<br>
+        当编译器翻译一个文件，它从文件开始翻译到文件结束。当它处理文件符号时，它会修改内部状态，例如往符号表中添加表项。当做这些工作的时候，编译器也可能在对象文件中生成代码。预编译头方法是基于代码中的许多文件以相同的 $N$ 行开始这个事实的。让我们假设每个文件都是以相同的 $N$ 行开始的，我们可以编译这 $N$ 行然后在预编译头中保存编译器状态。然后，在我们程序的每个文件，我们可以重新装载之前保存的状态，然后从 $N + 1$ 行开始编译。这样我们就可以说装载之前保存的状态是一个比编译前 $N$ 行快几个数量级的操作。然而，在第一次编译时保存状态的开销比直接编译 $N$ 行的开销要大，这个开销提升可能从 $20\% \sim 200\%$ 不等。<br>
+        使用预编译头的关键是尽可能保证在文件的开始使用最大数目相同的代码。在工程中，这意味着文件必须从相同的 #$include$ 指示开始，这会占用很大一部分编译时间。因此，关注头文件包含的顺序是很有用的。例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;list&gt;</span><span class="cp">
+</span></span></span></code></pre></div><hr>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;list&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp">
+</span></span></span></code></pre></div><p>        这两个文件就不能使用预编译头了，因为它们的起始状态不同。<br>
+        一些程序员觉得可以通过包含一些不必要的头文件从而让编译器使用预编译头来加速编译，这个想法可以很大程度上简化包含策略的管理。例如，直接创建一个包含所有标准头文件的头文件：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cm">/* std.hpp */</span>
+</span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;string&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;deque&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;list&gt;</span><span class="cp">
+</span></span></span></code></pre></div><p>        这个文件可以被预编译，并且每个使用标准库的程序文件都可以直接简单地包含这个头文件。通常，这个文件需要一段时间来编译，但是如果系统有着足够的内存，预编译头方法就可以让它的处理速度比大部分不使用预编译的单独处理每个标准库的方法快很多。标准头文件适合在这种方法中使用，因为它们几乎不改变，因此我们定义的 $std.hpp$ 预编译头只需要编译一次。否则，预编译头通常会是项目依赖配置的一部分 ( 例如，通过 $make$ 或者<code>IDE</code>来按需更新 )。<br>
+        一个管理预编译头的方式是创建预编译头文件<strong>层</strong> ( $layers$ )，涵盖最常用、最稳定的头文件到大部分时间不会改变的头文件。然而，如果头文件会被频繁修改，那么为它们创建预编译头花费的时间会比使用预编译头节省的时间要多。这种方式的一个重要用法是使用一个更稳定的预编译头文件层提升相对来讲更不稳定的头文件的预编译速度。例如，假设除了 $std.hpp$ ，我们还定义了一个 $core.hpp$ 头文件，包含了我们项目需要的额外的工具，具有一定程度的稳定性。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;std.hpp&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;core_data.hpp&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;core_algos.hpp&#34;</span><span class="cp">
+</span></span></span></code></pre></div><p>        因为这个文件先包含了 $std.hpp$ ，编译器可以装载相关联的预编译头，就不需要重新编译整个标准头文件了。当这个文件处理完成后，会生成一个新的预处理头文件。应用之后在使用 $core.hpp$ 时候，就可以快速访问其中定义的功能了。</p>
+<h2 id="4-可调用实体">4. 可调用实体</h2>
+<p>        许多库包含了用于客户端代码传递调用实体的接口，例如需要在其他线程执行的某个操作、哈希函数、用于集合排序的对象或者提供一些默认参数值的泛型封装。标准库定义了许多可以携带可调用实体的组件。用于这种情况的术语是<strong>回调</strong> ( $callback$ )，通常它指代作为参数传递给函数调用的实体。例如，一个排序函数可能包含一个回调参数作为排序标准，当判断哪个元素在前时会调用。<br>
+        <code>C++</code>有许多作为回调的有用的类型，因为它们既可以作为函数调用参数，也可以直接被调用。这些类型有：</p>
+<ul>
+<li>函数指针；</li>
+<li>重载了 $operator(\ )$ 函数的类；</li>
+<li>可以转为函数指针或者函数引用的类。</li>
+</ul>
+<p>        总的来说，这些类型被称为<strong>函数对象类型</strong> ( $function$ $ojbect$ $types$ )，这种类型的值称为<strong>函数对象</strong> ( $function$ $object$ )。<code>C++</code>标准库稍微扩展了<strong>可调用类型</strong> ( $callable$ $type$ ) 的概念，使得它既可以是一个函数对象类型也可以是一个成员指针。可调用类型值称为<strong>可调用对象</strong> ( $callable$ $object$ )。<br>
+        通过模版，泛型代码通常可以接收任意类型的可调用对象。</p>
+<h3 id="41-函数对象支持">4.1 函数对象支持</h3>
+<p>        让我们看看标准库 $for_-each$ 算法是怎么实现的：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">Iter</span><span class="p">,</span> <span class="k">typename</span> <span class="n">Callable</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">foreach</span><span class="p">(</span><span class="n">Iter</span> <span class="n">current</span><span class="p">,</span> <span class="n">Iter</span> <span class="n">end</span><span class="p">,</span> <span class="n">Callable</span> <span class="n">op</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">while</span> <span class="p">(</span><span class="n">current</span> <span class="o">!=</span> <span class="n">end</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">op</span><span class="p">(</span><span class="o">*</span><span class="n">current</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="o">++</span><span class="n">current</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        我们可以这样使用：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;foreach.hpp&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">func</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;func() called for: &#34;</span> <span class="o">&lt;&lt;</span> <span class="n">i</span> <span class="o">&lt;&lt;</span> <span class="sc">&#39;\n&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">FuncObj</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="k">operator</span><span class="p">()(</span><span class="kt">int</span> <span class="n">i</span><span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;FuncObj::op() called for: &#34;</span> <span class="o">&lt;&lt;</span> <span class="n">i</span> <span class="o">&lt;&lt;</span> <span class="sc">&#39;\n&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">primes</span> <span class="o">=</span> <span class="p">{</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">19</span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">  <span class="n">foreach</span><span class="p">(</span><span class="n">primes</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">primes</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="n">func</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">foreach</span><span class="p">(</span><span class="n">primes</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">primes</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="o">&amp;</span><span class="n">func</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">foreach</span><span class="p">(</span><span class="n">primes</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">primes</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="n">FuncObj</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">  <span class="n">foreach</span><span class="p">(</span><span class="n">primes</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">primes</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="p">[](</span><span class="kt">int</span> <span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;lambda called for: &#34;</span> <span class="o">&lt;&lt;</span> <span class="n">i</span> <span class="o">&lt;&lt;</span> <span class="sc">&#39;\n&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><ul>
+<li>当传递函数名作为函数参数时，我们不会真的把函数传递过去，而是传递函数指针或者引用。与数组相同，以值方式传递的函数参数会退化为指针，如果对应的参数是模版参数，那么会推导为函数指针；以引用方式传递的函数参数不会退化。然而，函数类型不能使用 $const$ 限定符。如果我们使用 $const$ 声明 $foreach$ 的最后一个参数，$const$ 会被忽略；</li>
+<li>我们第二个调用显式指定了函数指针，这与第一个调用等价，不过可能更容易理解；</li>
+<li>传递一个函数结构体即传递一个类对象作为可调用对象，调用这种类型通常相当于调用它的 $operator(\ )$ 函数。注意你应该将 $operator(\ )$ 定义为常量成员函数，否则，当框架或库想要调用不改变传递对象的状态时，就会产生一个错误。一个类类型对象也可以隐式转为一个<strong>代理调用函数</strong> ( $surrogate$ $call$ $function$ )，通过这种方式，它们也可以被调用；</li>
+<li><code>Lambda</code>表达式生成一个函数结构体 ( 称为闭包，$closure$ )，因此这种方式与上面一样。</li>
+</ul>
+<h3 id="42-成员函数和额外参数">4.2 成员函数和额外参数</h3>
+<p>        一种调用实体并没有在先前的例子中提起：成员函数。因为调用一个非静态成员函数通常会涉及确定一个被调用对象，语法类似于 $object.memfunc(\dots)$ 或者 $ptr-&gt;memfun(\dots)$ ，而不是 $function(\dots)$ 。幸运的是，<code>C++17</code>开始，标准库提供了 $std::invoke$ 函数，允许我们统一普通函数调用语法和成员函数调用语法。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;utility&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;functional&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">Iter</span><span class="p">,</span> <span class="k">typename</span> <span class="n">Callable</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">Args</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">foreach</span><span class="p">(</span><span class="n">Iter</span> <span class="n">current</span><span class="p">,</span> <span class="n">Iter</span> <span class="n">end</span><span class="p">,</span> <span class="n">Callable</span> <span class="n">op</span><span class="p">,</span> <span class="n">Args</span> <span class="k">const</span><span class="o">&amp;</span><span class="p">...</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">while</span> <span class="p">(</span><span class="n">current</span> <span class="o">!=</span> <span class="n">end</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">invoke</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">args</span><span class="p">...,</span> <span class="o">*</span><span class="n">current</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="o">++</span><span class="n">current</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        这里除了可调用对象参数之外，我们还接收一个可选的额外的变长参数。$foreach$ 函数使用给定的可调用对象和额外的参数调用 $std::invoke$ ，后者的调用逻辑为：</p>
+<ul>
+<li>如果可调用对象是成员指针，它使用第一个额外参数作为被调用对象，其余额外参数作为调用参数；</li>
+<li>否则，所有额外参数都作为调用参数。</li>
+</ul>
+<p>        注意我们这里不能使用完美转发，因为第一个调用可能会移动，从而导致之后的调用产生未定义行为。<br>
+        通过这种实现方式，我们可以调用成员函数了：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;string&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;foreachinvoke.hpp&#34;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MyClass</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="n">memfunc</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="p">)</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;MyClass::memfunc() called for: &#34;</span> <span class="o">&lt;&lt;</span> <span class="n">i</span> <span class="o">&lt;&lt;</span> <span class="sc">&#39;\n&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">primes</span> <span class="o">=</span> <span class="p">{</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">19</span><span class="p">};</span>
+</span></span><span class="line"><span class="cl">  <span class="n">foreach</span><span class="p">(</span><span class="n">primes</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">primes</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">          <span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">prefix</span><span class="p">,</span> <span class="kt">int</span> <span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">prefix</span> <span class="o">&lt;&lt;</span> <span class="n">i</span> <span class="o">&lt;&lt;</span> <span class="sc">&#39;\n&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">          <span class="p">},</span>
+</span></span><span class="line"><span class="cl">          <span class="s">&#34;- value: &#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">MyClass</span> <span class="n">obj</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">foreach</span><span class="p">(</span><span class="n">primes</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">primes</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">          <span class="o">&amp;</span><span class="n">MyClass</span><span class="o">::</span><span class="n">memfunc</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">          <span class="n">obj</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h3 id="43-包装函数调用">4.3 包装函数调用</h3>
+<p>        $std::invoke$ 的一个应用是包装函数调用，这种方式下我们也可以使用完美转发来传递可调用对象和参数。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;utility&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;functional&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">Callable</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">Args</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">call</span><span class="p">(</span><span class="n">Callable</span><span class="o">&amp;&amp;</span> <span class="n">op</span><span class="p">,</span> <span class="n">Args</span><span class="o">&amp;&amp;</span><span class="p">...</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">invoke</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">Callable</span><span class="o">&gt;</span><span class="p">(</span><span class="n">op</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                     <span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">Args</span><span class="o">&gt;</span><span class="p">(</span><span class="n">args</span><span class="p">)...);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        另一个有趣的事是调用者如何处理被调用者使用完美转发返回的返回值。为了支持返回引用 ( 比如 $std::ostream$&amp; )，你必须使用 $decltype(auto)$ 。如果你想要存储 $std::invoke$ 的返回值，你也可以使用 $decltype(auto)$ 。但是，使用 $decltype(auto)$ 有一个问题：如果调用对象返回 $void$ ，那么就无法使用 $decltype(auto)$ ，因为 $void$ 是一个不完全类型。你可以这样解决：</p>
+<ul>
+<li>在调用前声明一个对象，该对象的析构函数执行你想要对 $std::invoke$ 返回值所进行的操作：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">cleanup</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="o">~</span><span class="n">cleanup</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="n">dummy</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">invoke</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">Callable</span><span class="o">&gt;</span><span class="p">(</span><span class="n">op</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                   <span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">Args</span><span class="o">&gt;</span><span class="p">(</span><span class="n">args</span><span class="p">)...);</span>
+</span></span></code></pre></div><ul>
+<li>分开实现 $void$ 和非 $void$ 情况：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;utility&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;functional&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;type_traits&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">Callable</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">Args</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">call</span><span class="p">(</span><span class="n">Callable</span><span class="o">&amp;&amp;</span> <span class="n">op</span><span class="p">,</span> <span class="n">Args</span><span class="o">&amp;&amp;</span><span class="p">...</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="nf">constexpr</span> <span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">is_same_v</span><span class="o">&lt;</span>
+</span></span><span class="line"><span class="cl">                  <span class="n">std</span><span class="o">::</span><span class="n">invoke_result_t</span><span class="o">&lt;</span><span class="n">Callable</span><span class="p">,</span> <span class="n">Args</span><span class="p">...</span><span class="o">&gt;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                  <span class="kt">void</span><span class="o">&gt;</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">invoke</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">Callable</span><span class="o">&gt;</span><span class="p">(</span><span class="n">op</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                <span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">Args</span><span class="o">&gt;</span><span class="p">(</span><span class="n">args</span><span class="p">)...);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">ret</span><span class="p">{</span><span class="n">std</span><span class="o">::</span><span class="n">invoke</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">Callable</span><span class="o">&gt;</span><span class="p">(</span><span class="n">op</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">                                   <span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">Args</span><span class="o">&gt;</span><span class="p">(</span><span class="n">args</span><span class="p">)...)};</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">ret</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h2 id="5-其他泛型工具">5. 其他泛型工具</h2>
+<h3 id="51-type-traits">5.1 <code>Type</code> <code>Traits</code></h3>
+<p>        标准库提供了一系列实用工具，称为 $type$ $traits$ ，允许我们检查和修改类型。这种泛型代码可以适配其实例化所用的类型，并依据不同类型进行不同的操作。例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;type_traits&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">C</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">static_assert</span><span class="p">(</span><span class="o">!</span><span class="n">std</span><span class="o">::</span><span class="n">is_same_v</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">remove_cv_t</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="kt">void</span><span class="o">&gt;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="s">&#34;invalid instantiation of class C for void type&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">V</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="n">V</span><span class="o">&amp;&amp;</span> <span class="n">v</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="nf">constexpr</span> <span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">is_reference_v</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="nf">constexpr</span> <span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">is_convertible_v</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">decay_t</span><span class="o">&lt;</span><span class="n">V</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="nf">constexpr</span> <span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">has_virtual_destructor_v</span><span class="o">&lt;</span><span class="n">V</span><span class="o">&gt;</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        就像这个例子展示的，检查不同模版实现之间的不同特定条件。这里我们使用了编译时 $if$ 特性，也可以通过 $std::enable_-if$ 、部分特例化或者<code>SFINAE</code>来启用和禁用帮助类模版实现。<br>
+        注意 $type$ $traits$ 可能会产生一些出乎你意料的行为，比如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">remove_const_t</span><span class="o">&lt;</span><span class="kt">int</span> <span class="k">const</span><span class="o">&amp;&gt;</span>  <span class="c1">// int const&amp;
+</span></span></span></code></pre></div><p>        因为引用不是 $const$ ，所以调用不会产生任何效果，而是返回传入类型。因此，如果你想要移除 $const$ ，你必须先移除引用：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">remove_const_t</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">remove_reference_t</span><span class="o">&lt;</span><span class="kt">int</span> <span class="k">const</span><span class="o">&amp;&gt;&gt;</span>  <span class="c1">// int
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">std</span><span class="o">::</span><span class="n">remove_reference_t</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">remove_const_t</span><span class="o">&lt;</span><span class="kt">int</span> <span class="k">const</span><span class="o">&amp;&gt;&gt;</span>  <span class="c1">// int const
+</span></span></span></code></pre></div><p>        或者，你也可以直接：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">decay_t</span><span class="o">&lt;</span><span class="kt">int</span> <span class="k">const</span><span class="o">&amp;&gt;</span>  <span class="c1">// int
+</span></span></span></code></pre></div><p>        但是上面这种也会把原始数组和函数转换为指针。<br>
+        有些 $type$ $traits$ 对传入类型也有要求，不满足这些要求可能会产生未定义行为，比如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">make_unsigned_t</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span>  <span class="c1">// unsigned int
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">make_unsigned_t</span><span class="o">&lt;</span><span class="kt">int</span> <span class="k">const</span><span class="o">&amp;&gt;</span>  <span class="c1">// 未定义行为
+</span></span></span></code></pre></div><p>        有时候也会产生出乎意料的结果：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">add_rvalue_reference_t</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span>  <span class="c1">// int&amp;&amp;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">add_rvalue_reference_t</span><span class="o">&lt;</span><span class="kt">int</span> <span class="k">const</span><span class="o">&gt;</span>  <span class="c1">// int const&amp;&amp;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">add_rvalue_reference_t</span><span class="o">&lt;</span><span class="kt">int</span> <span class="k">const</span><span class="o">&amp;&gt;</span>  <span class="c1">// int const&amp;
+</span></span></span></code></pre></div><p>        我们可能认为通过 $add_-rvalue_-reference_-t$ 可以获得右值，但是因为引用折叠，最终会返回一个左值。另一个例子是：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">is_copy_assignable_v</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span>  <span class="c1">// true
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">is_assignable_v</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="o">&gt;</span>  <span class="c1">// false
+</span></span></span></code></pre></div><p>        $is_-copy_-assignable$ 检查类型是否可以拷贝赋值，而 $is_-assignable_-v$ 则会考虑值类型，因为你无法将一个右值赋给右值，所以会返回 $false$ 。从这个角度来看，第一个表达式其实等价于：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">is_assignable_v</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&amp;</span><span class="p">,</span> <span class="kt">int</span><span class="o">&amp;&gt;</span>  <span class="c1">// true
+</span></span></span></code></pre></div><p>        同样的道理，有：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">is_swappable_v</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span>  <span class="c1">// true
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">is_swappable_v</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&amp;</span><span class="p">,</span> <span class="kt">int</span><span class="o">&amp;&gt;</span> <span class="c1">// true
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">is_swappable_with_v</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="o">&gt;</span>  <span class="c1">// false
+</span></span></span></code></pre></div><h3 id="52-stdaddressof">5.2 <code>std::addressof</code></h3>
+<p>        $std::addressof$ 函数模版生成一个对象或者函数的确切地址。即使对象类型重载了 &amp; 运算符，它也能工作。所以，我们推荐使用 $addressof$ 来获取对象或者一个任意类型的地址：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="n">T</span><span class="o">&amp;&amp;</span> <span class="n">x</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">auto</span> <span class="n">p</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">x</span><span class="p">;</span>  <span class="c1">// 如果T重载了&amp;，可能会失败
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">auto</span> <span class="n">q</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">addressof</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h3 id="53-stddeclval">5.3 <code>std::declval</code></h3>
+<p>        $std::declval$ 函数模版可以作为一个确切类型对象引用的占位符，这个函数没有定义，因此无法被调用 ( 也不会创建一个对象 )。因此，它只能被用于不进行计算的操作 ( 例如 $decltype$ 和 $sizeof$ )。所以，这个模版用于你不想创建一个对象，而是假设你有一个对应类型的对象的时候。例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;utility&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T1</span><span class="p">,</span> <span class="k">typename</span> <span class="n">T2</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">         <span class="k">typename</span> <span class="n">RT</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">decay_t</span><span class="o">&lt;</span>
+</span></span><span class="line"><span class="cl">                        <span class="k">decltype</span><span class="p">(</span><span class="nb">true</span> <span class="o">?</span> <span class="n">std</span><span class="o">::</span><span class="n">declval</span><span class="o">&lt;</span><span class="n">T1</span><span class="o">&gt;</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">                                        <span class="n">std</span><span class="o">::</span><span class="n">declval</span><span class="o">&lt;</span><span class="n">T2</span><span class="o">&gt;</span><span class="p">())</span><span class="o">&gt;&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="n">RT</span> <span class="n">max</span><span class="p">(</span><span class="n">T1</span> <span class="n">a</span><span class="p">,</span> <span class="n">T2</span> <span class="n">b</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">b</span> <span class="o">&lt;</span> <span class="n">a</span> <span class="o">?</span> <span class="nl">a</span> <span class="p">:</span> <span class="n">b</span><span class="p">;</span> <span class="p">}</span>
+</span></span></code></pre></div><p>        为了避免调用 $T1$ 和 $T2$ 的默认构造函数，我们使用 $std::declval$ 来假设这里有一个这种类型的对象。不要忘了使用 $std::decay$ 来保证返回类型可以被引用，因为 $std::declval$ 本身产生的是一个右值引用。</p>
+<h2 id="6-完美转发临时变量">6. 完美转发临时变量</h2>
+<p>        我们可以通过转发引用和 $std::forward$ 来完美转发泛型参数。然而，有时候我们需要在泛型代码中完美地转发并非参数的数据。这种情况下，我们可以使用 $auto$&amp;&amp; 来创建一个可以被转发的变量。例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">foo</span><span class="p">(</span><span class="n">T</span> <span class="n">x</span><span class="p">)</span> <span class="p">{</span> <span class="n">set</span><span class="p">(</span><span class="n">get</span><span class="p">(</span><span class="n">x</span><span class="p">));</span> <span class="p">}</span>
+</span></span></code></pre></div><p>        如果我们要对上面的函数应用完美转发，可以这样做：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">foo</span><span class="p">(</span><span class="n">T</span> <span class="n">x</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">auto</span><span class="o">&amp;&amp;</span> <span class="n">val</span> <span class="o">=</span> <span class="n">get</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">set</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="k">decltype</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="o">&gt;</span><span class="p">(</span><span class="n">val</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        这样就避免了没有必要的中间值拷贝了。</p>
+<h2 id="6-模版引用参数">6. 模版引用参数</h2>
+<p>        虽然不常见，模版类型参数可以成为引用类型。例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">tmplParamIsReference</span><span class="p">(</span><span class="n">T</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;T is reference: &#34;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">is_reference_v</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">&lt;&lt;</span> <span class="sc">&#39;\n&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">boolalpha</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">int</span><span class="o">&amp;</span> <span class="n">r</span> <span class="o">=</span> <span class="n">i</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">tmplParamIsReference</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>  <span class="c1">// false
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">tmplParamIsReference</span><span class="p">(</span><span class="n">r</span><span class="p">);</span>  <span class="c1">// false
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">tmplParamIsReference</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&amp;&gt;</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>  <span class="c1">// true
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">tmplParamIsReference</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&amp;&gt;</span><span class="p">(</span><span class="n">r</span><span class="p">);</span>  <span class="c1">// true
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></div><p>        即使引用变量被传给了 $tmplParamIsReference$ ，模版参数 $T$ 还是被推导为非引用类型 ( 因为对于一个引用变量 $v$ ，表达式 $v$ 具有引用类型，但是表达式 $v$ 的类型永远都不会是一个引用 )。然而，我们可以通过显式指定的方式来强制使用引用。这样可以改变一个模版的行为，但是最好不要这样做，一个模版可能没有被设计为这样使用，从而导致错误或者未定义行为。例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="n">T</span> <span class="n">Z</span> <span class="o">=</span> <span class="n">T</span><span class="p">{}</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">RefMem</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">T</span> <span class="n">zero</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">RefMem</span><span class="p">()</span> <span class="o">:</span> <span class="n">zero</span><span class="p">{</span><span class="n">Z</span><span class="p">}</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">null</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">RefMem</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">rm1</span><span class="p">,</span> <span class="n">rm2</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">rm1</span> <span class="o">=</span> <span class="n">rm2</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">RefMem</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&amp;&gt;</span> <span class="n">rm3</span><span class="p">;</span>  <span class="c1">// 错误
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">RefMem</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&amp;</span><span class="p">,</span> <span class="mi">0</span><span class="o">&gt;</span> <span class="n">rm4</span><span class="p">;</span>  <span class="c1">// 错误
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">  <span class="k">extern</span> <span class="kt">int</span> <span class="n">null</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">RefMem</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&amp;</span><span class="p">,</span> <span class="n">null</span><span class="o">&gt;</span> <span class="n">rm5</span><span class="p">,</span> <span class="n">rm6</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">rm5</span> <span class="o">=</span> <span class="n">rm6</span><span class="p">;</span>  <span class="c1">// 错误，引用成员没有赋值运算符
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></div><p>        我们使用 $int$ 来实例化类型时，这个类模版可以正常工作。但是当我们使用引用来实例化时，就有点棘手了：</p>
+<ul>
+<li>默认实例化机制无法运行；</li>
+<li>不能再传入 $0$ 作为初始值；</li>
+<li>最出乎意料的是，赋值运算符也不能使用，因为具有非静态引用类型成员的类没有默认的赋值运算符。</li>
+</ul>
+<p>        并且，使用引用类型作为非类模版参数是很麻烦且危险的。例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="kt">int</span><span class="o">&amp;</span> <span class="n">SZ</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Arr</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">elems</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Arr</span><span class="p">()</span> <span class="o">:</span> <span class="n">elems</span><span class="p">(</span><span class="n">SZ</span><span class="p">)</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">print</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">SZ</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">elems</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="sc">&#39; &#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">size</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Arr</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&amp;</span><span class="p">,</span> <span class="n">size</span><span class="o">&gt;</span> <span class="n">y</span><span class="p">;</span>  <span class="c1">// 编译时错误
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">  <span class="n">Arr</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="n">size</span><span class="o">&gt;</span> <span class="n">x</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">x</span><span class="p">.</span><span class="n">print</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="n">size</span> <span class="o">+=</span> <span class="mi">10</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">x</span><span class="p">.</span><span class="n">print</span><span class="p">();</span>  <span class="c1">// 运行时错误
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></div><p>        这里我们尝试使用引用类型实例化，但是因为 $vector$ 不能接收引用类型，所以会产生一个编译错误。比编译错误更糟糕的是运行错误，我们将 $SZ$ 参数变为一个引用，从而导致它可以在容器未察觉的情况下随意修改，因此导致了未定义行为。注意，就算我们将 $SZ$ 的模版参数声明改为 $int$ $const$&amp; 也无济于事，因为通过 $size$ ，引用值还是可以被修改。<br>
+        这个例子有些牵强，然而，在更复杂的情况下，我们并不能排除类似问题发生的可能。而且，在<code>C++17</code>中，非类型参数也可以被推导，例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">SZ</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Arr</span><span class="p">;</span>
+</span></span></code></pre></div><p>        这样会产生引用类型，因此我们会避免这种情况 ( 默认情况下使用 $auto$ )。<br>
+        因为这个，<code>C++</code>标准库有时候会进行出乎意料的特例化和约束，例如：</p>
+<ul>
+<li>为了在接收引用对象时仍然保持赋值运算符，类模版 $std::pair$ 和 $std::tuple$ 显式实现赋值运算符而非使用默认版本。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">std</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T1</span><span class="p">,</span> <span class="k">typename</span> <span class="n">T2</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="nc">pair</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">T1</span> <span class="n">first</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">T2</span> <span class="n">second</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">pair</span><span class="p">(</span><span class="n">pair</span> <span class="k">const</span><span class="o">&amp;</span><span class="p">)</span> <span class="o">=</span> <span class="k">default</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">pair</span><span class="p">(</span><span class="n">pair</span><span class="o">&amp;&amp;</span><span class="p">)</span> <span class="o">=</span> <span class="k">default</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">pair</span><span class="o">&amp;</span> <span class="k">operator</span><span class="o">=</span><span class="p">(</span><span class="n">pair</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">p</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">pair</span><span class="o">&amp;</span> <span class="k">operator</span><span class="o">=</span><span class="p">(</span><span class="n">pair</span><span class="o">&amp;&amp;</span> <span class="n">p</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">(...);</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><ul>
+<li>因为解决可能副作用的方案的复杂性，<code>C++17</code>标准库类模版 $std::optional$ 和 $std::variant$ 使用引用类型来实例化会产生错误：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">optional</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">static_assert</span><span class="p">(</span><span class="o">!</span><span class="n">std</span><span class="o">::</span><span class="n">is_reference</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">value</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="s">&#34;Invalid instantiation of optional&lt;T&gt; for references&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></code></pre></div><p>        引用类型总体上与其他类型有着很大区别，它遵循一个独一无二的语言规则。</p>
+<h2 id="7-推迟计算">7. 推迟计算</h2>
+<p>        在模版实现中，模版代码是否能处理未完成类型有时会成为一个问题。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Cont</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">T</span><span class="o">*</span> <span class="n">elems</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></code></pre></div><p>        这时，这个类可以使用未完成类型，比如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Node</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">value</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Cont</span><span class="o">&lt;</span><span class="n">Node</span><span class="o">&gt;</span> <span class="n">next</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        然而，如果使用一些 $traits$ ，那么类模版就会失去这种可以使用未完成类型的能力：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Cont</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">T</span><span class="o">*</span> <span class="n">elems</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="k">typename</span> <span class="n">std</span><span class="o">::</span><span class="n">conditional</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">is_move_constructible</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">value</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                            <span class="n">T</span><span class="o">&amp;&amp;</span><span class="p">,</span> <span class="n">T</span><span class="o">&amp;&gt;::</span><span class="n">type</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">foo</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        这里我们使用 $traits$ 来判断根据 $T$ 是否可以移动构造来决定 $foo$ 的返回值是 $T$&amp;&amp; 还是 $T$&amp; 。这样做的问题是 $is_-move_-constructible$ 要求其模版参数是一个完成类型 ( 并且非 $void$ 和未知长度数组 )。因此，如果我们继续使用 $Cont$ 声明 $Node$ ，就会产生一个错误。<br>
+        我们可以使用一个成员模版来代替原本的 $foo$ ，这样就把 $is_-move_-constructible$ 的计算推迟到实例化 $foo$ 的时候了：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Cont</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">T</span><span class="o">*</span> <span class="n">elems</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">D</span> <span class="o">=</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">typename</span> <span class="n">std</span><span class="o">::</span><span class="n">conditional</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">is_move_constructible</span><span class="o">&lt;</span><span class="n">D</span><span class="o">&gt;::</span><span class="n">value</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                            <span class="n">T</span><span class="o">&amp;&amp;</span><span class="p">,</span> <span class="n">T</span><span class="o">&amp;&gt;::</span><span class="n">type</span>
+</span></span><span class="line"><span class="cl">  <span class="n">foo</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><h2 id="7-编写泛型库时的注意事项">7. 编写泛型库时的注意事项</h2>
+<ul>
+<li>在模版中使用转发引用来转发。如果值并不依赖于模版参数，使用 $auto$&amp;&amp; ；</li>
+<li>当参数被声明为转发引用时，注意在传递左值时模版参数具有引用类型；</li>
+<li>当你需要一个依赖于模版参数的对象的地址的时候，使用 $std::addressof$ ，这样就可以避免类型重载 $operator$&amp; 带来的错误了；</li>
+<li>对于成员函数模版，确保它们不会比预定义的拷贝/移动构造函数和运算符有着更优的匹配；</li>
+<li>当模版参数可能是字符串常量并且以非值方式传递时，考虑使用 $std::decay$ ；</li>
+<li>如果你有一个依赖于模版参数的作为返回值或者同时作为传入值和返回值的参数时，注意模版参数类型可能会推导为 $const$ ；</li>
+<li>注意模版引用参数带来的副作用，尤其是，你可能想要让返回值不是一个引用的时候；</li>
+<li>注意对未完成类型的支持，例如用于递归数据结构时；</li>
+<li>对所有可能的数组类型进行重载，不要只有 $T[SZ]$ 这种情况。</li>
+</ul>
+
+<script src=https://z217blog.cn/js/toc.js></script>
+
+<div>
+    <a href="javascript:void(0);" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+    <div id="sidetoc">
+        <header>
+            <h4>C&#43;&#43; Templates（6）：模版实践与泛型库</h4>
+        </header>
+        <nav id="TableOfContents">
+            <ul></ul>
+        </nav>
+    </div>
+    <script>
+        isTocOpen = true;
+    </script>
+</div>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/cpptemplates5/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+<script type="text/javascript">
+    if (isTocOpen) tocInit();
+</script>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:zihan.zhouchn@outlook.com">zihan.zhouchn@outlook.com</a>
+            </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2022, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        let all = MathJax.Hub.getAllJax(),
+            i;
+        
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+</main>
+</body>
+
+</html>
