@@ -88,7 +88,25 @@
     
     
     <div class="list-item">
-        <a class="entry-title" href="https://z217blog.cn/post/%E5%88%86%E5%B8%83%E5%BC%8F%E6%95%B0%E6%8D%AE%E7%B3%BB%E7%BB%9F/">分布式数据系统：主从节点</a>
+        <a class="entry-title" href="https://z217blog.cn/post/%E5%88%86%E5%B8%83%E5%BC%8F%E6%95%B0%E6%8D%AE%E7%B3%BB%E7%BB%9F%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95/">分布式数据系统：共识算法</a>
+        
+        
+        <p>数据密集型应用系统设计：分布式事务与共识</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2022 Nov 13 16:18
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: Arch
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
+        <a class="entry-title" href="https://z217blog.cn/post/%E5%88%86%E5%B8%83%E5%BC%8F%E6%95%B0%E6%8D%AE%E7%B3%BB%E7%BB%9F%E4%B8%BB%E4%BB%8E%E8%8A%82%E7%82%B9/">分布式数据系统：主从节点</a>
         
         
         <p>数据密集型应用系统设计：分布式数据系统</p>
@@ -100,7 +118,7 @@
             <br>
             
             <i class="fas fa-tags"></i>
-            Tags: Web
+            Tags: Arch
             
         </div>
     </div>
@@ -159,24 +177,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="https://z217blog.cn/post/cpptemplates4/">C&#43;&#43; Templates（4）：移动与引用</a>
-        
-        
-        <p>《C&#43;&#43; Templates》读书笔记（4），个人翻译</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2022 Mar 13 14:27
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: C&C++
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -188,7 +188,172 @@
         
         <div class="post">
             
-            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/%E5%88%86%E5%B8%83%E5%BC%8F%E6%95%B0%E6%8D%AE%E7%B3%BB%E7%BB%9F/">分布式数据系统：主从节点</a></h1>
+            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/%E5%88%86%E5%B8%83%E5%BC%8F%E6%95%B0%E6%8D%AE%E7%B3%BB%E7%BB%9F%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95/">分布式数据系统：共识算法</a></h1>
+            <div class="post-content">
+                
+                
+                <p>        分布式计算中有很多重要场景需要集群节点达成某种一致，例如：</p>
+<ul>
+<li>主节点选举：对于主从模式的数据库，节点间需要对谁来充当主节点达成一致。如果由于网络故障原因出现节点之间无法通信，就很容易出现争议；</li>
+<li>原子事务提交：对于支持跨节点或跨分区事务的数据库，某个事务可能在一些节点上执行成功，而在另一些节点上失败。为了维护事务的原子性，所有节点必须对事务结果达成一致。</li>
+</ul>
+<h2 id="1-原子提交与两阶段提交">1. 原子提交与两阶段提交</h2>
+<p>        对于单节点事务，原子性通常由存储引擎负责。当客户端请求数据库节点提交事务时，数据库首先使事务的写入持久化 ( 通常保存在<code>WAL</code>中 )，然后把提交记录追加到磁盘的日志文件中。如果数据库在该过程中发生了崩溃，在节点重启后，可以通过日志恢复事务。如果崩溃之前已经写入了提交记录，则认为事务已经成功，否则，回滚该事务。因此，单节点事务十分依赖于数据写入磁盘的顺序：先写入数据，再提交记录。<br>
+        将单节点事务延伸到多节点，虽然大多数<code>NoSQL</code>分布式数据库都不支持这种分布式事务，但是有很多集群关系型数据库支持。向所有节点发送请求，然后各节点独立执行是不够的，这样很容易发生不一致，从而违反了原子性。一旦某个节点提交了事务，即使事后发现其他节点发生了中止，它也无法再撤销已提交的事务，所以，如果有部分节点提交了事务，所有节点也必须一起提交。<br>
+        事务提交不可撤销，一旦数据被提交，就代表其他事务可见，继而客户端会依赖这些数据做出相应决策。这是事务<strong>提交读</strong>隔离级别的基础，如果事务在提交后还能撤销，就违反了提交读的原则，从而被迫产生级联式的追溯和撤销。当然，已提交事务可以被另一个新的事务覆盖，即<em><strong>补偿性事务</strong></em>。不过，在数据库的角度，它们是两个完全独立的事务，这种跨事务的正确性保证需要应用层负责。</p>
+<h3 id="11-两阶段提交">1.1 两阶段提交</h3>
+<p>        <strong>两阶段提交</strong> ( $two-phase\ commit$ , $2PC$ ) 是一种在多节点之间实现事务原子提交的算法，用来确保所有节点要么全部提交，要么全部中止。<code>2PC</code>在某些数据库内存使用，或者以<code>XA</code>事务的形式提供给应用程序使用。<br>
+        <code>2PC</code>引入了单节点事务所没有的新组件：协调者 ( 也被称为事务管理器 )，通常实现为共享库。<code>2PC</code>事务从应用程序在多个数据库节点上执行数据读/写开始，数据库节点称为事务的参与者。当应用程序准备提交事务时，协调者发送一个准备请求到所有节点，询问它们是否可以进行事务提交：</p>
+<ul>
+<li>如果所有参与者回答是，表示它们已经准备好提交，协调者会发出提交请求，所有节点开始执行事务提交；</li>
+<li>如果有任何参与者回答否，协调者会放弃发送提交请求。</li>
+</ul>
+<p>        为了理解<code>2PC</code>，我们可以分解这个过程：</p>
+<ol>
+<li>应用程序启动一个分布式事务，首先向协调者请求一个全局唯一的事务<code>ID</code>；</li>
+<li>应用程序在每个参与节点上执行单节点事务，并将全局唯一事务<code>ID</code>附加到事务上。此时，每个节点独立执行事务，如果有任何一个节点执行失败，协调者和其他参与者都可以安全回滚事务；</li>
+<li>应用程序准备提交事务，协调者向所有参与者发送准备请求，附带全局事务<code>ID</code>。如果接收到拒绝或者超时响应，协调者会通知所有节点放弃事务；</li>
+<li>参与者在收到准备请求后，检查事务是否可以提交，是否存在冲突或者违反约束。一旦向协调者返回确认响应，无论发生什么情况，都不能拒绝提交事务；</li>
+<li>协调者收到所有准备请求的响应后，会将决定写入磁盘中，用于崩溃后恢复决定，这个时刻称为提交点；</li>
+<li>协调者将决定写入磁盘后，向所有参与者发送提交或者放弃请求。如果请求出现失败或者超时，协调者会一种重试，直到成功。所有参与者都不能拒绝该请求，即使需要很多重试，或者中间出现崩溃。</li>
+</ol>
+<p>        如果参与者或者网络在<code>2PC</code>期间发生故障，比如在准备请求期间，协调者就会决定回滚事务；或者在提交请求期间，协调者会不断重试。而对于协调者故障，如果协调者在准备请求之前故障，参与者可以安全地回滚；而一旦参与者收到了准备请求并回答是，参与者便无法单方面放弃，必须一直等待协调者的决定，此时如果协调者故障，参与者便处于一种不确定的状态。理论上，参与者之间可以互相通信，了解每个参与者的投票情况，并达成一致，但是这已经不是<code>2PC</code>的范畴了。<code>2PC</code>能够顺利完成的唯一办法是等待协调者恢复，因此协调者在发送提交请求之前要将决定写入磁盘的事务日志。<br>
+        <code>2PC</code>也被称为阻塞式原子提交协议，因为等待协调者从故障恢复的这个过程是阻塞的。理论上，也可以改为非阻塞的，这种称为<strong>三阶段提交</strong>。<code>3PC</code>假定一个有限的网络延迟，要求节点在规定时间内响应。然而实际情况是，网络延迟可能是无限的。通常，非阻塞原子提交依赖一个完美的故障检测器，即一种十分可靠的可以判断节点是否崩溃的机制。但是，在一个网络延迟可能是无限的场景中，超时并非一种可靠的判断机制。正常情况下，请求也可能由于网络问题而超时。正是这些原因，大家更倾向于<code>2PC</code>而非<code>3PC</code>。</p>
+<h2 id="2-分布式事务实践">2. 分布式事务实践</h2>
+<p>        分布式事务，尤其是那些通过<code>2PC</code>实现的事务，声誉混杂。一方面，它们提供了一种其他方案难以企及的安全保证。但是另一方面，由于操作、性能上的缺陷，以及并非完全可靠，一直被人诟病。目前，许多云服务商由于运维方面的问题而决定不支持分布式事务。分布式事务的某些实现存在严重的性能问题，例如，有报告显示<code>MySQL</code>的分布式事务比单节点事务慢 $10$ 倍以上。<code>2PC</code>性能下降的主要原因是与协调者通信带来额外的网络开销，以及为了协调者崩溃恢复做的磁盘<code>I/O</code> ( $fsync$ )。<br>
+        目前存在着两种不同的分布式事务概念：</p>
+<ul>
+<li>数据库内部的分布式事务：某些分布式事务支持的跨数据节点的内部事务，即所有参与者节点运行着相同的数据库软件；</li>
+<li>异构分布式事务：存在两种或两种以上不同参与者软件的事务，例如来自不同供应商的数据库，甚至可以是非数据库。</li>
+</ul>
+<p>        对于数据库内部事务，由于不需要考虑不同系统之间的兼容，可以采用任何形式的协议，并进行针对性优化，这些分布式事务往往可行。但是异构分布式事务就没那么简单了。</p>
+<h3 id="21-exactly-once消息处理">2.1 <code>Exactly-once</code>消息处理</h3>
+<p>        异构分布式事务旨在无缝集成多种不同的系统。例如，当且仅当数据库中处理消息的事务成功提交，消息队列才会标记该消息已处理完毕。这个过程是通过自动提交消息确认和数据库写入实现的。即使消息系统和数据库运行在不同节点上，分布式事务也能实现上述目标。如果消息发送失败或者某个节点事务失败，两者都必须中止。消息队列可以在之后重传消息。因此通过自动提交和消息处理结果，可以确保消息有效处理只有一次。<br>
+        需要注意，只有所有相关系统都使用相同的原子性提交协议的前提下，这种分布式事务才是可行的。例如，如果处理结果之一是发送邮件，而邮件服务器不支持<code>2PC</code>，此时某个过程出错，消息重新入队重试，邮件就可能会被发送多次。</p>
+<h3 id="22-xa事务">2.2 <code>XA</code>事务</h3>
+<p>        <code>X/Open XA</code> ( $eXtended\ Architecture$ , $XA$ ) 是异构环境下进行<code>2PC</code>的一个工业标准。目前，许多关系型数据库 ( <code>PostgreSQL</code>、<code>MySQL</code>、<code>Oracle</code>等 ) 和消息队列 ( <code>ActiveMQ</code>、<code>MSMQ</code>、<code>IBM MQ</code>等 ) 都支持<code>XA</code>。<code>XA</code>并不是一个网络协议，而是一个与事务协调者进行通信的<code>C API</code>。当然，它也支持与其他语言的<code>API</code>绑定，例如<code>Java</code>。<br>
+        <code>XA</code>假定应用程序通过网络或客户端的库函数与参与者节点进行通信，如果驱动程序支持<code>XA</code>，意味着应用程序可以调用<code>XA API</code>确定操作是否属于异构分布式事务的一部分。如果是，则发送必要的信息给数据库服务器。它还支持回调，这样协调者可以通过回调函数通知所有参与者执行准备或者提交 ( 或者中止 )。<br>
+        协调者需要实现<code>XA API</code>。虽然标准没有规定如何实现，但实际上，协调者也通常是一个<code>API</code>库，与产生事务的应用程序运行在相同进程中。这些<code>API</code>跟踪事务的参与者，收集投票，并在本地磁盘中记录决定。如果应用程序发生崩溃，或者节点故障，在重启后，协调者会通过<code>XA API</code>读取日志，恢复决定。完成这些后，协调者才能继续通过回调函数来要求参与者执行提交或者中止。数据库服务器无法直接与协调者通信，必须通过相应<code>API</code>。</p>
+<h3 id="23-协调者故障">2.3 协调者故障</h3>
+<p>        数据库事务通常持有待修改行的行锁，用于防止脏写。此外，如果要使用串行化的隔离级别，<code>2PC</code>还会对曾经读取的行持有读锁。在事务提交之前，这些锁都不会被释放。因此，在<code>2PC</code>中，如果出现协调者故障带来的停顿，那么这些锁在停顿期间都不会被释放。长时间持有锁是一件坏事，这意味着其他事务无法有效执行，使得许多上层应用处于不可用状态。<br>
+        理论上，如果协调者崩溃后重新启动，它应该可以从日志中恢复那些停顿的事务。然而，实践中，孤立的不确定事务是可能发生的，例如由于软件 $bug$ 导致交易日志丢失或者损坏。这些事务无法自己解决，而是一直停留在那里，即使重启节点也无法解决，因为<code>2PC</code>要求重启后继续保持重启前的事务状态。<br>
+        唯一的办法就是让管理员手动决定提交还是回滚。这可能会带来大量的手工操作，并且可能在关键生产环境的中断间隙，存在巨大的压力和时间限制。许多<code>XA</code>的实现都支持某种紧急避险措施，称为<strong>启发式决策</strong>：允许参与者节点在紧急情况下单方面做出决定，放弃或者继续停顿的事务。这种做法可能会破坏事务的原子性，违背了<code>2PC</code>原则。要注意，这种做法只是为了应急，不能作为常规手段使用。</p>
+<h3 id="24-分布式事务的限制">2.4 分布式事务的限制</h3>
+<p>        <code>XA</code>事务解决了多个参与者之间达成一直的问题，但是也引入了很多操作限制。特别是，核心的事务协调者本身就是一种数据库，因此需要和其他重要的数据库一样格外小心：</p>
+<ul>
+<li>如果协调者不支持数据复制，在单节点上运行，那么它就是整个系统的单点故障。实际上，许多协调者并非高可用，或者只支持最基本的复制；</li>
+<li>许多服务端应用程序都倾向于无状态模式 ( 更适合<code>HTTP</code> )，将所有持久状态都保存在数据库中。这样应用服务器可以轻松地添加或者删除实例。但是当协调者本身就是服务器的一部分时，协调者的日志就成为了可靠系统的重要组成部分，与数据库本身一样重要，这样的服务器本身就不是无状态的了；</li>
+<li><code>XA</code>需要与各种数据系统保持兼容，最终其实是多系统可兼容的最低标准。例如，它无法检测不同系统的死锁条件 ( 这需要其他标准化协议，多个系统需要交换锁信息 )；</li>
+<li>数据库内部的分布式事务比起<code>XA</code>来说，限制要少很多。然而对于<code>2PC</code>还是存在潜在的限制，比如所有参与者必须投票赞成。所以分布式事务扩大了事务失败的可能性，与构建容错系统的目标背道而驰。</li>
+</ul>
+<h2 id="3-共识算法">3. 共识算法</h2>
+<p>        共识是让几个节点就某项提议达成一致，通常形式化描述为：一个或多个节点可以提议某些值，由共识算法来决定最终值。共识算法必须满足以下性质：</p>
+<ul>
+<li><strong>协商一致性</strong> ( $Uniform\ agreement$ )：所有节点都接受相同决议；</li>
+<li><strong>诚实性</strong> ( $Integrity$ )：所有节点做出决定后都不能反悔，即一个决议不能有两个结果；</li>
+<li><strong>合法性</strong> ( $Validity$ )：决议的结果一定是由某个节点提议的；</li>
+<li><strong>可终止性</strong> ( $Termination$ )：节点在不崩溃的前提下一定可以达成协议。</li>
+</ul>
+<p>        如果不关心容错，满足前三个属性很容易：可以强行指定某个节点为“独裁者”，由它做出所有决定，唯一要注意的就是该节点失败的情况。上述共识的系统模型假定当某个节点崩溃后，节点就彻底消失，永远不会回来。在这种条件下，<code>2PC</code>显然不满足可终止性。当然，如果所有节点都崩溃了，那么无论哪种算法都不能继续做出决定。因此，可终止性的前提是，发生崩溃或者不可用的节点数必须小于半数节点。<br>
+        最著名的共识算法包括<code>VSR</code>、<code>Paxos</code>、<code>Raft</code>和<code>Zab</code>，这些算法存在很多相似之处，但又不完全相同。它们大部分并不是直接使用形式化模式，而是决定了一系列值，再通过全序关系广播算法。全序关系广播通常指节点之间交换消息的某种协议，下面是一个非正式定义，要求满足两个基本安全属性：</p>
+<ul>
+<li>可靠发送：没有消息丢失，如果某个消息发送到了一个节点，那么它也要发送给其他节点；</li>
+<li>严格有序：消息总是以相同顺序发送。</li>
+</ul>
+<p>        即使节点或者网络出现故障，全序关系广播算法的实现也必须保证以上两条。实现全序关系广播，要求消息顺序在发送前就已确定。理解全序关系广播的另一种方式是将其视为日志，传递消息就像追加日志，所有节点都可以读取日志并看到相同的消息序列。共识算法的全序关系广播相当于持续的多轮共识：</p>
+<ul>
+<li>由于协商一致性，所有节点以相同顺序发送相同消息；</li>
+<li>由于诚实性，消息不能重复；</li>
+<li>由于合法性，消息不会被破坏；</li>
+<li>由于可终止性，消息不会丢失。</li>
+</ul>
+<p>        <code>VSR</code>、<code>Raft</code>和<code>Zab</code>都直接采取了全序关系广播，而<code>Paxos</code>则有对应的优化版本，称为<code>Multi-Paxos</code>。</p>
+<h3 id="31-epoch和quorum">3.1 <code>Epoch</code>和<code>Quorum</code></h3>
+<p>        目前所讨论的素有共识协议在内部都使用了某种形式的主节点，虽然主节点并不是固定的。相反，它们都采用了一种弱保证：定义一个世代编号 ( $epoch$ $number$ )，并保证在每个世代中，主节点是唯一的。如果发现当前主节点失效，节点间就开始新一轮投票，选举新的主节点。每次选举都会被赋予一个单调递增的<code>epoch</code>，如果出现了两个不同的主节点对应于不同<code>epoch</code>好，则更高<code>epoch</code>的主节点将获胜。<br>
+        主节点做出任何决定前，都必须检查是否存在更高的<code>epoch</code>，否则就会产生冲突的决定。主节点如果想要做出某个决定，需要将提议发送给其他节点，等待<code>quorum</code>节点响应。<code>quorum</code>节点通常不是由多数节点组成的，并且，只有当没有发现更高<code>epoch</code>主节点存在时，才会对当前提议 ( 带有<code>epoch</code> ) 进行投票。因此，这里其实是有两轮不同的投票：首先投票决定主节点，然后再投票决定提议。其中关键一点是，两轮投票的<code>quorum</code>必须存在重叠。<br>
+        投票的过程很像<code>2PC</code>，最大区别是，<code>2PC</code>并不需要通过选举产生协调者，共识算法只需要多数节点同意即可通过。此外，共识算法还定义了恢复过程，出现故障后，通过该过程即可以选举出新的主节点，重新进入一致状态。</p>
+<h3 id="32-共识的局限">3.2 共识的局限</h3>
+<p>        共识算法为一切不确定系统带来了明确的安全属性，还支持容错。但是这种好处也是有代价的：</p>
+<ul>
+<li>达成一致之前的投票是一个同步复制过程。但是对于数据库，通常为了更好的性能，会采用异步复制；</li>
+<li>共识体系需要严格多数节点；</li>
+<li>多数共识算法假定一组固定参与投票的节点集，意味着不能动态添加或删除节点；</li>
+<li>共识系统通常依靠超时机制来检测节点失效，在网络延迟高度不确定的环境中，特别是跨区域分布的系统，经常由于网络延迟的原因，节点会被错误地认为发生了故障。虽然这种误判不会影响安全，但是频繁的主节点选举会影响性能；</li>
+<li>共识算法对网络问题特别敏感。例如，<code>Raft</code>被发现存在不合理的边界处理：如果网络中存在某一条网络连接持续不可靠，它会在两个节点之间反复切换主节点，当前主节点会被不断赶下台。其他的共识算法也会有类似问题，所以面对不可靠网络，如何设计更具鲁棒性的共识算法仍然是一个开放性的研究问题。</li>
+</ul>
+<h3 id="33-paxos">3.3 <code>Paxos</code></h3>
+<p>        <code>Paxos</code>算法运行在允许宕机的异步系统中，不要求可靠的消息传递，可容忍消息丢失、延迟、乱序以及重复。它利用多数机制，在具有 $2F + 1$ 个节点的系统中，最多允许 $F$ 个节点的故障。<code>Paxos</code>具有以下系统角色：</p>
+<ul>
+<li>提议者 ( $Proposer$ )：提出提议，包含提议编号 ( $Proposal$ $ID$ ) 和提议值 ( $Value$ )；</li>
+<li>决策者 ( $Acceptor$ )：参与决策，回应提议者的提议；</li>
+<li>学习者 ( $Learner$ )：不参与决策，从其他节点学习最终的提议值。</li>
+</ul>
+<p>        在多副本状态机中，每个副本都是提议者、决策者和学习者。<br>
+        <code>Paxos</code>算法分为两阶段：</p>
+<ol>
+<li>准备阶段：提议者向决策者发出准备请求，决策者针对收到的准备请求进行承诺；</li>
+<li>决策阶段：提议者在接收到多数决策者的回应 ( $Promise$ ) 之后，向决策者发出提议请求，决策者收到请求后处理；</li>
+<li>学习阶段：提议者在接收到多数决策者的决策之后，标记本次决策成功，将提议值发送给所有学习者。</li>
+</ol>
+<p>        决策者会对提议者的准备请求做出两个承诺和一个回应：</p>
+<ul>
+<li>承诺不再接收<code>ID</code>小于等于当前准备请求<code>ID</code>的准备请求；</li>
+<li>承诺不再接收<code>ID</code>小于当前准备请求的决策请求；</li>
+<li>回应之前接收过的<code>ID</code>最大的提议的<code>ID</code>和提议值。</li>
+</ul>
+<p>        原始的<code>Paxos</code>算法只能对一个值进行决策，每次决策需要至少两次收发请求，在高并发场景下可能需要更多次沟通，极端情况下还会形成<strong>活锁</strong>，即两个提议者交替发起请求，不断递增 $Proposal$ $ID$ 。因此，这种<code>Paxos</code>只适合理论研究，不适合应用在实际生产环境中。<br>
+        实际生产环境中往往需要连续确定多个值，而且具有更高效率。<code>Multi-Paxos</code>就是为此提出的，它作出了两点改进：</p>
+<ul>
+<li>针对每个提议者，生成一个 $Instance$ $ID$ ，每个提议者由一个<code>ID</code>标识；</li>
+<li>在所有提议者中选举一个主节点，由主节点将提议提交给决策者进行决策。这样就可以跳过准备请求阶段，因为实际上只有一个提议者会提议。</li>
+</ul>
+<p>        <code>Multi-Paxos</code>首先需要选举一个主节点，选举的过程也可以通过<code>Paxos</code>算法决策，一种简单的方式如下：</p>
+<ul>
+<li>具有最高<code>ID</code>的服务器作为主节点，每个服务器定时向其他服务器发送心跳消息检查状态；</li>
+<li>如果没有收到比它高的<code>ID</code>的节点的心跳消息，它就会尝试发起一轮选举，选举自己作为领导者；</li>
+<li>非主节点只会作为决策者，提议者只有主节点一个。</li>
+</ul>
+<p>        <code>Multi-Paxos</code>通过改变准备阶段的作用范围，使得多个实例的提交只需要一次决策，将两阶段变为一阶段，提高了效率。即使存在多个主节点 ( 脑裂 )，也不影响安全性，这时候只是会退化为原始的<code>Paxos</code>。</p>
+<h3 id="34-raft">3.4 <code>Raft</code></h3>
+<p>        <code>Raft</code>实现了和<code>Paxos</code>相同的功能，将共识问题分解为多个子问题，使用了更强的假设来减少需要考虑的状态。<code>Raft</code>将系统分为以下角色：</p>
+<ul>
+<li>领导者 ( $Leader$ )：接收客户端请求，同步给跟随者，当同步到多数节点后提交请求；</li>
+<li>跟随者 ( $Follower$ )：接收并持久化领导者的请求，在接收到领导者的提交请求后，进行提交；</li>
+<li>候选人 ( $Candidate$ )：可以参与选举的节点。</li>
+</ul>
+<p>        <code>Raft</code>算法只允许一个领导者的存在。节点之间存在心跳检测，如果跟随者长时间没有接收到来自领导者的心跳消息，则会开启新一轮选举。收到多数投票的候选人会称为新的领导者，直到其出现故障。<code>Raft</code>通过任期 ( $term$ ) 管理选举，任期通过时间划分，每个 $term$ 的开始都是选举，选举完成后，在这个任期内领导者会负责管理集群。<br>
+        <code>Raft</code>拥有两条限制，用于保证安全性：</p>
+<ul>
+<li>拥有最大偏移量的候选人才可以成为领导者。这要求候选人在选举中发送自己的偏移量；</li>
+<li>只允许提交当前任期的请求，之前任期的无法不能再提交。这要求领导者在请求中带上任期。</li>
+</ul>
+<h2 id="4-成员与协调服务">4. 成员与协调服务</h2>
+<p>        <code>ZooKeeper</code>或者<code>etcd</code>这样的项目通常称为“分布式键值存储”或者“协调与配置服务”。它们对外提供的<code>API</code>与数据库非常相像：读取、写入对应主键值，或者按序便利主键。应用程序开发者其实很少直接使用<code>ZooKeeper</code>，因为它并非通用数据库，绝大部分通过其他项目来间接依赖，比如<code>HBase</code>、<code>Hadoop YARN</code>、<code>Kafka</code>等。<code>ZooKeeper</code>和<code>etcd</code>主要针对保存少量、可完全载入内存的数据 ( 即使最终还是要写入磁盘 )，不适合用于保存大量数据。它们通常采用容错的全序广播算法在所有节点上复制数据从而实现高可靠。<code>ZooKeeper</code>的实现其实模仿了<code>Google</code>的<code>Chubby</code>分布式锁服务，不仅实现了全序广播，还提供了其他有趣的特性：</p>
+<ul>
+<li>线性化的原子操作：使用<code>CAS</code>操作，实现加锁服务。例如多个节点同时尝试执行相同操作，则确保只会有一个节点成功。共识算法满足了原子性和线性化，即使某些节点发生故障或者网络中断。分布式锁通常是一个带有过期时间的租约，保证即使某些客户端故障也可被释放；</li>
+<li>操作全序：<code>fencing</code>令牌保证每次加锁的数字总是单调递增的，<code>ZooKeeper</code>会对所有操作执行全局排序，为每个操作赋予一个唯一的事务<code>ID</code>和版本号；</li>
+<li>故障检测：客户端与<code>ZooKeeper</code>之间会维持一个长期会话，客户端会周期性地与<code>ZooKeeper</code>服务节点互相交换心跳信息，以检查对方是否存活。即使出现连接中断，或者某个<code>ZooKeeper</code>节点失效，会话仍处于活动状态。如果连接断开时间超过了超时时间，<code>ZooKeeper</code>会声明会话失败，此时该会话持有的所有锁资源会被自动释放 ( 即<code>ZooKeeper</code>中的临时节点 )；</li>
+<li>更改通知：客户端不仅可以读取其他客户端所创建的锁和键值，还可以监视它们的变化。因此，客户端可以知道其他客户端何时加入了集群，以及客户端是否发生了故障。通过订阅机制，客户端不需要频繁轮询服务。</li>
+</ul>
+<h3 id="41-节点任务分配">4.1 节点任务分配</h3>
+<p>        <code>ZooKeeper</code>和<code>Chubby</code>的一个非常适合的场景是，如果系统有多个流程或服务的实例，并且需要其中一个实例充当主节点，在主节点失效时由其他节点接管。显然，这是主从模型的特征。此外，它对于作业调度系统也十分有用。还有另一个场景，对于一些分区资源 ( 数据库、消息流、文件存储等 )，需要决定节点分区分配。当有新节点加入集群时，需要将某些现有分区从当前节点迁移到新节点，从而实现动态的负载均衡。<br>
+        上述场景都可以借助<code>ZooKeeper</code>的原子操作 ( 临时节点和订阅机制 ) 来实现。应用程序最初可能只运行在单节点，之后扩展到数千节点。在这么多节点上进行投票是很低效的。而<code>ZooKeeper</code>通常是在固定数量的节点上运行，可以非常高效的支持大量客户端。通常，<code>ZooKeeper</code>管理的数据变化十分缓慢，更改频率往往是分钟级甚至小时级，如果需要频繁修改，应该考虑其他工具。</p>
+<h3 id="42-服务发现">4.2 服务发现</h3>
+<p>        <code>ZooKeeper</code>、<code>etcd</code>和<code>Consul</code>经常用于服务发现。在典型的云环境中，虚拟机可能会动态变化，这时无法提前知道服务节点的<code>IP</code>地址，因此，可以在每次节点启动时将网络端口信息向<code>ZooKeeper</code>等服务注册，其他人只需要向<code>ZooKeeper</code>的注册表请求即可。<br>
+        但是，关于服务发现是否需要共识还缺乏统一认识，习惯上是通过<code>DNS</code>来将服务名称转为<code>IP</code>。从<code>DNS</code>读取肯定不满足线性化，然而现实情况是，如果<code>DNS</code>返回的是过期值也不会有什么大问题。总体来讲，<code>DNS</code>更看重网络中断时的可用性和鲁棒性。</p>
+<h3 id="43-成员服务">4.3 成员服务</h3>
+<p>        <code>ZooKeeper</code>还可以作为成员服务的一部分，用于确定当前哪些节点处于活动状态，并且是集群的有效成员。这里依然存在误判的可能，即使这样，系统就成员资格的认识是一致的。</p>
+
+            </div>
+            <div class="meta post-footer">
+                <span>2022 Nov 13 16:18</span>
+                <a href="https://z217blog.cn/post/%E5%88%86%E5%B8%83%E5%BC%8F%E6%95%B0%E6%8D%AE%E7%B3%BB%E7%BB%9F%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95/"><i class="fas fa-link"></i> link</a>
+            </div>
+        </div>
+        
+        <div class="post">
+            
+            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/%E5%88%86%E5%B8%83%E5%BC%8F%E6%95%B0%E6%8D%AE%E7%B3%BB%E7%BB%9F%E4%B8%BB%E4%BB%8E%E8%8A%82%E7%82%B9/">分布式数据系统：主从节点</a></h1>
             <div class="post-content">
                 
                 
@@ -306,7 +471,7 @@
 <li>反熵：一些数据存储的后台进程会不断检测副本之间的数据差异，同步滞后的数据。与主从同步不同，这种方式并不保证顺序写入，并且会有明显的同步滞后。</li>
 </ul>
 <p>        要注意的是，并非所有的数据库都支持以上机制，例如<code>Voldemort</code>没有反熵。</p>
-<h4 id="312-quorum">3.1.2 <code>quorum</code></h4>
+<h3 id="32-quorum">3.2 <code>quorum</code></h3>
 <p>        如果有 $n$ 个副本，写入需要 $w$ 个节点确认，读取必须至少要查询 $r$ 个节点，则只需要 $w + r$ &gt; $n$ 就可以确保读取的节点一定会包含最新值。满足这些的 $r$ 、$w$ 值称为法定票数读 ( 或仲裁读 ) 或法定票数写 ( 或仲裁写 )。也可以认为 $r$ 和 $w$ 是用于判定读、写是否有效的最低票数。<br>
         在<code>Dynamo</code>风格数据库中，$n$ 、$r$ 和 $w$ 通常是可以配置的，常见的是配置 $n$ 为奇数，$w = r = \lceil (n + 1) / 2 \rceil$ ，也可以根据需求灵活调整。$w + r$ &gt; $n$ 定义了系统可容忍的失效节点数：</p>
 <ul>
@@ -350,7 +515,7 @@
             </div>
             <div class="meta post-footer">
                 <span>2022 Nov 6 15:24</span>
-                <a href="https://z217blog.cn/post/%E5%88%86%E5%B8%83%E5%BC%8F%E6%95%B0%E6%8D%AE%E7%B3%BB%E7%BB%9F/"><i class="fas fa-link"></i> link</a>
+                <a href="https://z217blog.cn/post/%E5%88%86%E5%B8%83%E5%BC%8F%E6%95%B0%E6%8D%AE%E7%B3%BB%E7%BB%9F%E4%B8%BB%E4%BB%8E%E8%8A%82%E7%82%B9/"><i class="fas fa-link"></i> link</a>
             </div>
         </div>
         
@@ -1551,246 +1716,6 @@
             <div class="meta post-footer">
                 <span>2022 Mar 14 15:57</span>
                 <a href="https://z217blog.cn/post/cpptemplates6/"><i class="fas fa-link"></i> link</a>
-            </div>
-        </div>
-        
-        <div class="post">
-            
-            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/cpptemplates5/">C&#43;&#43; Templates（5）：编译时编程</a></h1>
-            <div class="post-content">
-                
-                
-                <h2 id="1-模版元编程">1. 模版元编程</h2>
-<p>        模版在编译期实例化，这使得一些<code>C++</code>模版特性可以在实例化阶段进行一系列递归的语言编程。所以，我们可以使用模版来作为程序计算。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="n">p</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="n">d</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">DoIsPrime</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="k">constexpr</span> <span class="kt">bool</span> <span class="n">value</span> <span class="o">=</span>
-</span></span><span class="line"><span class="cl">    <span class="p">(</span><span class="n">p</span> <span class="o">%</span> <span class="n">d</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">DoIsPrime</span><span class="o">&lt;</span><span class="n">p</span><span class="p">,</span> <span class="n">d</span> <span class="o">-</span> <span class="mi">1</span><span class="o">&gt;::</span><span class="n">value</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="n">p</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">DoIsPrime</span><span class="o">&lt;</span><span class="n">p</span><span class="p">,</span> <span class="mi">2</span><span class="o">&gt;</span><span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="k">constexpr</span> <span class="kt">bool</span> <span class="n">value</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="kt">unsigned</span> <span class="n">p</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">IsPrime</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="k">constexpr</span> <span class="kt">bool</span> <span class="n">value</span> <span class="o">=</span>
-</span></span><span class="line"><span class="cl">    <span class="n">DoIsPrime</span><span class="o">&lt;</span><span class="n">p</span><span class="p">,</span> <span class="n">p</span> <span class="o">/</span> <span class="mi">2</span><span class="o">&gt;::</span><span class="n">value</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">IsPrime</span><span class="o">&lt;</span><span class="mi">0</span><span class="o">&gt;</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="k">constexpr</span> <span class="kt">bool</span> <span class="n">value</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">IsPrime</span><span class="o">&lt;</span><span class="mi">1</span><span class="o">&gt;</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="k">constexpr</span> <span class="kt">bool</span> <span class="n">value</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">IsPrime</span><span class="o">&lt;</span><span class="mi">2</span><span class="o">&gt;</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="k">constexpr</span> <span class="kt">bool</span> <span class="n">value</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">IsPrime</span><span class="o">&lt;</span><span class="mi">3</span><span class="o">&gt;</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="k">constexpr</span> <span class="kt">bool</span> <span class="n">value</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">};</span>
-</span></span></code></pre></div><p>        上面的代码计算一个数是否为质数。$DoIsPrime$ 会递归地展开表达式。例如：</p>
-<pre tabindex="0"><code>IsPrime&lt;9&gt;::value
-</code></pre><p>        会展开为：</p>
-<pre tabindex="0"><code>DoIsPrime&lt;9, 4&gt;::value
-</code></pre><p>        然后按照以下顺序继续展开：</p>
-<pre tabindex="0"><code>9 % 4 != 0 &amp;&amp; DoIsPrime&lt;9, 3&gt;::value
-
-9 % 4 != 0 &amp;&amp; 9 % 3 != 0 &amp;&amp; DoIsPrime&lt;9, 2&gt;::value
-
-9 % 4 != 0 &amp;&amp; 9 % 3 != 0 &amp;&amp; 9 % 2 != 0
-</code></pre><p>        从而得到 $false$ ，于是 $9$ 不是质数。<br>
-        注意所有的这些运算都会在编译期完成。虽然模版语法很丑，但是它在一些库中被证实是有效的。</p>
-<h2 id="2-constexpr">2. <code>constexpr</code></h2>
-<p>        $constexpr$ 是<code>C++11</code>引入的新特性，极大地简化了多种形式的编译期运算。特别的，如果给予了合适的输入，$constexpr$ 函数可以在编译期就完成计算。在<code>C++11</code>中，$constexpr$ 函数有着严格的限制。在<code>C++14</code>，大部分限制都被移除了。当然，一个有效的 $constexpr$ 函数还是要求所有计算阶段在编译期都是可行且有效的。现阶段，堆分配或者抛出异常等行为还是不允许的。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">constexpr</span> <span class="kt">bool</span> <span class="nf">doIsPrime</span><span class="p">(</span><span class="kt">unsigned</span> <span class="n">p</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="n">d</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">d</span> <span class="o">!=</span> <span class="mi">2</span> <span class="o">?</span> <span class="p">(</span><span class="n">p</span> <span class="o">%</span> <span class="n">d</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">doIsPrime</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">d</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="o">:</span> <span class="p">(</span><span class="n">p</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">constexpr</span> <span class="kt">bool</span> <span class="nf">isPrime</span><span class="p">(</span><span class="kt">unsigned</span> <span class="n">p</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">p</span> <span class="o">&lt;</span> <span class="mi">4</span> <span class="o">?</span> <span class="o">!</span><span class="p">(</span><span class="n">p</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">               <span class="o">:</span> <span class="n">doIsPrime</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">p</span> <span class="o">/</span> <span class="mi">2</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>        上面是我们使用 $constexpr$ 函数实现的求质数。因为在<code>C++11</code>中，$constexpr$ 有着只能有一条语句的限制，所以我们只能使用三目运算符来选择分支，通过递归来遍历元素。但是因为它使用的是普通<code>C++</code>函数的代码，所以第一印象要比模版编程好。<br>
-        <code>C++14</code>中，$constexpr$ 函数可以使用更多的控制结构，所以与其使用笨重的模版代码或者神秘的一行代码，不如直接使用 $for$ 循环：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">constexpr</span> <span class="kt">bool</span> <span class="nf">isPrime</span><span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">p</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">d</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span> <span class="n">d</span> <span class="o">&lt;=</span> <span class="n">p</span> <span class="o">/</span> <span class="mi">2</span><span class="p">;</span> <span class="n">d</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">p</span> <span class="o">%</span> <span class="n">d</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="p">}</span>
-</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">p</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>        不管是<code>C++11</code>版本的还是<code>C++14</code>版本的，我们都能在入参是编译时常量的前提下，在编译期就完成计算。但是编译器不一定会这样做。如果上下文需要一个编译期常量 ( 比如数组长度或非类模版参数 )，编译器就会尝试让 $constexpr$ 函数在编译期计算，并且会在无法计算时报错。在其他情况下，如果不需要一个编译期常量，编译期可能会也可能不会在编译期计算，这时如果编译期计算失败，不会产生编译错误，而是变为一个运行时调用。例如：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">constexpr</span> <span class="kt">bool</span> <span class="n">b1</span> <span class="o">=</span> <span class="n">isPrime</span><span class="p">(</span><span class="mi">9</span><span class="p">);</span>  <span class="c1">// 编译期计算
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">const</span> <span class="kt">bool</span> <span class="n">b2</span> <span class="o">=</span> <span class="n">isPrime</span><span class="p">(</span><span class="mi">9</span><span class="p">);</span>  <span class="c1">// 如果在命名空间内就在编译期计算
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
-</span></span><span class="line"><span class="cl"><span class="kt">bool</span> <span class="nf">isfiftySevenIsPrime</span><span class="p">()</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">isPrime</span><span class="p">(</span><span class="mi">7</span><span class="p">);</span>  <span class="c1">// 编译期计算或者运行时计算
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">x</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">isPrime</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>  <span class="c1">// 运行时计算
-</span></span></span></code></pre></div><h2 id="3-部分特例化的执行分支选择">3. 部分特例化的执行分支选择</h2>
-<p>        像 $isPrime$ 这种函数在编译期测试的一个有趣应用就是使用部分特例化来实现在编译时选择不同的实现版本。例如，我们可以根据模版参数是否是质数来选择：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="kt">int</span> <span class="n">SZ</span><span class="p">,</span> <span class="kt">bool</span> <span class="o">=</span> <span class="n">isPrime</span><span class="p">(</span><span class="n">SZ</span><span class="p">)</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Helper</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="kt">int</span> <span class="n">SZ</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Helper</span><span class="o">&lt;</span><span class="n">SZ</span><span class="p">,</span> <span class="nb">false</span><span class="o">&gt;</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="kt">int</span> <span class="n">SZ</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Helper</span><span class="o">&lt;</span><span class="n">SZ</span><span class="p">,</span> <span class="nb">true</span><span class="o">&gt;</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">SZ</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="kt">long</span> <span class="n">foo</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">SZ</span><span class="o">&gt;</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">coll</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">Helper</span><span class="o">&lt;</span><span class="n">SZ</span><span class="o">&gt;</span> <span class="n">h</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
-</span></span></code></pre></div><p>        这里我们根据 $array$ 大小是否是质数来选择不同的 $Helper$ 特例化。这种使用部分特例化在一些根据参数属性来决定调用的方式在函数模版中被广泛使用。上面的代码中，我们列出了两种特例化情况。实际上，我们只需要列出一种就行了：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="kt">int</span> <span class="n">SZ</span><span class="p">,</span> <span class="kt">bool</span> <span class="o">=</span> <span class="n">isPrime</span><span class="p">(</span><span class="n">SZ</span><span class="p">)</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Helper</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="kt">int</span> <span class="n">SZ</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Helper</span><span class="o">&lt;</span><span class="n">SZ</span><span class="p">,</span> <span class="nb">true</span><span class="o">&gt;</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
-</span></span></code></pre></div><p>        由于函数模版不支持部分特例化，你必须使用其他机制来在特定条件下改变函数实现：</p>
-<ul>
-<li>使用类内静态函数成员；</li>
-<li>使用 $std::enable_-if$ ；</li>
-<li>使用<code>SFINAE</code>；</li>
-<li>使用编译时 $if$ 。</li>
-</ul>
-<h2 id="4-sfinae">4. <code>SFINAE</code></h2>
-<p>        对多种参数类型进行函数重载在<code>C++</code>中很常见。当编译期看到对重载函数的调用时，它必须考虑每个候选版本，检查参数然后选择最匹配的版本。如果这些候选版本内存在函数模版，编译期首先要去判断应该使用什么模版参数，然后使用这个参数代替函数参数和返回值类型，最后再将它像普通函数那样检查是否匹配。然而，这个替代的过程可能会产生问题，导致无意义的构造。为了避免这种无意义的构造产生的错误，<code>C++</code>语言规定了这种替代问题产生的错误会被忽略。这就是我们所说的<code>SFINAE</code> ( $substitution$ $failure$ $is$ $not$ $an$ $error$ ) 原则。<br>
-        注意这里所说替代过程与按照需求实例化是不同的，替代可能会在实例化的结果是不需要的结果时发生，从而编译器可以根据替代结果判断是需要还是不需要。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="n">N</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">len</span><span class="p">(</span><span class="n">T</span> <span class="p">(</span><span class="o">&amp;</span><span class="p">)[</span><span class="n">N</span><span class="p">])</span> <span class="p">{</span> <span class="k">return</span> <span class="n">N</span><span class="p">;</span> <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">typename</span> <span class="n">T</span><span class="o">::</span><span class="n">size_type</span> <span class="n">len</span><span class="p">(</span><span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">t</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">t</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>        这里我们定义了两个模版函数，它们都是 $len$ 的重载，第一个版本接收一个数组，第二个版本没有约束，但是要求类型具有 $size_-type$ 成员。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">a</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span>
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">len</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>  <span class="c1">// 匹配数组
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">len</span><span class="p">(</span><span class="s">&#34;tmp&#34;</span><span class="p">);</span>  <span class="c1">// 匹配数组
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">v</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">len</span><span class="p">(</span><span class="n">v</span><span class="p">);</span>  <span class="c1">// 匹配size_type
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
-</span></span><span class="line"><span class="cl"><span class="kt">int</span><span class="o">*</span> <span class="n">p</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">len</span><span class="p">(</span><span class="n">p</span><span class="p">);</span>  <span class="c1">// 错误
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">allocator</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">x</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">len</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>  <span class="c1">// 错误
-</span></span></span></code></pre></div><p>        当我们传入数组时，虽然数组也能匹配 $T$ ，但无法匹配 $size_-type$ ，如果实例化会产生错误。对于原始指针，因为哪个模版都无法匹配，所以会产生一个错误。$std::allocator$ 虽然也具有 $size_-type$ 成员，但是因为没有 $size$ 函数，所以也会产生错误。<br>
-        忽略一个候选版本可能会导致编译期选择另一个更差匹配的版本，例如：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="n">N</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">len</span><span class="p">(</span><span class="n">T</span> <span class="p">(</span><span class="o">&amp;</span><span class="p">)[</span><span class="n">N</span><span class="p">])</span> <span class="p">{</span> <span class="k">return</span> <span class="n">N</span><span class="p">;</span> <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">typename</span> <span class="n">T</span><span class="o">::</span><span class="n">size_type</span> <span class="n">len</span><span class="p">(</span><span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">t</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">t</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">len</span><span class="p">(...)</span> <span class="p">{</span> <span class="k">return</span> <span class="mi">0</span><span class="p">;</span> <span class="p">}</span>
-</span></span></code></pre></div><p>        我们提供了一个通用版本，有着最差的匹配，但是总是可以匹配，理论上这种后备函数应该抛出异常或者声明一个静态断言，输出有效的错误信息。这时，对于原始数组和 $vector$ ，有着更优的匹配。但是对于指针，只能匹配到通用版本。$allocator$ 会匹配第二版本和第三个版本，但是第二个版本是更优匹配，所以它还是会匹配第二个版本，虽然它会产生一个错误。<br>
-        随着时间的推移，<code>SFINAE</code>在模版设计中变得越来越重要和流行，并且这个缩写也变成了动词。如果我们想要通过<code>SFINAE</code>机制来确保一个函数模版会在特定条件下产生错误代码从而被忽略，我们会说&quot;我们<code>SFINAE</code>了这个函数“。并且无论何时当你在<code>C++</code>标准库中读到某个函数模版注释着”最好不要作为重载函数解析除非&hellip;“时，意味着这个函数模版在特定条件下被<code>SFINAE</code>了。<br>
-        例如，$std::thread$ 声明了一个构造函数：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">std</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">class</span> <span class="nc">thread</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">public</span><span class="o">:</span>
-</span></span><span class="line"><span class="cl">    <span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">F</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">Args</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl">    <span class="k">explicit</span> <span class="kr">thread</span><span class="p">(</span><span class="n">F</span><span class="o">&amp;&amp;</span> <span class="n">f</span><span class="p">,</span> <span class="n">Args</span><span class="o">&amp;&amp;</span><span class="p">...</span> <span class="n">args</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="p">};</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>        这段代码有着以下的注释：</p>
-<blockquote>
-<p>注释：如果 $decay_-t$&lt;$F$&gt; 的类型与 $std::thread$ 相同，这个构造函数最好不要作为重载函数解析。</p>
-</blockquote>
-<p>        这意味着如果将 $std::thread$ 作为第一个模版参数传入，这个模版构造函数会被忽略。因为有时候这种类似的成员函数比起预定义的拷贝或者移动构造函数有着更优的匹配。通过<code>SFINAE</code> $thread$ 的模版构造函数，我们可以确保在接收另一个 $thread$ 作为参数的情况下预定义的拷贝或者移动构造函数总是会被调用。<br>
-        在这种就事论事的情况下使用这项技术可能显得有些笨重。幸运的是，标准库提供了更方便的禁用模版的工具。这些工具中，我们最熟悉的就是 $std::enable_-if$ 了。因此，$std::thread$ 构造函数的一个典型声明为：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">std</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">class</span> <span class="nc">thread</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">public</span><span class="o">:</span>
-</span></span><span class="line"><span class="cl">    <span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">F</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">Args</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">             <span class="k">typename</span> <span class="o">=</span> <span class="n">enable_if_t</span><span class="o">&lt;!</span><span class="n">is_same_v</span><span class="o">&lt;</span><span class="n">decay_t</span><span class="o">&lt;</span><span class="n">F</span><span class="o">&gt;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                                    <span class="kr">thread</span><span class="o">&gt;&gt;&gt;</span>
-</span></span><span class="line"><span class="cl">    <span class="k">explicit</span> <span class="kr">thread</span><span class="p">(</span><span class="n">F</span><span class="o">&amp;&amp;</span> <span class="n">f</span><span class="p">,</span> <span class="n">Args</span><span class="o">&amp;&amp;</span><span class="p">...</span> <span class="n">args</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="p">};</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><h3 id="41-使用decltype的sfinae表达式">4.1 使用<code>decltype</code>的<code>SFINAE</code>表达式</h3>
-<p>        编写一条在特定条件下正确<code>SFINAE</code>函数模版的表达式是不简单的。例如，我们想要确保函数模版 $len$ 在模版参数具有 $size_-type$ 成员但是没有 $size$ 函数成员时忽略，从而避免类似于 $allocator$ 的错误。有一个通用模版可以处理这种情况：</p>
-<ul>
-<li>使用尾置返回语句确定返回类型；</li>
-<li>使用 $decltype$ 和逗号运算符定义返回值类型；</li>
-<li>所有必须为有效值的表达式放在逗号运算符之前；</li>
-<li>表示真实返回类型的对象放在逗号运算符之后。</li>
-</ul>
-<p>        例如：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">len</span><span class="p">(</span><span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">t</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="o">-&gt;</span> <span class="k">decltype</span><span class="p">((</span><span class="kt">void</span><span class="p">)(</span><span class="n">t</span><span class="p">.</span><span class="n">size</span><span class="p">()),</span> <span class="n">T</span><span class="o">::</span><span class="n">size_type</span><span class="p">())</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">t</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>        $decltype$ 使用逗号分离的表达式列表，最后一个表达式 $T::size_-type(\ )$ 表示真正的返回类型，而在最后一个逗号之前的表达式必须是有效的。我们将第一个表达式的运算结果转为 $void$ ，用于避免用户重载逗号运算符带来的问题。<br>
-        注意 $decltype$ 参数是一个没有计算的操作，这意味着我们可以创建一个不调用构造函数的虚拟对象。</p>
-<h2 id="5-编译时if">5. 编译时<code>if</code></h2>
-<p>        部分特例化、<code>SFINAE</code>和 $std::enable_-if$ 一起使用，可以让我们启用或禁用模版。<code>C++17</code>额外引入了编译时 $if$ 语句，允许根据编译时条件来启用或者禁用某些特定语句。使用 $if$ $constexpr$ ，编译器可以在编译期通过表达式确定进入 $then$ 分支还是 $else$ 分支。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">Types</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">print</span><span class="p">(</span><span class="n">T</span> <span class="k">const</span><span class="o">&amp;</span> <span class="n">firstArg</span><span class="p">,</span> <span class="n">Types</span> <span class="k">const</span><span class="o">&amp;</span><span class="p">...</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">firstArg</span> <span class="o">&lt;&lt;</span> <span class="sc">&#39;\n&#39;</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="nf">constexpr</span><span class="p">(</span><span class="k">sizeof</span><span class="p">...(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="n">print</span><span class="p">(</span><span class="n">args</span><span class="p">...);</span>
-</span></span><span class="line"><span class="cl">  <span class="p">}</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>        这里如果 $print$ 只接收了一个参数，那么 $if$ 表达式将为 $false$ ，从而不会继续递归，并且代码也不会实例化。<br>
-        代码不会实例化意味着只会进行第一个翻译阶段 ( 定义阶段 )，这时检查不依赖于模版参数的代码正确性。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">foo</span><span class="p">(</span><span class="n">T</span> <span class="n">t</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="nf">constexpr</span><span class="p">(</span><span class="n">Std</span><span class="o">::</span><span class="n">is_integral_v</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">t</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="n">foo</span><span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="n">undeclared</span><span class="p">(</span><span class="n">t</span><span class="p">);</span>  <span class="c1">// 如果没有声明并且进入else分支，错误
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">undeclared</span><span class="p">();</span>  <span class="c1">// 如果没有声明，即使未进入else分支也会错误
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">static_assert</span><span class="p">(</span><span class="nb">false</span><span class="p">,</span> <span class="s">&#34;no integral&#34;</span><span class="p">);</span>  <span class="c1">// 总是会判断，即使未进入else分支
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">static_assert</span><span class="p">(</span><span class="o">!</span><span class="n">std</span><span class="o">::</span><span class="n">is_integral_v</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="s">&#34;no integral&#34;</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="p">}</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>        注意 $if$ $constexpr$ 语句可以在任何函数中使用，不局限于模版。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="k">constexpr</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">numeric_limits</span><span class="o">&lt;</span><span class="kt">char</span><span class="o">&gt;::</span><span class="n">is_signed</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="n">foo</span><span class="p">(</span><span class="mi">42</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="n">undeclared</span><span class="p">(</span><span class="mi">42</span><span class="p">);</span>  <span class="c1">// 如果没有声明，错误
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">static_assert</span><span class="p">(</span><span class="nb">false</span><span class="p">,</span> <span class="s">&#34;unsigned&#34;</span><span class="p">);</span>  <span class="c1">// 即使未进入else分支也会判断
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">static_assert</span><span class="p">(</span><span class="o">!</span><span class="n">std</span><span class="o">::</span><span class="n">numeric_limits</span><span class="o">&lt;</span><span class="kt">char</span><span class="o">&gt;::</span><span class="n">is_signed</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                  <span class="s">&#34;char is unsigned&#34;</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="p">}</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div>
-            </div>
-            <div class="meta post-footer">
-                <span>2022 Mar 14 12:33</span>
-                <a href="https://z217blog.cn/post/cpptemplates5/"><i class="fas fa-link"></i> link</a>
             </div>
         </div>
         

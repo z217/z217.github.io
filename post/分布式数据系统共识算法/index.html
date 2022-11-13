@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="hugo blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/jquery.floatingscroll.css>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+    integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <script src=https://z217blog.cn/js/jquery.floatingscroll.min.js></script>
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/navbutton.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="/friend" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a>
+        <div class="content">
+
+<h1 id="title">分布式数据系统：共识算法</h1>
+
+
+
+
+<p>        分布式计算中有很多重要场景需要集群节点达成某种一致，例如：</p>
+<ul>
+<li>主节点选举：对于主从模式的数据库，节点间需要对谁来充当主节点达成一致。如果由于网络故障原因出现节点之间无法通信，就很容易出现争议；</li>
+<li>原子事务提交：对于支持跨节点或跨分区事务的数据库，某个事务可能在一些节点上执行成功，而在另一些节点上失败。为了维护事务的原子性，所有节点必须对事务结果达成一致。</li>
+</ul>
+<h2 id="1-原子提交与两阶段提交">1. 原子提交与两阶段提交</h2>
+<p>        对于单节点事务，原子性通常由存储引擎负责。当客户端请求数据库节点提交事务时，数据库首先使事务的写入持久化 ( 通常保存在<code>WAL</code>中 )，然后把提交记录追加到磁盘的日志文件中。如果数据库在该过程中发生了崩溃，在节点重启后，可以通过日志恢复事务。如果崩溃之前已经写入了提交记录，则认为事务已经成功，否则，回滚该事务。因此，单节点事务十分依赖于数据写入磁盘的顺序：先写入数据，再提交记录。<br>
+        将单节点事务延伸到多节点，虽然大多数<code>NoSQL</code>分布式数据库都不支持这种分布式事务，但是有很多集群关系型数据库支持。向所有节点发送请求，然后各节点独立执行是不够的，这样很容易发生不一致，从而违反了原子性。一旦某个节点提交了事务，即使事后发现其他节点发生了中止，它也无法再撤销已提交的事务，所以，如果有部分节点提交了事务，所有节点也必须一起提交。<br>
+        事务提交不可撤销，一旦数据被提交，就代表其他事务可见，继而客户端会依赖这些数据做出相应决策。这是事务<strong>提交读</strong>隔离级别的基础，如果事务在提交后还能撤销，就违反了提交读的原则，从而被迫产生级联式的追溯和撤销。当然，已提交事务可以被另一个新的事务覆盖，即<em><strong>补偿性事务</strong></em>。不过，在数据库的角度，它们是两个完全独立的事务，这种跨事务的正确性保证需要应用层负责。</p>
+<h3 id="11-两阶段提交">1.1 两阶段提交</h3>
+<p>        <strong>两阶段提交</strong> ( $two-phase\ commit$ , $2PC$ ) 是一种在多节点之间实现事务原子提交的算法，用来确保所有节点要么全部提交，要么全部中止。<code>2PC</code>在某些数据库内存使用，或者以<code>XA</code>事务的形式提供给应用程序使用。<br>
+        <code>2PC</code>引入了单节点事务所没有的新组件：协调者 ( 也被称为事务管理器 )，通常实现为共享库。<code>2PC</code>事务从应用程序在多个数据库节点上执行数据读/写开始，数据库节点称为事务的参与者。当应用程序准备提交事务时，协调者发送一个准备请求到所有节点，询问它们是否可以进行事务提交：</p>
+<ul>
+<li>如果所有参与者回答是，表示它们已经准备好提交，协调者会发出提交请求，所有节点开始执行事务提交；</li>
+<li>如果有任何参与者回答否，协调者会放弃发送提交请求。</li>
+</ul>
+<p>        为了理解<code>2PC</code>，我们可以分解这个过程：</p>
+<ol>
+<li>应用程序启动一个分布式事务，首先向协调者请求一个全局唯一的事务<code>ID</code>；</li>
+<li>应用程序在每个参与节点上执行单节点事务，并将全局唯一事务<code>ID</code>附加到事务上。此时，每个节点独立执行事务，如果有任何一个节点执行失败，协调者和其他参与者都可以安全回滚事务；</li>
+<li>应用程序准备提交事务，协调者向所有参与者发送准备请求，附带全局事务<code>ID</code>。如果接收到拒绝或者超时响应，协调者会通知所有节点放弃事务；</li>
+<li>参与者在收到准备请求后，检查事务是否可以提交，是否存在冲突或者违反约束。一旦向协调者返回确认响应，无论发生什么情况，都不能拒绝提交事务；</li>
+<li>协调者收到所有准备请求的响应后，会将决定写入磁盘中，用于崩溃后恢复决定，这个时刻称为提交点；</li>
+<li>协调者将决定写入磁盘后，向所有参与者发送提交或者放弃请求。如果请求出现失败或者超时，协调者会一种重试，直到成功。所有参与者都不能拒绝该请求，即使需要很多重试，或者中间出现崩溃。</li>
+</ol>
+<p>        如果参与者或者网络在<code>2PC</code>期间发生故障，比如在准备请求期间，协调者就会决定回滚事务；或者在提交请求期间，协调者会不断重试。而对于协调者故障，如果协调者在准备请求之前故障，参与者可以安全地回滚；而一旦参与者收到了准备请求并回答是，参与者便无法单方面放弃，必须一直等待协调者的决定，此时如果协调者故障，参与者便处于一种不确定的状态。理论上，参与者之间可以互相通信，了解每个参与者的投票情况，并达成一致，但是这已经不是<code>2PC</code>的范畴了。<code>2PC</code>能够顺利完成的唯一办法是等待协调者恢复，因此协调者在发送提交请求之前要将决定写入磁盘的事务日志。<br>
+        <code>2PC</code>也被称为阻塞式原子提交协议，因为等待协调者从故障恢复的这个过程是阻塞的。理论上，也可以改为非阻塞的，这种称为<strong>三阶段提交</strong>。<code>3PC</code>假定一个有限的网络延迟，要求节点在规定时间内响应。然而实际情况是，网络延迟可能是无限的。通常，非阻塞原子提交依赖一个完美的故障检测器，即一种十分可靠的可以判断节点是否崩溃的机制。但是，在一个网络延迟可能是无限的场景中，超时并非一种可靠的判断机制。正常情况下，请求也可能由于网络问题而超时。正是这些原因，大家更倾向于<code>2PC</code>而非<code>3PC</code>。</p>
+<h2 id="2-分布式事务实践">2. 分布式事务实践</h2>
+<p>        分布式事务，尤其是那些通过<code>2PC</code>实现的事务，声誉混杂。一方面，它们提供了一种其他方案难以企及的安全保证。但是另一方面，由于操作、性能上的缺陷，以及并非完全可靠，一直被人诟病。目前，许多云服务商由于运维方面的问题而决定不支持分布式事务。分布式事务的某些实现存在严重的性能问题，例如，有报告显示<code>MySQL</code>的分布式事务比单节点事务慢 $10$ 倍以上。<code>2PC</code>性能下降的主要原因是与协调者通信带来额外的网络开销，以及为了协调者崩溃恢复做的磁盘<code>I/O</code> ( $fsync$ )。<br>
+        目前存在着两种不同的分布式事务概念：</p>
+<ul>
+<li>数据库内部的分布式事务：某些分布式事务支持的跨数据节点的内部事务，即所有参与者节点运行着相同的数据库软件；</li>
+<li>异构分布式事务：存在两种或两种以上不同参与者软件的事务，例如来自不同供应商的数据库，甚至可以是非数据库。</li>
+</ul>
+<p>        对于数据库内部事务，由于不需要考虑不同系统之间的兼容，可以采用任何形式的协议，并进行针对性优化，这些分布式事务往往可行。但是异构分布式事务就没那么简单了。</p>
+<h3 id="21-exactly-once消息处理">2.1 <code>Exactly-once</code>消息处理</h3>
+<p>        异构分布式事务旨在无缝集成多种不同的系统。例如，当且仅当数据库中处理消息的事务成功提交，消息队列才会标记该消息已处理完毕。这个过程是通过自动提交消息确认和数据库写入实现的。即使消息系统和数据库运行在不同节点上，分布式事务也能实现上述目标。如果消息发送失败或者某个节点事务失败，两者都必须中止。消息队列可以在之后重传消息。因此通过自动提交和消息处理结果，可以确保消息有效处理只有一次。<br>
+        需要注意，只有所有相关系统都使用相同的原子性提交协议的前提下，这种分布式事务才是可行的。例如，如果处理结果之一是发送邮件，而邮件服务器不支持<code>2PC</code>，此时某个过程出错，消息重新入队重试，邮件就可能会被发送多次。</p>
+<h3 id="22-xa事务">2.2 <code>XA</code>事务</h3>
+<p>        <code>X/Open XA</code> ( $eXtended\ Architecture$ , $XA$ ) 是异构环境下进行<code>2PC</code>的一个工业标准。目前，许多关系型数据库 ( <code>PostgreSQL</code>、<code>MySQL</code>、<code>Oracle</code>等 ) 和消息队列 ( <code>ActiveMQ</code>、<code>MSMQ</code>、<code>IBM MQ</code>等 ) 都支持<code>XA</code>。<code>XA</code>并不是一个网络协议，而是一个与事务协调者进行通信的<code>C API</code>。当然，它也支持与其他语言的<code>API</code>绑定，例如<code>Java</code>。<br>
+        <code>XA</code>假定应用程序通过网络或客户端的库函数与参与者节点进行通信，如果驱动程序支持<code>XA</code>，意味着应用程序可以调用<code>XA API</code>确定操作是否属于异构分布式事务的一部分。如果是，则发送必要的信息给数据库服务器。它还支持回调，这样协调者可以通过回调函数通知所有参与者执行准备或者提交 ( 或者中止 )。<br>
+        协调者需要实现<code>XA API</code>。虽然标准没有规定如何实现，但实际上，协调者也通常是一个<code>API</code>库，与产生事务的应用程序运行在相同进程中。这些<code>API</code>跟踪事务的参与者，收集投票，并在本地磁盘中记录决定。如果应用程序发生崩溃，或者节点故障，在重启后，协调者会通过<code>XA API</code>读取日志，恢复决定。完成这些后，协调者才能继续通过回调函数来要求参与者执行提交或者中止。数据库服务器无法直接与协调者通信，必须通过相应<code>API</code>。</p>
+<h3 id="23-协调者故障">2.3 协调者故障</h3>
+<p>        数据库事务通常持有待修改行的行锁，用于防止脏写。此外，如果要使用串行化的隔离级别，<code>2PC</code>还会对曾经读取的行持有读锁。在事务提交之前，这些锁都不会被释放。因此，在<code>2PC</code>中，如果出现协调者故障带来的停顿，那么这些锁在停顿期间都不会被释放。长时间持有锁是一件坏事，这意味着其他事务无法有效执行，使得许多上层应用处于不可用状态。<br>
+        理论上，如果协调者崩溃后重新启动，它应该可以从日志中恢复那些停顿的事务。然而，实践中，孤立的不确定事务是可能发生的，例如由于软件 $bug$ 导致交易日志丢失或者损坏。这些事务无法自己解决，而是一直停留在那里，即使重启节点也无法解决，因为<code>2PC</code>要求重启后继续保持重启前的事务状态。<br>
+        唯一的办法就是让管理员手动决定提交还是回滚。这可能会带来大量的手工操作，并且可能在关键生产环境的中断间隙，存在巨大的压力和时间限制。许多<code>XA</code>的实现都支持某种紧急避险措施，称为<strong>启发式决策</strong>：允许参与者节点在紧急情况下单方面做出决定，放弃或者继续停顿的事务。这种做法可能会破坏事务的原子性，违背了<code>2PC</code>原则。要注意，这种做法只是为了应急，不能作为常规手段使用。</p>
+<h3 id="24-分布式事务的限制">2.4 分布式事务的限制</h3>
+<p>        <code>XA</code>事务解决了多个参与者之间达成一直的问题，但是也引入了很多操作限制。特别是，核心的事务协调者本身就是一种数据库，因此需要和其他重要的数据库一样格外小心：</p>
+<ul>
+<li>如果协调者不支持数据复制，在单节点上运行，那么它就是整个系统的单点故障。实际上，许多协调者并非高可用，或者只支持最基本的复制；</li>
+<li>许多服务端应用程序都倾向于无状态模式 ( 更适合<code>HTTP</code> )，将所有持久状态都保存在数据库中。这样应用服务器可以轻松地添加或者删除实例。但是当协调者本身就是服务器的一部分时，协调者的日志就成为了可靠系统的重要组成部分，与数据库本身一样重要，这样的服务器本身就不是无状态的了；</li>
+<li><code>XA</code>需要与各种数据系统保持兼容，最终其实是多系统可兼容的最低标准。例如，它无法检测不同系统的死锁条件 ( 这需要其他标准化协议，多个系统需要交换锁信息 )；</li>
+<li>数据库内部的分布式事务比起<code>XA</code>来说，限制要少很多。然而对于<code>2PC</code>还是存在潜在的限制，比如所有参与者必须投票赞成。所以分布式事务扩大了事务失败的可能性，与构建容错系统的目标背道而驰。</li>
+</ul>
+<h2 id="3-共识算法">3. 共识算法</h2>
+<p>        共识是让几个节点就某项提议达成一致，通常形式化描述为：一个或多个节点可以提议某些值，由共识算法来决定最终值。共识算法必须满足以下性质：</p>
+<ul>
+<li><strong>协商一致性</strong> ( $Uniform\ agreement$ )：所有节点都接受相同决议；</li>
+<li><strong>诚实性</strong> ( $Integrity$ )：所有节点做出决定后都不能反悔，即一个决议不能有两个结果；</li>
+<li><strong>合法性</strong> ( $Validity$ )：决议的结果一定是由某个节点提议的；</li>
+<li><strong>可终止性</strong> ( $Termination$ )：节点在不崩溃的前提下一定可以达成协议。</li>
+</ul>
+<p>        如果不关心容错，满足前三个属性很容易：可以强行指定某个节点为“独裁者”，由它做出所有决定，唯一要注意的就是该节点失败的情况。上述共识的系统模型假定当某个节点崩溃后，节点就彻底消失，永远不会回来。在这种条件下，<code>2PC</code>显然不满足可终止性。当然，如果所有节点都崩溃了，那么无论哪种算法都不能继续做出决定。因此，可终止性的前提是，发生崩溃或者不可用的节点数必须小于半数节点。<br>
+        最著名的共识算法包括<code>VSR</code>、<code>Paxos</code>、<code>Raft</code>和<code>Zab</code>，这些算法存在很多相似之处，但又不完全相同。它们大部分并不是直接使用形式化模式，而是决定了一系列值，再通过全序关系广播算法。全序关系广播通常指节点之间交换消息的某种协议，下面是一个非正式定义，要求满足两个基本安全属性：</p>
+<ul>
+<li>可靠发送：没有消息丢失，如果某个消息发送到了一个节点，那么它也要发送给其他节点；</li>
+<li>严格有序：消息总是以相同顺序发送。</li>
+</ul>
+<p>        即使节点或者网络出现故障，全序关系广播算法的实现也必须保证以上两条。实现全序关系广播，要求消息顺序在发送前就已确定。理解全序关系广播的另一种方式是将其视为日志，传递消息就像追加日志，所有节点都可以读取日志并看到相同的消息序列。共识算法的全序关系广播相当于持续的多轮共识：</p>
+<ul>
+<li>由于协商一致性，所有节点以相同顺序发送相同消息；</li>
+<li>由于诚实性，消息不能重复；</li>
+<li>由于合法性，消息不会被破坏；</li>
+<li>由于可终止性，消息不会丢失。</li>
+</ul>
+<p>        <code>VSR</code>、<code>Raft</code>和<code>Zab</code>都直接采取了全序关系广播，而<code>Paxos</code>则有对应的优化版本，称为<code>Multi-Paxos</code>。</p>
+<h3 id="31-epoch和quorum">3.1 <code>Epoch</code>和<code>Quorum</code></h3>
+<p>        目前所讨论的素有共识协议在内部都使用了某种形式的主节点，虽然主节点并不是固定的。相反，它们都采用了一种弱保证：定义一个世代编号 ( $epoch$ $number$ )，并保证在每个世代中，主节点是唯一的。如果发现当前主节点失效，节点间就开始新一轮投票，选举新的主节点。每次选举都会被赋予一个单调递增的<code>epoch</code>，如果出现了两个不同的主节点对应于不同<code>epoch</code>好，则更高<code>epoch</code>的主节点将获胜。<br>
+        主节点做出任何决定前，都必须检查是否存在更高的<code>epoch</code>，否则就会产生冲突的决定。主节点如果想要做出某个决定，需要将提议发送给其他节点，等待<code>quorum</code>节点响应。<code>quorum</code>节点通常不是由多数节点组成的，并且，只有当没有发现更高<code>epoch</code>主节点存在时，才会对当前提议 ( 带有<code>epoch</code> ) 进行投票。因此，这里其实是有两轮不同的投票：首先投票决定主节点，然后再投票决定提议。其中关键一点是，两轮投票的<code>quorum</code>必须存在重叠。<br>
+        投票的过程很像<code>2PC</code>，最大区别是，<code>2PC</code>并不需要通过选举产生协调者，共识算法只需要多数节点同意即可通过。此外，共识算法还定义了恢复过程，出现故障后，通过该过程即可以选举出新的主节点，重新进入一致状态。</p>
+<h3 id="32-共识的局限">3.2 共识的局限</h3>
+<p>        共识算法为一切不确定系统带来了明确的安全属性，还支持容错。但是这种好处也是有代价的：</p>
+<ul>
+<li>达成一致之前的投票是一个同步复制过程。但是对于数据库，通常为了更好的性能，会采用异步复制；</li>
+<li>共识体系需要严格多数节点；</li>
+<li>多数共识算法假定一组固定参与投票的节点集，意味着不能动态添加或删除节点；</li>
+<li>共识系统通常依靠超时机制来检测节点失效，在网络延迟高度不确定的环境中，特别是跨区域分布的系统，经常由于网络延迟的原因，节点会被错误地认为发生了故障。虽然这种误判不会影响安全，但是频繁的主节点选举会影响性能；</li>
+<li>共识算法对网络问题特别敏感。例如，<code>Raft</code>被发现存在不合理的边界处理：如果网络中存在某一条网络连接持续不可靠，它会在两个节点之间反复切换主节点，当前主节点会被不断赶下台。其他的共识算法也会有类似问题，所以面对不可靠网络，如何设计更具鲁棒性的共识算法仍然是一个开放性的研究问题。</li>
+</ul>
+<h3 id="33-paxos">3.3 <code>Paxos</code></h3>
+<p>        <code>Paxos</code>算法运行在允许宕机的异步系统中，不要求可靠的消息传递，可容忍消息丢失、延迟、乱序以及重复。它利用多数机制，在具有 $2F + 1$ 个节点的系统中，最多允许 $F$ 个节点的故障。<code>Paxos</code>具有以下系统角色：</p>
+<ul>
+<li>提议者 ( $Proposer$ )：提出提议，包含提议编号 ( $Proposal$ $ID$ ) 和提议值 ( $Value$ )；</li>
+<li>决策者 ( $Acceptor$ )：参与决策，回应提议者的提议；</li>
+<li>学习者 ( $Learner$ )：不参与决策，从其他节点学习最终的提议值。</li>
+</ul>
+<p>        在多副本状态机中，每个副本都是提议者、决策者和学习者。<br>
+        <code>Paxos</code>算法分为两阶段：</p>
+<ol>
+<li>准备阶段：提议者向决策者发出准备请求，决策者针对收到的准备请求进行承诺；</li>
+<li>决策阶段：提议者在接收到多数决策者的回应 ( $Promise$ ) 之后，向决策者发出提议请求，决策者收到请求后处理；</li>
+<li>学习阶段：提议者在接收到多数决策者的决策之后，标记本次决策成功，将提议值发送给所有学习者。</li>
+</ol>
+<p>        决策者会对提议者的准备请求做出两个承诺和一个回应：</p>
+<ul>
+<li>承诺不再接收<code>ID</code>小于等于当前准备请求<code>ID</code>的准备请求；</li>
+<li>承诺不再接收<code>ID</code>小于当前准备请求的决策请求；</li>
+<li>回应之前接收过的<code>ID</code>最大的提议的<code>ID</code>和提议值。</li>
+</ul>
+<p>        原始的<code>Paxos</code>算法只能对一个值进行决策，每次决策需要至少两次收发请求，在高并发场景下可能需要更多次沟通，极端情况下还会形成<strong>活锁</strong>，即两个提议者交替发起请求，不断递增 $Proposal$ $ID$ 。因此，这种<code>Paxos</code>只适合理论研究，不适合应用在实际生产环境中。<br>
+        实际生产环境中往往需要连续确定多个值，而且具有更高效率。<code>Multi-Paxos</code>就是为此提出的，它作出了两点改进：</p>
+<ul>
+<li>针对每个提议者，生成一个 $Instance$ $ID$ ，每个提议者由一个<code>ID</code>标识；</li>
+<li>在所有提议者中选举一个主节点，由主节点将提议提交给决策者进行决策。这样就可以跳过准备请求阶段，因为实际上只有一个提议者会提议。</li>
+</ul>
+<p>        <code>Multi-Paxos</code>首先需要选举一个主节点，选举的过程也可以通过<code>Paxos</code>算法决策，一种简单的方式如下：</p>
+<ul>
+<li>具有最高<code>ID</code>的服务器作为主节点，每个服务器定时向其他服务器发送心跳消息检查状态；</li>
+<li>如果没有收到比它高的<code>ID</code>的节点的心跳消息，它就会尝试发起一轮选举，选举自己作为领导者；</li>
+<li>非主节点只会作为决策者，提议者只有主节点一个。</li>
+</ul>
+<p>        <code>Multi-Paxos</code>通过改变准备阶段的作用范围，使得多个实例的提交只需要一次决策，将两阶段变为一阶段，提高了效率。即使存在多个主节点 ( 脑裂 )，也不影响安全性，这时候只是会退化为原始的<code>Paxos</code>。</p>
+<h3 id="34-raft">3.4 <code>Raft</code></h3>
+<p>        <code>Raft</code>实现了和<code>Paxos</code>相同的功能，将共识问题分解为多个子问题，使用了更强的假设来减少需要考虑的状态。<code>Raft</code>将系统分为以下角色：</p>
+<ul>
+<li>领导者 ( $Leader$ )：接收客户端请求，同步给跟随者，当同步到多数节点后提交请求；</li>
+<li>跟随者 ( $Follower$ )：接收并持久化领导者的请求，在接收到领导者的提交请求后，进行提交；</li>
+<li>候选人 ( $Candidate$ )：可以参与选举的节点。</li>
+</ul>
+<p>        <code>Raft</code>算法只允许一个领导者的存在。节点之间存在心跳检测，如果跟随者长时间没有接收到来自领导者的心跳消息，则会开启新一轮选举。收到多数投票的候选人会称为新的领导者，直到其出现故障。<code>Raft</code>通过任期 ( $term$ ) 管理选举，任期通过时间划分，每个 $term$ 的开始都是选举，选举完成后，在这个任期内领导者会负责管理集群。<br>
+        <code>Raft</code>拥有两条限制，用于保证安全性：</p>
+<ul>
+<li>拥有最大偏移量的候选人才可以成为领导者。这要求候选人在选举中发送自己的偏移量；</li>
+<li>只允许提交当前任期的请求，之前任期的无法不能再提交。这要求领导者在请求中带上任期。</li>
+</ul>
+<h2 id="4-成员与协调服务">4. 成员与协调服务</h2>
+<p>        <code>ZooKeeper</code>或者<code>etcd</code>这样的项目通常称为“分布式键值存储”或者“协调与配置服务”。它们对外提供的<code>API</code>与数据库非常相像：读取、写入对应主键值，或者按序便利主键。应用程序开发者其实很少直接使用<code>ZooKeeper</code>，因为它并非通用数据库，绝大部分通过其他项目来间接依赖，比如<code>HBase</code>、<code>Hadoop YARN</code>、<code>Kafka</code>等。<code>ZooKeeper</code>和<code>etcd</code>主要针对保存少量、可完全载入内存的数据 ( 即使最终还是要写入磁盘 )，不适合用于保存大量数据。它们通常采用容错的全序广播算法在所有节点上复制数据从而实现高可靠。<code>ZooKeeper</code>的实现其实模仿了<code>Google</code>的<code>Chubby</code>分布式锁服务，不仅实现了全序广播，还提供了其他有趣的特性：</p>
+<ul>
+<li>线性化的原子操作：使用<code>CAS</code>操作，实现加锁服务。例如多个节点同时尝试执行相同操作，则确保只会有一个节点成功。共识算法满足了原子性和线性化，即使某些节点发生故障或者网络中断。分布式锁通常是一个带有过期时间的租约，保证即使某些客户端故障也可被释放；</li>
+<li>操作全序：<code>fencing</code>令牌保证每次加锁的数字总是单调递增的，<code>ZooKeeper</code>会对所有操作执行全局排序，为每个操作赋予一个唯一的事务<code>ID</code>和版本号；</li>
+<li>故障检测：客户端与<code>ZooKeeper</code>之间会维持一个长期会话，客户端会周期性地与<code>ZooKeeper</code>服务节点互相交换心跳信息，以检查对方是否存活。即使出现连接中断，或者某个<code>ZooKeeper</code>节点失效，会话仍处于活动状态。如果连接断开时间超过了超时时间，<code>ZooKeeper</code>会声明会话失败，此时该会话持有的所有锁资源会被自动释放 ( 即<code>ZooKeeper</code>中的临时节点 )；</li>
+<li>更改通知：客户端不仅可以读取其他客户端所创建的锁和键值，还可以监视它们的变化。因此，客户端可以知道其他客户端何时加入了集群，以及客户端是否发生了故障。通过订阅机制，客户端不需要频繁轮询服务。</li>
+</ul>
+<h3 id="41-节点任务分配">4.1 节点任务分配</h3>
+<p>        <code>ZooKeeper</code>和<code>Chubby</code>的一个非常适合的场景是，如果系统有多个流程或服务的实例，并且需要其中一个实例充当主节点，在主节点失效时由其他节点接管。显然，这是主从模型的特征。此外，它对于作业调度系统也十分有用。还有另一个场景，对于一些分区资源 ( 数据库、消息流、文件存储等 )，需要决定节点分区分配。当有新节点加入集群时，需要将某些现有分区从当前节点迁移到新节点，从而实现动态的负载均衡。<br>
+        上述场景都可以借助<code>ZooKeeper</code>的原子操作 ( 临时节点和订阅机制 ) 来实现。应用程序最初可能只运行在单节点，之后扩展到数千节点。在这么多节点上进行投票是很低效的。而<code>ZooKeeper</code>通常是在固定数量的节点上运行，可以非常高效的支持大量客户端。通常，<code>ZooKeeper</code>管理的数据变化十分缓慢，更改频率往往是分钟级甚至小时级，如果需要频繁修改，应该考虑其他工具。</p>
+<h3 id="42-服务发现">4.2 服务发现</h3>
+<p>        <code>ZooKeeper</code>、<code>etcd</code>和<code>Consul</code>经常用于服务发现。在典型的云环境中，虚拟机可能会动态变化，这时无法提前知道服务节点的<code>IP</code>地址，因此，可以在每次节点启动时将网络端口信息向<code>ZooKeeper</code>等服务注册，其他人只需要向<code>ZooKeeper</code>的注册表请求即可。<br>
+        但是，关于服务发现是否需要共识还缺乏统一认识，习惯上是通过<code>DNS</code>来将服务名称转为<code>IP</code>。从<code>DNS</code>读取肯定不满足线性化，然而现实情况是，如果<code>DNS</code>返回的是过期值也不会有什么大问题。总体来讲，<code>DNS</code>更看重网络中断时的可用性和鲁棒性。</p>
+<h3 id="43-成员服务">4.3 成员服务</h3>
+<p>        <code>ZooKeeper</code>还可以作为成员服务的一部分，用于确定当前哪些节点处于活动状态，并且是集群的有效成员。这里依然存在误判的可能，即使这样，系统就成员资格的认识是一致的。</p>
+
+<script src=https://z217blog.cn/js/toc.js></script>
+
+<div>
+    <a href="javascript:void(0);" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+    <div id="sidetoc">
+        <header>
+            <h4>分布式数据系统：共识算法</h4>
+        </header>
+        <nav id="TableOfContents">
+            <ul></ul>
+        </nav>
+    </div>
+    <script>
+        isTocOpen = true;
+    </script>
+</div>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/%E5%88%86%E5%B8%83%E5%BC%8F%E6%95%B0%E6%8D%AE%E7%B3%BB%E7%BB%9F%E4%B8%BB%E4%BB%8E%E8%8A%82%E7%82%B9/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+<script type="text/javascript">
+    if (isTocOpen) tocInit();
+</script>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:zihan.zhouchn@outlook.com">zihan.zhouchn@outlook.com</a>
+            </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2022, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+</footer>
+
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        let all = MathJax.Hub.getAllJax(),
+            i;
+        
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+</main>
+</body>
+
+</html>
