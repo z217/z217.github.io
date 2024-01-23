@@ -4,7 +4,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="A personal blog of z217">
   <meta name="Author" content="z217">
-  <meta name="keywords" content="hugo blog">
+  <meta name="keywords" content="z217&#39;s blog">
   <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
   <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
   <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
@@ -126,9 +126,9 @@
 </span></span></span><span class="line"><span class="cl"><span class="cp"></span>
 </span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="k">struct</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="o">*</span><span class="n">dg_data</span><span class="p">;</span>  <span class="c1">// ptr to actual datagram
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">size_t</span> <span class="n">dg_len</span><span class="p">;</span>  <span class="c1">// length of datagram
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">size_t</span> <span class="n">dg_len</span><span class="p">;</span>  <span class="c1">// length of datagram
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">dg_sa</span><span class="p">;</span>  <span class="c1">// ptr to sockaddr{} w/client&#39;s address
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">socklen_t</span> <span class="n">dg_salen</span><span class="p">;</span>  <span class="c1">// length of sockaddr
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">socklen_t</span> <span class="n">dg_salen</span><span class="p">;</span>  <span class="c1">// length of sockaddr
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span> <span class="n">DG</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">static</span> <span class="n">DG</span> <span class="n">dg</span><span class="p">[</span><span class="n">QSIZE</span><span class="p">];</span>  <span class="c1">// queue of datagrams to process
@@ -137,49 +137,49 @@
 </span></span><span class="line"><span class="cl"><span class="k">static</span> <span class="kt">int</span> <span class="n">iget</span><span class="p">;</span>  <span class="c1">// next one for main loop to process
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">static</span> <span class="kt">int</span> <span class="n">iput</span><span class="p">;</span>  <span class="c1">// next one for signal handler to read into
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">static</span> <span class="kt">int</span> <span class="n">nqueue</span><span class="p">;</span>  <span class="c1">// # on queue for main loop to process
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">static</span> <span class="n">socklen_t</span> <span class="n">clilen</span><span class="p">;</span>  <span class="c1">// max length of sockaddr{}
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">static</span> <span class="kt">socklen_t</span> <span class="n">clilen</span><span class="p">;</span>  <span class="c1">// max length of sockaddr{}
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>
 </span></span><span class="line"><span class="cl"><span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_io</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl"><span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_hup</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">dg_echo</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd_arg</span><span class="p">,</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">pcliaddr</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">clilen_arg</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">dg_echo</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd_arg</span><span class="p">,</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">pcliaddr</span><span class="p">,</span> <span class="kt">socklen_t</span> <span class="n">clilen_arg</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="k">const</span> <span class="kt">int</span> <span class="n">on</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="n">sigset_t</span> <span class="n">zeromask</span><span class="p">,</span> <span class="n">newmask</span><span class="p">,</span> <span class="n">oldmask</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">sigset_t</span> <span class="n">zeromask</span><span class="p">,</span> <span class="n">newmask</span><span class="p">,</span> <span class="n">oldmask</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="n">sockfd</span> <span class="o">=</span> <span class="n">sockfd_arg</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">clilen</span> <span class="o">=</span> <span class="n">clilen_arg</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">QSIZE</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// init queue of buffers
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">dg</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">dg_data</span> <span class="o">=</span> <span class="n">Malloc</span><span class="p">(</span><span class="n">MAXDG</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="n">dg</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">dg_sa</span> <span class="o">=</span> <span class="n">Malloc</span><span class="p">(</span><span class="n">clilen</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">dg</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">dg_data</span> <span class="o">=</span> <span class="nf">Malloc</span><span class="p">(</span><span class="n">MAXDG</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">dg</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">dg_sa</span> <span class="o">=</span> <span class="nf">Malloc</span><span class="p">(</span><span class="n">clilen</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="n">dg</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">dg_salen</span> <span class="o">=</span> <span class="n">clilen</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl">  <span class="n">iget</span> <span class="o">=</span> <span class="n">iput</span> <span class="o">=</span> <span class="n">nqueue</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGHUP</span><span class="p">,</span> <span class="n">sig_hup</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="n">Signal</span><span class="p">(</span><span class="n">SIGIO</span><span class="p">,</span> <span class="n">sig_io</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="n">Fcntl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">F_SETOWN</span><span class="p">,</span> <span class="n">getpid</span><span class="p">());</span>
-</span></span><span class="line"><span class="cl">  <span class="n">Ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">FIOASYNC</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">on</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="n">Ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">FIONBIO</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">on</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="nf">Signal</span><span class="p">(</span><span class="n">SIGHUP</span><span class="p">,</span> <span class="n">sig_hup</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="nf">Signal</span><span class="p">(</span><span class="n">SIGIO</span><span class="p">,</span> <span class="n">sig_io</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="nf">Fcntl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">F_SETOWN</span><span class="p">,</span> <span class="nf">getpid</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">  <span class="nf">Ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">FIOASYNC</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">on</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="nf">Ioctl</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">FIONBIO</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">on</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="n">Sigemptyset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">zeromask</span><span class="p">);</span>  <span class="c1">// init three signal sets
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">Sigemptyset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">oldmask</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="n">Sigemptyset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">newmask</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">  <span class="n">Sigaddset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">newmask</span><span class="p">,</span> <span class="n">SIGIO</span><span class="p">);</span>  <span class="c1">// signal we want to block
+</span></span><span class="line"><span class="cl">  <span class="nf">Sigemptyset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">zeromask</span><span class="p">);</span>  <span class="c1">// init three signal sets
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="nf">Sigemptyset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">oldmask</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="nf">Sigemptyset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">newmask</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="nf">Sigaddset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">newmask</span><span class="p">,</span> <span class="n">SIGIO</span><span class="p">);</span>  <span class="c1">// signal we want to block
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>
-</span></span><span class="line"><span class="cl">  <span class="n">Sigprocmask</span><span class="p">(</span><span class="n">SIG_BLOCK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">newmask</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">oldmask</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="nf">Sigprocmask</span><span class="p">(</span><span class="n">SIG_BLOCK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">newmask</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">oldmask</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="k">while</span> <span class="p">(</span><span class="n">nqueue</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">      <span class="n">sigsuspend</span><span class="p">(</span><span class="o">&amp;</span><span class="n">zeromask</span><span class="p">);</span>  <span class="c1">// wait for datagram to process
+</span></span><span class="line"><span class="cl">      <span class="nf">sigsuspend</span><span class="p">(</span><span class="o">&amp;</span><span class="n">zeromask</span><span class="p">);</span>  <span class="c1">// wait for datagram to process
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// unblock SIGIO
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">Sigprocmask</span><span class="p">(</span><span class="n">SIG_SETMASK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">oldmask</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="n">Sendto</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">dg</span><span class="p">[</span><span class="n">iget</span><span class="p">].</span><span class="n">dg_data</span><span class="p">,</span> <span class="n">dg</span><span class="p">[</span><span class="n">iget</span><span class="p">].</span><span class="n">dg_len</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nf">Sigprocmask</span><span class="p">(</span><span class="n">SIG_SETMASK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">oldmask</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">Sendto</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">dg</span><span class="p">[</span><span class="n">iget</span><span class="p">].</span><span class="n">dg_data</span><span class="p">,</span> <span class="n">dg</span><span class="p">[</span><span class="n">iget</span><span class="p">].</span><span class="n">dg_len</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">      <span class="n">dg</span><span class="p">[</span><span class="n">iget</span><span class="p">].</span><span class="n">dg_sa</span><span class="p">,</span> <span class="n">dg</span><span class="p">[</span><span class="n">iget</span><span class="p">].</span><span class="n">dg_salen</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="o">++</span><span class="n">iget</span> <span class="o">&gt;=</span> <span class="n">QSIZE</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">      <span class="n">iget</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">    <span class="c1">// block SIGIO
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">Sigprocmask</span><span class="p">(</span><span class="n">SIG_BLOCK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">newmask</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">oldmask</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nf">Sigprocmask</span><span class="p">(</span><span class="n">SIG_BLOCK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">newmask</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">oldmask</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="n">nqueue</span><span class="o">--</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
@@ -194,23 +194,23 @@
 </ul>
 <p>        在上述函数中，我们在一个循环内不断地阻塞和解阻塞 $SIGIO$ ，是为了保证安全地修改和判断 $nqueue$ ，因为相应的信号处理函数也会修改 $nqueue$ 。另一种方法是让 $SIGIO$ 一直阻塞，但是这样做降低了信号处理函数的及时性，因为直到 $sigsuspend$ 被调用时信号处理函数才会被调用。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_io</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">ssize_t</span> <span class="n">len</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">ssize_t</span> <span class="n">len</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">nread</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">DG</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="n">nread</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="p">;</span> <span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">nqueue</span> <span class="o">&gt;=</span> <span class="n">QSIZE</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">      <span class="n">err_quit</span><span class="p">(</span><span class="s">&#34;receive overflow&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">      <span class="nf">err_quit</span><span class="p">(</span><span class="s">&#34;receive overflow&#34;</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="n">ptr</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">dg</span><span class="p">[</span><span class="n">iput</span><span class="p">];</span>
 </span></span><span class="line"><span class="cl">    <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">dg_salen</span> <span class="o">=</span> <span class="n">clilen</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">len</span> <span class="o">=</span> <span class="n">recvfrom</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">dg_data</span><span class="p">,</span> <span class="n">MAXDG</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="n">len</span> <span class="o">=</span> <span class="nf">recvfrom</span><span class="p">(</span><span class="n">sockfd</span><span class="p">,</span> <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">dg_data</span><span class="p">,</span> <span class="n">MAXDG</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">                  <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">dg_sa</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">dg_salen</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">len</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">      <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">==</span> <span class="n">EWOULDBLOCK</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">        <span class="k">break</span><span class="p">;</span>  <span class="c1">// all done, no more queued to read
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>      <span class="k">else</span>
-</span></span><span class="line"><span class="cl">        <span class="n">err_sys</span><span class="p">(</span><span class="s">&#34;recvfrom error&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="nf">err_sys</span><span class="p">(</span><span class="s">&#34;recvfrom error&#34;</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="p">}</span>
 </span></span><span class="line"><span class="cl">    <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">dg_len</span> <span class="o">=</span> <span class="n">len</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
@@ -225,7 +225,7 @@
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="k">static</span> <span class="kt">void</span> <span class="nf">sig_hup</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">QSIZE</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">printf</span><span class="p">(</span><span class="s">&#34;cntread[%d] = %ld</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">cntread</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">printf</span><span class="p">(</span><span class="s">&#34;cntread[%d] = %ld</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">cntread</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div>
 
@@ -281,7 +281,7 @@
         </div>
         
         
-        <p class="copyright meta">Copyright © 2020–2022, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+        <p class="copyright meta">Copyright © 2020–2024, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
                 href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
         
     </div>

@@ -4,7 +4,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="A personal blog of z217">
   <meta name="Author" content="z217">
-  <meta name="keywords" content="hugo blog">
+  <meta name="keywords" content="z217&#39;s blog">
   <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
   <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
   <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
@@ -228,14 +228,14 @@
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
 </span></span></span><span class="line"><span class="cl"><span class="cp"></span>
 </span></span><span class="line"><span class="cl"><span class="c1">// 成功返回0，否则返回-1
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">connect</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">servaddr</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">addrlen</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">connect</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">servaddr</span><span class="p">,</span> <span class="kt">socklen_t</span> <span class="n">addrlen</span><span class="p">);</span>
 </span></span></code></pre></div><p>        客户在调用 $connect$ 前不必非得调用 $bind$ 函数，因为如果需要的话，内核会确定源<code>IP</code>地址，并选择一个临时端口作为源端口。如果是<code>TCP</code>套接字，调用 $connect$ 将会触发<code>TCP</code>三次握手。如果客户端没有收到<code>SYN</code>的确认，会设置 $ETIMEDOUT$ ；如果<code>SYN</code>响应为<code>RST</code>，会设置 $ECONNREFUSED$ ；如果<code>SYN</code>数据包引发了 “$destination$ $unreachable$” ( 目的地不可达 ) 的<code>ICMP</code>错误，那么客户内核会保存信息并隔一定时间后重试，如果还是失败，则设置 $EHOSTUNREACH$ 或者 $ENETUNREACH$ 。</p>
 <h3 id="13-bind函数">1.3 <code>bind</code>函数</h3>
 <p>        $bind$ 函数将一个本地协议地址赋予一个套接字。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
 </span></span></span><span class="line"><span class="cl"><span class="cp"></span>
 </span></span><span class="line"><span class="cl"><span class="c1">// 成功返回0，否则返回-1
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">bind</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">myaddr</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">addrlen</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">bind</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">const</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">myaddr</span><span class="p">,</span> <span class="kt">socklen_t</span> <span class="n">addrlen</span><span class="p">);</span>
 </span></span></code></pre></div><p>        如果一个<code>TCP</code>客户或服务器未曾调用 $bind$ ，那么当调用 $connect$ 或 $listen$ 时，内核会选择一个临时端口。但是对于<code>TCP</code>服务器，让内核选择端口是极为罕见的，这个规则的例外是<code>RPC</code>服务器。$bind$ 可以指定<code>IP</code>地址和端口中的一个，也可以两个都不指定。</p>
 <div class="div-table" data-fl-scrolls><table>
 <thead>
@@ -282,14 +282,14 @@
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
 </span></span></span><span class="line"><span class="cl"><span class="cp"></span>
 </span></span><span class="line"><span class="cl"><span class="c1">// 成功返回描述符，否则返回-1
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">accept</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">cliaddr</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="o">*</span><span class="n">addrlen</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">accept</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">cliaddr</span><span class="p">,</span> <span class="kt">socklen_t</span> <span class="o">*</span><span class="n">addrlen</span><span class="p">);</span>
 </span></span></code></pre></div><p>        如果 $accept$ 成功，其返回值是一个由内核自动生成的全新描述符，代表与所返回客户的<code>TCP</code>连接。我们称 $accept$ 的第一个参数为监听套接字描述符，返回值为已连接套接字描述符，在服务器生命周期内一直存在。如果对客户协议地址和长度不感兴趣，可以设为 $NULL$ 。</p>
 <h3 id="16-fork和exec函数">1.6 <code>fork</code>和<code>exec</code>函数</h3>
 <p>        $fork$ 是<code>Unix</code>系统提供的函数，是<code>Unix</code>派生新进程的唯一方法。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;unistd.h&gt;</span><span class="cp">
 </span></span></span><span class="line"><span class="cl"><span class="cp"></span>
 </span></span><span class="line"><span class="cl"><span class="c1">// 子进程中返回值为0，父进程中为子进程PID，出错返回-1
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">pid_t</span> <span class="nf">fork</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">pid_t</span> <span class="nf">fork</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
 </span></span></code></pre></div><p>        任何子进程只有一个父进程，子进程可以通过 $getppid$ 函数获取父进程<code>PID</code>。父进程可以有多个子进程，如果父进程想跟踪子进程，就必须记录 $fork$ 函数的返回值。$fork$ 有两个典型用法：</p>
 <ol>
 <li>一个进程创建自身的副本，这样每个副本都可以在另一个副本执行其他任务的同时处理各自的操作，这也是网络服务器的典型用法；</li>
@@ -313,22 +313,22 @@
 <p><img src="/image/2022-01-30-1.jpg" alt="6个exec函数的关系"></p>
 <h3 id="17-并发服务器">1.7 并发服务器</h3>
 <p>        <code>Unix</code>中编写并发服务器程序最简单的办法就是 $fork$ 一个子进程来服务每个客户。</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="n">pid_t</span> <span class="n">pid</span><span class="p">;</span>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="kt">pid_t</span> <span class="n">pid</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">listenfd</span><span class="p">,</span> <span class="n">connfd</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">listenfd</span> <span class="o">=</span> <span class="n">Socket</span><span class="p">(...);</span>
-</span></span><span class="line"><span class="cl"><span class="n">Bind</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="p">...);</span>
-</span></span><span class="line"><span class="cl"><span class="n">Listen</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="n">LISTENQ</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">listenfd</span> <span class="o">=</span> <span class="nf">Socket</span><span class="p">(...);</span>
+</span></span><span class="line"><span class="cl"><span class="nf">Bind</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="p">...);</span>
+</span></span><span class="line"><span class="cl"><span class="nf">Listen</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="n">LISTENQ</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">connfd</span> <span class="o">=</span> <span class="n">Accept</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="p">...);</span>
-</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">((</span><span class="n">pid</span> <span class="o">=</span> <span class="n">Fork</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="n">Close</span><span class="p">(</span><span class="n">listenfd</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="n">dosomething</span><span class="p">(</span><span class="n">connfd</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="n">Close</span><span class="p">(</span><span class="n">connfd</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">connfd</span> <span class="o">=</span> <span class="nf">Accept</span><span class="p">(</span><span class="n">listenfd</span><span class="p">,</span> <span class="p">...);</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">((</span><span class="n">pid</span> <span class="o">=</span> <span class="nf">Fork</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">Close</span><span class="p">(</span><span class="n">listenfd</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">dosomething</span><span class="p">(</span><span class="n">connfd</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">Close</span><span class="p">(</span><span class="n">connfd</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="nf">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
-</span></span><span class="line"><span class="cl">  <span class="n">Close</span><span class="p">(</span><span class="n">connfd</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="nf">Close</span><span class="p">(</span><span class="n">connfd</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        当一个连接建立时，$accept$ 返回，服务器调用 $fork$ ，然后子进程服务客户，父进程则关闭已连接套接字，然后等待另一个连接。由于进程终止前会关闭所有打开的描述符，所以在 $if$ 块内的 $exit$ 函数前的关闭是非必要的。父进程调用 $close$ 后子进程的连接并不会断开，因为每个套接字都有一个引用计数，维护在文件表中，调用 $close$ 会让引用计数减一。</p>
 <h3 id="18-close函数">1.8 <code>close</code>函数</h3>
@@ -341,9 +341,9 @@
 <h2 id="9-getsockname和getpeername函数">9. <code>getsockname</code>和<code>getpeername</code>函数</h2>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
 </span></span></span><span class="line"><span class="cl"><span class="cp"></span>
-</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">getsockname</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">localaddr</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="o">*</span><span class="n">addrlen</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">getsockname</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">localaddr</span><span class="p">,</span> <span class="kt">socklen_t</span> <span class="o">*</span><span class="n">addrlen</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">getpeername</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">peeraddr</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="o">*</span><span class="n">addrlen</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">getpeername</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">peeraddr</span><span class="p">,</span> <span class="kt">socklen_t</span> <span class="o">*</span><span class="n">addrlen</span><span class="p">);</span>
 </span></span></code></pre></div><p>        这两个函数分别返回与某个套接字关联的本地协议地址或者外地协议地址。用途如下：</p>
 <ul>
 <li>在没有 $bind$ 的<code>TCP</code>客户上在 $connect$ 成功返回后，通过 $getsockname$ 返回内核赋予的本地<code>IP</code>地址和端口号；</li>
@@ -371,7 +371,7 @@
 </span></span><span class="line"><span class="cl"><span class="n">Sigfunc</span> <span class="o">*</span><span class="nf">signal</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">,</span> <span class="n">Sigfunc</span> <span class="o">*</span><span class="n">func</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">sigaction</span> <span class="n">act</span><span class="p">,</span> <span class="n">oact</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">act</span><span class="p">.</span><span class="n">sa_handler</span> <span class="o">=</span> <span class="n">func</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="n">sigemptyset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">act</span><span class="p">.</span><span class="n">sa_mask</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="nf">sigemptyset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">act</span><span class="p">.</span><span class="n">sa_mask</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="n">act</span><span class="p">.</span><span class="n">sa_flags</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">signo</span> <span class="o">==</span> <span class="n">SIGALRM</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl"><span class="cp">#ifdef SA_INTERRUPT
@@ -382,7 +382,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="cp"></span>    <span class="n">act</span><span class="p">.</span><span class="n">sa_flags</span> <span class="o">|=</span> <span class="n">SA_RESTART</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="cp">#endif
 </span></span></span><span class="line"><span class="cl"><span class="cp"></span>  <span class="p">}</span>
-</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">sigaction</span><span class="p">(</span><span class="n">signo</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">act</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">oact</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="nf">sigaction</span><span class="p">(</span><span class="n">signo</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">act</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">oact</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">SIG_ERR</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">oact</span><span class="p">.</span><span class="n">sa_handler</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
@@ -396,9 +396,9 @@
 <h3 id="22-处理sigchild信号">2.2 处理<code>SIGCHILD</code>信号</h3>
 <p>        设置<strong>僵死</strong> ( $zombie$ ) 状态的目的是维护子进程的信息，以便父进程在以后某个时刻获取信息，包括子进程<code>ID</code>、终止状态以及资源利用信息。如果进程终止，但它之前有僵死的子进程，那么这些子进程的父进程<code>ID</code>将会被设置为 $1$ ，即交由 $init$ 进程清理。留存僵死进程会导致内核空间被占用，最终可能会导致进程资源耗尽，为了避免这种情况，我们需要给 $SIGCHILD$ 信号建立一个信号处理函数。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">sig_child</span><span class="p">(</span><span class="kt">int</span> <span class="n">signo</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="n">pid_t</span> <span class="n">pid</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">pid_t</span> <span class="n">pid</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">stat</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="k">while</span> <span class="p">((</span><span class="n">pid</span> <span class="o">=</span> <span class="n">waitpid</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">stat</span><span class="p">,</span> <span class="n">WNOHANG</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="k">while</span> <span class="p">((</span><span class="n">pid</span> <span class="o">=</span> <span class="nf">waitpid</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">stat</span><span class="p">,</span> <span class="n">WNOHANG</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="k">continue</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="k">return</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
@@ -406,9 +406,9 @@
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/wait.h&gt;</span><span class="cp">
 </span></span></span><span class="line"><span class="cl"><span class="cp"></span>
 </span></span><span class="line"><span class="cl"><span class="c1">// 成功返回进程ID，出错为0或-1
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">pid_t</span> <span class="nf">wait</span><span class="p">(</span><span class="kt">int</span> <span class="o">*</span><span class="n">statloc</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">pid_t</span> <span class="nf">wait</span><span class="p">(</span><span class="kt">int</span> <span class="o">*</span><span class="n">statloc</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">pid_t</span> <span class="nf">waitpid</span><span class="p">(</span><span class="n">pid_t</span> <span class="n">pid</span><span class="p">,</span> <span class="kt">int</span> <span class="o">*</span><span class="n">statloc</span><span class="p">,</span> <span class="kt">int</span> <span class="n">options</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="kt">pid_t</span> <span class="nf">waitpid</span><span class="p">(</span><span class="kt">pid_t</span> <span class="n">pid</span><span class="p">,</span> <span class="kt">int</span> <span class="o">*</span><span class="n">statloc</span><span class="p">,</span> <span class="kt">int</span> <span class="n">options</span><span class="p">);</span>
 </span></span></code></pre></div><p>        这两个函数均返回两个值：已终止子进程<code>ID</code>和子进程终止状态。我们可以调用三个宏来检查终止状态，辨别子进程是正常终止、由某个信号杀死还是仅仅由作业控制停止。另外有些宏用于接着获取子进程的退出状态、杀死子进程的信号或停止子进程的作业控制信号。如果调用 $wait$ 的进程没有已终止的子进程，不过有一个或多个子进程仍在执行，那么 $wait$ 会阻塞到某个子进程终止。$waitpid$ 函数的 $pid$ 参数允许我们指定想要等待的进程<code>ID</code>，$-1$ 则为任意一个子进程，$options$ 参数允许指定附加选项，最常用的选项是 $WNOHANG$ ，告知内核在没有已终止子进程时不要阻塞。</p>
 <h3 id="23-sigpipe信号">2.3 <code>SIGPIPE</code>信号</h3>
 <p>        启动一组客户/服务器对，然后杀死服务器子进程，模拟服务器进程崩溃的情形，所发生的步骤如下所述：</p>
@@ -474,7 +474,7 @@
         </div>
         
         
-        <p class="copyright meta">Copyright © 2020–2022, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+        <p class="copyright meta">Copyright © 2020–2024, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
                 href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
         
     </div>

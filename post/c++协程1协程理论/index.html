@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="z217&#39;s blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/jquery.floatingscroll.css>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+    integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <script src=https://z217blog.cn/js/jquery.floatingscroll.min.js></script>
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/navbutton.js></script>
+<script src=https://z217blog.cn/js/lightswitcher.js></script>
+<script src=https://z217blog.cn/js/toc.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="/friend" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a><br/>
+        <a href="javascript:void(0)" id="scroll-top" onclick="scrollToTop()">回到顶部</a>
+        <a href="javascript:void(0)" id="light-switcher">暗色模式</a>
+        <div class="content">
+
+<h1 id="title">C&#43;&#43;协程（1）：协程理论</h1>
+
+
+
+
+<p>        这是<code>C++</code> <code>Coroutines</code>标准 ( <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/n4680.pdf">C++ Coroutines TS</a> ) 系列的第一篇文章，协程作为新技术被引入<code>C++20</code>标准。<br>
+        在这个系列里我会介绍<code>C++</code>协程的底层机制，以及如何使用它们实现一些更高级的抽象，就像 <a href="https://github.com/lewissbaker/cppcoro">cppcoro</a> 库一样。<br>
+        在这篇文章，我会介绍函数和协程的区别，以及相应的一些他们所支持的行为的理论。文章的目标是介绍一些基础概念，帮助你理解<code>C++</code>协程。</p>
+<h2 id="协程是函数函数是协程">协程是函数，函数是协程</h2>
+<p>        协程是一种允许<strong>暂停</strong> ( $suspend$ ) 和<strong>恢复</strong> ( $resume$ ) 的函数的统称。<br>
+        在解释这个含义之前，我们先复习一下一个“普通”<code>C++</code>函数的行为是什么。</p>
+<h2 id="普通函数">“普通”函数</h2>
+<p>        一个普通函数具有两种行为：<strong>调用</strong> ( $call$ ) 和<strong>返回</strong> ( $return$ , 注意这里返回涵盖了抛出异常 )。<br>
+        <strong>调用</strong>创建一个<strong>调用栈</strong> ( $activation$ $frame$ )，暂停主调函数，执行被调函数的第一条命令。<br>
+        <strong>返回</strong>会把返回值传回给主调，销毁调用栈，然后在主调函数的调用点处，恢复主调函数的执行。<br>
+        让我们再分析一下这些语义&hellip;&hellip;</p>
+<h3 id="调用栈">调用栈</h3>
+<p>        什么是“调用栈”？<br>
+        你可以认为调用栈是一块存储着当前函数调用的内存。这些状态包括了入参和局部变量。<br>
+        对于“普通”函数，调用栈也包含返回地址——函数返回时将跳转到的指令，和主调函数的调用栈地址。你可以认为这些信息是用来保持函数继续调用的，比如，它们描述了函数调用结束后，该继续执行哪个函数。<br>
+        对于“普通”函数，所有的调用栈都有着严格嵌套的生命周期。严格嵌套可以更有效的分配和释放每个函数调用的内存。这种数据结构也被称为“栈”。<br>
+        调用栈分配在栈上，也被称为“栈帧”。<br>
+        栈是一种十分常见的数据结构，大部分<code>CPU</code>架构都有个专门的寄存器来保存栈顶地址 ( 例如，<code>X64</code>的<code>rsp</code>寄存器 )。<br>
+        分配一个调用栈，只需要让寄存器加上栈帧大小的值。同样的，释放一个调用栈，也只需要让寄存器减去栈帧大小。</p>
+<h3 id="调用">调用</h3>
+<p>        当一个函数调用另一个函数，主调必须暂停自己。<br>
+        “暂停”一般指保存当前<code>CPU</code>寄存器中的值，并在之后恢复的时候重新设置这些值。保存寄存器这一步，可以是主调执行，也可以是被调执行，取决于不同的调用方式，但你可以认为它们都是调用的其中一部分。<br>
+        调用也会把入参在新的调用栈里保存一份，让被调可以访问。<br>
+        最后，主调在新调用栈里面写入恢复点的地址，并把执行权让出给被调函数。<br>
+        在<code>X86/X64</code>架构，最后一步有单独对应的 $call$ 指令，会把当前指令的下一条指令地址写入栈，递增栈寄存器，然后跳转到指令操作地址。</p>
+<h3 id="返回">返回</h3>
+<p>        当一个函数通过 $return$ 返回，函数会先把返回值保存到主调可以访问的地方，可以在主调调用栈，也可以在当前调用栈 ( 对于跨越两个调用栈的参数和返回值，这种概念可能没有明确的区别 )。<br>
+        然后函数通过以下步骤销毁调用栈：</p>
+<ul>
+<li>在返回点销毁所有局部变量</li>
+<li>销毁所有入参对象</li>
+<li>释放调用占内存</li>
+</ul>
+<p>        最后，通过以下步骤恢复主调执行：</p>
+<ul>
+<li>栈寄存器指向当前调用存储的主调调用栈地址，恢复所有当前函数可能修改的<code>CPU</code>寄存器</li>
+<li>跳转到之前“调用”操作存储的恢复点</li>
+</ul>
+<p>        注意，与“调用”操作一样，一些“返回”操作中主调和被调的细分职责可能不一样。</p>
+<h2 id="协程">协程</h2>
+<p>        协程是一种在函数的<strong>调用</strong>和<strong>返回</strong>操作的基础上细分出<strong>暂停</strong>、<strong>恢复</strong>和<strong>销毁</strong>三种额外操作的操作行为统称。<br>
+        <strong>暂停</strong> ( $Suspend$ ) 操作让协程在当前函数的执行点处暂停，在不销毁调用栈的前提下，将控制权交还给主调函数的操作。协程执行过程中的所有对象在暂停之后依然存活。<br>
+        注意，就像函数的<strong>返回</strong>操作一样，协程需要在预先定义好的暂停点处主动暂停。<br>
+        <strong>恢复</strong>操作将在先前的暂停点处恢复协程的执行，这将会重新激活协程的调用栈。<br>
+        <strong>销毁</strong>会在不恢复协程的前提下，销毁协程的调用栈，暂停点作用域内的所有对象也会被一并销毁。</p>
+<h3 id="协程调用栈">协程调用栈</h3>
+<p>        因为协程可以在不销毁调用栈的前提下被暂停，我们也就无法保证调用栈之间是严格嵌套的了。这意味着，调用栈不再能使用栈结构分配，取而代之的，是更多的堆存储。<br>
+        <code>C++</code>协程标准中有些规定，允许在主调的调用栈上分配协程调用栈，只要编译器能保证协程的生命周期与主调严格嵌套。如果编译器足够智能，这种方式可以在一定程度上减少堆分配。<br>
+        协程调用栈有一部分需要在协程暂停时保留，而另一个部分只会在协程执行时被用到。例如，不在协程暂停点上的变量，这些变量可以在栈上存储。<br>
+        你可以认为协程调用栈由两部分组成：“协程帧”和“栈帧”。<br>
+        “协程帧”指代调用栈中需要在协程暂停期间保留的部分，“栈帧”则指只需要在协程执行期间存在的部分，负责在协程暂停时将控制权移交给主调或者协程的恢复者 ( $resumer$ ) 并释放。</p>
+<h3 id="暂停">暂停</h3>
+<p>        <strong>暂停</strong>允许一个协程在函数执行的中间点暂停执行，并将控制权移交给主调 / 协程的恢复者。<br>
+        <code>C++</code>协程标准定义协程内有几个指定暂停点，它们会使用 $co_-await$ 或者 $co_-yield$ 关键字标识。<br>
+        当一个协程执行到暂停点时，会通过以下几步来暂停：</p>
+<ul>
+<li>确保寄存器值已写入协程帧</li>
+<li>将暂停点写入协程帧，用于后续恢复操作恢复执行，或者销毁操作销毁暂停点前的变量</li>
+</ul>
+<p>        一旦协程准备好被恢复，就可以认为“已暂停”。<br>
+        协程在把控制权交还给主调 / 恢复者之前，有机会执行一些额外的逻辑，返回当前协程帧的句柄，用于后续恢复或者销毁。<br>
+        在暂停后允许执行额外逻辑的能力，让协程可以在不同步的前提下恢复。否则因为暂停和恢复的竞态，这种操作可能需要同步执行。我将在后续的文章中详细讨论。<br>
+        协程可以选择立即恢复 / 继续协程执行，或者可以选择移交控制权给主调 / 恢复者。<br>
+        如果控制权被移交给主调 / 恢复者，协程调用栈的栈帧部分将被释放。</p>
+<h3 id="恢复">恢复</h3>
+<p>        <strong>恢复</strong>可以对一个处于“暂停”状态的协程使用。<br>
+        当一个函数恢复一个协程时，它需要快速地跳到对应函数执行的中间点。恢复者通过调用 $void$ $resume()$ 来在暂停返回的协程帧上，找到对应的指令。<br>
+        就像普通函数调用，$resume()$ 会分配一个新的调用栈，并在移交控制权之前保存主调调用栈的返回地址。<br>
+        然而，并非将移交控制权到被调函数的开始，而是从协程帧中读取最后的暂停点，并跳转到那里。<br>
+        当协程下一次暂停或者完成调用，$resume()$ 调用将会返回，恢复主调执行。</p>
+<h3 id="销毁">销毁</h3>
+<p>        <strong>销毁</strong>操作可以在不恢复协程执行的前提下销毁协程帧。<br>
+        这个操作只能对已暂停的协程使用。<br>
+        销毁操作就像恢复操作那样，重新激活协程调用栈，包括分配一个新的栈帧，保存主调返回地址。<br>
+        然而，并非将控制权移交到上个暂停点，而是移交到一个可选的代码路径上，调用协程暂停点之前作用域内所有局部变量的析构器，然后释放协程帧的内存。<br>
+        类似于恢复操作，销毁需要对协程暂停时返回的句柄调用 $void$ $destroy()$ 函数。</p>
+<h3 id="协程调用">协程调用</h3>
+<p>        协程调用几乎跟普通函数调用一样，事实上，对于主调来说，它们之间毫无区别。<br>
+        然而，不像函数调用必须执行完才会返回，协程调用可以在到达暂停点处返回，并且主调可以在后续恢复。<br>
+        对协程执行调用，主调会分配一个新的栈帧，把入参、返回地址写入栈帧，移交控制权。这些步骤和普通函数调用一样。<br>
+        协程要做的第一件事是在堆上分配一个协程帧，并把入参从栈帧拷贝到协程帧，保证它们的生命周期和协程一样。</p>
+<h3 id="协程返回">协程返回</h3>
+<p>        协程返回与普通函数有一点不同。<br>
+        当一个协程执行 $return$ 语句 ( 标准里是 $co_-return$ 语句 ) 时，他会把返回值存储到某个地方 ( 可以被协程修改的地方 )，接着销毁作用域内的局部变量 ( 不包括入参 )。<br>
+        然后协程有机会在移交控制权之前，执行一些额外的逻辑。<br>
+        额外的逻辑可能会返回值，或者恢复另一个等待返回值的协程。这些逻辑时完全客制化的。<br>
+        协程然后执行暂停 ( 协程帧继续存活 ) 或者销毁 ( 协程帧销毁 ) 操作。<br>
+        控制权在暂停 / 销毁操作后被移交给主调 / 恢复者，最后弹出栈帧。<br>
+        需要注意的是，返回操作的返回值与调用操作的返回值不一样，因为返回可能是在初始调用之后很长时间后才执行的。</p>
+<h2 id="例子">例子</h2>
+<p>        为了以图像形式表达这些概念，我会通过一个简单的示例来演示协程暂停，并在之后恢复过程中的情况。<br>
+        假设函数 ( 或者协程 ) $f()$ 调用一个协程 $x(int\ \ a)$ 。<br>
+        调用前大概是这样的：</p>
+<pre tabindex="0"><code>STACK                     REGISTERS               HEAP
+
+                          +------+
++---------------+ &lt;------ | rsp  |
+|  f()          |         +------+
++---------------+
+| ...           |
+|               |
+</code></pre><p>        然后调用 $x(42)$ ，创建一个栈帧，就像普通函数那样。</p>
+<pre tabindex="0"><code>STACK                     REGISTERS               HEAP
++----------------+ &lt;-+
+|  x()           |   |
+| a  = 42        |   |
+| ret= f()+0x123 |   |    +------+
++----------------+   +--- | rsp  |
+|  f()           |        +------+
++----------------+
+| ...            |
+|                |
+</code></pre><p>        然后，一旦协程 $x()$ 在堆上分配协程帧，并且将入参拷贝到协程帧，我们就得到了下面的图。注意编译器一般使用一个单独的寄存器存储协程帧地址 ( 例如<code>MSVC</code>使用<code>rbp</code>寄存器 )。</p>
+<pre tabindex="0"><code>STACK                     REGISTERS               HEAP
++----------------+ &lt;-+
+|  x()           |   |
+| a  = 42        |   |                   +--&gt;  +-----------+
+| ret= f()+0x123 |   |    +------+       |     |  x()      |
++----------------+   +--- | rsp  |       |     | a =  42   |
+|  f()           |        +------+       |     +-----------+
++----------------+        | rbp  | ------+
+| ...            |        +------+
+|                |
+</code></pre><p>        如果协程 $x()$ 之后调用另一个普通函数 $g()$ ，就会像这样：</p>
+<pre tabindex="0"><code>STACK                     REGISTERS               HEAP
++----------------+ &lt;-+
+|  g()           |   |
+| ret= x()+0x45  |   |
++----------------+   |
+|  x()           |   |
+| coroframe      | --|-------------------+
+| a  = 42        |   |                   +--&gt;  +-----------+
+| ret= f()+0x123 |   |    +------+             |  x()      |
++----------------+   +--- | rsp  |             | a =  42   |
+|  f()           |        +------+             +-----------+
++----------------+        | rbp  |
+| ...            |        +------+
+|                |
+</code></pre><p>        当 $g()$ 返回，他会销毁自己的调用栈，然后恢复 $x()$ 的调用栈。假设 $g()$ 的返回值存储在协程帧的局部变量 $b$ 中。</p>
+<pre tabindex="0"><code>STACK                     REGISTERS               HEAP
++----------------+ &lt;-+
+|  x()           |   |
+| a  = 42        |   |                   +--&gt;  +-----------+
+| ret= f()+0x123 |   |    +------+       |     |  x()      |
++----------------+   +--- | rsp  |       |     | a =  42   |
+|  f()           |        +------+       |     | b = 789   |
++----------------+        | rbp  | ------+     +-----------+
+| ...            |        +------+
+|                |
+</code></pre><p>        如果 $x()$ 执行到暂停点，并暂停执行，他会把控制权返回给 $f()$ 。<br>
+        这导致 $x()$ 的栈帧会弹出，但是协程帧会保留。当协程被暂停，返回值返回给主调。返回值通常是协程句柄，指向堆上已暂停的协程帧，可以用于后续的恢复。当 $x()$ 暂停后，协程帧中会存储恢复点 ( 记为 $RP$ )。</p>
+<pre tabindex="0"><code>STACK                     REGISTERS               HEAP
+                                        +----&gt; +-----------+
+                          +------+      |      |  x()      |
++----------------+ &lt;----- | rsp  |      |      | a =  42   |
+|  f()           |        +------+      |      | b = 789   |
+| handle     ----|---+    | rbp  |      |      | RP=x()+99 |
+| ...            |   |    +------+      |      +-----------+
+|                |   |                  |
+|                |   +------------------+
+</code></pre><p>        这个句柄现在可以作为一个普通值在函数间传递。在一些点之后，可能是另一个调用栈，或者另一个线程，在某个时机，例如异步<code>I/O</code>完成的时候，另一个调用 $h()$ 恢复了协程。<br>
+        恢复协程的函数调用 $void$ $resume(handle)$ ，恢复了协程执行。对于主调来说，就好像调用了一个 $void$ 返回的函数。<br>
+        这会创建一个新的栈帧，记录 $resume()$ 调用的返回，激活协程栈，重新设置寄存器，在上一个暂停点处恢复 $x()$ 的执行。</p>
+<pre tabindex="0"><code>STACK                     REGISTERS               HEAP
++----------------+ &lt;-+
+|  x()           |   |                   +--&gt;  +-----------+
+| ret= h()+0x87  |   |    +------+       |     |  x()      |
++----------------+   +--- | rsp  |       |     | a =  42   |
+|  h()           |        +------+       |     | b = 789   |
+| handle         |        | rbp  | ------+     +-----------+
++----------------+        +------+
+| ...            |
+|                |
+</code></pre><h2 id="总结">总结</h2>
+<p>        这篇文章中，我把协程描述为一种不仅具有调用和返回操作，还具有暂停、恢复和销毁这三种额外操作的函数。<br>
+        我希望这对你理解协程及其控制流有帮助。<br>
+        下一篇文章我将介绍<code>C++</code>协程标准语言扩展的机制，以及编译器是怎么把你写的代码翻译成协程的。</p>
+
+
+<div>
+    <a href="javascript:void(0);" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+    <div id="sidetoc">
+        <header>
+            <h4>C&#43;&#43;协程（1）：协程理论</h4>
+        </header>
+        <nav id="TableOfContents">
+            <ul></ul>
+        </nav>
+    </div>
+    <script>
+        isTocOpen = true;
+    </script>
+</div>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/%E5%88%86%E5%B8%83%E5%BC%8F%E6%95%B0%E6%8D%AE%E7%B3%BB%E7%BB%9F%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+<script type="text/javascript">
+    tocInit();
+</script>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:zihan.zhouchn@outlook.com">zihan.zhouchn@outlook.com</a>
+            </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2024, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+    <script>
+        InitLightSwitcher()
+    </script>
+</footer>
+
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        let all = MathJax.Hub.getAllJax(),
+            i;
+        
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+</main>
+</body>
+
+</html>

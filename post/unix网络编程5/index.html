@@ -4,7 +4,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="A personal blog of z217">
   <meta name="Author" content="z217">
-  <meta name="keywords" content="hugo blog">
+  <meta name="keywords" content="z217&#39;s blog">
   <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
   <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
   <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
@@ -127,7 +127,7 @@
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;netdb.h&gt;</span><span class="cp">
 </span></span></span><span class="line"><span class="cl"><span class="cp"></span>
 </span></span><span class="line"><span class="cl"><span class="c1">// 成功返回非空指针，出错返回NULL并设置h_errno
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">struct</span> <span class="n">hostent</span> <span class="o">*</span><span class="nf">gethostbyaddr</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">len</span><span class="p">,</span> <span class="kt">int</span> <span class="n">family</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">struct</span> <span class="n">hostent</span> <span class="o">*</span><span class="nf">gethostbyaddr</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="kt">socklen_t</span> <span class="n">len</span><span class="p">,</span> <span class="kt">int</span> <span class="n">family</span><span class="p">);</span>
 </span></span></code></pre></div><p>        $addr$ 参数实际上不是 $char$ $\star$ 类型，而是一个指向存放<code>IPv4</code>地址的某个 $in_-addr$ 结构的指针。按照<code>DNS</code>的说法，$gethostbyaddr$ 在 $in_-addr.arpa$ 域中向一个名字服务器查询 $PTR$ 记录。</p>
 <h2 id="4-getservbyname和getservbyport函数">4. <code>getservbyname</code>和<code>getservbyport</code>函数</h2>
 <p>        像主机一样，服务也通常靠名字来认知。如果我们在程序代码中通过名字而不是端口来代指一个服务，而且从名字到端口的映射关系保存在一个文件中 ( 通常是 $/etc/services$ )，那么即使端口发生改变，我们仅需要修改文件中的一行即可。$getservbyname$ 函数用于根据给定名字查找相应的服务。</p>
@@ -161,7 +161,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">int</span> <span class="n">ai_family</span><span class="p">;</span>  <span class="c1">// AF_xxx
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">int</span> <span class="n">ai_socktype</span><span class="p">;</span>  <span class="c1">// SOCK_xxx
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">int</span> <span class="n">ai_protocol</span><span class="p">;</span>  <span class="c1">// 0 或 IPPROTO_xxx
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">socklen_t</span> <span class="n">ai_addrlen</span><span class="p">;</span>  <span class="c1">// ai_addr长度
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">socklen_t</span> <span class="n">ai_addrlen</span><span class="p">;</span>  <span class="c1">// ai_addr长度
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">char</span> <span class="o">*</span><span class="n">ai_canonname</span><span class="p">;</span>  <span class="c1">// 主机规范名称
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">ai_addr</span><span class="p">;</span>  <span class="c1">// 套接字地址结构
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">struct</span> <span class="n">addrinfo</span> <span class="o">*</span><span class="n">ai_next</span><span class="p">;</span>  <span class="c1">// 链表后继节点
@@ -254,9 +254,9 @@
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;netdb.h&gt;</span><span class="cp">
 </span></span></span><span class="line"><span class="cl"><span class="cp"></span>
 </span></span><span class="line"><span class="cl"><span class="c1">// 成功返回0，出错返回非0
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">getnameinfo</span><span class="p">(</span><span class="k">const</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">sockaddr</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">addrlen</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="o">*</span><span class="n">host</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">hostlen</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="o">*</span><span class="n">serv</span><span class="p">,</span> <span class="n">socklen_t</span> <span class="n">servlen</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">getnameinfo</span><span class="p">(</span><span class="k">const</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">sockaddr</span><span class="p">,</span> <span class="kt">socklen_t</span> <span class="n">addrlen</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="o">*</span><span class="n">host</span><span class="p">,</span> <span class="kt">socklen_t</span> <span class="n">hostlen</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="o">*</span><span class="n">serv</span><span class="p">,</span> <span class="kt">socklen_t</span> <span class="n">servlen</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">);</span>
 </span></span></code></pre></div><p>        $sockaddr$ 指向一个套接字地址结构，其中包含待转换成直观可读的字符串的协议地址，$addrlen$ 是这个结构的长度，该结构及其长度通常由 $accept$ 、$recvfrom$ 、$getsockname$ 或 $getpeername$ 返回。待返回的 $2$ 个直观可读字符串由调用者预先分配存储空间，$host$ 和 $hostlen$ 指定主机字符串，$serv$ 和 $servlen$ 指定服务字符串。如果调用者不想返回主机字符串，那就指定 $hostlen$ 为 $0$ ，同样的，也可以通过指定 $servlen$ 为 $0$ 来不返回服务字符串。$flags$ 可以改变 $getnameinfo$ 的操作，如下表所示。</p>
 <div class="div-table" data-fl-scrolls><table>
 <thead>
@@ -360,7 +360,7 @@
         </div>
         
         
-        <p class="copyright meta">Copyright © 2020–2022, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+        <p class="copyright meta">Copyright © 2020–2024, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
                 href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
         
     </div>

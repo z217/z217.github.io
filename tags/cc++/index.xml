@@ -6,475 +6,267 @@
     <description>Recent content in C&amp;C&#43;&#43; on z217&#39;s blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
-    <copyright>Copyright © 2020–2022, z217 and the hugo authors, all rights reserved.</copyright>
-    <lastBuildDate>Wed, 16 Mar 2022 14:56:00 +0800</lastBuildDate><atom:link href="https://z217blog.cn/tags/cc++/index.xml" rel="self" type="application/rss+xml" />
+    <copyright>Copyright © 2020–2024, z217 and the hugo authors, all rights reserved.</copyright>
+    <lastBuildDate>Tue, 23 Jan 2024 23:59:20 +0800</lastBuildDate>
+    <atom:link href="https://z217blog.cn/tags/cc++/index.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>C&#43;&#43; Templates（7）：深入模版基础</title>
-      <link>https://z217blog.cn/post/cpptemplates7/</link>
-      <pubDate>Wed, 16 Mar 2022 14:56:00 +0800</pubDate>
-      
-      <guid>https://z217blog.cn/post/cpptemplates7/</guid>
-      <description>1. 参数化的声明 C++现在支持四种基础模版类型：类模版、函数模版、变量模版和别名模版，每个模版类型都能在命名空间作用域和类作用域中使用。在类作用域内，它们可以作为类内类模版、成员函数模版、静态数据成员模版和成员别名模版。这种模版的声明类似于普通类、函数、变量和类型别名，除了使用参数化子句开头外。C++17还引入了另一种使用参数化子句的结构——推导指引。
-首先，让我们看一下四种模版的例子。首先是命名空间作用域：
-template&amp;lt;typename T&amp;gt; // 命名空间作用域类模版 class Data { public: static constexpr bool copyable = true; // ... }; template&amp;lt;typename T&amp;gt; // 命名空间作用域函数模版 void log(T x) { // ... } template&amp;lt;typename T&amp;gt; // 命名空间作用域变量模版 T zero = 0; template&amp;lt;typename T&amp;gt; // 命名空间作用域变量模版 bool dataCopyable = Data&amp;lt;T&amp;gt;::copyable; template&amp;lt;typename T&amp;gt; // 命名空间作用域别名模版 using DataList = Data&amp;lt;T*&amp;gt;; 接下来是类作用域：
-class Collection { public: template&amp;lt;typename T&amp;gt; // 类内成员类模版 class Node { // ... }; template&amp;lt;typename T&amp;gt; // 类内成员函数模版 T* alloc() { // 提供了定义，是隐式内联的 // .</description>
+      <title>C&#43;&#43;协程（1）：协程理论</title>
+      <link>https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B1%E5%8D%8F%E7%A8%8B%E7%90%86%E8%AE%BA/</link>
+      <pubDate>Tue, 23 Jan 2024 23:59:20 +0800</pubDate>
+      <guid>https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B1%E5%8D%8F%E7%A8%8B%E7%90%86%E8%AE%BA/</guid>
+      <description>这是C++ Coroutines标准 ( C++ Coroutines TS ) 系列的第一篇文章，协程作为新技术被引入C++20标准。&#xA;在这个系列里我会介绍C++协程的底层机制，以及如何使用它们实现一些更高级的抽象，就像 cppcoro 库一样。&#xA;在这篇文章，我会介绍函数和协程的区别，以及相应的一些他们所支持的行为的理论。文章的目标是介绍一些基础概念，帮助你理解C++协程。&#xA;协程是函数，函数是协程 协程是一种允许暂停 ( $suspend$ ) 和恢复 ( $resume$ ) 的函数的统称。&#xA;在解释这个含义之前，我们先复习一下一个“普通”C++函数的行为是什么。&#xA;“普通”函数 一个普通函数具有两种行为：调用 ( $call$ ) 和返回 ( $return$ , 注意这里返回涵盖了抛出异常 )。&#xA;调用创建一个调用栈 ( $activation$ $frame$ )，暂停主调函数，执行被调函数的第一条命令。&#xA;返回会把返回值传回给主调，销毁调用栈，然后在主调函数的调用点处，恢复主调函数的执行。&#xA;让我们再分析一下这些语义&amp;hellip;&amp;hellip;&#xA;调用栈 什么是“调用栈”？&#xA;你可以认为调用栈是一块存储着当前函数调用的内存。这些状态包括了入参和局部变量。&#xA;对于“普通”函数，调用栈也包含返回地址——函数返回时将跳转到的指令，和主调函数的调用栈地址。你可以认为这些信息是用来保持函数继续调用的，比如，它们描述了函数调用结束后，该继续执行哪个函数。&#xA;对于“普通”函数，所有的调用栈都有着严格嵌套的生命周期。严格嵌套可以更有效的分配和释放每个函数调用的内存。这种数据结构也被称为“栈”。&#xA;调用栈分配在栈上，也被称为“栈帧”。&#xA;栈是一种十分常见的数据结构，大部分CPU架构都有个专门的寄存器来保存栈顶地址 ( 例如，X64的rsp寄存器 )。&#xA;分配一个调用栈，只需要让寄存器加上栈帧大小的值。同样的，释放一个调用栈，也只需要让寄存器减去栈帧大小。&#xA;调用 当一个函数调用另一个函数，主调必须暂停自己。&#xA;“暂停”一般指保存当前CPU寄存器中的值，并在之后恢复的时候重新设置这些值。保存寄存器这一步，可以是主调执行，也可以是被调执行，取决于不同的调用方式，但你可以认为它们都是调用的其中一部分。&#xA;调用也会把入参在新的调用栈里保存一份，让被调可以访问。&#xA;最后，主调在新调用栈里面写入恢复点的地址，并把执行权让出给被调函数。&#xA;在X86/X64架构，最后一步有单独对应的 $call$ 指令，会把当前指令的下一条指令地址写入栈，递增栈寄存器，然后跳转到指令操作地址。&#xA;返回 当一个函数通过 $return$ 返回，函数会先把返回值保存到主调可以访问的地方，可以在主调调用栈，也可以在当前调用栈 ( 对于跨越两个调用栈的参数和返回值，这种概念可能没有明确的区别 )。&#xA;然后函数通过以下步骤销毁调用栈：&#xA;在返回点销毁所有局部变量 销毁所有入参对象 释放调用占内存 最后，通过以下步骤恢复主调执行：</description>
     </item>
-    
     <item>
       <title>C&#43;&#43; Templates（6）：模版实践与泛型库</title>
       <link>https://z217blog.cn/post/cpptemplates6/</link>
       <pubDate>Mon, 14 Mar 2022 15:57:27 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/cpptemplates6/</guid>
-      <description>1. 包含模式 1.1 链接错误 大部分C/C++程序员通常以这种方式组织非模版代码：
-类和其他类型声明在头文件中； 全局变量和非内联函数只在头文件中声明，定义在另一个单独的翻译单元中。 这种方式让类型定义在整个程序中可用并且避免了链接过程中重复定义的错误。在这种方便方式的前提下，很多初学模版的程序员会对将定义声明在头文件中的方式感到抱怨。如果我们将模版函数的声明和定义分开：
-#ifndef MYFIRST_HPP #define MYFIRST_HPP template&amp;lt;typename T&amp;gt; void printTypeof(T const&amp;amp;); #endif // MYFIRST_HPP #include &amp;lt;iostream&amp;gt; #include &amp;lt;typeinfo&amp;gt; #include &amp;#34;myfirst.hpp&amp;#34; template&amp;lt;typename T&amp;gt; void printTypeof(T const&amp;amp; x) { std::cout &amp;lt;&amp;lt; typeid(x).name() &amp;lt;&amp;lt; &amp;#39;\n&amp;#39;; } #include &amp;#34;myfirst.cpp&amp;#34; int main() { double ice = 3.0; printTypeof(ice); } C++编译器很可能会编译这个程序，但是链接器会产生错误，错误为没有 $printTypeof$ 函数的定义。这个错误的原因是函数模版的定义无法被实例化。要实例化一个模版，编译器必须知道应该实例化哪些定义以及哪些模版参数应该被实例化。不幸的是，在上面的例子中，这两个信息都被单独编译了。因此，当我们的编译器想实例化 $printTypeof$ 的调用但是没有看到定义时，它只能假设这个定义在别处被提供了并且创建了一个引用 ( 给链接器解析 )。另一方面，当编译器处理 $myfirst.cpp$ 文件时，并没有任何提示说明它应该实例化出特定类型参数的模版定义，从而链接器无法解析出先前创建的引用。
-1.2 头文件中的模版 之前问题的通用解决方案是采用与宏和内联函数相同的方式：在头文件中定义声明的模版。
-#ifndef MYFIRST_HPP #define MYFIRST_HPP #include &amp;lt;iostream&amp;gt; #include &amp;lt;typeinfo&amp;gt; template&amp;lt;typename T&amp;gt; void printTypeof(T const&amp;amp;); template&amp;lt;typename T&amp;gt; void printTypeof(T const&amp;amp; x) { std::cout &amp;lt;&amp;lt; typeid(x).</description>
+      <description>1. 包含模式 1.1 链接错误 大部分C/C++程序员通常以这种方式组织非模版代码：&#xA;类和其他类型声明在头文件中； 全局变量和非内联函数只在头文件中声明，定义在另一个单独的翻译单元中。 这种方式让类型定义在整个程序中可用并且避免了链接过程中重复定义的错误。在这种方便方式的前提下，很多初学模版的程序员会对将定义声明在头文件中的方式感到抱怨。如果我们将模版函数的声明和定义分开：&#xA;#ifndef MYFIRST_HPP #define MYFIRST_HPP template&amp;lt;typename T&amp;gt; void printTypeof(T const&amp;amp;); #endif // MYFIRST_HPP #include &amp;lt;iostream&amp;gt; #include &amp;lt;typeinfo&amp;gt; #include &amp;#34;myfirst.hpp&amp;#34; template&amp;lt;typename T&amp;gt; void printTypeof(T const&amp;amp; x) { std::cout &amp;lt;&amp;lt; typeid(x).name() &amp;lt;&amp;lt; &amp;#39;\n&amp;#39;; } #include &amp;#34;myfirst.cpp&amp;#34; int main() { double ice = 3.0; printTypeof(ice); } C++编译器很可能会编译这个程序，但是链接器会产生错误，错误为没有 $printTypeof$ 函数的定义。这个错误的原因是函数模版的定义无法被实例化。要实例化一个模版，编译器必须知道应该实例化哪些定义以及哪些模版参数应该被实例化。不幸的是，在上面的例子中，这两个信息都被单独编译了。因此，当我们的编译器想实例化 $printTypeof$ 的调用但是没有看到定义时，它只能假设这个定义在别处被提供了并且创建了一个引用 ( 给链接器解析 )。另一方面，当编译器处理 $myfirst.cpp$ 文件时，并没有任何提示说明它应该实例化出特定类型参数的模版定义，从而链接器无法解析出先前创建的引用。&#xA;1.2 头文件中的模版 之前问题的通用解决方案是采用与宏和内联函数相同的方式：在头文件中定义声明的模版。&#xA;#ifndef MYFIRST_HPP #define MYFIRST_HPP #include &amp;lt;iostream&amp;gt; #include &amp;lt;typeinfo&amp;gt; template&amp;lt;typename T&amp;gt; void printTypeof(T const&amp;amp;); template&amp;lt;typename T&amp;gt; void printTypeof(T const&amp;amp; x) { std::cout &amp;lt;&amp;lt; typeid(x).</description>
     </item>
-    
     <item>
       <title>C&#43;&#43; Templates（5）：编译时编程</title>
       <link>https://z217blog.cn/post/cpptemplates5/</link>
       <pubDate>Mon, 14 Mar 2022 12:33:51 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/cpptemplates5/</guid>
-      <description>1. 模版元编程 模版在编译期实例化，这使得一些C++模版特性可以在实例化阶段进行一系列递归的语言编程。所以，我们可以使用模版来作为程序计算。
-template&amp;lt;unsigned p, unsigned d&amp;gt; struct DoIsPrime { static constexpr bool value = (p % d != 0) &amp;amp;&amp;amp; DoIsPrime&amp;lt;p, d - 1&amp;gt;::value; }; template&amp;lt;unsigned p&amp;gt; struct DoIsPrime&amp;lt;p, 2&amp;gt;{ static constexpr bool value = (p % 2 != 0); }; template&amp;lt;unsigned p&amp;gt; struct IsPrime { static constexpr bool value = DoIsPrime&amp;lt;p, p / 2&amp;gt;::value; }; template&amp;lt;&amp;gt; struct IsPrime&amp;lt;0&amp;gt; { static constexpr bool value = false; }; template&amp;lt;&amp;gt; struct IsPrime&amp;lt;1&amp;gt; { static constexpr bool value = false; }; template&amp;lt;&amp;gt; struct IsPrime&amp;lt;2&amp;gt; { static constexpr bool value = true; }; template&amp;lt;&amp;gt; struct IsPrime&amp;lt;3&amp;gt; { static constexpr bool value = true; }; 上面的代码计算一个数是否为质数。$DoIsPrime$ 会递归地展开表达式。例如：</description>
+      <description>1. 模版元编程 模版在编译期实例化，这使得一些C++模版特性可以在实例化阶段进行一系列递归的语言编程。所以，我们可以使用模版来作为程序计算。&#xA;template&amp;lt;unsigned p, unsigned d&amp;gt; struct DoIsPrime { static constexpr bool value = (p % d != 0) &amp;amp;&amp;amp; DoIsPrime&amp;lt;p, d - 1&amp;gt;::value; }; template&amp;lt;unsigned p&amp;gt; struct DoIsPrime&amp;lt;p, 2&amp;gt;{ static constexpr bool value = (p % 2 != 0); }; template&amp;lt;unsigned p&amp;gt; struct IsPrime { static constexpr bool value = DoIsPrime&amp;lt;p, p / 2&amp;gt;::value; }; template&amp;lt;&amp;gt; struct IsPrime&amp;lt;0&amp;gt; { static constexpr bool value = false; }; template&amp;lt;&amp;gt; struct IsPrime&amp;lt;1&amp;gt; { static constexpr bool value = false; }; template&amp;lt;&amp;gt; struct IsPrime&amp;lt;2&amp;gt; { static constexpr bool value = true; }; template&amp;lt;&amp;gt; struct IsPrime&amp;lt;3&amp;gt; { static constexpr bool value = true; }; 上面的代码计算一个数是否为质数。$DoIsPrime$ 会递归地展开表达式。例如：</description>
     </item>
-    
     <item>
       <title>C&#43;&#43; Templates（4）：移动与引用</title>
       <link>https://z217blog.cn/post/cpptemplates4/</link>
       <pubDate>Sun, 13 Mar 2022 14:27:10 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/cpptemplates4/</guid>
-      <description>1. 移动语义 C++11的一个最突出的特性的就是移动语义，它对模版设计有着显著的影响。
-1.1 完美转发 假设你想要编写泛型代码，转发参数的基本属性：
-可变对象必须被转发，这样它们就能被继续修改； 常量对象应该被转发为只读对象； 可移动对象应该继续被转发为可移动对象。 为了在不使用模版的前提下实现这个功能，我们需要编写三种情况的代码。
-#include &amp;lt;utility&amp;gt; #include &amp;lt;iostream&amp;gt; class X {}; void g(X&amp;amp;) { std::cout &amp;lt;&amp;lt; &amp;#34;g() for variable\n&amp;#34;; } void g(X const&amp;amp;) { std::cout &amp;lt;&amp;lt; &amp;#34;g() for constant\n&amp;#34;; } void g(X&amp;amp;&amp;amp;) { std::cout &amp;lt;&amp;lt; &amp;#34;g() for movable object\n&amp;#34;; } void f(X&amp;amp; val) { g(val); } void f(X const&amp;amp; val) { g(val); } void f(X&amp;amp;&amp;amp; val) { g(std::move(val)); } 注意可移动对象的代码需要使用 $std::move$ ，因为当它们作为表达式使用时会被视为左值。
-如果我们想要使用泛型代码，就会出现这种问题：
-template&amp;lt;typename T&amp;gt; void f(T&amp;amp; val) { g(val); } 上面这种形式的代码只会匹配前两种情况，不会匹配可移动对象。出于这个原因，C++11引入了完美转发参数。</description>
+      <description>1. 移动语义 C++11的一个最突出的特性的就是移动语义，它对模版设计有着显著的影响。&#xA;1.1 完美转发 假设你想要编写泛型代码，转发参数的基本属性：&#xA;可变对象必须被转发，这样它们就能被继续修改； 常量对象应该被转发为只读对象； 可移动对象应该继续被转发为可移动对象。 为了在不使用模版的前提下实现这个功能，我们需要编写三种情况的代码。&#xA;#include &amp;lt;utility&amp;gt; #include &amp;lt;iostream&amp;gt; class X {}; void g(X&amp;amp;) { std::cout &amp;lt;&amp;lt; &amp;#34;g() for variable\n&amp;#34;; } void g(X const&amp;amp;) { std::cout &amp;lt;&amp;lt; &amp;#34;g() for constant\n&amp;#34;; } void g(X&amp;amp;&amp;amp;) { std::cout &amp;lt;&amp;lt; &amp;#34;g() for movable object\n&amp;#34;; } void f(X&amp;amp; val) { g(val); } void f(X const&amp;amp; val) { g(val); } void f(X&amp;amp;&amp;amp; val) { g(std::move(val)); } 注意可移动对象的代码需要使用 $std::move$ ，因为当它们作为表达式使用时会被视为左值。&#xA;如果我们想要使用泛型代码，就会出现这种问题：&#xA;template&amp;lt;typename T&amp;gt; void f(T&amp;amp; val) { g(val); } 上面这种形式的代码只会匹配前两种情况，不会匹配可移动对象。出于这个原因，C++11引入了完美转发参数。</description>
     </item>
-    
     <item>
       <title>C&#43;&#43; Templates（3）：基本技术</title>
       <link>https://z217blog.cn/post/cpptemplates3/</link>
       <pubDate>Sat, 12 Mar 2022 17:53:20 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/cpptemplates3/</guid>
-      <description>1. typename 关键字 $typename$ 用于标识模版内部的某个成员是一个类型。
-template&amp;lt;typename T&amp;gt; class MyClass { public: void foo() { typename T::SubType* ptr; } }; 这里的第二个 $typename$ 就是用于标识 $SubType$ 是一个类型。如果没有 $typename$ ，$SubType$ 就必须是一个非类型成员，从而表达式会变成乘法运算，这会导致一个错误。
-$typename$ 的一个应用是在泛型类中声明迭代器：
-#include &amp;lt;iostream&amp;gt; template&amp;lt;typename T&amp;gt; void printcoll(T const&amp;amp; coll) { typename T::const_iterator pos; typename T::const_iterator end(coll.end()); for (pos = coll.begin(); pos != end; ++pos) { std::cout &amp;lt;&amp;lt; *pos &amp;lt;&amp;lt; &amp;#39; &amp;#39;; } std::cout &amp;lt;&amp;lt; &amp;#39;\n&amp;#39;; } 2. 零初始化 对于基本类型，例如 $int$ 、$double$ 或指针类型，它们没有默认构造函数，意味着初始化时必须被赋予一个初始值，否则它们的值就是不确定的。假设你有一个模版变量，并且想要让它拥有初始值，但是内置类型并不会初始化。出于这个原因，你可以显式初始化，这会让它们的值变为 $0$ ：</description>
+      <description>1. typename 关键字 $typename$ 用于标识模版内部的某个成员是一个类型。&#xA;template&amp;lt;typename T&amp;gt; class MyClass { public: void foo() { typename T::SubType* ptr; } }; 这里的第二个 $typename$ 就是用于标识 $SubType$ 是一个类型。如果没有 $typename$ ，$SubType$ 就必须是一个非类型成员，从而表达式会变成乘法运算，这会导致一个错误。&#xA;$typename$ 的一个应用是在泛型类中声明迭代器：&#xA;#include &amp;lt;iostream&amp;gt; template&amp;lt;typename T&amp;gt; void printcoll(T const&amp;amp; coll) { typename T::const_iterator pos; typename T::const_iterator end(coll.end()); for (pos = coll.begin(); pos != end; ++pos) { std::cout &amp;lt;&amp;lt; *pos &amp;lt;&amp;lt; &amp;#39; &amp;#39;; } std::cout &amp;lt;&amp;lt; &amp;#39;\n&amp;#39;; } 2. 零初始化 对于基本类型，例如 $int$ 、$double$ 或指针类型，它们没有默认构造函数，意味着初始化时必须被赋予一个初始值，否则它们的值就是不确定的。假设你有一个模版变量，并且想要让它拥有初始值，但是内置类型并不会初始化。出于这个原因，你可以显式初始化，这会让它们的值变为 $0$ ：</description>
     </item>
-    
     <item>
       <title>C&#43;&#43; Templates（2）：非类模版参数</title>
       <link>https://z217blog.cn/post/cpptemplates2/</link>
       <pubDate>Sat, 12 Mar 2022 14:57:44 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/cpptemplates2/</guid>
-      <description>1. 非类模版参数 1.1 非类模版参数类 你可以实现一个固定大小的 $Stack$ ，这样就可以避开内存管理的开销。为了让 $Stack$ 更加灵活，你可以让用户决定最大大小。
-#include &amp;lt;array&amp;gt; #include &amp;lt;cassert&amp;gt; template&amp;lt;typename T, std::size_t Maxsize&amp;gt; class Stack { private: std::array&amp;lt;T, Maxsize&amp;gt; elems; std::size_t numElems; public: Stack(); void push(T const&amp;amp; elem); void pop(); T const&amp;amp; top() const; bool empty() const { return numElems == 0; } std::size_T size() const { return numElems; } }; template&amp;lt;typename T, std::size_t Maxsize&amp;gt; Stack&amp;lt;T, Maxsize&amp;gt;::Stack() : numElems(0) {} template&amp;lt;typename T, std::size_t Maxsize&amp;gt; void Stack&amp;lt;T, Maxsize&amp;gt;::push(T const&amp;amp; elem) { assert(numElems &amp;lt; Maxsize); elems[numElems] = elem; ++numElems; } template&amp;lt;typename T, std::size_t Maxsize&amp;gt; void Stack&amp;lt;T, Maxsize&amp;gt;::pop() { assert(!</description>
+      <description>1. 非类模版参数 1.1 非类模版参数类 你可以实现一个固定大小的 $Stack$ ，这样就可以避开内存管理的开销。为了让 $Stack$ 更加灵活，你可以让用户决定最大大小。&#xA;#include &amp;lt;array&amp;gt; #include &amp;lt;cassert&amp;gt; template&amp;lt;typename T, std::size_t Maxsize&amp;gt; class Stack { private: std::array&amp;lt;T, Maxsize&amp;gt; elems; std::size_t numElems; public: Stack(); void push(T const&amp;amp; elem); void pop(); T const&amp;amp; top() const; bool empty() const { return numElems == 0; } std::size_T size() const { return numElems; } }; template&amp;lt;typename T, std::size_t Maxsize&amp;gt; Stack&amp;lt;T, Maxsize&amp;gt;::Stack() : numElems(0) {} template&amp;lt;typename T, std::size_t Maxsize&amp;gt; void Stack&amp;lt;T, Maxsize&amp;gt;::push(T const&amp;amp; elem) { assert(numElems &amp;lt; Maxsize); elems[numElems] = elem; ++numElems; } template&amp;lt;typename T, std::size_t Maxsize&amp;gt; void Stack&amp;lt;T, Maxsize&amp;gt;::pop() { assert(!</description>
     </item>
-    
     <item>
       <title>C&#43;&#43; Templates（1）：函数模版和类模版</title>
       <link>https://z217blog.cn/post/cpptemplates1/</link>
       <pubDate>Fri, 11 Mar 2022 14:03:16 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/cpptemplates1/</guid>
-      <description>前面都是一些基础概念，快速过一下。
-1. 函数模版 函数模版提供了一种可以被不同类型调用的函数行为。换句话说，函数模版表示一组类似的函数。它的表现类似于普通函数，除了一些元素类型未指定。
-template&amp;lt;typename T&amp;gt; T max(T a, T b) { return b &amp;lt; a ? a : b; } std::cout &amp;lt;&amp;lt; max(1, 2) &amp;lt;&amp;lt; std::endl; // 2 关键字typename声明了一个类型参数 $T$ ，由于历史原因，你也可以使用class关键字声明。$T$ 表示一个任意类型，会根据不同的调用而改变。在上面的例子中，类型 $T$ 必须支持 $operator$&amp;lt; 函数并且可拷贝。C++17也允许在 $T$ 既不可拷贝也不可移动的情况下传入一个右值。在上面的例子中，$T$ 的类型是 $int$ 。将模版参数用具体类型代替的过程称为实例化 ( $instantiation$ )，实例化会产生一个模版实例。
-注意到 $void$ 也可以作为模版参数：
-template&amp;lt;typename T&amp;gt; T foo(T*) {} void *vp = nullptr; foo(vp); 模版会进行两阶段编译：
-定义阶段 ( $definition$ $time$ )，即没有实例化的阶段，编译器会检查模版代码是否正确，包括语法检查、调用检查、$static_-assert$ 等； 实例化阶段 ( $instantiation$ $time$ )，模版代码会被再次检查，这次包括了所有依赖于模版参数的部分。 有些编译器并不会在定义阶段进行完全检查，这意味着有些问题只有在实例化的时候才能发现。</description>
+      <description>前面都是一些基础概念，快速过一下。&#xA;1. 函数模版 函数模版提供了一种可以被不同类型调用的函数行为。换句话说，函数模版表示一组类似的函数。它的表现类似于普通函数，除了一些元素类型未指定。&#xA;template&amp;lt;typename T&amp;gt; T max(T a, T b) { return b &amp;lt; a ? a : b; } std::cout &amp;lt;&amp;lt; max(1, 2) &amp;lt;&amp;lt; std::endl; // 2 关键字typename声明了一个类型参数 $T$ ，由于历史原因，你也可以使用class关键字声明。$T$ 表示一个任意类型，会根据不同的调用而改变。在上面的例子中，类型 $T$ 必须支持 $operator$&amp;lt; 函数并且可拷贝。C++17也允许在 $T$ 既不可拷贝也不可移动的情况下传入一个右值。在上面的例子中，$T$ 的类型是 $int$ 。将模版参数用具体类型代替的过程称为实例化 ( $instantiation$ )，实例化会产生一个模版实例。&#xA;注意到 $void$ 也可以作为模版参数：&#xA;template&amp;lt;typename T&amp;gt; T foo(T*) {} void *vp = nullptr; foo(vp); 模版会进行两阶段编译：&#xA;定义阶段 ( $definition$ $time$ )，即没有实例化的阶段，编译器会检查模版代码是否正确，包括语法检查、调用检查、$static_-assert$ 等； 实例化阶段 ( $instantiation$ $time$ )，模版代码会被再次检查，这次包括了所有依赖于模版参数的部分。 有些编译器并不会在定义阶段进行完全检查，这意味着有些问题只有在实例化的时候才能发现。</description>
     </item>
-    
     <item>
       <title>EffectiveModernCpp（7）：通用技巧</title>
       <link>https://z217blog.cn/post/effectivemoderncpp7/</link>
       <pubDate>Sun, 06 Mar 2022 17:28:50 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/effectivemoderncpp7/</guid>
-      <description>C++中的通用技巧总是存在适合使用的场景和不适合使用的场景。描述一个适合使用某项通用技巧的场景通常是很简单的，但是也存在两个例外。接下来会描述这两个例外。
-1. 值传递 有些函数的参数是可以拷贝的。
-class Widget { public: void addName(const std::string &amp;amp;newName) { names.push_back(newName); } void addName(std::string &amp;amp;&amp;amp;newName) { names.push_back(std::move(newName)); } private: std::vector&amp;lt;std::string&amp;gt; names; }; 对于左值，我们调用拷贝构造函数，而对于右值，我们调用移动函数。这很合理，但是有点难受，因为我们要重载这个函数，这意味着更多的代码、更多的文档。我们可以使用通用引用改善这个问题：
-class Widget { public: template&amp;lt;typename T&amp;gt; void addName(T &amp;amp;&amp;amp;newName) { names.push_back(std::forward&amp;lt;T&amp;gt;(newName)); } // ... }; 但是，正如我们之前所说的，通用引用也会带来新问题。而且，因为它是模版函数，所以定义也要放在头文件中。在模版函数实例化的过程中，根据类型的不同，这个函数也会实例化很多个版本。
-既然如此，我们能不能只用一个函数解决这个问题？答案是使用值传递。
-class Widget { public: void addName(std::string newName) { names.push_back(std::move(newName)); } // ... }; 因为 $newName$ 是通过值传递的，这意味着它是一个副本，所以我们可以使用移动。但是值传递会不会带来效率问题？在C++98中，可以肯定的是 $newName$ 在传递过来的时候已经经过一次拷贝了。然而在C++11中并不是，它可能是左值拷贝或者右值移动。
-Widget w; std::string name(&amp;#34;Bart&amp;#34;); w.addName(name); // 左值 w.addName(name + &amp;#34;Jenne&amp;#34;); // 右值 在第一次调用中，因为参数是左值，所以调用了一次拷贝构造函数。但在第二次调用中，因为参数是右值，所以调用的是移动构造函数。</description>
+      <description>C++中的通用技巧总是存在适合使用的场景和不适合使用的场景。描述一个适合使用某项通用技巧的场景通常是很简单的，但是也存在两个例外。接下来会描述这两个例外。&#xA;1. 值传递 有些函数的参数是可以拷贝的。&#xA;class Widget { public: void addName(const std::string &amp;amp;newName) { names.push_back(newName); } void addName(std::string &amp;amp;&amp;amp;newName) { names.push_back(std::move(newName)); } private: std::vector&amp;lt;std::string&amp;gt; names; }; 对于左值，我们调用拷贝构造函数，而对于右值，我们调用移动函数。这很合理，但是有点难受，因为我们要重载这个函数，这意味着更多的代码、更多的文档。我们可以使用通用引用改善这个问题：&#xA;class Widget { public: template&amp;lt;typename T&amp;gt; void addName(T &amp;amp;&amp;amp;newName) { names.push_back(std::forward&amp;lt;T&amp;gt;(newName)); } // ... }; 但是，正如我们之前所说的，通用引用也会带来新问题。而且，因为它是模版函数，所以定义也要放在头文件中。在模版函数实例化的过程中，根据类型的不同，这个函数也会实例化很多个版本。&#xA;既然如此，我们能不能只用一个函数解决这个问题？答案是使用值传递。&#xA;class Widget { public: void addName(std::string newName) { names.push_back(std::move(newName)); } // ... }; 因为 $newName$ 是通过值传递的，这意味着它是一个副本，所以我们可以使用移动。但是值传递会不会带来效率问题？在C++98中，可以肯定的是 $newName$ 在传递过来的时候已经经过一次拷贝了。然而在C++11中并不是，它可能是左值拷贝或者右值移动。&#xA;Widget w; std::string name(&amp;#34;Bart&amp;#34;); w.addName(name); // 左值 w.addName(name + &amp;#34;Jenne&amp;#34;); // 右值 在第一次调用中，因为参数是左值，所以调用了一次拷贝构造函数。但在第二次调用中，因为参数是右值，所以调用的是移动构造函数。</description>
     </item>
-    
     <item>
       <title>EffectiveModernCpp（6）：并发</title>
       <link>https://z217blog.cn/post/effectivemoderncpp6/</link>
       <pubDate>Sat, 05 Mar 2022 16:29:15 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/effectivemoderncpp6/</guid>
-      <description>C++11的最伟大标志之一是将并发整合到语言和库中，允许开发者通过标准库写出跨平台的多线程程序。
-1. std::async 如果开发者想要异步执行 $doAsyncWork$ 函数，有两种方式，一种是创建 $std::thread$ ：
-int doAsyncWork(); std::thread t(doAsyncWork); 另一种是创建 $std::async$ ：
-auto fut = std::async(doAsyncWork); 通常我们会选择第二种方法，一是因为它代码量更少，二是可以获取返回值。更进一步，如果 $doAsyncWork$ 发生异常，我们还可以通过 $get$ 获取异常。
-基于线程与基于任务的最根本区别在于抽象层次的高低。基于任务的方式将开发者从线程管理中解放出来。C++的线程有三种含义：
-硬件线程 ( $Hardware$ $threads$ )，即计算机真正执行计算的线程，每个CPU核心都会提供一个或多个硬件线程； 软件线程 ( $Software$ $threads$ )，是操作系统管理的在硬件线程上执行的线程。通常情况下，软件线程的数量会大于硬件线程； $std::thread$ ，是C++执行过程的对象，作为软件线程的句柄。 软件线程是有限的，如果你创建的软件线程的数量大于计算机最大能提供的数量，会抛出 $std::system_-error$ 错误。即使线程调用的函数是 $noexcept$ 的，这个错误依然会发生。
-设计良好的程序必须避免这种错误，一种有效的方法是在当前线程执行 $doAsyncWork$ ，但是这可能会导致负载不均衡，尤其是当前线程是GUI线程的时候，程序可能会陷入长时间未响应的状态；另一种办法是等待当前线程结束后再新创建线程，但是如果当前线程在等待 $doAsyncWork$ 的结果，这时程序就会陷入死锁。
-即使我们没有超出最大线程数，可用资源也会约束我们的程序。如果当前软件线程数大于硬件线程数，就会发生上下文切换。线程的上下文切换会带来开销，如果这时软件线程运行的CPU核心与之前的硬件线程所在的核心不同，这个开销会更高，因为(a)CPU缓存需要重新载入；(b)新线程缓存会覆盖老线程缓存，导致老线程再次在当前核心运行时又要重新载入缓存。
-避免这种资源开销的问题是很难的，因为软件线程与硬件线程的最佳比例取决于软件线程的执行效率，一个很明显的例子就是计算密集型程序和I/O密集型程序的执行效率是不同的。这个比例还依赖于上下文切换的开销和CPU缓存的使用效率。而且，对某种类型硬件和平台进行优化并不意味着换种硬件或者平台依然还有着这种效率。
-相比于直接使用 $std::thread$ ，$std::async$ 可以把调整最优线程数量的工作交给标准库实现，而且也可以减少资源超额的可能。$std::async$ 并不保证开启一个新线程，只是保证会执行该函数。我们也可以选择性地通过调用程序让它在当前线程执行。如果在GUI程序中使用 $std::async$ 出现了相应变慢的问题，我们还可以通过 $std::launch::async$ 来指定调度策略。
-最新的线程调度算法会使用线程池来避免资源问题，并且通过工作窃取算法提升跨核心的负载均衡。C++标准库虽然没有要求使用线程池或者工作窃取算法，但是库开发者们在标准库中使用了这些技术。使用基于任务的开发模式，处理资源和负载均衡的问题就交给了库开发者，而如果使用基于线程的开发模式，这些工作就落在了我们头上，更不用说还要考虑跨平台问题了。
-当然，这不意味着 $std::async$ 总是比 $std::thread$ 好。在一些场景中，$std::thread$ 是更好的选择：
-需要访问非常基础的线程API。C++的并发API通常是通过操作系统提供的系统级API ( $pthreads$ 或者 $windows$ $threads$ ) 来实现的。系统级API允许更加灵活的操作方式，例如优先级。为了提供对底层系统级API的访问，$std::thread$ 提供了 $native_-handler$ 成员函数，而 $std::async$ 没有； 需要优化应用线程调度。对于一些特定系统平台运行的程序，经过优化，可以比C++标准库更有效率； 需要实现C++并发API之外的线程技术，例如自己实现一个线程池。 2.</description>
+      <description>C++11的最伟大标志之一是将并发整合到语言和库中，允许开发者通过标准库写出跨平台的多线程程序。&#xA;1. std::async 如果开发者想要异步执行 $doAsyncWork$ 函数，有两种方式，一种是创建 $std::thread$ ：&#xA;int doAsyncWork(); std::thread t(doAsyncWork); 另一种是创建 $std::async$ ：&#xA;auto fut = std::async(doAsyncWork); 通常我们会选择第二种方法，一是因为它代码量更少，二是可以获取返回值。更进一步，如果 $doAsyncWork$ 发生异常，我们还可以通过 $get$ 获取异常。&#xA;基于线程与基于任务的最根本区别在于抽象层次的高低。基于任务的方式将开发者从线程管理中解放出来。C++的线程有三种含义：&#xA;硬件线程 ( $Hardware$ $threads$ )，即计算机真正执行计算的线程，每个CPU核心都会提供一个或多个硬件线程； 软件线程 ( $Software$ $threads$ )，是操作系统管理的在硬件线程上执行的线程。通常情况下，软件线程的数量会大于硬件线程； $std::thread$ ，是C++执行过程的对象，作为软件线程的句柄。 软件线程是有限的，如果你创建的软件线程的数量大于计算机最大能提供的数量，会抛出 $std::system_-error$ 错误。即使线程调用的函数是 $noexcept$ 的，这个错误依然会发生。&#xA;设计良好的程序必须避免这种错误，一种有效的方法是在当前线程执行 $doAsyncWork$ ，但是这可能会导致负载不均衡，尤其是当前线程是GUI线程的时候，程序可能会陷入长时间未响应的状态；另一种办法是等待当前线程结束后再新创建线程，但是如果当前线程在等待 $doAsyncWork$ 的结果，这时程序就会陷入死锁。&#xA;即使我们没有超出最大线程数，可用资源也会约束我们的程序。如果当前软件线程数大于硬件线程数，就会发生上下文切换。线程的上下文切换会带来开销，如果这时软件线程运行的CPU核心与之前的硬件线程所在的核心不同，这个开销会更高，因为(a)CPU缓存需要重新载入；(b)新线程缓存会覆盖老线程缓存，导致老线程再次在当前核心运行时又要重新载入缓存。&#xA;避免这种资源开销的问题是很难的，因为软件线程与硬件线程的最佳比例取决于软件线程的执行效率，一个很明显的例子就是计算密集型程序和I/O密集型程序的执行效率是不同的。这个比例还依赖于上下文切换的开销和CPU缓存的使用效率。而且，对某种类型硬件和平台进行优化并不意味着换种硬件或者平台依然还有着这种效率。&#xA;相比于直接使用 $std::thread$ ，$std::async$ 可以把调整最优线程数量的工作交给标准库实现，而且也可以减少资源超额的可能。$std::async$ 并不保证开启一个新线程，只是保证会执行该函数。我们也可以选择性地通过调用程序让它在当前线程执行。如果在GUI程序中使用 $std::async$ 出现了相应变慢的问题，我们还可以通过 $std::launch::async$ 来指定调度策略。&#xA;最新的线程调度算法会使用线程池来避免资源问题，并且通过工作窃取算法提升跨核心的负载均衡。C++标准库虽然没有要求使用线程池或者工作窃取算法，但是库开发者们在标准库中使用了这些技术。使用基于任务的开发模式，处理资源和负载均衡的问题就交给了库开发者，而如果使用基于线程的开发模式，这些工作就落在了我们头上，更不用说还要考虑跨平台问题了。&#xA;当然，这不意味着 $std::async$ 总是比 $std::thread$ 好。在一些场景中，$std::thread$ 是更好的选择：&#xA;需要访问非常基础的线程API。C++的并发API通常是通过操作系统提供的系统级API ( $pthreads$ 或者 $windows$ $threads$ ) 来实现的。系统级API允许更加灵活的操作方式，例如优先级。为了提供对底层系统级API的访问，$std::thread$ 提供了 $native_-handler$ 成员函数，而 $std::async$ 没有； 需要优化应用线程调度。对于一些特定系统平台运行的程序，经过优化，可以比C++标准库更有效率； 需要实现C++并发API之外的线程技术，例如自己实现一个线程池。 2.</description>
     </item>
-    
     <item>
       <title>EffectiveModernCpp（5）：Lambda</title>
       <link>https://z217blog.cn/post/effectivemoderncpp5/</link>
       <pubDate>Sat, 05 Mar 2022 13:29:53 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/effectivemoderncpp5/</guid>
-      <description>Lambda可以做的事情都可以通过其他方式完成，它的作用是简化我们的编写。对于标准库中的许多 $if$ 算法 ( $std::find_-if$ 、$std::remove_-if$ 等 ) ，它们通常需要繁琐的谓词。但是通过lambda表达式，这些算法的使用就变得非常方便。
-闭包 ( $closure$ ) 是lambda创建的运行时对象，根据捕获模式，闭包会持有捕获数据的副本或者引用。闭包类 ( $closure$ $lcass$ ) 是从闭包中实例化出的类。每个lambda都会生成唯一的闭包类。lambda中的语句是闭包类成员函数中的指令。
-1. 捕获模式 C++11有两种默认的捕获模式：引用捕获和值捕获。引用捕获会带来悬垂引用问题，值捕获可能会让你觉得能解决悬垂引用问题 ( 但是并不能 )，还会让你觉得你的闭包是独立的 ( 实际上也不是 )。
-引用捕获会导致闭包中包含了对局部变量或者某个形参的引用，如果该lambda的生命周期超过了局部变量的生命周期，那么闭包中将出现悬垂引用。
-using FilterContainer = std::vector&amp;lt;std::function&amp;lt;bool (int)&amp;gt;&amp;gt;; FilterContainer filters; void addDivisorFilter() { auto calc1 = computeSomeValue1(); auto calc2 = computeSomeValue2(); auto divisor = computeDivisor(calc1, calc2); filters.emplace_back( [&amp;amp;](int value) { return value % divisor == 0; } ); } 这个代码是一个定时炸弹。$divisor$ 的生命周期在 $addDivisorFilter$ 返回时就结束了，这会导致 $filters$ 出现未定义行为。</description>
+      <description>Lambda可以做的事情都可以通过其他方式完成，它的作用是简化我们的编写。对于标准库中的许多 $if$ 算法 ( $std::find_-if$ 、$std::remove_-if$ 等 ) ，它们通常需要繁琐的谓词。但是通过lambda表达式，这些算法的使用就变得非常方便。&#xA;闭包 ( $closure$ ) 是lambda创建的运行时对象，根据捕获模式，闭包会持有捕获数据的副本或者引用。闭包类 ( $closure$ $lcass$ ) 是从闭包中实例化出的类。每个lambda都会生成唯一的闭包类。lambda中的语句是闭包类成员函数中的指令。&#xA;1. 捕获模式 C++11有两种默认的捕获模式：引用捕获和值捕获。引用捕获会带来悬垂引用问题，值捕获可能会让你觉得能解决悬垂引用问题 ( 但是并不能 )，还会让你觉得你的闭包是独立的 ( 实际上也不是 )。&#xA;引用捕获会导致闭包中包含了对局部变量或者某个形参的引用，如果该lambda的生命周期超过了局部变量的生命周期，那么闭包中将出现悬垂引用。&#xA;using FilterContainer = std::vector&amp;lt;std::function&amp;lt;bool (int)&amp;gt;&amp;gt;; FilterContainer filters; void addDivisorFilter() { auto calc1 = computeSomeValue1(); auto calc2 = computeSomeValue2(); auto divisor = computeDivisor(calc1, calc2); filters.emplace_back( [&amp;amp;](int value) { return value % divisor == 0; } ); } 这个代码是一个定时炸弹。$divisor$ 的生命周期在 $addDivisorFilter$ 返回时就结束了，这会导致 $filters$ 出现未定义行为。</description>
     </item>
-    
     <item>
       <title>EffectiveModernCpp（4）：引用</title>
       <link>https://z217blog.cn/post/effectivemoderncpp4/</link>
       <pubDate>Fri, 04 Mar 2022 14:04:32 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/effectivemoderncpp4/</guid>
-      <description>1. move和forward $std::move$ 和 $std::forward$ 理论上什么都没有做，仅仅是负责转换。
-template&amp;lt;typename T&amp;gt; typename remove_reference&amp;lt;T&amp;gt;::type &amp;amp;&amp;amp; move(T &amp;amp;&amp;amp;param) { using ReturnType = typename remove_reference&amp;lt;T&amp;gt;::type &amp;amp;&amp;amp;; return static_cast&amp;lt;ReturnType&amp;gt;(param); } 以上为C++11的 $std::move$ 示例实现，尽管不完全满足标准，但是已经十分接近了。$std::move$ 接受一个对象引用，返回一个指向同一对象的引用。&amp;amp;&amp;amp; 表示 $std::move$ 返回一个右值引用，但是由于引用折叠的存在，为了防止其被折叠为左值引用，我们使用了 $std::remove_-reference$ 。
-$std::move$ 可以在C++14中以更简单的方式实现。
-template&amp;lt;typename T&amp;gt; decltype(auto) move(T &amp;amp;&amp;amp;param) { using ReturnType = remove_reference_t&amp;lt;T&amp;gt; &amp;amp;&amp;amp;; return static_cast&amp;lt;ReturnType&amp;gt;(param); } 假设你有一个类，它用于表示一段注解：
-class Annotation { public: explicit Annotation(std::string text); // ... }; 考虑到你需要的只是读取 $text$ ，并不用修改，所以你自然而然地想到 $const$ ：
-class Annotation { public: explicit Annotation(const std::string text); // .</description>
+      <description>1. move和forward $std::move$ 和 $std::forward$ 理论上什么都没有做，仅仅是负责转换。&#xA;template&amp;lt;typename T&amp;gt; typename remove_reference&amp;lt;T&amp;gt;::type &amp;amp;&amp;amp; move(T &amp;amp;&amp;amp;param) { using ReturnType = typename remove_reference&amp;lt;T&amp;gt;::type &amp;amp;&amp;amp;; return static_cast&amp;lt;ReturnType&amp;gt;(param); } 以上为C++11的 $std::move$ 示例实现，尽管不完全满足标准，但是已经十分接近了。$std::move$ 接受一个对象引用，返回一个指向同一对象的引用。&amp;amp;&amp;amp; 表示 $std::move$ 返回一个右值引用，但是由于引用折叠的存在，为了防止其被折叠为左值引用，我们使用了 $std::remove_-reference$ 。&#xA;$std::move$ 可以在C++14中以更简单的方式实现。&#xA;template&amp;lt;typename T&amp;gt; decltype(auto) move(T &amp;amp;&amp;amp;param) { using ReturnType = remove_reference_t&amp;lt;T&amp;gt; &amp;amp;&amp;amp;; return static_cast&amp;lt;ReturnType&amp;gt;(param); } 假设你有一个类，它用于表示一段注解：&#xA;class Annotation { public: explicit Annotation(std::string text); // ... }; 考虑到你需要的只是读取 $text$ ，并不用修改，所以你自然而然地想到 $const$ ：&#xA;class Annotation { public: explicit Annotation(const std::string text); // .</description>
     </item>
-    
     <item>
       <title>EffectiveModernCpp（3）：智能指针</title>
       <link>https://z217blog.cn/post/effectivemoderncpp3/</link>
       <pubDate>Thu, 03 Mar 2022 13:38:11 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/effectivemoderncpp3/</guid>
-      <description>智能指针包裹了原始指针，行为类似于被包裹的原始指针，但是避免了原始指针的很多陷阱。C++11中存在四种智能指针：
-$std::auto_-ptr$ ； $std::unique_-ptr$ ； $std::shared_-ptr$ ； $std::weak_-ptr$ 。 它们都是设计于帮助管理动态分配的对象生命周期的，会在适当的时间通过适当的方式销毁对象，避免出现资源泄露或者异常行为。
-$std::auto_-ptr$ 是C++98的遗留，C++11使用 $std::unique_-ptr$ 替代了它。$std::unique_-ptr$ 在 $std::auto_-ptr$ 的基础上可以做更多的事情，在任何方面都比 $std::auto_-ptr$ 好。
-1. unique_ptr 当你需要一个智能指针的时候，$std::unique_-ptr$ 通常是最适合的。默认情况下，$std::unique_-ptr$ 等同于原始指针，并且对于大部分操作，它们的操作完全相同。
-$unique_-ptr$ 体现了专有语义，一个非空的 $unique_-ptr$ 始终持有其指向的内容。在这个前提下，移动拷贝会转移指针的所有权，拷贝操作则是完全不允许的。当 $unique_-ptr$ 销毁时，它会调用其关联的析构函数。
-$unique_-ptr$ 的常见用法是作为对象工厂函数的返回值。
-class Investment {}; class Sock: public Investment {}; class Bond: public Investment {}; class RealEstate: public Investment {}; template &amp;lt;typename ...Ts&amp;gt; std::unique_ptr&amp;lt;Investment&amp;gt; makeInvestment(Ts&amp;amp;&amp;amp;... params); 默认情况下，$unique_-ptr$ 持有指针的销毁通过 $delete$ 进行，但是也可以自定义一个析构函数。如果创建的对象需要在析构前写一条日志，可以这样实现：
-auto delInvmt = [](Investment *pInvestment) { makeLogEntry(pInvestment); delete pInvestment; }; template &amp;lt;typename .</description>
+      <description>智能指针包裹了原始指针，行为类似于被包裹的原始指针，但是避免了原始指针的很多陷阱。C++11中存在四种智能指针：&#xA;$std::auto_-ptr$ ； $std::unique_-ptr$ ； $std::shared_-ptr$ ； $std::weak_-ptr$ 。 它们都是设计于帮助管理动态分配的对象生命周期的，会在适当的时间通过适当的方式销毁对象，避免出现资源泄露或者异常行为。&#xA;$std::auto_-ptr$ 是C++98的遗留，C++11使用 $std::unique_-ptr$ 替代了它。$std::unique_-ptr$ 在 $std::auto_-ptr$ 的基础上可以做更多的事情，在任何方面都比 $std::auto_-ptr$ 好。&#xA;1. unique_ptr 当你需要一个智能指针的时候，$std::unique_-ptr$ 通常是最适合的。默认情况下，$std::unique_-ptr$ 等同于原始指针，并且对于大部分操作，它们的操作完全相同。&#xA;$unique_-ptr$ 体现了专有语义，一个非空的 $unique_-ptr$ 始终持有其指向的内容。在这个前提下，移动拷贝会转移指针的所有权，拷贝操作则是完全不允许的。当 $unique_-ptr$ 销毁时，它会调用其关联的析构函数。&#xA;$unique_-ptr$ 的常见用法是作为对象工厂函数的返回值。&#xA;class Investment {}; class Sock: public Investment {}; class Bond: public Investment {}; class RealEstate: public Investment {}; template &amp;lt;typename ...Ts&amp;gt; std::unique_ptr&amp;lt;Investment&amp;gt; makeInvestment(Ts&amp;amp;&amp;amp;... params); 默认情况下，$unique_-ptr$ 持有指针的销毁通过 $delete$ 进行，但是也可以自定义一个析构函数。如果创建的对象需要在析构前写一条日志，可以这样实现：&#xA;auto delInvmt = [](Investment *pInvestment) { makeLogEntry(pInvestment); delete pInvestment; }; template &amp;lt;typename .</description>
     </item>
-    
     <item>
       <title>EffectiveModernCpp（2）：使用现代C&#43;&#43;语法</title>
       <link>https://z217blog.cn/post/effectivemoderncpp2/</link>
       <pubDate>Wed, 02 Mar 2022 14:09:12 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/effectivemoderncpp2/</guid>
-      <description>1. 初始化 从不同的角度来看，C++11的初始化语法丰富却又混乱。
-int w(0); // 小括号初始化 int x = 0; // =初始化 int y{0}; // 花括号初始化 int z = {0}; // =和花括号初始化 在通常情况下，后面两种是等价的。对于 $int$ 这种内置类型而言，这些初始化方式通常没有什么太大区别。但是对于用户类型而言，理解它们的区别很重要。
-Widget w1; // 默认构造函数 Widget w2 = w1; // 拷贝构造函数 w1 = w2; // 调用operator= C++使用统一初始化 ( $uniform$ $initialization$ ) 来整合这些混乱的初始化语法。所谓统一初始化即使用单一初始化语法，是基于花括号的初始化。
-std::vector&amp;lt;int&amp;gt; v{1, 3, 5}; std::atomic&amp;lt;int&amp;gt; ai1{0}; std::atomic&amp;lt;int&amp;gt; ai2(0); std::atomic&amp;lt;int&amp;gt; ai3 = 0; // 错误 class Widget { // ... private: int x{0}; int y = 0; int z(0); // 错误 }; 可以发现，相比于其他初始化方法，使用花括号的初始化方式在任何地方都成立，这也是为什么它被称为统一初始化。</description>
+      <description>1. 初始化 从不同的角度来看，C++11的初始化语法丰富却又混乱。&#xA;int w(0); // 小括号初始化 int x = 0; // =初始化 int y{0}; // 花括号初始化 int z = {0}; // =和花括号初始化 在通常情况下，后面两种是等价的。对于 $int$ 这种内置类型而言，这些初始化方式通常没有什么太大区别。但是对于用户类型而言，理解它们的区别很重要。&#xA;Widget w1; // 默认构造函数 Widget w2 = w1; // 拷贝构造函数 w1 = w2; // 调用operator= C++使用统一初始化 ( $uniform$ $initialization$ ) 来整合这些混乱的初始化语法。所谓统一初始化即使用单一初始化语法，是基于花括号的初始化。&#xA;std::vector&amp;lt;int&amp;gt; v{1, 3, 5}; std::atomic&amp;lt;int&amp;gt; ai1{0}; std::atomic&amp;lt;int&amp;gt; ai2(0); std::atomic&amp;lt;int&amp;gt; ai3 = 0; // 错误 class Widget { // ... private: int x{0}; int y = 0; int z(0); // 错误 }; 可以发现，相比于其他初始化方法，使用花括号的初始化方式在任何地方都成立，这也是为什么它被称为统一初始化。</description>
     </item>
-    
     <item>
       <title>EffectiveModernCpp（1）：类型推导</title>
       <link>https://z217blog.cn/post/effectivemoderncpp1/</link>
       <pubDate>Tue, 01 Mar 2022 15:15:57 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/effectivemoderncpp1/</guid>
-      <description>1. 类型推导 考虑这样一个模版：
-template&amp;lt;typename T&amp;gt; void f(ParamType param); f(expr); 编译器会使用 $expr$ 进行类型推导，一个是针对 $T$ 的，另一个是针对 $ParamType$ 的。这两个类型通常是不同的。例如：
-template&amp;lt;typename T&amp;gt; void f(const T &amp;amp;param); int x = 0; f(x); 这时 $T$ 被推导为 $int$ ，$ParamType$ 被推导为 $const$ $int$ &amp;amp; 。事实上，$T$ 的推导不仅取决于 $expr$ ，还取决于 $ParamType$ 。这里有三种情况：
-$ParamType$ 是一个指针或引用，但不是通用引用； $ParamType$ 是一个通用引用； $ParamType$ 既不是指针也不是引用。 1.1 情况一 最简单的情况是 $ParamType$ 是一个指针或引用但不是普通引用，这时类型推导过程为：
-如果 $expr$ 的类型是引用，忽略引用部分； 根据剩下部分推导 $T$ ，并得出 $ParamType$ 。 template&amp;lt;typename T&amp;gt; void f(T &amp;amp;param); int x = 27; const int cx = x; const int &amp;amp;rx = cx; f(x); // T为int, ParamType为int &amp;amp; f(cx); // T为const int, ParamType为const int &amp;amp; f(rx); // T为const int, ParamType为const int &amp;amp; 注意第三个例子中，即使 $rx$ 是一个引用，$T$ 也会被推导为非引用。</description>
+      <description>1. 类型推导 考虑这样一个模版：&#xA;template&amp;lt;typename T&amp;gt; void f(ParamType param); f(expr); 编译器会使用 $expr$ 进行类型推导，一个是针对 $T$ 的，另一个是针对 $ParamType$ 的。这两个类型通常是不同的。例如：&#xA;template&amp;lt;typename T&amp;gt; void f(const T &amp;amp;param); int x = 0; f(x); 这时 $T$ 被推导为 $int$ ，$ParamType$ 被推导为 $const$ $int$ &amp;amp; 。事实上，$T$ 的推导不仅取决于 $expr$ ，还取决于 $ParamType$ 。这里有三种情况：&#xA;$ParamType$ 是一个指针或引用，但不是通用引用； $ParamType$ 是一个通用引用； $ParamType$ 既不是指针也不是引用。 1.1 情况一 最简单的情况是 $ParamType$ 是一个指针或引用但不是普通引用，这时类型推导过程为：&#xA;如果 $expr$ 的类型是引用，忽略引用部分； 根据剩下部分推导 $T$ ，并得出 $ParamType$ 。 template&amp;lt;typename T&amp;gt; void f(T &amp;amp;param); int x = 27; const int cx = x; const int &amp;amp;rx = cx; f(x); // T为int, ParamType为int &amp;amp; f(cx); // T为const int, ParamType为const int &amp;amp; f(rx); // T为const int, ParamType为const int &amp;amp; 注意第三个例子中，即使 $rx$ 是一个引用，$T$ 也会被推导为非引用。</description>
     </item>
-    
     <item>
       <title>Unix网络编程补充：eventfd和timerfd</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85eventfd%E5%92%8Ctimerfd/</link>
       <pubDate>Sat, 26 Feb 2022 17:30:49 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85eventfd%E5%92%8Ctimerfd/</guid>
-      <description>1. eventfd #include &amp;lt;sys/eventfd.h&amp;gt; // 成功返回eventfd描述符， 出错返回-1 int eventfd(unsigned int initval, int flags); $eventfd$ 调用返回一个 $eventfd$ 对象描述符，通过该描述符，进程可以在用户空间实现阻塞和唤醒机制，内核会负责唤醒阻塞在该描述符上的进程。$eventfd$ 对象包含一个无符号 $64$ 位整型计数器，由内核维护，初始化为 $initval$ 的值。$flags$ 值是以下值的或：
-$flag$ 说明 $EFD_-CLOEXEC$ 设置该标志后，描述符将在 $execve$ 调用之后自动关闭 $EFD_-NONBLOCK$ 非阻塞模式 $EFD_-SEMAPHORE$ 为读提供类似于信号量的语义 对于Linux 2.6.26及以下的版本来说，$flags$ 参数没有作用且必须为 $0$ 。如果 $flags$ 参数非法，会返回 $EINVAL$ 错误。对于返回的描述符，可以进行以下操作：
-$read$ ：调用成功会返回一个以主机字节序排列的 $64$ 位无符号整型；如果返回值小于 $64$ 位，则调用失败，返回 $EINVAL$ 错误。 如果没有指定 $EFD_-SEMAPHORE$ 并且 $eventfd$ 计数器值非零，$read$ 调用会返回计数器值，同时计数器值会被设置为 $0$ ； 如果指定了 $EFD_-SEMAPHORE$ 并且 $eventfd$ 计数器值非零，$read$ 调用会返回 $1$ ，同时计数器值会减一； 如果 $eventfd$ 计数器值为 $0$ ，$read$ 调用会阻塞直到计数器值非零。如果指定了 $EFD_-NONBLOCK$ ，$read$ 调用会返回 $EAGAIN$ 错误。 $write$ ：调用成功会为 $eventfd$ 计数器值加上一个 $64$ 位无符号整型的值的数量，最大为 $UINT_-MAX$ $-$ $1$ 。如果指定的值非 $64$ 位或者超过最大值，返回 $EINVAL$ 错误。 如果加上这个值会导致溢出，调用会阻塞直到该描述符被调用了一次 $read$ 。如果指定了 $EFD_-NONBLOCK$ ，$write$ 调用会返回 $EAGAIN$ 错误。 $poll$ / $select$ / $epoll$ ： 如果 $eventfd$ 计数器值大于 $0$ ，则描述符可读； 如果 $eventfd$ 计数器值至少可以加 $1$ ，则描述符可写； 如果 $eventfd$ 计数器值溢出，对于 $select$ ，该描述符状态会被设置为既可读也可写；对于 $poll$ ，返回 $POLLERR$ ；对于 $epoll$ ，返回 $EPOLLERR$ 。 $close$ ：递减该描述符的引用计数，当引用计数为零时，$eventfd$ 对象会被内核释放。 #include &amp;lt;sys/eventfd.</description>
+      <description>1. eventfd #include &amp;lt;sys/eventfd.h&amp;gt; // 成功返回eventfd描述符， 出错返回-1 int eventfd(unsigned int initval, int flags); $eventfd$ 调用返回一个 $eventfd$ 对象描述符，通过该描述符，进程可以在用户空间实现阻塞和唤醒机制，内核会负责唤醒阻塞在该描述符上的进程。$eventfd$ 对象包含一个无符号 $64$ 位整型计数器，由内核维护，初始化为 $initval$ 的值。$flags$ 值是以下值的或：&#xA;$flag$ 说明 $EFD_-CLOEXEC$ 设置该标志后，描述符将在 $execve$ 调用之后自动关闭 $EFD_-NONBLOCK$ 非阻塞模式 $EFD_-SEMAPHORE$ 为读提供类似于信号量的语义 对于Linux 2.6.26及以下的版本来说，$flags$ 参数没有作用且必须为 $0$ 。如果 $flags$ 参数非法，会返回 $EINVAL$ 错误。对于返回的描述符，可以进行以下操作：&#xA;$read$ ：调用成功会返回一个以主机字节序排列的 $64$ 位无符号整型；如果返回值小于 $64$ 位，则调用失败，返回 $EINVAL$ 错误。 如果没有指定 $EFD_-SEMAPHORE$ 并且 $eventfd$ 计数器值非零，$read$ 调用会返回计数器值，同时计数器值会被设置为 $0$ ； 如果指定了 $EFD_-SEMAPHORE$ 并且 $eventfd$ 计数器值非零，$read$ 调用会返回 $1$ ，同时计数器值会减一； 如果 $eventfd$ 计数器值为 $0$ ，$read$ 调用会阻塞直到计数器值非零。如果指定了 $EFD_-NONBLOCK$ ，$read$ 调用会返回 $EAGAIN$ 错误。 $write$ ：调用成功会为 $eventfd$ 计数器值加上一个 $64$ 位无符号整型的值的数量，最大为 $UINT_-MAX$ $-$ $1$ 。如果指定的值非 $64$ 位或者超过最大值，返回 $EINVAL$ 错误。 如果加上这个值会导致溢出，调用会阻塞直到该描述符被调用了一次 $read$ 。如果指定了 $EFD_-NONBLOCK$ ，$write$ 调用会返回 $EAGAIN$ 错误。 $poll$ / $select$ / $epoll$ ： 如果 $eventfd$ 计数器值大于 $0$ ，则描述符可读； 如果 $eventfd$ 计数器值至少可以加 $1$ ，则描述符可写； 如果 $eventfd$ 计数器值溢出，对于 $select$ ，该描述符状态会被设置为既可读也可写；对于 $poll$ ，返回 $POLLERR$ ；对于 $epoll$ ，返回 $EPOLLERR$ 。 $close$ ：递减该描述符的引用计数，当引用计数为零时，$eventfd$ 对象会被内核释放。 #include &amp;lt;sys/eventfd.</description>
     </item>
-    
     <item>
       <title>Unix网络编程补充：epoll</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85epoll/</link>
       <pubDate>Fri, 25 Feb 2022 19:23:34 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85epoll/</guid>
-      <description>$epoll$ 执行与 $select$ 和 $poll$ 类似的工作：监听多个描述符，当其中存在可用描述符时返回。$epoll$ 支持边缘触发和层级触发两种模式，并且在监听大量描述符的情况下有着很好的性能。
-$epoll$ 的核心是 $epoll$ 对象，这是一个内核数据结构，形式上，可以认为是两个集合：
-监听集合 ( 有时候被称为 $epoll$ 集合 )：描述符集合，进程注册的新的待监听的描述符会被存放在该集合中； 可用集合：描述符集合，是监听集合的子集，内核通过该集合返回可用的文件描述符。 1. epoll操作 #include &amp;lt;sys/epoll.h&amp;gt; /* 成功时返回0，出错返回-1 */ int epoll_create(int size); int epoll_create1(int flags); $epoll_-create$ 创建一个 $epoll$ 对象，返回该对象的描述符。从Linux 2.6.8开始，$size$ 参数不再有作用，会被忽略，但是必须大于 $0$ ，否则会设置 $EINVAL$ 错误。$epoll_-create1$ 与 $epoll_-create$ 类似，$flags$ 参数的值可以是 $EPOLL_-CLOEXEC$ ，当设置该标志时，该对象描述符会在执行 $execve$ 调用后自动关闭。
-#inlcude &amp;lt;sys/epoll.h&amp;gt; // 成功返回0，出错返回-1 int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event); typedef union epoll_data { void *ptr; int fd; uint32_t u32; uint64_t u64; } epoll_data_t; struct epoll_event { uint32_t events; epoll_data_t data; }; $epoll_-ctl$ 从 $epoll$ 描述符中添加、修改或删除事件，$fd$ 指定待监听的描述符。其中 $op$ 可以是：</description>
+      <description>$epoll$ 执行与 $select$ 和 $poll$ 类似的工作：监听多个描述符，当其中存在可用描述符时返回。$epoll$ 支持边缘触发和层级触发两种模式，并且在监听大量描述符的情况下有着很好的性能。&#xA;$epoll$ 的核心是 $epoll$ 对象，这是一个内核数据结构，形式上，可以认为是两个集合：&#xA;监听集合 ( 有时候被称为 $epoll$ 集合 )：描述符集合，进程注册的新的待监听的描述符会被存放在该集合中； 可用集合：描述符集合，是监听集合的子集，内核通过该集合返回可用的文件描述符。 1. epoll操作 #include &amp;lt;sys/epoll.h&amp;gt; /* 成功时返回0，出错返回-1 */ int epoll_create(int size); int epoll_create1(int flags); $epoll_-create$ 创建一个 $epoll$ 对象，返回该对象的描述符。从Linux 2.6.8开始，$size$ 参数不再有作用，会被忽略，但是必须大于 $0$ ，否则会设置 $EINVAL$ 错误。$epoll_-create1$ 与 $epoll_-create$ 类似，$flags$ 参数的值可以是 $EPOLL_-CLOEXEC$ ，当设置该标志时，该对象描述符会在执行 $execve$ 调用后自动关闭。&#xA;#inlcude &amp;lt;sys/epoll.h&amp;gt; // 成功返回0，出错返回-1 int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event); typedef union epoll_data { void *ptr; int fd; uint32_t u32; uint64_t u64; } epoll_data_t; struct epoll_event { uint32_t events; epoll_data_t data; }; $epoll_-ctl$ 从 $epoll$ 描述符中添加、修改或删除事件，$fd$ 指定待监听的描述符。其中 $op$ 可以是：</description>
     </item>
-    
     <item>
       <title>Unix网络编程（20）：共享内存</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B20/</link>
       <pubDate>Wed, 23 Feb 2022 13:45:30 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B20/</guid>
-      <description>共享内存是可用IPC形式中最快的。因为将内存区映射到进程的地址空间之后，进程间的数据传递就不用通过内核。
-1. 共享内存操作 #include &amp;lt;sys/mman.h&amp;gt; // 成功返回映射内存区的地址，出错返回MAP_FAILED void *mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset); $mmap$ 函数把一个文件或一个POSIX共享内存区对象映射到调用进程的地址空间。使用该函数有三个目的：
-对普通文件使用内存映射I/O； 对特殊文件进行匿名内存映射； 使用 $shm_-open$ 提供无亲缘关系的进程间的POSIX共享内存区。 $addr$ 可以指定描述符 $fd$ 应该被映射到的进程内存空间的地址，也可以指定为 $NULL$ ，从而让内核自己选择。$len$ 是映射到调用进程地址空间中的字节数，从被映射字节开头第 $offset$ 个字节开始，$offset$ 可以为 $0$ 。内存映射区的保护由 $prot$ 参数提供，可选值有：
-$prot$ 说明 $PROT_-READ$ 数据可读 $PROT_-WRITE$ 数据可写 $PROT_-EXEC$ 数据可执行 $PROT_-NONE$ 数据不可访问 $prot$ 参数的常见值为 $PROT_-READ$ | $PROT_-WRITE$ 。$flags$ 指定共享内存属性，可选值有：
-$flag$ 说明 $MAP_-SHARED$ 变动是共享的 $MAP_-PRIVATE$ 变动是私有的 $MAP_-FIXED$ 准确地解释 $addr$ 其中 $MAP_-SHARED$ 和 $MAP_-PRIVATE$ 必须选择其中一个。如果选择 $MAP_-SHARED$ ，那么调用进程对映射区内所做的修改对其他进程可见，并且也会修改底层对象；如果选择 $MAP_-PRIVATE$ ，那么调用进程对映射区所做的修改只有当前进程可见，而且不会修改底层对象；从移植性上考虑，不应该指定 $MAP_-FIXED$ ，如果没有指定该标志并且 $addr$ 非空，则具体行为取决于实现。可移植的代码应该把 $addr$ 设置为 $NULL$ 并不指定 $MAP_-FIXED$ 。</description>
+      <description>共享内存是可用IPC形式中最快的。因为将内存区映射到进程的地址空间之后，进程间的数据传递就不用通过内核。&#xA;1. 共享内存操作 #include &amp;lt;sys/mman.h&amp;gt; // 成功返回映射内存区的地址，出错返回MAP_FAILED void *mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset); $mmap$ 函数把一个文件或一个POSIX共享内存区对象映射到调用进程的地址空间。使用该函数有三个目的：&#xA;对普通文件使用内存映射I/O； 对特殊文件进行匿名内存映射； 使用 $shm_-open$ 提供无亲缘关系的进程间的POSIX共享内存区。 $addr$ 可以指定描述符 $fd$ 应该被映射到的进程内存空间的地址，也可以指定为 $NULL$ ，从而让内核自己选择。$len$ 是映射到调用进程地址空间中的字节数，从被映射字节开头第 $offset$ 个字节开始，$offset$ 可以为 $0$ 。内存映射区的保护由 $prot$ 参数提供，可选值有：&#xA;$prot$ 说明 $PROT_-READ$ 数据可读 $PROT_-WRITE$ 数据可写 $PROT_-EXEC$ 数据可执行 $PROT_-NONE$ 数据不可访问 $prot$ 参数的常见值为 $PROT_-READ$ | $PROT_-WRITE$ 。$flags$ 指定共享内存属性，可选值有：&#xA;$flag$ 说明 $MAP_-SHARED$ 变动是共享的 $MAP_-PRIVATE$ 变动是私有的 $MAP_-FIXED$ 准确地解释 $addr$ 其中 $MAP_-SHARED$ 和 $MAP_-PRIVATE$ 必须选择其中一个。如果选择 $MAP_-SHARED$ ，那么调用进程对映射区内所做的修改对其他进程可见，并且也会修改底层对象；如果选择 $MAP_-PRIVATE$ ，那么调用进程对映射区所做的修改只有当前进程可见，而且不会修改底层对象；从移植性上考虑，不应该指定 $MAP_-FIXED$ ，如果没有指定该标志并且 $addr$ 非空，则具体行为取决于实现。可移植的代码应该把 $addr$ 设置为 $NULL$ 并不指定 $MAP_-FIXED$ 。</description>
     </item>
-    
     <item>
       <title>Unix网络编程（19）：信号量</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B19/</link>
       <pubDate>Mon, 21 Feb 2022 16:43:12 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B19/</guid>
-      <description>信号量 ( $semaphore$ ) 是一种用于不同进程间或一个进程内的不同线程间同步的原语。POSIX信号量不必在内核中维护，可能使用文件系统中的某个文件来标识。
-1. 有名信号量操作 #include &amp;lt;semaphore.h&amp;gt; // 成功返回信号量指针，出错返回SEM_FAILED sem_t *sem_open(const char *name, int oflag, ... /* mode_t mode, unsigned int value */ ); $sem_-open$ 创建一个有名信号量或者打开一个有名信号量。有名信号量既可以用于线程间同步，又可以用于进程间同步。$oflag$ 参数可以是 $0$ 、$O_-CREAT$ 或 $O_-CREAT$ | $O_-EXCL$ 。如果指定了 $O_-CREAT$ ，那么也要指定权限位 $mode$ 和信号量初始值 $value$ 。信号量初始值不能超过 $SEM_-VALUE_-MAX$ ( 这个常值至少为 $32767$ )。
-#include &amp;lt;semaphore.h&amp;gt; /* 成功返回0，出错返回-1 */ int sem_close(sem_t *sem); int sem_unlink(sem_t *sem); 当进程终止时，内核会对仍然打开着的有名信号量执行关闭操作。关闭一个信号量只是减少其引用计数，并不会删除。如果想要删除一个信号量，需要调用 $sem_-unlink$ 函数。类似于 $unlink$ ，如果在调用 $sem_-unlink$ 时该信号量引用计数不为 $0$ ，依然会进行删除，但是析构会等到引用计数为 $0$ 时才会发生。</description>
+      <description>信号量 ( $semaphore$ ) 是一种用于不同进程间或一个进程内的不同线程间同步的原语。POSIX信号量不必在内核中维护，可能使用文件系统中的某个文件来标识。&#xA;1. 有名信号量操作 #include &amp;lt;semaphore.h&amp;gt; // 成功返回信号量指针，出错返回SEM_FAILED sem_t *sem_open(const char *name, int oflag, ... /* mode_t mode, unsigned int value */ ); $sem_-open$ 创建一个有名信号量或者打开一个有名信号量。有名信号量既可以用于线程间同步，又可以用于进程间同步。$oflag$ 参数可以是 $0$ 、$O_-CREAT$ 或 $O_-CREAT$ | $O_-EXCL$ 。如果指定了 $O_-CREAT$ ，那么也要指定权限位 $mode$ 和信号量初始值 $value$ 。信号量初始值不能超过 $SEM_-VALUE_-MAX$ ( 这个常值至少为 $32767$ )。&#xA;#include &amp;lt;semaphore.h&amp;gt; /* 成功返回0，出错返回-1 */ int sem_close(sem_t *sem); int sem_unlink(sem_t *sem); 当进程终止时，内核会对仍然打开着的有名信号量执行关闭操作。关闭一个信号量只是减少其引用计数，并不会删除。如果想要删除一个信号量，需要调用 $sem_-unlink$ 函数。类似于 $unlink$ ，如果在调用 $sem_-unlink$ 时该信号量引用计数不为 $0$ ，依然会进行删除，但是析构会等到引用计数为 $0$ 时才会发生。</description>
     </item>
-    
     <item>
       <title>Unix网络编程（18）：锁</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B18/</link>
       <pubDate>Mon, 21 Feb 2022 14:36:08 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B18/</guid>
-      <description>1. 互斥锁上锁和解锁 #include &amp;lt;pthread.h&amp;gt; /* 成功返回0，出错返回非负错误码 */ int pthread_mutex_lock(pthread_mutex_t *mptr); int pthread_mutex_trylock(pthread_mutex_t *mptr); int pthread_mutex_unlock(pthread_mutex_t *mptr); POSIX互斥锁被声明为 $pthread_-mutex_-t$ 类型的变量。如果是静态分配的，需要初始化为常值 $PTHREAD_-MUTEX_-INITIALIZER$ ；如果是动态分配的，或者分配在共享内存区中，需要通过 $pthread_-mutex_-init$ 函数初始化。$pthread_-mutex_-lock$ 是阻塞版本的上锁，会一直阻塞直到该互斥锁解锁；$pthread_-mutex_-trylock$ 是非阻塞版本的上锁，如果该互斥锁已经上锁，会返回 $EBUSY$ 错误。
-2. 生产者消费者问题 生产者-消费者 ( $producer-consumer$ ) 问题，也称为有界缓冲区 ( $bounded$ $buffer$ ) 问题。一个或多个生产者创建一个个数据条目，这些条目由一个或多个消费者处理。数据条目在生产者和消费者之间使用某种方式的IPC传递。对于使用管道或消息队列进行通信的生产者和消费者，内核会进行隐式同步。然而对于使用共享内存区进行通信的生产者和消费者，需要进行显式同步。我们使用互斥锁进行显式同步。
-#include &amp;#34;unpipc.h&amp;#34; #define MAXNITEMS 1000000 #define MAXNTHREADS 100 int nitems; // read-only by producer and consumer struct { pthread_mutex_t mutex; int buff[MAXNITEMS]; int nput; int nval; } shared = { PTHREAD_MUTEX_INITIALIZER }; void *produce(void *); void *consume(void *); int main(int argc, char **argv) { int i, nthreads, count[MAXNTHREADS]; pthread_t tid_produce[MAXNTHREADS], tid_consume; if (argc !</description>
+      <description>1. 互斥锁上锁和解锁 #include &amp;lt;pthread.h&amp;gt; /* 成功返回0，出错返回非负错误码 */ int pthread_mutex_lock(pthread_mutex_t *mptr); int pthread_mutex_trylock(pthread_mutex_t *mptr); int pthread_mutex_unlock(pthread_mutex_t *mptr); POSIX互斥锁被声明为 $pthread_-mutex_-t$ 类型的变量。如果是静态分配的，需要初始化为常值 $PTHREAD_-MUTEX_-INITIALIZER$ ；如果是动态分配的，或者分配在共享内存区中，需要通过 $pthread_-mutex_-init$ 函数初始化。$pthread_-mutex_-lock$ 是阻塞版本的上锁，会一直阻塞直到该互斥锁解锁；$pthread_-mutex_-trylock$ 是非阻塞版本的上锁，如果该互斥锁已经上锁，会返回 $EBUSY$ 错误。&#xA;2. 生产者消费者问题 生产者-消费者 ( $producer-consumer$ ) 问题，也称为有界缓冲区 ( $bounded$ $buffer$ ) 问题。一个或多个生产者创建一个个数据条目，这些条目由一个或多个消费者处理。数据条目在生产者和消费者之间使用某种方式的IPC传递。对于使用管道或消息队列进行通信的生产者和消费者，内核会进行隐式同步。然而对于使用共享内存区进行通信的生产者和消费者，需要进行显式同步。我们使用互斥锁进行显式同步。&#xA;#include &amp;#34;unpipc.h&amp;#34; #define MAXNITEMS 1000000 #define MAXNTHREADS 100 int nitems; // read-only by producer and consumer struct { pthread_mutex_t mutex; int buff[MAXNITEMS]; int nput; int nval; } shared = { PTHREAD_MUTEX_INITIALIZER }; void *produce(void *); void *consume(void *); int main(int argc, char **argv) { int i, nthreads, count[MAXNTHREADS]; pthread_t tid_produce[MAXNTHREADS], tid_consume; if (argc !</description>
     </item>
-    
     <item>
       <title>Unix网络编程（17）：消息队列</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B17/</link>
       <pubDate>Sun, 20 Feb 2022 14:01:51 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B17/</guid>
-      <description>消息队列可认为是一个消息链表，有足够写权限的线程可往队列中放置消息，有足够读权限的线程可从队列中取走消息。每个消息都是一个记录，它由发送者赋予一个优先级。与管道和FIFO不同，在某个进程往一个队列写入消息前，并不需要另外某个进程在该队列上等待消息到达。
-1. mq_open、mq_close和mq_unlink函数 #include &amp;lt;mqueue.h&amp;gt; // 成功返回消息队列描述符，出错返回-1 mqd_t mq_open(const char *name, int oflag, ... /* mode_t mode, struct aq_attr *attr */ ); // 成功返回0，出错返回-1 int mq_close(mqd_t mqdes); // 成功返回0，出错返回-1 int mq_unlink(const char *name); $oflag$ 参数是 $O_-RDONLY$ 、$O_-WRONLY$ 或 $O_-RDWR$ 之一，并且可以按位或 $O_-CREAT$ 、$O_-EXCL$ 或 $O_-NONBLOCK$ 。当实际操作是创建一个新队列时 ( 指定 $O_-CREAT$ 且请求的消息队列不存在 )，需要 $mode$ 和 $attr$ 参数。$mq_-close$ 调用类似于 $close$ 调用，调用之后消息队列不会从系统中删除。当一个进程终止时，它的所有打开着的消息队列会被关闭。如果要从系统中删除一个消息队列，则需要调用 $mq_-unlink$ ，类似于 $unlink$ ，当一个消息队列的打开计数大于 $0$ 时，不会立即删除，而是直到该消息队列真正被关闭时才会删除。POSIX消息队列至少具备随内核的持续性，这意味着即使当前没有进程打开着消息队列，其中的消息也将一直存在，直到被删除。
-#include &amp;#34;unpipc.h&amp;#34; int main(int argc, char **argv) { int c, flags; mqd_t mqd; flags = O_RDWR | O_CREAT; while ((c = Getopt(argc, argv, &amp;#34;e&amp;#34;)) !</description>
+      <description>消息队列可认为是一个消息链表，有足够写权限的线程可往队列中放置消息，有足够读权限的线程可从队列中取走消息。每个消息都是一个记录，它由发送者赋予一个优先级。与管道和FIFO不同，在某个进程往一个队列写入消息前，并不需要另外某个进程在该队列上等待消息到达。&#xA;1. mq_open、mq_close和mq_unlink函数 #include &amp;lt;mqueue.h&amp;gt; // 成功返回消息队列描述符，出错返回-1 mqd_t mq_open(const char *name, int oflag, ... /* mode_t mode, struct aq_attr *attr */ ); // 成功返回0，出错返回-1 int mq_close(mqd_t mqdes); // 成功返回0，出错返回-1 int mq_unlink(const char *name); $oflag$ 参数是 $O_-RDONLY$ 、$O_-WRONLY$ 或 $O_-RDWR$ 之一，并且可以按位或 $O_-CREAT$ 、$O_-EXCL$ 或 $O_-NONBLOCK$ 。当实际操作是创建一个新队列时 ( 指定 $O_-CREAT$ 且请求的消息队列不存在 )，需要 $mode$ 和 $attr$ 参数。$mq_-close$ 调用类似于 $close$ 调用，调用之后消息队列不会从系统中删除。当一个进程终止时，它的所有打开着的消息队列会被关闭。如果要从系统中删除一个消息队列，则需要调用 $mq_-unlink$ ，类似于 $unlink$ ，当一个消息队列的打开计数大于 $0$ 时，不会立即删除，而是直到该消息队列真正被关闭时才会删除。POSIX消息队列至少具备随内核的持续性，这意味着即使当前没有进程打开着消息队列，其中的消息也将一直存在，直到被删除。&#xA;#include &amp;#34;unpipc.h&amp;#34; int main(int argc, char **argv) { int c, flags; mqd_t mqd; flags = O_RDWR | O_CREAT; while ((c = Getopt(argc, argv, &amp;#34;e&amp;#34;)) !</description>
     </item>
-    
     <item>
       <title>Unix网络编程（16）：管道和FIFO</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B16/</link>
       <pubDate>Sat, 19 Feb 2022 14:31:35 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B16/</guid>
-      <description>1. 管道 #include &amp;lt;unistd.h&amp;gt; // 成功返回0，出错返回-1 int pipe(int fd[2]); 该函数返回两个文件描述符 $fd[0]$ 和 $fd[1]$ ，前者用于读，后者用于写。宏 $S_-IFFIFO$ 可用于确定一个描述符是文件、管道还是FIFO，它的唯一参数是 $stat$ 结构的 $st_-mode$ 成员，计算结果或为真 ( 非零值 )，或为假 ( $0$ )。对于管道来说，这个 $stat$ 结构是由 $fstat$ 函数填写的；对于FIFO来说，这个结构是由 $fstat$ 、$lstat$ 或 $stat$ 函数填写的。
-管道的典型用途是为两个不同的进程 ( 父进程和子进程 ) 提供进程间通信。首先，由一个进程 ( 父进程 ) 创建一个管道，然后调用 $fork$ 派生一个副本 ( 子进程 )。接着，父进程关闭这个管道的读端 ( $fd[0]$ )，子进程关闭管道的写端 ( $fd[1]$ )，这样就在父子进程间建立了一个单向数据流。我们在Unix shell中输入如下命令时：
-who | sort 将会创建一个管道，$who$ 进程通过输出端将数据发送给 $sort$ 进程，$sort$ 进程通过读入端读入 $who$ 进程发送的数据。
-管道是单向的，如果需要双向传输数据，我们必须创建两个管道，每个方向一个：
-创建管道 $fd1$ 和管道 $fd2$ ，并 $fork$ 一个子进程； 父进程关闭 $fd1[0]$ 和 $fd2[1]$ ； 子进程关闭 $fd1[1]$ 和 $fd2[0]$ 。 #include &amp;#34;unpipc.</description>
+      <description>1. 管道 #include &amp;lt;unistd.h&amp;gt; // 成功返回0，出错返回-1 int pipe(int fd[2]); 该函数返回两个文件描述符 $fd[0]$ 和 $fd[1]$ ，前者用于读，后者用于写。宏 $S_-IFFIFO$ 可用于确定一个描述符是文件、管道还是FIFO，它的唯一参数是 $stat$ 结构的 $st_-mode$ 成员，计算结果或为真 ( 非零值 )，或为假 ( $0$ )。对于管道来说，这个 $stat$ 结构是由 $fstat$ 函数填写的；对于FIFO来说，这个结构是由 $fstat$ 、$lstat$ 或 $stat$ 函数填写的。&#xA;管道的典型用途是为两个不同的进程 ( 父进程和子进程 ) 提供进程间通信。首先，由一个进程 ( 父进程 ) 创建一个管道，然后调用 $fork$ 派生一个副本 ( 子进程 )。接着，父进程关闭这个管道的读端 ( $fd[0]$ )，子进程关闭管道的写端 ( $fd[1]$ )，这样就在父子进程间建立了一个单向数据流。我们在Unix shell中输入如下命令时：&#xA;who | sort 将会创建一个管道，$who$ 进程通过输出端将数据发送给 $sort$ 进程，$sort$ 进程通过读入端读入 $who$ 进程发送的数据。&#xA;管道是单向的，如果需要双向传输数据，我们必须创建两个管道，每个方向一个：&#xA;创建管道 $fd1$ 和管道 $fd2$ ，并 $fork$ 一个子进程； 父进程关闭 $fd1[0]$ 和 $fd2[1]$ ； 子进程关闭 $fd1[1]$ 和 $fd2[0]$ 。 #include &amp;#34;unpipc.</description>
     </item>
-    
     <item>
       <title>Unix网络编程补充：套接字选项</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85%E5%A5%97%E6%8E%A5%E5%AD%97%E9%80%89%E9%A1%B9/</link>
       <pubDate>Fri, 18 Feb 2022 18:28:56 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E8%A1%A5%E5%85%85%E5%A5%97%E6%8E%A5%E5%AD%97%E9%80%89%E9%A1%B9/</guid>
-      <description>1. getsockopt和setsockop函数 #include &amp;lt;sys/socket.h&amp;gt; // 成功返回0，出错返回-1 int getsockopt(int sockfd, int level, int optname, void *optval, socklen_t *optlen); // 成功返回0，出错返回-1 int setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen); 这两个函数仅适用于套接字。$sockfd$ 指向一个打开的套接字描述符，$level$ 指定系统中解释选项的代码或为通用套接字代码，或为某个特定于协议的代码。$optval$ 是一个指向某个变量的指针，$setsockopt$ 从 $optval$ 中获取设置，$getoptval$ 向 $optval$ 中写入设置。$optval$ 的大小由 $optlen$ 指定。套接字选项粗分为两大基本类型：一是启用或禁用某个特性的二元选项 ( 标志选项 )，二是取得并返回我们可以设置或检查的特定值的选项 ( 值选项 )。对于标志选项，$optval$ 是一个整数，$1$ 标识启用，$0$ 表示禁用。
-$level$ $optname$ $get$ $set$ 说明 标志选项 数据类型 $SOL_-SOCKET$ $SO_-BROADCAST$ $\checkmark$ $\checkmark$ 允许发送广播数据报 $\checkmark$ $int$ $SO_-DEBUG$ $\checkmark$ $\checkmark$ 开启调试跟踪 $\checkmark$ $int$ $SO_-DONTROUTE$ $\checkmark$ $\checkmark$ 绕过外出路由表查询 $\checkmark$ $int$ $SO_-ERROR$ $\checkmark$ 获取待处理错误并清除 $int$ $SO_-KEEPALIVE$ $\checkmark$ $\checkmark$ 周期性测试连接是否仍存活 $\checkmark$ $int$ $SO_-LINGER$ $\checkmark$ $\checkmark$ 若有数据待发送则延迟关闭 $linger\{\}$ $SO_-OOBINLINE$ $\checkmark$ $\checkmark$ 让接收到的带外数据在线存留 $\checkmark$ $int$ $SO_-RCVBUF$ $\checkmark$ $\checkmark$ 接收缓冲区大小 $int$ $SO_-SNDBUF$ $\checkmark$ $\checkmark$ 发送缓冲区大小 $int$ $SO_-RCVLOWAT$ $\checkmark$ $\checkmark$ 接收缓冲区低水位标记 $int$ $SO_-SNDLOWAT$ $\checkmark$ $\checkmark$ 发送缓冲区低水位标记 $int$ $SO_-RCVTIMEO$ $\checkmark$ $\checkmark$ 接收超时 $timeval\{\}$ $SO_-SNDTIMEO$ $\checkmark$ $\checkmark$ 发送超时 $timeval\{\}$ $SO_-REUSEADDR$ $\checkmark$ $\checkmark$ 允许重用本地地址 $\checkmark$ $int$ $SO_-REUSEPORT$ $\checkmark$ $\checkmark$ 允许重用本地端口 $\checkmark$ $int$ $SO_-TYPE$ $\checkmark$ 取得套接字类型 $int$ $SO_-USELOOPBACK$ $\checkmark$ $\checkmark$ 路由套接字取得所发送数据的副本 $\checkmark$ $int$ $IPPROTO_-IP$ $IP_-HDRINCL$ $\checkmark$ $\checkmark$ 随数据包含的IP首部 $\checkmark$ $int$ $IP_-OPTIONS$ $\checkmark$ $\checkmark$ IP首部选项 见后续 $IP_-RECVDSTADDR$ $\checkmark$ $\checkmark$ 返回目的IP地址 $\checkmark$ $int$ $IP_-RCVIF$ $\checkmark$ $\checkmark$ 返回接收接口索引 $\checkmark$ $int$ $IP_-TOS$ $\checkmark$ $\checkmark$ 服务类型和优先权 $int$ $IP_-TTL$ $\checkmark$ $\checkmark$ 存活时间 $int$ $IP_-MULTICAST_-IF$ $\checkmark$ $\checkmark$ 指定外出接口 $in_-addr\{\}$ $IP_-MULTICAST_-TTL$ $\checkmark$ $\checkmark$ 指定外出 $TTL$ $u_-char$ $IP_-MULTICAST_-LOOP$ $\checkmark$ $\checkmark$ 指定是否环回 $u_-char$ $IP_-ADD_-MEMBERSHIP$ $\checkmark$ 加入多播组 $ip_-mreq\{\}$ $IP_-DROP_-MEMBERSHIP$ $\checkmark$ 离开多播组 $ip_-mreq\{\}$ $IP_-BLOCK_-SOURCE$ $\checkmark$ 阻塞多播源 $ip_-mreq_-source\{\}$ $IP_-UNBLOCK_-SOURCE$ $\checkmark$ 开通多播源 $ip_-mreq_-source\{\}$ $IP_-ADD_-SOURCE_-MEMBERSHIP$ $\checkmark$ 加入源特定多播组 $ip_-mreq_-source\{\}$ $IP_-DROP_-SOURCE_-MEMBERSHIP$ $\checkmark$ 离开源特定多播组 $ip_-mreq_-source\{\}$ $IPPROTO_-ICMPV6$ $ICMP6_-FILTER$ $\checkmark$ $\checkmark$ 指定待传递的ICMPv6消息类型 $icmp6_-filter\{\}$ $IPPROTO_-IPV6$ $IPV6_-CHECKSUM$ $\checkmark$ $\checkmark$ 用于原始套接字的校验和字段偏移 $int$ $IPV6_-CHECKSUM$ $\checkmark$ $\checkmark$ 用于原始套接字的校验和字段偏移 $int$ $IPV6_-DONTFRAG$ $\checkmark$ $\checkmark$ 丢弃大的分组而将其分片 $\checkmark$ $int$ $IPV6_-NEXTHOP$ $\checkmark$ $\checkmark$ 指定下一跳地址 $sockaddr_-in6\{\}$ $IPV6_-PATHMTU$ $\checkmark$ 获取当前路径 $MTU$ $ip6_-mtuinfo\{\}$ $IPV6_-RECVDSTOPTS$ $\checkmark$ $\checkmark$ 接收目的地选项 $\checkmark$ $int$ $IPV6_-RECVHOPLIMIT$ $\checkmark$ $\checkmark$ 接收单播跳限 $\checkmark$ $int$ $IPV6_-RECVHOPOPTS$ $\checkmark$ $\checkmark$ 接收步跳选项 $\checkmark$ $int$ $IPV6_-RECVPATHMTU$ $\checkmark$ $\checkmark$ 接收路径 $MTU$ $\checkmark$ $int$ $IPV6_-RECVPKTINFO$ $\checkmark$ $\checkmark$ 接收分组信息 $\checkmark$ $int$ $IPV6_-RECVRTHDR$ $\checkmark$ $\checkmark$ 接收源路径 $\checkmark$ $int$ $IPV6_-RECVTCLASS$ $\checkmark$ $\checkmark$ 接收流通类型 $\checkmark$ $int$ $IPV6_-UNICAST_-HOPS$ $\checkmark$ $\checkmark$ 默认单播跳限 $int$ $IPV6_-USE_-MIN_-MTU$ $\checkmark$ $\checkmark$ 使用最小 $MTU$ $\checkmark$ $int$ $IPV6_-V6ONLY$ $\checkmark$ $\checkmark$ 禁止v4兼容 $\checkmark$ $int$ $IPV6_-XXX$ $\checkmark$ $\checkmark$ 黏附性辅助数据 见后续 $IPV6_-MULTICAST_-IF$ $\checkmark$ $\checkmark$ 指定外出接口 $u_-int$ $IPV6_-MULTICAST_-HOPS$ $\checkmark$ $\checkmark$ 指定外出跳限 $int$ $IPV6_-MULTICAST_-LOOP$ $\checkmark$ $\checkmark$ 指定是否环回 $\checkmark$ $u_-int$ $IPV6_-JOIN_-GROUP$ $\checkmark$ 加入多播组 $ipv6_-mreq\{\}$ $IPV6_-LEAVE_-GROUP$ $\checkmark$ 离开多播组 $ipv6_-mreq\{\}$ $IPPROTO_-IP$ 或 $IPPROTO_-IPV6$ $MCAST_-JOIN_-GROUP$ $\checkmark$ 加入多播组 $group_-req\{\}$ $MCAST_-LEAVE_-GROUP$ $\checkmark$ 离开多播组 $group_-source_-req\{\}$ $MCAST_-BLOCK_-SOURCE$ $\checkmark$ 阻塞多播源 $group_-source_-req\{\}$ $MCAST_-UNBLOCK_-SOURCE$ $\checkmark$ 开通多播源 $group_-source_-req\{\}$ $MCAST_-JOIN_-SOURCE_-GROUP$ $\checkmark$ 加入源特定多播组 $group_-source_-req\{\}$ $MCAST_-LEAVE_-SOURCE_-GROUP$ $\checkmark$ 离开源特定多播组 $group_-source_-req\{\}$ $IPPROTO_-TCP$ $TCP_-MAXSEG$ $\checkmark$ $\checkmark$ TCP最大分节大小 $int$ $TCP_-NODELAY$ $\checkmark$ $\checkmark$ 禁止 $Nagle$ 算法 $\checkmark$ $int$ 2.</description>
+      <description>1. getsockopt和setsockop函数 #include &amp;lt;sys/socket.h&amp;gt; // 成功返回0，出错返回-1 int getsockopt(int sockfd, int level, int optname, void *optval, socklen_t *optlen); // 成功返回0，出错返回-1 int setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen); 这两个函数仅适用于套接字。$sockfd$ 指向一个打开的套接字描述符，$level$ 指定系统中解释选项的代码或为通用套接字代码，或为某个特定于协议的代码。$optval$ 是一个指向某个变量的指针，$setsockopt$ 从 $optval$ 中获取设置，$getoptval$ 向 $optval$ 中写入设置。$optval$ 的大小由 $optlen$ 指定。套接字选项粗分为两大基本类型：一是启用或禁用某个特性的二元选项 ( 标志选项 )，二是取得并返回我们可以设置或检查的特定值的选项 ( 值选项 )。对于标志选项，$optval$ 是一个整数，$1$ 标识启用，$0$ 表示禁用。&#xA;$level$ $optname$ $get$ $set$ 说明 标志选项 数据类型 $SOL_-SOCKET$ $SO_-BROADCAST$ $\checkmark$ $\checkmark$ 允许发送广播数据报 $\checkmark$ $int$ $SO_-DEBUG$ $\checkmark$ $\checkmark$ 开启调试跟踪 $\checkmark$ $int$ $SO_-DONTROUTE$ $\checkmark$ $\checkmark$ 绕过外出路由表查询 $\checkmark$ $int$ $SO_-ERROR$ $\checkmark$ 获取待处理错误并清除 $int$ $SO_-KEEPALIVE$ $\checkmark$ $\checkmark$ 周期性测试连接是否仍存活 $\checkmark$ $int$ $SO_-LINGER$ $\checkmark$ $\checkmark$ 若有数据待发送则延迟关闭 $linger\{\}$ $SO_-OOBINLINE$ $\checkmark$ $\checkmark$ 让接收到的带外数据在线存留 $\checkmark$ $int$ $SO_-RCVBUF$ $\checkmark$ $\checkmark$ 接收缓冲区大小 $int$ $SO_-SNDBUF$ $\checkmark$ $\checkmark$ 发送缓冲区大小 $int$ $SO_-RCVLOWAT$ $\checkmark$ $\checkmark$ 接收缓冲区低水位标记 $int$ $SO_-SNDLOWAT$ $\checkmark$ $\checkmark$ 发送缓冲区低水位标记 $int$ $SO_-RCVTIMEO$ $\checkmark$ $\checkmark$ 接收超时 $timeval\{\}$ $SO_-SNDTIMEO$ $\checkmark$ $\checkmark$ 发送超时 $timeval\{\}$ $SO_-REUSEADDR$ $\checkmark$ $\checkmark$ 允许重用本地地址 $\checkmark$ $int$ $SO_-REUSEPORT$ $\checkmark$ $\checkmark$ 允许重用本地端口 $\checkmark$ $int$ $SO_-TYPE$ $\checkmark$ 取得套接字类型 $int$ $SO_-USELOOPBACK$ $\checkmark$ $\checkmark$ 路由套接字取得所发送数据的副本 $\checkmark$ $int$ $IPPROTO_-IP$ $IP_-HDRINCL$ $\checkmark$ $\checkmark$ 随数据包含的IP首部 $\checkmark$ $int$ $IP_-OPTIONS$ $\checkmark$ $\checkmark$ IP首部选项 见后续 $IP_-RECVDSTADDR$ $\checkmark$ $\checkmark$ 返回目的IP地址 $\checkmark$ $int$ $IP_-RCVIF$ $\checkmark$ $\checkmark$ 返回接收接口索引 $\checkmark$ $int$ $IP_-TOS$ $\checkmark$ $\checkmark$ 服务类型和优先权 $int$ $IP_-TTL$ $\checkmark$ $\checkmark$ 存活时间 $int$ $IP_-MULTICAST_-IF$ $\checkmark$ $\checkmark$ 指定外出接口 $in_-addr\{\}$ $IP_-MULTICAST_-TTL$ $\checkmark$ $\checkmark$ 指定外出 $TTL$ $u_-char$ $IP_-MULTICAST_-LOOP$ $\checkmark$ $\checkmark$ 指定是否环回 $u_-char$ $IP_-ADD_-MEMBERSHIP$ $\checkmark$ 加入多播组 $ip_-mreq\{\}$ $IP_-DROP_-MEMBERSHIP$ $\checkmark$ 离开多播组 $ip_-mreq\{\}$ $IP_-BLOCK_-SOURCE$ $\checkmark$ 阻塞多播源 $ip_-mreq_-source\{\}$ $IP_-UNBLOCK_-SOURCE$ $\checkmark$ 开通多播源 $ip_-mreq_-source\{\}$ $IP_-ADD_-SOURCE_-MEMBERSHIP$ $\checkmark$ 加入源特定多播组 $ip_-mreq_-source\{\}$ $IP_-DROP_-SOURCE_-MEMBERSHIP$ $\checkmark$ 离开源特定多播组 $ip_-mreq_-source\{\}$ $IPPROTO_-ICMPV6$ $ICMP6_-FILTER$ $\checkmark$ $\checkmark$ 指定待传递的ICMPv6消息类型 $icmp6_-filter\{\}$ $IPPROTO_-IPV6$ $IPV6_-CHECKSUM$ $\checkmark$ $\checkmark$ 用于原始套接字的校验和字段偏移 $int$ $IPV6_-CHECKSUM$ $\checkmark$ $\checkmark$ 用于原始套接字的校验和字段偏移 $int$ $IPV6_-DONTFRAG$ $\checkmark$ $\checkmark$ 丢弃大的分组而将其分片 $\checkmark$ $int$ $IPV6_-NEXTHOP$ $\checkmark$ $\checkmark$ 指定下一跳地址 $sockaddr_-in6\{\}$ $IPV6_-PATHMTU$ $\checkmark$ 获取当前路径 $MTU$ $ip6_-mtuinfo\{\}$ $IPV6_-RECVDSTOPTS$ $\checkmark$ $\checkmark$ 接收目的地选项 $\checkmark$ $int$ $IPV6_-RECVHOPLIMIT$ $\checkmark$ $\checkmark$ 接收单播跳限 $\checkmark$ $int$ $IPV6_-RECVHOPOPTS$ $\checkmark$ $\checkmark$ 接收步跳选项 $\checkmark$ $int$ $IPV6_-RECVPATHMTU$ $\checkmark$ $\checkmark$ 接收路径 $MTU$ $\checkmark$ $int$ $IPV6_-RECVPKTINFO$ $\checkmark$ $\checkmark$ 接收分组信息 $\checkmark$ $int$ $IPV6_-RECVRTHDR$ $\checkmark$ $\checkmark$ 接收源路径 $\checkmark$ $int$ $IPV6_-RECVTCLASS$ $\checkmark$ $\checkmark$ 接收流通类型 $\checkmark$ $int$ $IPV6_-UNICAST_-HOPS$ $\checkmark$ $\checkmark$ 默认单播跳限 $int$ $IPV6_-USE_-MIN_-MTU$ $\checkmark$ $\checkmark$ 使用最小 $MTU$ $\checkmark$ $int$ $IPV6_-V6ONLY$ $\checkmark$ $\checkmark$ 禁止v4兼容 $\checkmark$ $int$ $IPV6_-XXX$ $\checkmark$ $\checkmark$ 黏附性辅助数据 见后续 $IPV6_-MULTICAST_-IF$ $\checkmark$ $\checkmark$ 指定外出接口 $u_-int$ $IPV6_-MULTICAST_-HOPS$ $\checkmark$ $\checkmark$ 指定外出跳限 $int$ $IPV6_-MULTICAST_-LOOP$ $\checkmark$ $\checkmark$ 指定是否环回 $\checkmark$ $u_-int$ $IPV6_-JOIN_-GROUP$ $\checkmark$ 加入多播组 $ipv6_-mreq\{\}$ $IPV6_-LEAVE_-GROUP$ $\checkmark$ 离开多播组 $ipv6_-mreq\{\}$ $IPPROTO_-IP$ 或 $IPPROTO_-IPV6$ $MCAST_-JOIN_-GROUP$ $\checkmark$ 加入多播组 $group_-req\{\}$ $MCAST_-LEAVE_-GROUP$ $\checkmark$ 离开多播组 $group_-source_-req\{\}$ $MCAST_-BLOCK_-SOURCE$ $\checkmark$ 阻塞多播源 $group_-source_-req\{\}$ $MCAST_-UNBLOCK_-SOURCE$ $\checkmark$ 开通多播源 $group_-source_-req\{\}$ $MCAST_-JOIN_-SOURCE_-GROUP$ $\checkmark$ 加入源特定多播组 $group_-source_-req\{\}$ $MCAST_-LEAVE_-SOURCE_-GROUP$ $\checkmark$ 离开源特定多播组 $group_-source_-req\{\}$ $IPPROTO_-TCP$ $TCP_-MAXSEG$ $\checkmark$ $\checkmark$ TCP最大分节大小 $int$ $TCP_-NODELAY$ $\checkmark$ $\checkmark$ 禁止 $Nagle$ 算法 $\checkmark$ $int$ 2.</description>
     </item>
-    
     <item>
       <title>Unix网络编程（15）：程序设计范式</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B15/</link>
       <pubDate>Fri, 18 Feb 2022 14:37:07 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B15/</guid>
-      <description>开发一个Unix服务器程序时，我们有如下类型的进程控制可选：
-迭代服务器 ( $iterative$ $server$ ) 程序，在一个主循环内处理所有客户服务。这种类型的适用情形极为有限，因为这样的服务器在完成当前客户的服务之前无法处理后续等待的客户； 并发服务器 ( $concurrent$ $server$ ) 程序，它为每个客户调用 $fork$ 派生一个子进程。传统上大多数Unix服务器程序属于这种类型； 通过 $select$ 处理任意多个客户的服务器； 预先派生子进程 ( $preforking$ ) 程序，它让服务器在启动阶段调用 $fork$ 创建一个子进程池，每个客户请求由当前可用子进程池中的某个闲置子进程处理； 预先创建线程 ( $prethreading$ ) 程序，它让服务器在启动阶段创建一个线程池，每个客户由当前可用线程池中的某个闲置线程处理。 TCP客户程序则有以下范式：
-以停-等方式运作的客户程序，进程在被阻塞以等待用户输入期间，看不到诸如对端关闭连接等网络事件，而且批处理效率极低； 调用 $select$ 监听的客户程序，可以得到网络事件通知； 非阻塞式I/O客户程序； 多进程客户程序； 多线程客户程序。 1. TCP预先派生子进程服务器程序，accept无上锁保护 这种技术的优点在于无须引入父进程执行 $fork$ 的开销就能处理新客户，缺点是父进程必须在服务器启动阶段配置预先派生子进程数量。可选的改进方案是增加一些代码，让父进程监听可用子进程数，一旦降低到某个阈值就派生额外的子进程；同样的，一旦可用子进程数增加到某个阈值就终止一些过剩的子进程。
-#include &amp;#34;unp.h&amp;#34; #define MAXN 16384 // max # bytes client can request static int nchildren; static pid_t *pids; int main(int argc, char **argv) { int listenfd, i; socklen_t addrlen; void sig_int(int); pid_t child_make(int, int, int); if (argc == 3) listenfd = Tcp_listen(NULL.</description>
+      <description>开发一个Unix服务器程序时，我们有如下类型的进程控制可选：&#xA;迭代服务器 ( $iterative$ $server$ ) 程序，在一个主循环内处理所有客户服务。这种类型的适用情形极为有限，因为这样的服务器在完成当前客户的服务之前无法处理后续等待的客户； 并发服务器 ( $concurrent$ $server$ ) 程序，它为每个客户调用 $fork$ 派生一个子进程。传统上大多数Unix服务器程序属于这种类型； 通过 $select$ 处理任意多个客户的服务器； 预先派生子进程 ( $preforking$ ) 程序，它让服务器在启动阶段调用 $fork$ 创建一个子进程池，每个客户请求由当前可用子进程池中的某个闲置子进程处理； 预先创建线程 ( $prethreading$ ) 程序，它让服务器在启动阶段创建一个线程池，每个客户由当前可用线程池中的某个闲置线程处理。 TCP客户程序则有以下范式：&#xA;以停-等方式运作的客户程序，进程在被阻塞以等待用户输入期间，看不到诸如对端关闭连接等网络事件，而且批处理效率极低； 调用 $select$ 监听的客户程序，可以得到网络事件通知； 非阻塞式I/O客户程序； 多进程客户程序； 多线程客户程序。 1. TCP预先派生子进程服务器程序，accept无上锁保护 这种技术的优点在于无须引入父进程执行 $fork$ 的开销就能处理新客户，缺点是父进程必须在服务器启动阶段配置预先派生子进程数量。可选的改进方案是增加一些代码，让父进程监听可用子进程数，一旦降低到某个阈值就派生额外的子进程；同样的，一旦可用子进程数增加到某个阈值就终止一些过剩的子进程。&#xA;#include &amp;#34;unp.h&amp;#34; #define MAXN 16384 // max # bytes client can request static int nchildren; static pid_t *pids; int main(int argc, char **argv) { int listenfd, i; socklen_t addrlen; void sig_int(int); pid_t child_make(int, int, int); if (argc == 3) listenfd = Tcp_listen(NULL.</description>
     </item>
-    
     <item>
       <title>Unix网络编程（14）：线程</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B14/</link>
       <pubDate>Thu, 17 Feb 2022 14:28:16 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B14/</guid>
-      <description>在传统的Unix模型中，当一个进程需要另一个实体来完成某事时，它就 $fork$ 一个子进程并让子进程去处理。尽管这种范式多年来一直应用得挺好，但是 $fork$ 调用却存在一些问题：
-$fork$ 是重量级调用。$fork$ 调用要把父进程的内存映射到子进程，并在子进程中复制所有描述符等。当今的实现使用写时复制 ( $copy-on-write$ ) 技术，只有子进程需要时才会复制数据。然而，即使存在这样的优化，$fork$ 依然是重量级调用； $fork$ 返回之后父子进程之间的信息传递需要进程间通信机制。 线程有助于解决这两个问题，它的创建可能比进程快 $10 \sim 100$ 倍，而且同一进程内的线程共享相同的全局内存。然而，线程的引入也会带来同步 ( $synchronization$ ) 问题。同一进程内的所有线程除了共享全局变量之外还共享：
-进程指令； 大多数数据； 打开的文件 ( 描述符 )； 信号处理函数和信号处置； 当前工作目录； 用户ID和组ID。 每个线程也有各自的：
-线程ID ( TID )； 寄存器集合，包括程序计数器和栈指针； 栈 ( 存放局部变量和返回地址 )； $errno$ ； 信号掩码； 优先级。 1. 创建和终止 1.1 pthread_create函数 #include &amp;lt;pthread.h&amp;gt; // 成功返回0，出错返回非负错误码 int pthread_create(pthread_t *tid, const pthread_attr_t *attr, void *(*func)(void *), void *arg); 当一个程序由 $exec$ 启动时，称为初始线程 ( $initial$ $thread$ ) 或主线程 ( $main$ $thread$ ) 的单个线程就创建了，其余线程则由 $pthread_-create$ 函数创建。一个进程内每个线程都由线程ID标识，数据类型为 $pthread_-t$ 。如果新线程成功创建，ID会通过 $tid$ 返回。每个线程都有属性：优先级、初始栈大小、是否应该成为守护线程等，可以通过 $attr$ 参数指定。通常情况下我们采取默认配置，这时会把 $attr$ 设置为 $NULL$ 。最后两个参数是线程执行的函数以及参数，线程通过调用这个函数开始执行，然后显式终止 ( $pthread_-exit$ ) 或者隐式终止 ( 函数返回 ) 。如果我们需要传递多个参数，需要把它们打包成一个结构，通过结构指针传递。</description>
+      <description>在传统的Unix模型中，当一个进程需要另一个实体来完成某事时，它就 $fork$ 一个子进程并让子进程去处理。尽管这种范式多年来一直应用得挺好，但是 $fork$ 调用却存在一些问题：&#xA;$fork$ 是重量级调用。$fork$ 调用要把父进程的内存映射到子进程，并在子进程中复制所有描述符等。当今的实现使用写时复制 ( $copy-on-write$ ) 技术，只有子进程需要时才会复制数据。然而，即使存在这样的优化，$fork$ 依然是重量级调用； $fork$ 返回之后父子进程之间的信息传递需要进程间通信机制。 线程有助于解决这两个问题，它的创建可能比进程快 $10 \sim 100$ 倍，而且同一进程内的线程共享相同的全局内存。然而，线程的引入也会带来同步 ( $synchronization$ ) 问题。同一进程内的所有线程除了共享全局变量之外还共享：&#xA;进程指令； 大多数数据； 打开的文件 ( 描述符 )； 信号处理函数和信号处置； 当前工作目录； 用户ID和组ID。 每个线程也有各自的：&#xA;线程ID ( TID )； 寄存器集合，包括程序计数器和栈指针； 栈 ( 存放局部变量和返回地址 )； $errno$ ； 信号掩码； 优先级。 1. 创建和终止 1.1 pthread_create函数 #include &amp;lt;pthread.h&amp;gt; // 成功返回0，出错返回非负错误码 int pthread_create(pthread_t *tid, const pthread_attr_t *attr, void *(*func)(void *), void *arg); 当一个程序由 $exec$ 启动时，称为初始线程 ( $initial$ $thread$ ) 或主线程 ( $main$ $thread$ ) 的单个线程就创建了，其余线程则由 $pthread_-create$ 函数创建。一个进程内每个线程都由线程ID标识，数据类型为 $pthread_-t$ 。如果新线程成功创建，ID会通过 $tid$ 返回。每个线程都有属性：优先级、初始栈大小、是否应该成为守护线程等，可以通过 $attr$ 参数指定。通常情况下我们采取默认配置，这时会把 $attr$ 设置为 $NULL$ 。最后两个参数是线程执行的函数以及参数，线程通过调用这个函数开始执行，然后显式终止 ( $pthread_-exit$ ) 或者隐式终止 ( 函数返回 ) 。如果我们需要传递多个参数，需要把它们打包成一个结构，通过结构指针传递。</description>
     </item>
-    
     <item>
       <title>Unix网络编程（13）：信号驱动式I/O</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B13/</link>
       <pubDate>Wed, 16 Feb 2022 16:55:21 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B13/</guid>
-      <description>信号驱动式I/O是指进程预先告知内核，使得当某个描述符上发生某事时，内核使用信号通知相关进程。
-1. 套接字的信号驱动式I/O 针对一个套接字使用信号驱动式I/O ( $SIGIO$ ) 要求进程执行以下 $3$ 个步骤：
-创建 $SIGIO$ 信号的信号处理函数； 设置该套接字的属主； 开启该套接字的信号驱动式I/O，通常通过使用 $fcntl$ 的 $F_-SETFL$ 命令打开 $O_-ASYNC$ 标志。 1.1 对于UDP套接字的SIGIO信号 在UDP上使用信号驱动式I/O是简单的。$SIGIO$ 信号在发生以下事件时产生：
-数据报到达套接字； 套接字上发生异步错误。 因此当捕获对于某个UDP套接字的 $SIGIO$ 信号时，我们调用 $recvfrom$ 或者读入到达的数据报，或者获取发生的异步错误。
-1.2 对于TCP套接字的SIGIO信号 信号驱动式I/O对于TCP套接字近乎无用，因为该信号产生得过于频繁，并且信号出现并没有告诉我们发生了什么事。下列条件均导致TCP套接字产生 $SIGIO$ 信号：
-监听套接字上某个连接请求已经完成； 某个断连的请求已经发起； 某个断连的请求已经完成； 某个连接已经半关闭； 数据到达套接字； 数据已经从套接字发送走 ( 即输出缓冲区有空闲空间 )； 发生异步错误。 我们应该只考虑对监听套接字使用 $SIGIO$ ，因为监听套接字产生 $SIGIO$ 的唯一条件是某个新连接的完成。
-2. 使用SIGIO的UDP回射服务器程序 使用 $SIGIO$ 的UDP回射程序可以设计为这种形式：当一个数据报到达时，$SIGIO$ 处理函数读入数据报，同时记录到达时刻，然后将它置于进程内的另一个队列中，主服务器循环从队列中取出数据并处理。相比起不使用 $SIGIO$ 而是简单使用一个服务器循环处理的程序，这种形式可以精确的获知数据报到达时间戳。
-#include &amp;#34;unp.h&amp;#34; static int sockfd; #define QSIZE 8 // size of input queue #define MAXDG 4096 typedef struct { void *dg_data; // ptr to actual datagram size_t dg_len; // length of datagram struct sockaddr *dg_sa; // ptr to sockaddr{} w/client&amp;#39;s address socklen_t dg_salen; // length of sockaddr } DG; static DG dg[QSIZE]; // queue of datagrams to process static long cntread[QSIZE + 1]; // diagnostic counter static int iget; // next one for main loop to process static int iput; // next one for signal handler to read into static int nqueue; // # on queue for main loop to process static socklen_t clilen; // max length of sockaddr{} static void sig_io(int); static void sig_hup(int); void dg_echo(int sockfd_arg, struct sockaddr *pcliaddr, socklen_t clilen_arg) { int i; const int on = 1; sigset_t zeromask, newmask, oldmask; sockfd = sockfd_arg; clilen = clilen_arg; for (i = 0; i &amp;lt; QSIZE; i++) { // init queue of buffers dg[i].</description>
+      <description>信号驱动式I/O是指进程预先告知内核，使得当某个描述符上发生某事时，内核使用信号通知相关进程。&#xA;1. 套接字的信号驱动式I/O 针对一个套接字使用信号驱动式I/O ( $SIGIO$ ) 要求进程执行以下 $3$ 个步骤：&#xA;创建 $SIGIO$ 信号的信号处理函数； 设置该套接字的属主； 开启该套接字的信号驱动式I/O，通常通过使用 $fcntl$ 的 $F_-SETFL$ 命令打开 $O_-ASYNC$ 标志。 1.1 对于UDP套接字的SIGIO信号 在UDP上使用信号驱动式I/O是简单的。$SIGIO$ 信号在发生以下事件时产生：&#xA;数据报到达套接字； 套接字上发生异步错误。 因此当捕获对于某个UDP套接字的 $SIGIO$ 信号时，我们调用 $recvfrom$ 或者读入到达的数据报，或者获取发生的异步错误。&#xA;1.2 对于TCP套接字的SIGIO信号 信号驱动式I/O对于TCP套接字近乎无用，因为该信号产生得过于频繁，并且信号出现并没有告诉我们发生了什么事。下列条件均导致TCP套接字产生 $SIGIO$ 信号：&#xA;监听套接字上某个连接请求已经完成； 某个断连的请求已经发起； 某个断连的请求已经完成； 某个连接已经半关闭； 数据到达套接字； 数据已经从套接字发送走 ( 即输出缓冲区有空闲空间 )； 发生异步错误。 我们应该只考虑对监听套接字使用 $SIGIO$ ，因为监听套接字产生 $SIGIO$ 的唯一条件是某个新连接的完成。&#xA;2. 使用SIGIO的UDP回射服务器程序 使用 $SIGIO$ 的UDP回射程序可以设计为这种形式：当一个数据报到达时，$SIGIO$ 处理函数读入数据报，同时记录到达时刻，然后将它置于进程内的另一个队列中，主服务器循环从队列中取出数据并处理。相比起不使用 $SIGIO$ 而是简单使用一个服务器循环处理的程序，这种形式可以精确的获知数据报到达时间戳。&#xA;#include &amp;#34;unp.h&amp;#34; static int sockfd; #define QSIZE 8 // size of input queue #define MAXDG 4096 typedef struct { void *dg_data; // ptr to actual datagram size_t dg_len; // length of datagram struct sockaddr *dg_sa; // ptr to sockaddr{} w/client&amp;#39;s address socklen_t dg_salen; // length of sockaddr } DG; static DG dg[QSIZE]; // queue of datagrams to process static long cntread[QSIZE + 1]; // diagnostic counter static int iget; // next one for main loop to process static int iput; // next one for signal handler to read into static int nqueue; // # on queue for main loop to process static socklen_t clilen; // max length of sockaddr{} static void sig_io(int); static void sig_hup(int); void dg_echo(int sockfd_arg, struct sockaddr *pcliaddr, socklen_t clilen_arg) { int i; const int on = 1; sigset_t zeromask, newmask, oldmask; sockfd = sockfd_arg; clilen = clilen_arg; for (i = 0; i &amp;lt; QSIZE; i++) { // init queue of buffers dg[i].</description>
     </item>
-    
     <item>
       <title>Unix网络编程（12）：带外数据</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B12/</link>
       <pubDate>Tue, 15 Feb 2022 17:50:04 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B12/</guid>
-      <description>许多传输层有带外数据 ( $out-of-band$ $data$ ) 的概念，有时也被称为经加速数据 ( $expedited$ $data$ )。当一个连接的某端发生了重要的事情，而且该端希望迅速告知对端，这意味着这些数据应该在已经排队等待发送的任何普通数据之前发送。带外数据并不要求在客户和服务器之间再创建一个连接，而是使用现有的连接。不幸的是，几乎每个传输层都有各自不同的带外数据的实现。UDP是一个极端的例子，没有带外数据。
-1. TCP带外数据 TCP并没有真正的带外数据，不过提供了紧急模式 ( $urgent$ $mode$ )。以下为TCP发送缓冲区。
-进程以 $MSG_-OOB$ 标志发送一个带外数据：
-send(fd, &amp;#34;a&amp;#34;, 1, MSG_OOB); TCP将这个数据放置在发送缓冲区的下一个可用位置，并把该连接的TCP紧急指针设置为下一个可用位置。
-TCP紧急指针对应一个TCP序列号，它是使用 $MSG_-OOB$ 标志写出的最后一个数据字节 ( 即带外数据字节 ) 对应的序列号加 $1$ 。发送端TCP将为待发送的下一个分节在TCP首部设置URG标志，并把TCP紧急偏移 ( $urgent$ $offset$ ) 字段设置为紧急指针指向的字节，这个分节可能包含也可能不含之前发送的带外数据。$16$ 位的TCP序列号加上 $16$ 位的紧急偏移字段即可得到 $32$ 位的紧急指针。TCP紧急模式的一个重要特点是TCP首部指出发送端已经进入紧急模式 ( 设置URG标志 )，但是紧急指针指向的实际数据字节却不一定发送。
-从接收端的角度来看，发生了以下事件：
-收到URG分节，接收端检查紧急指针，确定它是否指向带外数据，也就是判断本分节是不是首个到达的紧急模式分节。发送端TCP往往发送多个URG分节并且其紧急指针都会指向同一个数据字节的分节，只有第一个到达的分节会通知接收进程有新的带外数据到达； 当有新的紧急指针到达时，不论由紧急指针指向的实际数据字节是否已经到达，接收进程会收到通知。内核给接收套接字的进程发送 $SIGURG$ 信号，前提是接收进程 ( 或其他进程 ) 曾调用 $fcntl$ 或 $ioctl$ 为这个套接字建立了属主，而且该属主今后层已经为 $SIGURG$ 信号建立了信号处理函数。其次，如果接收进程阻塞在 $select$ 调用中，$select$ 调用就立即返回； 当由紧急指针指向的实际数据字节到达接收端TCP时，该数据字节可能被拉出带外，也可能留在带内。$SO_-OOBINLINE$ 套接字选项默认是禁止的，对于这样的套接字，该数据字节并不立即放入接收缓冲区，而是放入该连接的一个独立的单字节带外缓冲区。接收进程从这个单字节缓冲区中读入数据的唯一方法是指定 $MSG_-OOB$ 标志调用 $recv$ 、$recvfrom$ 或 $recvmsg$ 。如果新的带外字节在就旧的带外字节被读取之前到达，旧的带外字节会被丢弃。如果开启了 $SO_-OOBINLINE$ ，接收进程不能通过 $MSG_-OOB$ 标志读入带外数据，而是通过检查连接的带外标记获悉何时访问到这个字节。 这个过程可能会发送以下错误：</description>
+      <description>许多传输层有带外数据 ( $out-of-band$ $data$ ) 的概念，有时也被称为经加速数据 ( $expedited$ $data$ )。当一个连接的某端发生了重要的事情，而且该端希望迅速告知对端，这意味着这些数据应该在已经排队等待发送的任何普通数据之前发送。带外数据并不要求在客户和服务器之间再创建一个连接，而是使用现有的连接。不幸的是，几乎每个传输层都有各自不同的带外数据的实现。UDP是一个极端的例子，没有带外数据。&#xA;1. TCP带外数据 TCP并没有真正的带外数据，不过提供了紧急模式 ( $urgent$ $mode$ )。以下为TCP发送缓冲区。&#xA;进程以 $MSG_-OOB$ 标志发送一个带外数据：&#xA;send(fd, &amp;#34;a&amp;#34;, 1, MSG_OOB); TCP将这个数据放置在发送缓冲区的下一个可用位置，并把该连接的TCP紧急指针设置为下一个可用位置。&#xA;TCP紧急指针对应一个TCP序列号，它是使用 $MSG_-OOB$ 标志写出的最后一个数据字节 ( 即带外数据字节 ) 对应的序列号加 $1$ 。发送端TCP将为待发送的下一个分节在TCP首部设置URG标志，并把TCP紧急偏移 ( $urgent$ $offset$ ) 字段设置为紧急指针指向的字节，这个分节可能包含也可能不含之前发送的带外数据。$16$ 位的TCP序列号加上 $16$ 位的紧急偏移字段即可得到 $32$ 位的紧急指针。TCP紧急模式的一个重要特点是TCP首部指出发送端已经进入紧急模式 ( 设置URG标志 )，但是紧急指针指向的实际数据字节却不一定发送。&#xA;从接收端的角度来看，发生了以下事件：&#xA;收到URG分节，接收端检查紧急指针，确定它是否指向带外数据，也就是判断本分节是不是首个到达的紧急模式分节。发送端TCP往往发送多个URG分节并且其紧急指针都会指向同一个数据字节的分节，只有第一个到达的分节会通知接收进程有新的带外数据到达； 当有新的紧急指针到达时，不论由紧急指针指向的实际数据字节是否已经到达，接收进程会收到通知。内核给接收套接字的进程发送 $SIGURG$ 信号，前提是接收进程 ( 或其他进程 ) 曾调用 $fcntl$ 或 $ioctl$ 为这个套接字建立了属主，而且该属主今后层已经为 $SIGURG$ 信号建立了信号处理函数。其次，如果接收进程阻塞在 $select$ 调用中，$select$ 调用就立即返回； 当由紧急指针指向的实际数据字节到达接收端TCP时，该数据字节可能被拉出带外，也可能留在带内。$SO_-OOBINLINE$ 套接字选项默认是禁止的，对于这样的套接字，该数据字节并不立即放入接收缓冲区，而是放入该连接的一个独立的单字节带外缓冲区。接收进程从这个单字节缓冲区中读入数据的唯一方法是指定 $MSG_-OOB$ 标志调用 $recv$ 、$recvfrom$ 或 $recvmsg$ 。如果新的带外字节在就旧的带外字节被读取之前到达，旧的带外字节会被丢弃。如果开启了 $SO_-OOBINLINE$ ，接收进程不能通过 $MSG_-OOB$ 标志读入带外数据，而是通过检查连接的带外标记获悉何时访问到这个字节。 这个过程可能会发送以下错误：</description>
     </item>
-    
     <item>
       <title>Unix网络编程（11）：路由套接字</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B11/</link>
       <pubDate>Mon, 14 Feb 2022 19:31:39 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B11/</guid>
-      <description>注：以下内容可能不适用于Linux系统
-内核中的Unix路由表传统上一直使用 $ioctl$ 访问，但是 $ioctl$ 不能输出整个路由表，而诸如 $netstat$ 等程序通过读取内核的内存获取路由表内容。诸如 $gated$ 等路由守护进程需要监视由内核收取的ICMP重定向消息，它们通常创建一个原始ICMP套接字，再在这个套接字上监听所有收到的ICMP消息。在路由域中支持的唯一一种套接字是原始套接字。路由套接字上支持 $3$ 种类型的操作：
-进程可以通过写出到路由套接字而往内核发送消息。路径的增加和删除采用这种操作实现； 进程可以通过从路由套接字读入而从内核接收消息。内核采用这种操作通知进程已收到并处理一个ICMP重定向消息，或者请求外部路由进程解析一个路径； 进程可以使用 $sysctl$ 函数输出路由表或者列出所有已配置的接口。 前两种操作可以复合使用，需要超级用户权限，最后一种任何进程都可以执行。
-1. 数据链路套接字地址结构 #include &amp;lt;net/if_dl.h&amp;gt; struct sockaddr_dl { uint8_t sdl_len; sa_family_t sdl_family; // AF_LINK uint16_t sdl_index; // 大于0的系统分配的索引 uint8_t sdl_type; // IFT_ETHER等在&amp;lt;net/if_types.h&amp;gt;中定义的常值 uint8_t sdl_nlen; // 名字长度，从sdl_data[0]开始 uint8_t sdl_alen; // 链路层地址长度 uint8_t sdl_slen; // 链路层选择器长度 char sdl_data[12]; // 最小工作区域，可以扩大，包含i/f名称和链路层地址 }; #define LLADDR(s) ((caddr_t) ((s)-&amp;gt;sdl_data + (s)-&amp;gt;sdl_nlen)) 每个接口都有一个唯一的索引。$sdl_-data$ 成员含有名字和链路层地址，名字从 $sdl_-data[0]$ 开始，并且不以空字符结尾。链路层地址从 $sdl_-data[sdl_-nlen]$ 开始，$LLADDR$ 宏返回指向链路层地址的指针。
-2. 套接字读写 创建一个路由套接字以后，进程可以通过写到该套接字向内核发送命令，通过从套接字读来从内核接收信息。路由套接字共有 $12$ 个路由消息，定义在 &amp;lt;$net/route.</description>
+      <description>注：以下内容可能不适用于Linux系统&#xA;内核中的Unix路由表传统上一直使用 $ioctl$ 访问，但是 $ioctl$ 不能输出整个路由表，而诸如 $netstat$ 等程序通过读取内核的内存获取路由表内容。诸如 $gated$ 等路由守护进程需要监视由内核收取的ICMP重定向消息，它们通常创建一个原始ICMP套接字，再在这个套接字上监听所有收到的ICMP消息。在路由域中支持的唯一一种套接字是原始套接字。路由套接字上支持 $3$ 种类型的操作：&#xA;进程可以通过写出到路由套接字而往内核发送消息。路径的增加和删除采用这种操作实现； 进程可以通过从路由套接字读入而从内核接收消息。内核采用这种操作通知进程已收到并处理一个ICMP重定向消息，或者请求外部路由进程解析一个路径； 进程可以使用 $sysctl$ 函数输出路由表或者列出所有已配置的接口。 前两种操作可以复合使用，需要超级用户权限，最后一种任何进程都可以执行。&#xA;1. 数据链路套接字地址结构 #include &amp;lt;net/if_dl.h&amp;gt; struct sockaddr_dl { uint8_t sdl_len; sa_family_t sdl_family; // AF_LINK uint16_t sdl_index; // 大于0的系统分配的索引 uint8_t sdl_type; // IFT_ETHER等在&amp;lt;net/if_types.h&amp;gt;中定义的常值 uint8_t sdl_nlen; // 名字长度，从sdl_data[0]开始 uint8_t sdl_alen; // 链路层地址长度 uint8_t sdl_slen; // 链路层选择器长度 char sdl_data[12]; // 最小工作区域，可以扩大，包含i/f名称和链路层地址 }; #define LLADDR(s) ((caddr_t) ((s)-&amp;gt;sdl_data + (s)-&amp;gt;sdl_nlen)) 每个接口都有一个唯一的索引。$sdl_-data$ 成员含有名字和链路层地址，名字从 $sdl_-data[0]$ 开始，并且不以空字符结尾。链路层地址从 $sdl_-data[sdl_-nlen]$ 开始，$LLADDR$ 宏返回指向链路层地址的指针。&#xA;2. 套接字读写 创建一个路由套接字以后，进程可以通过写到该套接字向内核发送命令，通过从套接字读来从内核接收信息。路由套接字共有 $12$ 个路由消息，定义在 &amp;lt;$net/route.</description>
     </item>
-    
     <item>
       <title>Unix网络编程（10）：ioctl</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B10/</link>
       <pubDate>Mon, 14 Feb 2022 15:10:53 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B10/</guid>
-      <description>$ioctl$ 函数传统上一直作为那些不适合归入其他精细定义类别的特性的系统接口。POSIX致力于摆脱处于标准化过程的特定功能的 $ioctl$ 接口，办法是为它们创造一些特殊的函数以取代 $ioctl$ 请求，办法是为它们创造一些特殊的函数以取代 $ioctl$ 请求。网络层程序经常在程序启动执行后使用 $ioctl$ 获取所在主机全部网络接口的信息，包括：接口地址、是否支持广播、是否支持多播等。
-1. ioctl函数 #include &amp;lt;unistd.h&amp;gt; // 成功返回 $0$ ，出错返回-1 int ioctl(int fd, int request, ... /* void *arg */); 第三个参数是一个指针，类型依赖于 $request$ 参数。我们可以把和网络相关的请求分为 $6$ 类：
-类别 $request$ 说明 数据类型 套接字 $SIOCATMARK$ 是否位于带外标记 $int$ $SIOCSPGRP$ 设置套接字的进程ID或进程组ID $int$ $SIOCGPGRP$ 获取套接字的进程ID或进程组ID $int$ 文件 $FIONBIO$ 设置/清除非阻塞式I/O标志 $int$ $FIOASYNC$ 设置/清除信号驱动异步I/O标志 $int$ $FIONREAD$ 获取接收缓冲区的字节数 $int$ $FIOSETOWN$ 设置文件的进程ID或进程组ID $int$ $FIOGETOWN$ 获取文件的进程ID或进程组ID $int$ 接口 $SIOCGIFCONF$ 获取所有接口的列表 $struct$ $ifconf$ $SIOCSIFADDR$ 设置接口地址 $struct$ $ifreq$ $SIOCGIFADDR$ 获取接口地址 $struct$ $ifreq$ $SIOCGIFADDR$ 获取接口地址 $struct$ $ifreq$ $SIOCSIFFLAGS$ 设置接口标志 $struct$ $ifreq$ $SIOCGIFFLAGS$ 获取接口标志 $struct$ $ifreq$ $SIOCSIFDSTADDR$ 设置点到点地址 $struct$ $ifreq$ $SIOCGIFDSTADDR$ 获取点到点标志 $struct$ $ifreq$ $SIOCGIFBRDADDR$ 获取广播地址 $struct$ $ifreq$ $SIOCSIFBRDADDR$ 设置广播地址 $struct$ $ifreq$ $SIOCGIFNETMASK$ 获取子网掩码 $struct$ $ifreq$ $SIOCSIFNETMASK$ 设置子网掩码 $struct$ $ifreq$ $SIOCGIFMETRIC$ 获取接口的测度 $struct$ $ifreq$ $SIOCSIFMETRIC$ 设置接口的测度 $struct$ $ifreq$ $SIOCGIFMTU$ 获取接口 $MTU$ $struct$ $ifreq$ ARP $SIOCSARP$ 创建/修改ARP表项 $struct$ $arpreq$ $SIOCGARP$ 获取ARP表项 $struct$ $arpreq$ $SIOCDARP$ 删除ARP表项 $struct$ $arpreq$ 路由 $SIOCADDRT$ 增加路径 $struct$ $rtentry$ $SIOCDELRT$ 删除路径 $struct$ $rtentry$ 流 $I_-xxx$ 以后说明 2.</description>
+      <description>$ioctl$ 函数传统上一直作为那些不适合归入其他精细定义类别的特性的系统接口。POSIX致力于摆脱处于标准化过程的特定功能的 $ioctl$ 接口，办法是为它们创造一些特殊的函数以取代 $ioctl$ 请求，办法是为它们创造一些特殊的函数以取代 $ioctl$ 请求。网络层程序经常在程序启动执行后使用 $ioctl$ 获取所在主机全部网络接口的信息，包括：接口地址、是否支持广播、是否支持多播等。&#xA;1. ioctl函数 #include &amp;lt;unistd.h&amp;gt; // 成功返回 $0$ ，出错返回-1 int ioctl(int fd, int request, ... /* void *arg */); 第三个参数是一个指针，类型依赖于 $request$ 参数。我们可以把和网络相关的请求分为 $6$ 类：&#xA;类别 $request$ 说明 数据类型 套接字 $SIOCATMARK$ 是否位于带外标记 $int$ $SIOCSPGRP$ 设置套接字的进程ID或进程组ID $int$ $SIOCGPGRP$ 获取套接字的进程ID或进程组ID $int$ 文件 $FIONBIO$ 设置/清除非阻塞式I/O标志 $int$ $FIOASYNC$ 设置/清除信号驱动异步I/O标志 $int$ $FIONREAD$ 获取接收缓冲区的字节数 $int$ $FIOSETOWN$ 设置文件的进程ID或进程组ID $int$ $FIOGETOWN$ 获取文件的进程ID或进程组ID $int$ 接口 $SIOCGIFCONF$ 获取所有接口的列表 $struct$ $ifconf$ $SIOCSIFADDR$ 设置接口地址 $struct$ $ifreq$ $SIOCGIFADDR$ 获取接口地址 $struct$ $ifreq$ $SIOCGIFADDR$ 获取接口地址 $struct$ $ifreq$ $SIOCSIFFLAGS$ 设置接口标志 $struct$ $ifreq$ $SIOCGIFFLAGS$ 获取接口标志 $struct$ $ifreq$ $SIOCSIFDSTADDR$ 设置点到点地址 $struct$ $ifreq$ $SIOCGIFDSTADDR$ 获取点到点标志 $struct$ $ifreq$ $SIOCGIFBRDADDR$ 获取广播地址 $struct$ $ifreq$ $SIOCSIFBRDADDR$ 设置广播地址 $struct$ $ifreq$ $SIOCGIFNETMASK$ 获取子网掩码 $struct$ $ifreq$ $SIOCSIFNETMASK$ 设置子网掩码 $struct$ $ifreq$ $SIOCGIFMETRIC$ 获取接口的测度 $struct$ $ifreq$ $SIOCSIFMETRIC$ 设置接口的测度 $struct$ $ifreq$ $SIOCGIFMTU$ 获取接口 $MTU$ $struct$ $ifreq$ ARP $SIOCSARP$ 创建/修改ARP表项 $struct$ $arpreq$ $SIOCGARP$ 获取ARP表项 $struct$ $arpreq$ $SIOCDARP$ 删除ARP表项 $struct$ $arpreq$ 路由 $SIOCADDRT$ 增加路径 $struct$ $rtentry$ $SIOCDELRT$ 删除路径 $struct$ $rtentry$ 流 $I_-xxx$ 以后说明 2.</description>
     </item>
-    
     <item>
       <title>Unix网络编程（9）：非阻塞式I/O</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B9/</link>
       <pubDate>Sat, 12 Feb 2022 17:12:54 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B9/</guid>
-      <description>套接字的默认状态是阻塞的，这就意味着当发出一个不能立即完成的套接字调用时，其进程将被置于休眠状态，直到相应操作完成。可能阻塞套接字的调用分为以下四类：
-输入：$read$ 、$readv$ 、$recv$ 、$recvfrom$ 和 $recvmsg$ 共 $5$ 个函数。如果对阻塞式套接字调用，而且套接字接收缓冲区中没有数据可读，进程将休眠。而对于非阻塞式套接字，如果输入操作不能被满足，调用将返回 $EWOULDBLOCK$ 错误； 输出：$write$ 、$writev$ 、$send$ 、$sendto$ 和 $sendmsg$ 共 $5$ 个函数。如果对阻塞式套接字调用，而且套接字发送缓冲区中没有空间，进程将休眠。对于非阻塞的TCP套接字，如果发送缓冲区中没有空间，输出函数调用将立即返回 $EWOULDBLOCK$ 错误； 接受外来连接，即 $accept$ 函数。如果对一个非阻塞套接字调用 $accept$ 函数，而且无新连接到达，将会立即返回 $EWOULDBLOCK$ 错误； 发起外出连接，即用于TCP的 $connect$ 函数。如果对一个非阻塞套接字调用 $connect$ ，而且连接不能立即建立，那么会立即返回 $EINPROGRESS$ 错误。 1. 非阻塞读和写 #include &amp;#34;unp.h&amp;#34; #include &amp;lt;time.h&amp;gt; char *gf_time(void); void str_cli(FILE *fp, int sockfd) { int maxfdp1, val, stdineof; ssize_t n , nwritten; fd_set rset, wset; char to[MAXLINE], fr[MAXLINE]; char *toiptr, *tooptr, *friptr, *froptr; val = Fcntl(sockfd, F_GETFL, 0); Fcntl(sockfd, F_SETFL, val | O_NONBLOCK); val = Fcntl(STDIN_FILENO, F_GETFL, 0); Fcntl(STDIN_FILENO, F_SETFL, val | O_NONBLOCK); val = Fcntl(STDOUT_FILENO, F_GETFL, 0); Fcntl(STDOUT_FILENO, F_SETFL, val | O_NONBLOCK); toiptr = tooptr = to; friptr = froptr = fr; stdineof = 0; maxfdp1 = max(max(STDIN_FILENO, STDOUT_FILENO), sockfd) + 1; for (;;) { FD_ZERO(&amp;amp;rset); FD_ZERO(&amp;amp;wset); if (stdineof == 0 &amp;amp;&amp;amp; toiptr &amp;lt; &amp;amp;to[MAXLINE]) FD_SET(STDIN_FILENO, &amp;amp;rset); // read from stdin if (friptr &amp;lt; &amp;amp;fr[MAXLINE]) FD_SET(sockfd, &amp;amp;rset); // read from socket if (tooptr !</description>
+      <description>套接字的默认状态是阻塞的，这就意味着当发出一个不能立即完成的套接字调用时，其进程将被置于休眠状态，直到相应操作完成。可能阻塞套接字的调用分为以下四类：&#xA;输入：$read$ 、$readv$ 、$recv$ 、$recvfrom$ 和 $recvmsg$ 共 $5$ 个函数。如果对阻塞式套接字调用，而且套接字接收缓冲区中没有数据可读，进程将休眠。而对于非阻塞式套接字，如果输入操作不能被满足，调用将返回 $EWOULDBLOCK$ 错误； 输出：$write$ 、$writev$ 、$send$ 、$sendto$ 和 $sendmsg$ 共 $5$ 个函数。如果对阻塞式套接字调用，而且套接字发送缓冲区中没有空间，进程将休眠。对于非阻塞的TCP套接字，如果发送缓冲区中没有空间，输出函数调用将立即返回 $EWOULDBLOCK$ 错误； 接受外来连接，即 $accept$ 函数。如果对一个非阻塞套接字调用 $accept$ 函数，而且无新连接到达，将会立即返回 $EWOULDBLOCK$ 错误； 发起外出连接，即用于TCP的 $connect$ 函数。如果对一个非阻塞套接字调用 $connect$ ，而且连接不能立即建立，那么会立即返回 $EINPROGRESS$ 错误。 1. 非阻塞读和写 #include &amp;#34;unp.h&amp;#34; #include &amp;lt;time.h&amp;gt; char *gf_time(void); void str_cli(FILE *fp, int sockfd) { int maxfdp1, val, stdineof; ssize_t n , nwritten; fd_set rset, wset; char to[MAXLINE], fr[MAXLINE]; char *toiptr, *tooptr, *friptr, *froptr; val = Fcntl(sockfd, F_GETFL, 0); Fcntl(sockfd, F_SETFL, val | O_NONBLOCK); val = Fcntl(STDIN_FILENO, F_GETFL, 0); Fcntl(STDIN_FILENO, F_SETFL, val | O_NONBLOCK); val = Fcntl(STDOUT_FILENO, F_GETFL, 0); Fcntl(STDOUT_FILENO, F_SETFL, val | O_NONBLOCK); toiptr = tooptr = to; friptr = froptr = fr; stdineof = 0; maxfdp1 = max(max(STDIN_FILENO, STDOUT_FILENO), sockfd) + 1; for (;;) { FD_ZERO(&amp;amp;rset); FD_ZERO(&amp;amp;wset); if (stdineof == 0 &amp;amp;&amp;amp; toiptr &amp;lt; &amp;amp;to[MAXLINE]) FD_SET(STDIN_FILENO, &amp;amp;rset); // read from stdin if (friptr &amp;lt; &amp;amp;fr[MAXLINE]) FD_SET(sockfd, &amp;amp;rset); // read from socket if (tooptr !</description>
     </item>
-    
     <item>
       <title>Unix网络编程（8）：Unix域协议</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B8/</link>
       <pubDate>Sat, 12 Feb 2022 14:58:42 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B8/</guid>
-      <description>Unix域协议并不是一个实际的协议族，而是在单个主机上执行客户/服务器通信的一种方法，所用API就是在不同主机上执行客户/服务器通信所用的API，因此，Unix域协议可视为IPC方法之一。Unix域提供两类套接字：字节流套接字 ( 类似TCP ) 和数据报套接字 ( 类似UDP )。
-1. 套接字地址结构 #include &amp;lt;sys/un.h&amp;gt; struct sockaddr_un { sa_family_t sun_family; // AF_LOCAL char sun_path[104]; // null-terminated pathname }; 存放在 $sun_-path$ 数组中的路径名必须以空字符结尾。实现提供一个 $SUN_-LEN$ 宏以一个指向 $sockaddr_-un$ 结构的指针为参数并返回该结构的长度，包括路径名中的非空字节数。未指定地址通过空字符串作为路径名指示，等价于IPv4的 $INADDR_-ANY$ 常值或IPv6的 $IN6ADDR_-ANY_-INIT$ 常值。
-#include &amp;#34;unp.h&amp;#34; int main(int argc, char **argv) { int sockfd; socklen_t len; struct sockaddr_un addr1, addr2; if (argc != 2) err_quit(&amp;#34;usage: unixbind &amp;lt;pathname&amp;gt;&amp;#34;); sockfd = Socket(AF_LOCAL, SOCK_STREAM, 0); unlink(argv[1]); bzero(&amp;amp;addr1, sizeof(addr1)); addr1.sun_family = AF_LOCAL; strncpy(addr1.</description>
+      <description>Unix域协议并不是一个实际的协议族，而是在单个主机上执行客户/服务器通信的一种方法，所用API就是在不同主机上执行客户/服务器通信所用的API，因此，Unix域协议可视为IPC方法之一。Unix域提供两类套接字：字节流套接字 ( 类似TCP ) 和数据报套接字 ( 类似UDP )。&#xA;1. 套接字地址结构 #include &amp;lt;sys/un.h&amp;gt; struct sockaddr_un { sa_family_t sun_family; // AF_LOCAL char sun_path[104]; // null-terminated pathname }; 存放在 $sun_-path$ 数组中的路径名必须以空字符结尾。实现提供一个 $SUN_-LEN$ 宏以一个指向 $sockaddr_-un$ 结构的指针为参数并返回该结构的长度，包括路径名中的非空字节数。未指定地址通过空字符串作为路径名指示，等价于IPv4的 $INADDR_-ANY$ 常值或IPv6的 $IN6ADDR_-ANY_-INIT$ 常值。&#xA;#include &amp;#34;unp.h&amp;#34; int main(int argc, char **argv) { int sockfd; socklen_t len; struct sockaddr_un addr1, addr2; if (argc != 2) err_quit(&amp;#34;usage: unixbind &amp;lt;pathname&amp;gt;&amp;#34;); sockfd = Socket(AF_LOCAL, SOCK_STREAM, 0); unlink(argv[1]); bzero(&amp;amp;addr1, sizeof(addr1)); addr1.sun_family = AF_LOCAL; strncpy(addr1.</description>
     </item>
-    
     <item>
       <title>Unix网络编程（7）：高级I/O函数</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B7/</link>
       <pubDate>Fri, 11 Feb 2022 16:00:04 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B7/</guid>
-      <description>1. 套接字超时 在涉及套接字的I/O操作上设置超时的办法有以下三种：
-调用 $alarm$ ，它在指定超时期满时产生 $SIGALRM$ 信号。这个办法涉及信号处理，而信号处理在不同的实现上存储差异，而且可能干扰进程中现有的 $alarm$ 调用； 在 $select$ 中阻塞等待I/O，以此代替直接阻塞在 $read$ 或 $write$ 调用上； 使用较新的 $SO_-RCVTIMEO$ 和 $SO_-SNDTIMEO$ 套接字选项。这个办法的问题在于并非所有实现都支持这两个套接字选项。 以上三种技术都适用于输入和输出操作，不过我们依然期待可用于 $connect$ 技术，因为TCP内置的 $connect$ 超时时间相当长 ( 典型为 $75$ 秒 )。$select$ 可用来在 $connect$ 上设置超时的先决条件是相应套接字处于非阻塞模式，而那两个套接字选项对 $connect$ 并不适用。还要注意，前两个技术适用于任何描述符，而最后一个只适用于套接字描述符。
-#include &amp;#34;unp.h&amp;#34; static void connect_alarm(int); int connect_timeo(int sockfd, const struct sockaddr *saptr, socklen_t salen, int nsec) { Sigfunc *sigfunc; int n; sigfunc = Signal(SIGALRM, connect_alarm); if (alarm(nsec) != 0) err_msg(&amp;#34;connect_timeo: alarm was already set&amp;#34;); if ((n = connect(sockfd, saptr, salen)) &amp;lt; 0) { close(sockfd); if (errno == EINTR) errno = ETIMEDOUT; } alarm(0); // turn off the alarm Signal(SIGALRM, sigfunc) // restore previous signal handler return n; } static void connect_alarm(int signo) { return; // just interrupt the connect() } 上述代码使用第一种方法，通过 $alarm$ 设置秒数，再通过信号处理函数中断 $connect$ 调用，同时关闭套接字。自定义的 $Signal$ 函数也会阻塞 $SA_-RESTART$ 信号。要注意，如果指定 $nsec$ 为一个大于 $75$ 的值，那么函数仍然会在 $75$ 秒时超时并返回。还要注意，虽然通过这种方式实现简单，但是在多线程程序中，正确使用信号是很困难的，所以建议只在未线程化或单线程程序中适用该技术。</description>
+      <description>1. 套接字超时 在涉及套接字的I/O操作上设置超时的办法有以下三种：&#xA;调用 $alarm$ ，它在指定超时期满时产生 $SIGALRM$ 信号。这个办法涉及信号处理，而信号处理在不同的实现上存储差异，而且可能干扰进程中现有的 $alarm$ 调用； 在 $select$ 中阻塞等待I/O，以此代替直接阻塞在 $read$ 或 $write$ 调用上； 使用较新的 $SO_-RCVTIMEO$ 和 $SO_-SNDTIMEO$ 套接字选项。这个办法的问题在于并非所有实现都支持这两个套接字选项。 以上三种技术都适用于输入和输出操作，不过我们依然期待可用于 $connect$ 技术，因为TCP内置的 $connect$ 超时时间相当长 ( 典型为 $75$ 秒 )。$select$ 可用来在 $connect$ 上设置超时的先决条件是相应套接字处于非阻塞模式，而那两个套接字选项对 $connect$ 并不适用。还要注意，前两个技术适用于任何描述符，而最后一个只适用于套接字描述符。&#xA;#include &amp;#34;unp.h&amp;#34; static void connect_alarm(int); int connect_timeo(int sockfd, const struct sockaddr *saptr, socklen_t salen, int nsec) { Sigfunc *sigfunc; int n; sigfunc = Signal(SIGALRM, connect_alarm); if (alarm(nsec) != 0) err_msg(&amp;#34;connect_timeo: alarm was already set&amp;#34;); if ((n = connect(sockfd, saptr, salen)) &amp;lt; 0) { close(sockfd); if (errno == EINTR) errno = ETIMEDOUT; } alarm(0); // turn off the alarm Signal(SIGALRM, sigfunc) // restore previous signal handler return n; } static void connect_alarm(int signo) { return; // just interrupt the connect() } 上述代码使用第一种方法，通过 $alarm$ 设置秒数，再通过信号处理函数中断 $connect$ 调用，同时关闭套接字。自定义的 $Signal$ 函数也会阻塞 $SA_-RESTART$ 信号。要注意，如果指定 $nsec$ 为一个大于 $75$ 的值，那么函数仍然会在 $75$ 秒时超时并返回。还要注意，虽然通过这种方式实现简单，但是在多线程程序中，正确使用信号是很困难的，所以建议只在未线程化或单线程程序中适用该技术。</description>
     </item>
-    
     <item>
       <title>Unix网络编程（6）：守护进程</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B6/</link>
       <pubDate>Wed, 09 Feb 2022 16:20:07 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B6/</guid>
-      <description>守护进程 ( $daemon$ ) 是在后台运行且不与任何控制终端关联的进程。Unix系统通常有很多守护进程在后台运行，执行不同的管理任务。守护进程没有控制终端通常源于它们由系统初始化脚本启动，然而守护进程也可能从某个终端由用户在shell提示符下输入命令行启动，这样的守护进程必须亲自脱离与控制终端的关联。
-1. syslogd守护进程 Unix系统中的 $syslogd$ 守护进程通常由某个系统初始化脚本启动，而且在系统工作期间一直运行。Linux系统的不同发行版会使用各自的实现，比如Ubuntu会使用 $rsyslog$ ，Arch使用 $journal$ 。源自 $Berkeley$ 的 $syslogd$ 实现在启动时执行以下步骤：
-读取配置文件。通常为 $/etc/syslog.conf$ 的配置文件指定本守护进程可能收取的各种日志消息应该如何处理。这些消息可能被添加到一个文件，或被写到指定用户的登录窗口，或被转发给另一个主机上的 $syslog$ 进程； 创建一个Unix域数据报套接字，给它捆绑路径名 $/var/run/log$ ； 创建一个UDP套接字，给他捆绑端口 $514$ ( $syslog$ 服务使用的端口 )； 打开路径名 $/dev/klog$ ，来自内核中的任何出错消息看着像是这个设备的输入。 此后 $syslog$ 一直在一个无限循环中运行：调用 $select$ 等待 $3$ 个描述符 ( 上述第 $2$ 、$3$ 和 $4$ 步 )，读入日志消息，按照配置文件进行处理。如果接收到 $SIGHUP$ 信号，则重新读取配置文件。
-通过创建一个Unix域数据报套接字，我们就可以从自己的守护进程中通过往 $syslogd$ 绑定的路径名发送我们的消息，从而达到发送日志消息的目的。另外，我们也可以创建一个UDP套接字 ( 较新的实现为防止遭受攻击，会禁止套接字的创建 )，通过往环回地址和端口 $514$ 发送我们的消息达到发送日志消息的目的。
-2. syslog函数 #include &amp;lt;syslog.h&amp;gt; void syslog(int priority, const char *message, .</description>
+      <description>守护进程 ( $daemon$ ) 是在后台运行且不与任何控制终端关联的进程。Unix系统通常有很多守护进程在后台运行，执行不同的管理任务。守护进程没有控制终端通常源于它们由系统初始化脚本启动，然而守护进程也可能从某个终端由用户在shell提示符下输入命令行启动，这样的守护进程必须亲自脱离与控制终端的关联。&#xA;1. syslogd守护进程 Unix系统中的 $syslogd$ 守护进程通常由某个系统初始化脚本启动，而且在系统工作期间一直运行。Linux系统的不同发行版会使用各自的实现，比如Ubuntu会使用 $rsyslog$ ，Arch使用 $journal$ 。源自 $Berkeley$ 的 $syslogd$ 实现在启动时执行以下步骤：&#xA;读取配置文件。通常为 $/etc/syslog.conf$ 的配置文件指定本守护进程可能收取的各种日志消息应该如何处理。这些消息可能被添加到一个文件，或被写到指定用户的登录窗口，或被转发给另一个主机上的 $syslog$ 进程； 创建一个Unix域数据报套接字，给它捆绑路径名 $/var/run/log$ ； 创建一个UDP套接字，给他捆绑端口 $514$ ( $syslog$ 服务使用的端口 )； 打开路径名 $/dev/klog$ ，来自内核中的任何出错消息看着像是这个设备的输入。 此后 $syslog$ 一直在一个无限循环中运行：调用 $select$ 等待 $3$ 个描述符 ( 上述第 $2$ 、$3$ 和 $4$ 步 )，读入日志消息，按照配置文件进行处理。如果接收到 $SIGHUP$ 信号，则重新读取配置文件。&#xA;通过创建一个Unix域数据报套接字，我们就可以从自己的守护进程中通过往 $syslogd$ 绑定的路径名发送我们的消息，从而达到发送日志消息的目的。另外，我们也可以创建一个UDP套接字 ( 较新的实现为防止遭受攻击，会禁止套接字的创建 )，通过往环回地址和端口 $514$ 发送我们的消息达到发送日志消息的目的。&#xA;2. syslog函数 #include &amp;lt;syslog.h&amp;gt; void syslog(int priority, const char *message, .</description>
     </item>
-    
     <item>
       <title>Unix网络编程（5）：DNS</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B5/</link>
       <pubDate>Mon, 07 Feb 2022 15:57:58 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B5/</guid>
-      <description>1. 域名系统 DNS中的条目称为资源记录 ( $resource$ $record$ , $RR$ )。
-$A$ ：$A$ 记录把一个主机名映射成一个 $32$ 位的IPv4地址； $AAAA$ ：四 $A$ ( $quad$ $A$ ) 记录把一个主机名映射成一个 $128$ 位的IPv6地址； $PTR$ ：指针记录 ( $pointer$ $record$ ) 把IP地址映射成主机名。对于IPv4地址，$32$ 地址的 $4$ 字节先反转顺序，每字节都转换成各自的十进制ASCII值后，再添加 $in-addr.arpa$ ；对于IPv6地址，$128$ 位地址中的 $32$ 个四位组先反转顺序，每个四位组都被转换成相应的十六进制ASCII值后，再添加 $ip6.arpa$ ； $MX$　：$MX$ 记录把一个主机指定作为给定主机的邮件交换器 ( $mail$ $exchanger$ )； $CNAME$ ：$CNAME$ 代表规范名字 ( $canonical$ $name$ )，常见用法是为常用的服务指派 ( 例如 $ftp$ 和 $www$ ) CNAME记录。如果人们使用这些服务名而不是真实的主机名，那么相应的服务挪到另一个主机时他们也不必知道。 每个组织往往运行一个或多个名字服务器 ( $name$ $server$ )，它们通常就是所谓的 $BIND$ ( $Berkeley$ $Internet$ $Name$ $Domain$ ) 程序。诸如我们编写的客户和服务器等应用程序通过调用称为解析器 ( $resolver$ ) 的函数库中的函数接触DNS服务器。解析器代码通常包含在一个系统函数库中，在构造应用程序时被链编 ( $link-editing$ ) 到应用程序中。解析器使用UDP向本地名字服务器发出查询，如果本地名字服务器不知道答案，通常就会使用UDP在整个因特网上查询其他名字服务器。如果答案太常，超出了UDP消息的承载能力，本地名字服务器和解析器会自动切换到TCP。</description>
+      <description>1. 域名系统 DNS中的条目称为资源记录 ( $resource$ $record$ , $RR$ )。&#xA;$A$ ：$A$ 记录把一个主机名映射成一个 $32$ 位的IPv4地址； $AAAA$ ：四 $A$ ( $quad$ $A$ ) 记录把一个主机名映射成一个 $128$ 位的IPv6地址； $PTR$ ：指针记录 ( $pointer$ $record$ ) 把IP地址映射成主机名。对于IPv4地址，$32$ 地址的 $4$ 字节先反转顺序，每字节都转换成各自的十进制ASCII值后，再添加 $in-addr.arpa$ ；对于IPv6地址，$128$ 位地址中的 $32$ 个四位组先反转顺序，每个四位组都被转换成相应的十六进制ASCII值后，再添加 $ip6.arpa$ ； $MX$　：$MX$ 记录把一个主机指定作为给定主机的邮件交换器 ( $mail$ $exchanger$ )； $CNAME$ ：$CNAME$ 代表规范名字 ( $canonical$ $name$ )，常见用法是为常用的服务指派 ( 例如 $ftp$ 和 $www$ ) CNAME记录。如果人们使用这些服务名而不是真实的主机名，那么相应的服务挪到另一个主机时他们也不必知道。 每个组织往往运行一个或多个名字服务器 ( $name$ $server$ )，它们通常就是所谓的 $BIND$ ( $Berkeley$ $Internet$ $Name$ $Domain$ ) 程序。诸如我们编写的客户和服务器等应用程序通过调用称为解析器 ( $resolver$ ) 的函数库中的函数接触DNS服务器。解析器代码通常包含在一个系统函数库中，在构造应用程序时被链编 ( $link-editing$ ) 到应用程序中。解析器使用UDP向本地名字服务器发出查询，如果本地名字服务器不知道答案，通常就会使用UDP在整个因特网上查询其他名字服务器。如果答案太常，超出了UDP消息的承载能力，本地名字服务器和解析器会自动切换到TCP。</description>
     </item>
-    
     <item>
       <title>Unix网络编程（4）：基本UDP/SCTP套接字编程</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B4/</link>
       <pubDate>Thu, 03 Feb 2022 16:08:32 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B4/</guid>
-      <description>1. 基本UDP套接字编程 1.1 recvfrom和sendto函数 $recvfrom$ 和 $sendto$ 类似于标准 $read$ 和 $write$ 函数，不过需要三个额外的参数。
-#include &amp;lt;sys/socket.h&amp;gt; ssize_t recvfrom(int sockfd, void *buff, size_t nbytes, int flags, struct sockaddr *from, socklen_t *addrlen); ssize_t sendto(int sockfd, const void *buff, size_t nbytes, int flags, const struct sockaddr *to, socklen_t addrlen); // 成功则返回读或写的字节数，出错返回-1 $sendto$ 的 $to$ 参数指向一个含有数据报接收者的协议地址的套接字地址结构，其大小由 $addrlen$ 指定。$recvfrom$ 的 $from$ 参数指向一个将由该参数在返回时填写数据报发送者的协议地址的套接字地址结构，其大小由 $addrlen$ 返回给调用者。写一个长度为 $0$ 的数据报是可行的。在UDP情况下，这回形成一个只包含一个IP首部和一个 $8$ 字节UDP首部而没有数据的IP数据报。这也意味着对于数据报协议，$recvfrom$ 返回 $0$ 值是可以接受的，并不像TCP一样代表对端连接关闭。如果 $recvfrom$ 的 $from$ 参数是一个空指针，那么相应的长度参数 $addrlen$ 也必须是一个空指针。</description>
+      <description>1. 基本UDP套接字编程 1.1 recvfrom和sendto函数 $recvfrom$ 和 $sendto$ 类似于标准 $read$ 和 $write$ 函数，不过需要三个额外的参数。&#xA;#include &amp;lt;sys/socket.h&amp;gt; ssize_t recvfrom(int sockfd, void *buff, size_t nbytes, int flags, struct sockaddr *from, socklen_t *addrlen); ssize_t sendto(int sockfd, const void *buff, size_t nbytes, int flags, const struct sockaddr *to, socklen_t addrlen); // 成功则返回读或写的字节数，出错返回-1 $sendto$ 的 $to$ 参数指向一个含有数据报接收者的协议地址的套接字地址结构，其大小由 $addrlen$ 指定。$recvfrom$ 的 $from$ 参数指向一个将由该参数在返回时填写数据报发送者的协议地址的套接字地址结构，其大小由 $addrlen$ 返回给调用者。写一个长度为 $0$ 的数据报是可行的。在UDP情况下，这回形成一个只包含一个IP首部和一个 $8$ 字节UDP首部而没有数据的IP数据报。这也意味着对于数据报协议，$recvfrom$ 返回 $0$ 值是可以接受的，并不像TCP一样代表对端连接关闭。如果 $recvfrom$ 的 $from$ 参数是一个空指针，那么相应的长度参数 $addrlen$ 也必须是一个空指针。</description>
     </item>
-    
     <item>
       <title>Unix网络编程（3）：I/O复用</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B3/</link>
       <pubDate>Wed, 02 Feb 2022 15:04:28 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B3/</guid>
-      <description>1. I/O模型 Unix下有 $5$ 种可用的I/O模型：阻塞式I/O、非阻塞式I/O、I/O复用、信号驱动式I/O和异步I/O。
-1.1 阻塞式I/O 最流行的I/O模型是阻塞式I/O ( $blocking$ $I/O$ ) 模型。默认情形下，所有的套接字都是阻塞的。
-1.2 非阻塞式I/O 进程把一个套接字设置成非阻塞式是在通知内核：当所请求的I/O操作非得把本进程置于休眠状态才能完成时，不要把本进程置于休眠状态，而是返回一个错误。
-当一个应用进程像这样对一个非阻塞描述符循环调用 $recvfrom$ 时，我们称之为轮询 ( $polling$ )。应用进程持续轮询内核，以查看某个操作是否就绪，这么做往往耗费大量CPU时间。不过这种模型偶尔也会遇到，通常是在专门提供某一种功能的系统中才有。
-1.3 I/O复用 通过I/O复用，我们可以调用 $select$ 或 $poll$ ，阻塞在这两个系统调用中的某一个之上，而不是阻塞在真正的I/O系统调用上。
-1.4 信号驱动式I/O 我们也可以使用信号，让内核在描述符就绪时发送 $SIGIO$ 信号通知我们。
-我们首先开启套接字的信号驱动I/O功能，并通过 $sigaction$ 系统调用安装一个信号处理函数。该系统调用立即返回，我们的进程继续工作。当数据报准备好被读取时，内核就为该进程产生一个 $SIGIO$ 信号。我们随后既可以在信号处理函数中调用 $recvfrom$ 读取数据报，并通知主循环数据已准备好待处理，也可以立即通知主循环，让它读取数据报。
-1.5 异步I/O 异步I/O ( $asynchronous$ $I/O$ ) 由POSIX规范定义。一般地说，这些函数的工作机制是：告知内核启动某个操作，并让内核在整个操作（包括将数据从内核复制到我们自己的缓冲区）完成后通知我们。这种模型与前一节介绍的信号驱动模型的主要区别在于：信号驱动式I/O是由内核通知我们何时可以启动一个I/O操作，异步I/O是由内核通知我们I/O操作何时完成。
-我们调用 $aio_-read$ 函数，给内核传递描述符、缓冲区指针、缓冲区大小和文件偏移，并告诉内核当整个操作完成时如何通知我们。该系统调用会立即返回，而且在等待I/O完成期间，我们的进程不被阻塞。
-2. select函数 $select$ 函数允许进程指示内核等待多个事件中的任何一个发生，并只在有一个或多个事件发生或经历一段指定时间后才唤醒。
-#include &amp;lt;sys/select.h&amp;gt; #include &amp;lt;sys/time.h&amp;gt; // 存在就绪描述符则返回其数目，超时返回0，出错返回-1 int select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset, const struct timeval *timeout); strcut timeval { long tv_sec; // seconds long tv_usec; // microseconds $timeval$ 参数有以下三种可能：</description>
+      <description>1. I/O模型 Unix下有 $5$ 种可用的I/O模型：阻塞式I/O、非阻塞式I/O、I/O复用、信号驱动式I/O和异步I/O。&#xA;1.1 阻塞式I/O 最流行的I/O模型是阻塞式I/O ( $blocking$ $I/O$ ) 模型。默认情形下，所有的套接字都是阻塞的。&#xA;1.2 非阻塞式I/O 进程把一个套接字设置成非阻塞式是在通知内核：当所请求的I/O操作非得把本进程置于休眠状态才能完成时，不要把本进程置于休眠状态，而是返回一个错误。&#xA;当一个应用进程像这样对一个非阻塞描述符循环调用 $recvfrom$ 时，我们称之为轮询 ( $polling$ )。应用进程持续轮询内核，以查看某个操作是否就绪，这么做往往耗费大量CPU时间。不过这种模型偶尔也会遇到，通常是在专门提供某一种功能的系统中才有。&#xA;1.3 I/O复用 通过I/O复用，我们可以调用 $select$ 或 $poll$ ，阻塞在这两个系统调用中的某一个之上，而不是阻塞在真正的I/O系统调用上。&#xA;1.4 信号驱动式I/O 我们也可以使用信号，让内核在描述符就绪时发送 $SIGIO$ 信号通知我们。&#xA;我们首先开启套接字的信号驱动I/O功能，并通过 $sigaction$ 系统调用安装一个信号处理函数。该系统调用立即返回，我们的进程继续工作。当数据报准备好被读取时，内核就为该进程产生一个 $SIGIO$ 信号。我们随后既可以在信号处理函数中调用 $recvfrom$ 读取数据报，并通知主循环数据已准备好待处理，也可以立即通知主循环，让它读取数据报。&#xA;1.5 异步I/O 异步I/O ( $asynchronous$ $I/O$ ) 由POSIX规范定义。一般地说，这些函数的工作机制是：告知内核启动某个操作，并让内核在整个操作（包括将数据从内核复制到我们自己的缓冲区）完成后通知我们。这种模型与前一节介绍的信号驱动模型的主要区别在于：信号驱动式I/O是由内核通知我们何时可以启动一个I/O操作，异步I/O是由内核通知我们I/O操作何时完成。&#xA;我们调用 $aio_-read$ 函数，给内核传递描述符、缓冲区指针、缓冲区大小和文件偏移，并告诉内核当整个操作完成时如何通知我们。该系统调用会立即返回，而且在等待I/O完成期间，我们的进程不被阻塞。&#xA;2. select函数 $select$ 函数允许进程指示内核等待多个事件中的任何一个发生，并只在有一个或多个事件发生或经历一段指定时间后才唤醒。&#xA;#include &amp;lt;sys/select.h&amp;gt; #include &amp;lt;sys/time.h&amp;gt; // 存在就绪描述符则返回其数目，超时返回0，出错返回-1 int select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset, const struct timeval *timeout); strcut timeval { long tv_sec; // seconds long tv_usec; // microseconds $timeval$ 参数有以下三种可能：</description>
     </item>
-    
     <item>
       <title>Unix网络编程（2）：基本TCP套接字编程</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B2/</link>
       <pubDate>Sat, 29 Jan 2022 18:38:32 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B2/</guid>
-      <description>1. 基本TCP套接字编程 1.1 socket函数 为了执行网络I/O，进程必须做的第一件事就是调用 $socket$ 函数。
-#include &amp;lt;sys/socket.h&amp;gt; // 成功返回套接字描述符，失败返回-1 int socket(int family, int type. int protocol); $family$ 为协议族，由于历史问题，一些实现中还存在以 $PF$ 开头的协议族，但基本等价；$type$ 指明套接字类型；$protocol$ 为某个协议类型常值。
-$family$ 说明 $AF_-INET$ IPv4协议 $AF_-INET6$ IPv6协议 $AF_-LOCAL$ Unix域协议 $AF_-ROUTE$ 路由套接字 $AF_-KEY$ 密钥套接字 $type$ 说明 $SOCK_-STREAM$ 字节流套接字 $SOCK_-DGRAM$ 数据报套接字 $SOCK_-SEQPACKET$ 有序分组套接字 $SOCK_-RAW$ 原始套接字 $protocol$ 说明 $IPPROTO_-TCP$ TCP传输协议 $IPPROTO_-UDP$ UDP传输协议 $IPPROTO_-SCTP$ SCTP传输协议 组合 $AF_-INET$ $AF_-INET6$ $AF_-LOCAL$ $AF_-ROUTE$ $AF_-KEY$ $SOCK_-STREAM$ TCP｜SCTP TCP｜SCTP 有效 $SOCK_-DGRAM$ UDP UDP 有效 $SOCK_-SEQPACKET$ SCTP SCTP 有效 $SOCK_-RAW$ IPv4 IPv6 有效 有效 1.</description>
+      <description>1. 基本TCP套接字编程 1.1 socket函数 为了执行网络I/O，进程必须做的第一件事就是调用 $socket$ 函数。&#xA;#include &amp;lt;sys/socket.h&amp;gt; // 成功返回套接字描述符，失败返回-1 int socket(int family, int type. int protocol); $family$ 为协议族，由于历史问题，一些实现中还存在以 $PF$ 开头的协议族，但基本等价；$type$ 指明套接字类型；$protocol$ 为某个协议类型常值。&#xA;$family$ 说明 $AF_-INET$ IPv4协议 $AF_-INET6$ IPv6协议 $AF_-LOCAL$ Unix域协议 $AF_-ROUTE$ 路由套接字 $AF_-KEY$ 密钥套接字 $type$ 说明 $SOCK_-STREAM$ 字节流套接字 $SOCK_-DGRAM$ 数据报套接字 $SOCK_-SEQPACKET$ 有序分组套接字 $SOCK_-RAW$ 原始套接字 $protocol$ 说明 $IPPROTO_-TCP$ TCP传输协议 $IPPROTO_-UDP$ UDP传输协议 $IPPROTO_-SCTP$ SCTP传输协议 组合 $AF_-INET$ $AF_-INET6$ $AF_-LOCAL$ $AF_-ROUTE$ $AF_-KEY$ $SOCK_-STREAM$ TCP｜SCTP TCP｜SCTP 有效 $SOCK_-DGRAM$ UDP UDP 有效 $SOCK_-SEQPACKET$ SCTP SCTP 有效 $SOCK_-RAW$ IPv4 IPv6 有效 有效 1.</description>
     </item>
-    
     <item>
       <title>Unix网络编程（1）：套接字编程简介</title>
       <link>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B1/</link>
       <pubDate>Wed, 26 Jan 2022 17:10:43 +0800</pubDate>
-      
       <guid>https://z217blog.cn/post/unix%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B1/</guid>
-      <description>1. 传输层 TCP建立一个连接需要三次握手：
-服务器准备接受外部连接，通常通过调用 $socket$ 、$bind$ 、$listen$ 这 $3$ 个函数完成，称为被动打开 ( $passive$ $open$ )； 客户端通过调用 $connect$ 发起主动打开 ( $active$ $open$ )，即发送一个SYN报文； 服务器确认 ( ACK ) 客户端的SYN，同时也发送一个SYN； 客户端确认服务器的SYN。 TCP终止一个连接需要四次挥手：
-某个进程调用 $close$ ，称为主动关闭 ( $active$ $close$ )，该端发送一个FIN报文； 对端接受FIN，执行被动关闭 ( $passive$ $close$ )。这个FIN由TCP确认，接收也作为一个文件结束符 ( $end-of-file$ , $EOF$ ) 传递给接收端应用程序 ( 放在已排队等候该应用进程接收的任何其他数据之后 )； 一段时间后，接收到EOF的进程调用 $close$ 关闭套接字，并发送一个FIN报文； 接收到FIN的原端TCP确认。 TCP状态转换图可参考TCP、UDP和DNS简介。
-SCTP建立一个连接的过程为：
-服务器准备接受外部连接，通常通过调用 $socket$ 、$bind$ 、$listen$ 这 $3$ 个函数完成，称为被动打开； 客户端通过调用 $connect$ 或者发送一个隐式打开该关联的消息进行主动打开，从而发送一个INIT消息，告知服务器客户端的IP地址清单、初始序列号、分组起始标记、客户端请求的外出流数目以及客户端能支持的外出流的数目； 服务器以一个INIT ACK消息确认，其中含有服务器的IP地址清单、初始序列号、起始标记、请求的外出流数目、支持的外出流数目和一个状态cookie，包含服务器用于确认本次连接有效所需的所有状态； 客户端以一个COOKIE ECHO消息回射状态cookie； 服务器以一个COOKIE ACK消息确认cookie正确，于是连接建立。 SCTP不像TCP那样允许”半关闭“的连接，而是当某一端关闭时，另一端必须停止发送新数据，在发送完所有队列中的数据后关闭。</description>
+      <description>1. 传输层 TCP建立一个连接需要三次握手：&#xA;服务器准备接受外部连接，通常通过调用 $socket$ 、$bind$ 、$listen$ 这 $3$ 个函数完成，称为被动打开 ( $passive$ $open$ )； 客户端通过调用 $connect$ 发起主动打开 ( $active$ $open$ )，即发送一个SYN报文； 服务器确认 ( ACK ) 客户端的SYN，同时也发送一个SYN； 客户端确认服务器的SYN。 TCP终止一个连接需要四次挥手：&#xA;某个进程调用 $close$ ，称为主动关闭 ( $active$ $close$ )，该端发送一个FIN报文； 对端接受FIN，执行被动关闭 ( $passive$ $close$ )。这个FIN由TCP确认，接收也作为一个文件结束符 ( $end-of-file$ , $EOF$ ) 传递给接收端应用程序 ( 放在已排队等候该应用进程接收的任何其他数据之后 )； 一段时间后，接收到EOF的进程调用 $close$ 关闭套接字，并发送一个FIN报文； 接收到FIN的原端TCP确认。 TCP状态转换图可参考TCP、UDP和DNS简介。&#xA;SCTP建立一个连接的过程为：&#xA;服务器准备接受外部连接，通常通过调用 $socket$ 、$bind$ 、$listen$ 这 $3$ 个函数完成，称为被动打开； 客户端通过调用 $connect$ 或者发送一个隐式打开该关联的消息进行主动打开，从而发送一个INIT消息，告知服务器客户端的IP地址清单、初始序列号、分组起始标记、客户端请求的外出流数目以及客户端能支持的外出流的数目； 服务器以一个INIT ACK消息确认，其中含有服务器的IP地址清单、初始序列号、起始标记、请求的外出流数目、支持的外出流数目和一个状态cookie，包含服务器用于确认本次连接有效所需的所有状态； 客户端以一个COOKIE ECHO消息回射状态cookie； 服务器以一个COOKIE ACK消息确认cookie正确，于是连接建立。 SCTP不像TCP那样允许”半关闭“的连接，而是当某一端关闭时，另一端必须停止发送新数据，在发送完所有队列中的数据后关闭。</description>
     </item>
-    
   </channel>
 </rss>
