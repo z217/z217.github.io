@@ -7,8 +7,15 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2024, z217 and the hugo authors, all rights reserved.</copyright>
-    <lastBuildDate>Tue, 23 Jan 2024 23:59:20 +0800</lastBuildDate>
+    <lastBuildDate>Thu, 25 Jan 2024 00:00:42 +0800</lastBuildDate>
     <atom:link href="https://z217blog.cn/post/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>C&#43;&#43;协程（2）：理解co_await</title>
+      <link>https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B2%E7%90%86%E8%A7%A3co_await/</link>
+      <pubDate>Thu, 25 Jan 2024 00:00:42 +0800</pubDate>
+      <guid>https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B2%E7%90%86%E8%A7%A3co_await/</guid>
+      <description>在之前的文章中，我介绍了函数和协程在高级表现的区别，但还没有讲到到C++协程标准的语法和语义。&#xA;C++协程标准提供的一个关键能力是暂停协程，并在之后恢复。这个机制是通过 $co_-await$ 提供的。&#xA;在揭开协程的神秘面纱前，我们需要理解 $co_-await$ 的工作方式，了解它是如何暂停和恢复协程的。在这篇文章中，我会解释 $co_-await$ 的机制，并介绍Awaitable与Awaiter的概念。&#xA;在这之前，作为背景，我想先简单回顾下协程标准。&#xA;协程标准带来了什么？ 三个关键字 $co_-await$ ，$co_-yield$ 和 $co_-return$ 一些 $std$::$experimental$ 命名空间的新类型： $coroutine_-handle$&amp;lt;$P$&amp;gt; $coroutine_-traits$&amp;lt;$Ts$&amp;hellip;&amp;gt; $suspend_-always$ $suspend_-never$ 一种允许库开发者与协程交互、客制化行为的机制 一个让异步代码更容易编写的语言能力 C++协程标准可以认为在语言层面提供了一个低级汇编语言协程。这些功能很难以一种安全的方式直接使用，主要是提供给库开发者来实现高级抽象，从而应用开发者可以安全使用。&#xA;之后的语言标准 ( 希望是C++20 ) 计划加入这些低级功能，同时让标准库提供一些包装了这些功能的高级类型，让应用开发者以更方便安全的方式使用。&#xA;编译器 &amp;lt;-&amp;gt; 库交互 有趣的是，协程标准并没有明确定义协程语义，包括协程如何把值返回给主调，$co_-return$ 如何处理返回值，如何处理传播到协程之外的异常，以及协程应该在哪个线程恢复。&#xA;相反的，它指定了一种可以让库代码客制化协程行为的机制，通过实现特定的接口类型。编译器使用库代码生成对应的调用。这种方式很像range模式，后者可以让库开发者通过定义 $begin\left(\right)$ / $end\left(\right)$ 和 $iterator$ 类型，来客制化代码。&#xA;协程的这种没有给机制定义特殊语义的方式，让它变成了一个强大的工具，允许库开发者实现各种类型的协程，以各种方式，出于各种目的。&#xA;例如，你可以实现一个异步生成单个值的协程，或者一个 $Lazy$ 生成值序列的协程，或者一个遇到 $nullopt$ 就提前退出的，简化 $optional$&amp;lt;$T$&amp;gt; 值的协程。&#xA;协程标准定义了两个接口：$Promise$ 和 $Awaitable$ 。&#xA;$Promise$ 接口指定了协程客制化行为的方法。库开发者可以通过该接口，实现当协程被调用时的行为，协程返回时的行为 ( 包括正常返回和抛出未处理异常 )，协程内使用 $co_-await$ 或者 $co_-yield$ 的行为。&#xA;$Awaitable$ 接口指定控制 $co_-await$ 语义的方法。当一个值是可以 $co_-await$ 的，代码就会被翻译成一系列的对 $awaitable$ 对象方法的调用。这个对象可以决定是否暂停当前协程，在暂停前执行一些逻辑用于后续的恢复，以及在恢复后生成 $co_-await$ 表达式的值。</description>
+    </item>
     <item>
       <title>C&#43;&#43;协程（1）：协程理论</title>
       <link>https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B1%E5%8D%8F%E7%A8%8B%E7%90%86%E8%AE%BA/</link>
