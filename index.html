@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN"><head>
-	<meta name="generator" content="Hugo 0.121.2">
+	<meta name="generator" content="Hugo 0.122.0">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="A personal blog of z217">
@@ -92,6 +92,24 @@
     
     
     <div class="list-item">
+        <a class="entry-title" href="https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B3%E7%90%86%E8%A7%A3promise%E7%B1%BB%E5%9E%8B/">C&#43;&#43;协程（3）：理解promise</a>
+        
+        
+        <p>无栈协程介绍，翻译自 https://lewissbaker.github.io/</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2024 Jan 27 16:19
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: C&amp;C&#43;&#43;
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
         <a class="entry-title" href="https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B2%E7%90%86%E8%A7%A3co_await/">C&#43;&#43;协程（2）：理解co_await</a>
         
         
@@ -163,24 +181,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="https://z217blog.cn/post/cpptemplates6/">C&#43;&#43; Templates（6）：模版实践与泛型库</a>
-        
-        
-        <p>《C&#43;&#43; Templates》读书笔记（6），个人翻译</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2022 Mar 14 15:57
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: C&amp;C&#43;&#43;
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -189,6 +189,440 @@
     <div class="section-title">μblog</div>
     <div class="posts">
         
+        
+        <div class="post">
+            
+            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B3%E7%90%86%E8%A7%A3promise%E7%B1%BB%E5%9E%8B/">C&#43;&#43;协程（3）：理解promise</a></h1>
+            <div class="post-content">
+                
+                
+                <p>        这篇文章是<a href="http://wg21.link/N4736"><code>C++</code>协程标准</a>系列的第三篇文章。<br>
+        之前的文章可以在这里查看：</p>
+<ul>
+<li><a href="https://z217blog.cn/post/c++%E5%8D%8F%E7%A8%8B1%E5%8D%8F%E7%A8%8B%E7%90%86%E8%AE%BA/">协程理论</a></li>
+<li><a href="https://z217blog.cn/post/c++%E5%8D%8F%E7%A8%8B2%E7%90%86%E8%A7%A3co_await/">理解co_await</a></li>
+</ul>
+<p>        在这篇文章我会讲解你写的代码是怎么被编译器编译成协程代码的，并且你可以通过定义自己的 $Promise$ 类型来自定义协程行为。</p>
+<h2 id="协程concepts">协程<code>concepts</code></h2>
+<p>        协程标准添加了三个新的关键字：$co_-await$，$co_-yield$ 和 $co_-return$ 。无论你在函数体里使用哪个，编译器都会把这个函数编译成协程，这个函数也不再是普通函数。<br>
+        编译器使用一些相当机械的转换来把你写的代码变成状态机，从而可以在函数内的特定点暂停，并在之后恢复执行。<br>
+        在之前的文章我描述了协程标准引入的两个接口中的第一个接口：$Awaitable$ 接口。而第二个接口, $Promise$ 接口则对于这种代码转换来说十分重要。<br>
+        $Promise$ 接口规定了自定义它所在协程行为的方法。库开发者可以用它定义协程被调用时的行为，协程返回的行为 ( 包括普通方式返回或者通过未处理异常返回 )，协程内使用 $co_-await$ 或者 $co_-yield$ 表达式的行为。</p>
+<h2 id="promise对象">Promise对象</h2>
+<p>        $Promise$ 对象通过实现协程执行过程中特定点的调用方法的形式来定义和控制对应协程的行为。</p>
+<blockquote>
+<p>在继续之前，我希望你能忘掉之前所有关于 $promise$ 是什么的记忆。在一些用例中，协程的 $promise$ 对象与 $std$::$future$ 的 $std$::$promise$ 的功能很相似，但在其他用例中，并不能拿来相比。可能把协程的 $promise$ 对象想象成一个用于控制协程行为、跟踪协程状态的“协程状态控制器”会更合适。</p>
+</blockquote>
+<p>        $promise$ 对象实例会跟随着每个协程函数调用时创建的协程帧一起被构造。<br>
+        编程器会在协程执行的关键点生成对 $promise$ 对象的特定方法的调用。<br>
+        在接下来的例子中，我们假设某个特定协程调用创建的 $promise$ 对象叫做 $promise$ 。<br>
+        当你编写一个协程函数体 &lt;$body$-$statement$&gt; ，函数体包含了某个协程关键字 ( $co_-return$，$co_-await$，$co_-yield$ )，那么协程体将转变为 ( 大致地 ) 如下形式：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">co_await</span> <span class="n">promise</span><span class="p">.</span><span class="n">initial_suspend</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="k">try</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="o">&lt;</span><span class="n">body</span><span class="o">-</span><span class="n">statement</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="k">catch</span> <span class="p">(...)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">promise</span><span class="p">.</span><span class="n">unhandled_exception</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="nl">FinalSuspend</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">  <span class="k">co_await</span> <span class="n">promise</span><span class="p">.</span><span class="n">final_suspend</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        一个协程函数被调用后，在执行之前会有一系列的准备步骤，这些步骤与常规的函数会有些不同。<br>
+        以下是一个步骤总结 ( 我会在接下来详细介绍每个步骤 )：</p>
+<ol>
+<li>通过 $operator$ $new$ ( 可选的 ) 分配协程帧。</li>
+<li>将所有函数参数拷贝到协程帧。</li>
+<li>调用 $promise$ 对象的构造函数，$promise$ 类型记为 $P$ 。</li>
+<li>调用 $promise.get_-return_-object\left(\right)$ 方法获取协程首次暂停时需要返回给主调的返回值，并保存为一个局部变量。</li>
+<li>$co_-await$ 调用 $promise.initial_-suspend\left(\right)$ 方法获取结果。</li>
+<li>当 $co_-await$ $promise.initial_-suspend\left(\right)$ 表达式恢复 ( 可能立即恢复或者异步恢复 ) 后，协程开始执行你编写的协程体语句。</li>
+</ol>
+<p>        当协程执行到 $co_-return$ 语句时，会进行一些额外的步骤：</p>
+<ol>
+<li>调用 $promise.return_-void\left(\right)$ 或者 $promise.return_-value$(&lt;$expr$&gt;)。</li>
+<li>以与创建顺序相反的顺序自动销毁所有具有自动生命周期的变量。</li>
+<li>$co_-await$ 调用 $promise.final_-suspend\left(\right)$ 获取结果。</li>
+</ol>
+<p>        如果执行因为一个未处理异常停止，那么会发生：</p>
+<ol>
+<li>在<code>catch</code>块中捕获异常，调用 $promise.unhandled_-exception\left(\right)$ 。</li>
+<li>$co_-await$ 调用 $promise.final_-suspend\left(\right)$ 获取结果。</li>
+</ol>
+<p>        一旦执行到协程体之外，协程帧就会被销毁。通过以下步骤销毁协程帧：</p>
+<ol>
+<li>调用 $promise$ 对象的析构函数。</li>
+<li>调用拷贝的函数参数的析构函数。</li>
+<li>调用 $operator$ $delete$ 释放协程帧的内存空间 ( 可选的 )。</li>
+<li>返回控制权给主调/恢复者。</li>
+</ol>
+<p>        当执行首次到达 $co_-await$ 表达式的 &lt;$return$-$to$-$caller$-$resumer$&gt; 点，或者协程没有到达任何 &lt;$return$-$to$-$caller$-$or$-$resumer$&gt; 点就完成时，协程要么被暂停，要么被销毁，然后之前 $promise.get_-return_-object\left(\right)$ 调用返回的结果就会被返回给协程的主调。</p>
+<h3 id="分配协程帧">分配协程帧</h3>
+<p>        首先，编译器生成一个对协程帧的 $operator$ $new$ 调用来分配内存。<br>
+        如果 $promise$ 类型 $P$，定义了一个特殊的 $operator$ $new$ ，那么就会调用它定义的，否则就调用全局的。<br>
+        这里有几个重要点需要注意：<br>
+        传给 $operator$ $new$ 的大小不是 $sizeof\left(P\right)$ ，而是整个编译过程中编译器计算出来的协程帧大小，包括了入参的数量和大小、$promise$ 对象的大小、局部变量的数量和大小，以及一些其他编译器相关的用来管理协程状态的空间。<br>
+        如果满足以下条件，编译器可以省掉对 $operator$ $new$ 的调用：</p>
+<ul>
+<li>协程帧的生命周期严格内嵌于主调。</li>
+<li>编译器可以在调用点知道协程帧需要的内存大小。</li>
+</ul>
+<p>        在这种情况下，编译器可以在主调的调用栈 ( 栈帧部分或者协程帧部分 ) 上分配协程帧的空间。<br>
+        协程标准没有定义什么情况下需要跳过分配，所以你需要在协程帧分配可能抛出 $std$::$bad_-alloc$ 异常的前提下编写代码。这意味着你不应该把一个协程函数声明成<code>noexcept</code>，除非你确定协程分配协程帧内存失败后会调用 $std$::$terminate\left(\right)$ 。<br>
+        然而，有一个后备方案可以处理协程帧分配失败。在不允许异常的环境下，例如集成场景或者高性能场景这种不能容忍异常开销的场景，这种方式十分必要。<br>
+        如果 $promise$ 类型提供了一个静态的 $P$::$get_-return_-object_-on_-allocation_-failure\left(\right)$ 成员函数，编译器会生成一个对 $operator$ $new$($size_-t$, $nothrow_-t$) 的重载调用。如果调用返回<code>nullptr</code>，那么协程会立即调用 $P$::$get_-return_-object_-on_-allocation_-failure\left(\right)$ 并把结果返回给主调，而不是抛出异常。</p>
+<h4 id="自定义协程帧内存分配">自定义协程帧内存分配</h4>
+<p>        你的 $promise$ 类型可以重载 $operator$ $new$ ，这样如果编译器需要分配协程帧内存，就会使用你定义的 $operator$ $new$ 而不是全局的 $operator$ $new$ 。<br>
+        例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">my_promise_type</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span><span class="o">*</span> <span class="k">operator</span> <span class="nf">new</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">size</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">void</span><span class="o">*</span> <span class="n">ptr</span> <span class="o">=</span> <span class="n">my_custom_allocate</span><span class="p">(</span><span class="n">size</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">ptr</span><span class="p">)</span> <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">bad_alloc</span><span class="p">{};</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">ptr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="k">operator</span> <span class="nf">delete</span><span class="p">(</span><span class="kt">void</span><span class="o">*</span> <span class="n">ptr</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">size</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">my_custom_free</span><span class="p">(</span><span class="n">ptr</span><span class="p">,</span> <span class="n">size</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="p">...</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        我知道你想问什么：“但是自定义 $allocator$ 呢?”。<br>
+        你也可以提供 $P$::$operator$ $new\left(\right)$ 的重载，接收额外的参数，如果能找到合适的重载，将使用协程函数参数的左值引用调用。这种方式可以用来 $hook$ $operator$ $new$ ，使其调用某个作为参数传递给协程函数的 $allocator$ 的 $allocate\left(\right)$ 方法。<br>
+        你需要做一些额外工作来在分配好的内存中拷贝一份 $allocator$ 的副本，这样才能在相应的 $operator$ $delete$ 调用中引用它，因为 $allocator$ 不会作为参数传递给的 $operator$ $delete$ 。这是因为入参会被存储在协程帧，所以他们有可能会在 $operator$ $delete$ 调用之前就被销毁了。<br>
+        例如，你可以实现 $operator$ $new$ 来给协程帧分配一些额外内存，并利用这个空间来存储 $allocator$，用于释放协程帧内存。<br>
+        例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">ALLOCATOR</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">my_promise_type</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">ARGS</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span><span class="o">*</span> <span class="k">operator</span> <span class="k">new</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">sz</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">allocator_arg_t</span><span class="p">,</span> <span class="n">ALLOCATOR</span><span class="o">&amp;</span> <span class="n">allocator</span><span class="p">,</span> <span class="n">ARGS</span><span class="o">&amp;</span><span class="p">...</span> <span class="n">args</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// Round up sz to next multiple of ALLOCATOR alignment
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">allocatorOffset</span> <span class="o">=</span>
+</span></span><span class="line"><span class="cl">      <span class="p">(</span><span class="n">sz</span> <span class="o">+</span> <span class="k">alignof</span><span class="p">(</span><span class="n">ALLOCATOR</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1u</span><span class="p">)</span> <span class="o">&amp;</span> <span class="o">~</span><span class="p">(</span><span class="k">alignof</span><span class="p">(</span><span class="n">ALLOCATOR</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1u</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="c1">// CAll onto allocator to allocate space for coroutine frame.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kt">void</span><span class="o">*</span> <span class="n">ptr</span> <span class="o">=</span> <span class="n">allocator</span><span class="p">.</span><span class="n">allocate</span><span class="p">(</span><span class="n">allocatorOffset</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">ALLOCATOR</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Take a copy of the allocator (assuming noexcept copy constructor here)
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">new</span> <span class="p">(((</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">ptr</span><span class="p">)</span> <span class="o">+</span> <span class="n">allocatorOffset</span><span class="p">)</span> <span class="n">ALLOCATOR</span><span class="p">(</span><span class="n">allocator</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">ptr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="k">operator</span> <span class="nf">delete</span><span class="p">(</span><span class="kt">void</span><span class="o">*</span> <span class="n">ptr</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">sz</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">allocatorOffset</span> <span class="o">=</span>
+</span></span><span class="line"><span class="cl">      <span class="p">(</span><span class="n">sz</span> <span class="o">+</span> <span class="k">alignof</span><span class="p">(</span><span class="n">ALLOCATOR</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1u</span><span class="p">)</span> <span class="o">&amp;</span> <span class="o">~</span><span class="p">(</span><span class="k">alignof</span><span class="p">(</span><span class="n">ALLOCATOR</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1u</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">ALLOCATOR</span><span class="o">&amp;</span> <span class="n">allocator</span> <span class="o">=</span> <span class="o">*</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">ALLOCATOR</span><span class="o">*&gt;</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">      <span class="p">((</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">ptr</span><span class="p">)</span> <span class="o">+</span> <span class="n">allocatorOffset</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Move allocator to local variable first so it isn&#39;t freeing its
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// own memory from underneath itself.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// Assuming allocator move-constructor is noexcept here.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">ALLOCATOR</span> <span class="n">allocatorCopy</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">allocator</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// But don&#39;t forget to destruct allocator object in coroutine frame
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">allocator</span><span class="p">.</span><span class="o">~</span><span class="n">ALLOCATOR</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Finally, free the memory using the allocator.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">allocatorFactory</span><span class="p">.</span><span class="n">deallocate</span><span class="p">(</span><span class="n">ptr</span><span class="p">,</span> <span class="n">allocatorOffset</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">ALLOCATOR</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        为了 $hook$ 成功，让自定义的 $my_-promise_-type$ 被协程使用，需要让 $std$::$allocator_-arg$ 作为第一个入参，这需要通过 $coroutine_-traits$ 类 ( 详细见后续的 $coroutine_-traits$ 章节 ) 来指定。<br>
+        例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">std</span><span class="o">::</span><span class="n">experimental</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">ALLOCATOR</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">ARGS</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="nc">coroutine_traits</span><span class="o">&lt;</span><span class="n">my_return_type</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">allocator_arg_t</span><span class="p">,</span> <span class="n">ALLOCATOR</span><span class="p">,</span> <span class="n">ARGS</span><span class="p">...</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">using</span> <span class="n">promise_type</span> <span class="o">=</span> <span class="n">my_promise_type</span><span class="o">&lt;</span><span class="n">ALLOCATOR</span><span class="o">&gt;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        注意，即使你自定义了协程的内存分配策略，编译器还是可以跳过你的内存分配过程。</p>
+<h3 id="拷贝参数到协程帧">拷贝参数到协程帧</h3>
+<p>        协程需要从原始主调中把所有传给协程的参数拷贝到协程帧，这样才能保证协程被暂停后，它们依然有效。<br>
+        如果参数是值传递的，那么这些参数将会通过移动构造函数拷贝到协程帧。<br>
+        如果参数以引用传递 ( 左值或者右值 )，那么只有引用会被拷贝到协程帧，而不是它们指向的值。<br>
+        注意如果类型的析构函数是默认的，并且在到达 &lt;$return$-$to$-$caller$-$or$-$resumer$&gt; 点后不再引用，编译器可以跳过析构该参数副本。<br>
+        在以引用方式传递参数给协程的过程中，存在几个陷阱，也因此你不能在协程生命周期中依赖引用。许多常见的用于普通函数的技术，例如完美转发和通用引用，用到协程上可能导致代码出现未定义行为。如果你想了解更多，Toby Allsopp 写了一篇关于这个主题的<a href="https://toby-allsopp.github.io/2017/04/22/coroutines-reference-params.html">好文章</a>。<br>
+        如果某个参数的拷贝/移动构造函数抛出了异常，那么已经构造好的参数的析构函数将被调用，协程帧会被释放，异常会传播给主调。</p>
+<h3 id="构造-promise-对象">构造 promise 对象</h3>
+<p>        一旦所有参数被拷贝到协程帧，协程会构造 $promise$ 对象。<br>
+        参数在 $promise$ 对象之前构造的原因是让 $promise$ 对象可以在构造函数中访问先前拷贝的参数。<br>
+        首先，编译器检查 $promise$ 构造函数是否存在接收每个拷贝的参数左值引用的重载函数，如果找到了这种函数，编译器会生成对这个构造函数的调用，如果没有找到，编译器会使用 $promise$ 类型的默认构造函数。<br>
+        注意 $promise$ 构造函数可以“看到”入参是一个对协程标准相对较新的改动，在 Jacksonville 2018 会议的<a href="http://wg21.link/N4723">N4723</a> 中被采纳，提案为<a href="http://wg21.link/P0914R1">P0914R1</a>。因此对于一些较老版本的<code>Clang</code>或者<code>MSVC</code>来说可能还不支持。<br>
+        如果 $promise$ 构造函数抛出了一个异常，那么入参的拷贝会析构，协程帧会在异常传播回给主调之前被释放。</p>
+<h3 id="获取返回对象">获取返回对象</h3>
+<p>        协程要对 $promise$ 对象做的第一件事是调用 $promise.get_-return_-object\left(\right)$ 获取返回对象。<br>
+        返回对象是协程函数初始暂停或者运行完成移交控制权后要返回给主调的值。<br>
+        你可以认为控制流是这样的 ( 大致的 )：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="c1">// Pretend there&#39;s a compiler-generated structure called &#39;coroutine_frame&#39;
+</span></span></span><span class="line"><span class="cl"><span class="c1">// thta holds all of the state needed for the coroutines. It&#39;s constructor
+</span></span></span><span class="line"><span class="cl"><span class="c1">// takes a copy of parameters and default-constructs a promise object.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">struct</span> <span class="nc">coroutine_frame</span> <span class="p">{</span> <span class="p">...</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">T</span> <span class="nf">some_corouine</span><span class="p">(</span><span class="n">P</span> <span class="n">param</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">auto</span><span class="o">*</span> <span class="n">f</span> <span class="o">=</span> <span class="k">new</span> <span class="n">coroutine_frame</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">P</span><span class="o">&gt;</span><span class="p">(</span><span class="n">param</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">auto</span> <span class="n">returnObject</span> <span class="o">=</span> <span class="n">f</span><span class="o">-&gt;</span><span class="n">promise</span><span class="p">.</span><span class="n">get_return_object</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="c1">// Start execution of the coroutine body by resuming it.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// This call will return when the coroutine gets to the first.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// suspend-point or when the coroutine runs to completion.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">coroutine_handle</span><span class="o">&lt;</span><span class="k">decltype</span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">promise</span><span class="p">)</span><span class="o">&gt;::</span><span class="n">from_promise</span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">promise</span><span class="p">).</span><span class="n">resume</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="c1">// Then the return object is returned to the caller.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">return</span> <span class="n">returnObject</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        注意我们需要在协程体之前获取返回对象，因为协程帧 ( 或者说 $promise$ 对象 ) 可能在 $coroutine_-handle$::$resume\left(\right)$ 调用返回前就被销毁，可能在当前线程销毁，也可能在其他线程，所以在协程体开始执行后调用 $get_-return_-object\left(\right)$ 是不安全的。</p>
+<h3 id="初始暂停点">初始暂停点</h3>
+<p>        协程帧初始化，获取返回对象之后，要做的下一件事是执行 $co_-await$ $promise.initial_-suspend\left(\right);$ 。<br>
+        这让 $promise$ 类型的开发者可以控制协程在执行编写好的协程体代码之前是否需要等待，或者立即执行协程体。<br>
+        如果协程在初始暂停点暂停，那么它可以在之后你选择的某个时间点对 $coroutine_-handle$ 调用 $resume\left(\right)$ 来恢复，或者调用 $destroy\left(\right)$ 销毁。<br>
+        $co_-await$ $promise.initial_-suspend\left(\right)$ 表达式的结果会被丢弃，所以实现 $awaiter$ 的 $await_-resume\left(\right)$ 函数实现应该返回<code>void</code>。<br>
+        注意这个语句是在<code>try/catch</code>块保护之外的 ( 如果你忘记了，可以往上翻翻再看下代码 )。这意味着 $co_-await$ $promise.initial_-suspend\left(\right)$ 抛出的异常等同于到达它的 &lt;$return$-$to$-$caller$-$or$-$resumer$&gt; 点，会在协程销毁调用栈和返回对象后，再抛回给主调。<br>
+        要明白如果你的返回对象是<code>RAII</code>，即会在协程帧被析构的时候销毁，那么你需要保证 $co_-await$ $promise.initial_-suspend\left(\right)$ 是<code>noexcept</code>的，这样才能避免 double-free。</p>
+<blockquote>
+<p>注意这里有个提案，希望调整语义，以便 $co_-await$ $promise.initial_-suspend\left(\right)$ 表达的全部或者部分位于<code>try/catch</code>块内，所以这里的明确语义可能会在最终确定前发生变化。</p>
+</blockquote>
+<p>        对于许多协程类型来说，$initial_-suspend\left(\right)$ 方法要么返回 $std$::$experimental$::$suspend_-always$ ( 如果操作懒开始 )，要么返回 $std$::$experimental$::$suspend_-never$ ( 如果操作立即开始 )。而它们都是<code>noexcept</code>的 $awaitable$ ，所以这通常不是问题。</p>
+<h3 id="返回给主调">返回给主调</h3>
+<p>        当协程函数达到首个 &lt;$return$-$to$-$caller$-$or$-$resumer$&gt; 点 ( 或者没有到达，但是协程执行完成 ) 时，通过 $get_-return_-object\left(\right)$ 获取的返回对象会返回给协程的主调。<br>
+        注意返回对象的类型并不需要与协程函数的返回类型相同。在必要的时候，返回对象可以是一个能够隐式转换为协程返回类型的类型。</p>
+<blockquote>
+<p>注意<code>Clang</code>的协程实现 ( 从$5.0$ 开始 ) 会在返回对象从协程调用返回后才会转换，而<code>MSVC</code>自从 2017 Update 3 开始会在 $get_-return_-object\left(\right)$ 调用之后立即转换。虽然协程标准没有显式给出预期行为，我相信<code>MSVC</code>有计划把它们的实现改成更像<code>Clang</code>的实现，因为这种实现允许一些<a href="https://github.com/toby-allsopp/coroutine_monad">有趣的用例</a>。</p>
+</blockquote>
+<h3 id="使用-co_return-从协程返回">使用 co_return 从协程返回</h3>
+<p>        当协程到达 $co_-return$ 语句，它会被翻译成一个 $promise.return_-void\left(\right)$ 调用或者 $promise.return_-value$(&lt;$expr$&gt;) 以及一个 $goto$ $FinalSuspend$ 调用。<br>
+        翻译规则如下：</p>
+<ul>
+<li>$co_-return$;
+<ul>
+<li>-&gt; $promise.return_-void\left(\right)$</li>
+</ul>
+</li>
+<li>$co_-return$ &lt;$expr$&gt;
+<ul>
+<li>-&gt; 如果 &lt;$expr$&gt; 类型为<code>void</code>，&lt;$expr$&gt;; $promise.return_-void\left(\right)$;</li>
+<li>-&gt; 如果 &lt;$expr$&gt; 类型不为<code>void</code>，$promise.return_-value$(&lt;$expr$&gt;);</li>
+</ul>
+</li>
+</ul>
+<p>        随后的 $goto$ $FinalSuspend;$ ，会在 $co_-await$ $promise.final_-suspend\left(\right)$ 之前触发所有自动生命周期的局部变量按照与构造顺序相反的顺序析构。<br>
+        注意如果协程函数体代码没有以 $co_-return$ 语句结束，会等同于以 $co_-return;$ 结束。在这个例子中，如果 $promise$ 类型没有 $return_-void\left(\right)$ 方法，那么行为会是未定义的。<br>
+        如果 &lt;$expr$&gt; 或者 $promise.return_-void\left(\right)$ 调用或者 $promise.return_-value\left(\right)$ 抛出了一个异常，那么异常仍然会传给 $promise.unhandled_-exception\left(\right)$ ( 见以下 )。</p>
+<h3 id="处理传播到协程体以外的异常">处理传播到协程体以外的异常</h3>
+<p>        如果一个异常传播到协程体之外，那么异常会被<code>catch</code>块捕获，并调用 $promise.unhandled_-exception\left(\right)$ 方法。<br>
+        这个方法典型实现是调用 $std$::$current_-exception\left(\right)$ 来捕获异常的副本，在后续抛出到其他上下文。<br>
+        其他可选实现是立即通过 $throw;$ 语句重新抛出异常，例如 <a href="https://github.com/facebook/folly/blob/4af3040b4c2192818a413bad35f7a6cc5846ed0b/folly/Optional.h#L587">$folly$::$Optional$</a>。然而，这么做会 ( 或者说很可能，见以下 ) 导致协程帧被立即销毁，并将异常传播回主调 / 恢复者。这可能会导致某些 $abstractions$ 出现问题，因为它们假设 / 要求对 $coroutine_-handle$::$resume\left(\right)$ 的调用是<code>noexcept</code>，所以你应该只在能够完全控制谁 / 什么调用 $resume\left(\right)$ 时使用这种方式。<br>
+        注意现在<a href="http://wg21.link/N4736">协程标准</a>在调用 $unhandled_-exception\left(\right)$ 时重新抛出异常 ( 或者在<code>try-catch</code>块之外抛出异常 ) 的预期行为描述<a href="https://github.com/GorNishanov/CoroutineWording/issues/17">并不是很清晰</a>。<br>
+        我现在对标准的解释是如果控制权离开了协程体，可以通过 $co_-await$ $promise.initial_-suspend\left(\right)$ 、$promise.unhandled_-exception\left(\right)$ 或者 $co_-await$ $promise.final_-suspend\left(\right)$ 把异常传播出去，也可以通过 $co_-await$ $promise.final_-suspend\left(\right)$ 调用同步结束协程执行。无论哪种方式，都会在返回给主调 / 恢复者前自动销毁协程帧。然而，这种解释也有问题。<br>
+        我希望在未来版本中能够细化并阐述清楚这种情况。不管如何，在那之前我不会从 $initial_-suspend\left(\right)$ 、$final_-suspend\left(\right)$ 或者 $unhandled_-exception\left(\right)$ 中抛出异常。敬请关注！</p>
+<h3 id="最终暂停点">最终暂停点</h3>
+<p>        一旦协程体执行离开了用户定义的部分后，结果会通过 $return_-void\left(\right)$ 、$return_-value\left(\right)$ 或者 $unhandled_-exception\left(\right)$ 调用捕获，所有局部变量被析构，在返还控制权给主调 / 恢复者之前，协程可以执行一些额外的逻辑。<br>
+        这时候协程执行的是 $co_-await$ $promise.final_-suspend\left(\right);$ 语句。<br>
+        它允许协程执行一些逻辑，比如生成结果，发出完成信号或者恢复一个任务。它也允许协程选择性地在协程完成、协程帧被销毁前立即暂停。<br>
+        注意 $resume\left(\right)$ 一个在 $final_-suspend$ 点暂停的协程是未定义行为。对于这种协程，你只能调用 $destroy\left(\right)$。<br>
+        根据 Gor Nishanov 的观点，这种限制的理由是它能减少一些协程的暂停状态，以及一些潜在的分支，让编译器可以做出更好的优化。<br>
+        注意协程也可以不在 $final_-suspend$ 点暂停，<strong>只是建议你设计一个会在这个点暂停的协程</strong>。因为这样可以强制你在协程外调用 $.destroy\left(\right)$ ( 通常通过<code>RAII</code>对象的析构函数调用 )，并且可以方便编译器确定协程帧的生命周期是否内嵌于主调，从更让编译器更有可能优化掉协程帧的内存分配。</p>
+<h3 id="编译器怎么选择-promise-类型">编译器怎么选择 promise 类型</h3>
+<p>        让我们看看编译器怎么决定协程使用的 $promise$ 类型。<br>
+        协程 $promise$ 对象的类型通过 $std$::$experimental$::$coroutine_-traits$ 类决定。<br>
+        如果你有一个协程函数签名如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">task</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">foo</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">x</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">flag</span><span class="p">);</span>
+</span></span></code></pre></div><p>        那么编译器会通过返回类型和参数类型作为 $coroutine_-traits$ 的模板参数来推导协程的 $promise$ 类型。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">typename</span> <span class="n">coroutine_traits</span><span class="o">&lt;</span><span class="n">task</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span> <span class="kt">bool</span><span class="o">&gt;::</span><span class="n">promise_type</span><span class="p">;</span>
+</span></span></code></pre></div><p>        如果函数是非静态成员函数，<code>class</code>类型会作为第二个模板参数传递给 $coroutine_-traits$。注意如果你的方法是右值引用重载的，那么第二个模板参数也会是右值引用。<br>
+        例如，如果你有以下方法：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">task</span><span class="o">&lt;</span><span class="kt">void</span><span class="o">&gt;</span> <span class="n">my_class</span><span class="o">::</span><span class="n">method1</span><span class="p">(</span><span class="kt">int</span> <span class="n">x</span><span class="p">)</span> <span class="k">const</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">task</span><span class="o">&lt;</span><span class="n">foo</span><span class="o">&gt;</span> <span class="n">my_class</span><span class="o">::</span><span class="n">method2</span><span class="p">()</span> <span class="o">&amp;&amp;</span><span class="p">;</span>
+</span></span></code></pre></div><p>        编译器会使用以下 $promise$ 类型：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="c1">// method1 promise type
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">typename</span> <span class="n">coroutine_traits</span><span class="o">&lt;</span><span class="n">task</span><span class="o">&lt;</span><span class="kt">void</span><span class="o">&gt;</span><span class="p">,</span> <span class="k">const</span> <span class="n">my_class</span><span class="o">&amp;</span><span class="p">,</span> <span class="kt">int</span><span class="o">&gt;::</span><span class="n">promise_type</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// method2 promise type
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">typename</span> <span class="n">coroutine_traits</span><span class="o">&lt;</span><span class="n">task</span><span class="o">&lt;</span><span class="n">foo</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">my_class</span><span class="o">&amp;&amp;&gt;::</span><span class="n">promise_type</span><span class="p">;</span>
+</span></span></code></pre></div><p>        $coroutine_-traits$ 模板会默认查找返回类型是否存在内嵌 $promise$ 类型，并使用其作为 $promise$ 类型，例如这样 ( 不过通过一些<code>SFINAE</code>魔法，如果 $RET$::$promise_-type$ 没有定义，那么 $promise$ 类型也是未定义的 )：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">std</span><span class="o">::</span><span class="n">experimental</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">RET</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">ARGS</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="nc">coroutine_traits</span><span class="o">&lt;</span><span class="n">RET</span><span class="p">,</span> <span class="n">ARGS</span><span class="p">...</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">using</span> <span class="n">promise_type</span> <span class="o">=</span> <span class="k">typename</span> <span class="n">RET</span><span class="o">::</span><span class="n">promise_type</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        所以对于你可以控制的协程返回类型，你可以在里面定义一个内嵌的 $promise$ 类型，让编译器直接使用作为协程的 $promise$ 对象。<br>
+        例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">task</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">using</span> <span class="n">promise_type</span> <span class="o">=</span> <span class="n">task_promise</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">...</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        然而，对于你无法控制的协程返回类型，你可以在不修改类型的前提下，通过指定 $coroutine_-traits$ 来控制 $promise$ 类型。<br>
+        例如，给一个返回 $std$::$optional$&lt;$T$&gt; 的协程定义 $promise$ 类型：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">std</span><span class="o">::</span><span class="n">experimental</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">ARGS</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="nc">coroutine_traits</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">ARGS</span><span class="p">...</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">using</span> <span class="n">promise_type</span> <span class="o">=</span> <span class="n">optional_promise</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h3 id="识别特定协程调用栈">识别特定协程调用栈</h3>
+<p>        当你调用一个协程函数时，协程帧会被创建。为了恢复协程或者销毁协程帧，你需要一些方法识别或者引用对应的协程帧。<br>
+        协程标准通过 $coroutine_-handle$ 类型提供了这个机制。<br>
+        类型接口 ( 大致的 ) 如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">std</span><span class="o">::</span><span class="n">experimental</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">Promise</span> <span class="o">=</span> <span class="kt">void</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="nc">coroutine_handle</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="c1">// Type-erased coroutine handle. Can refer to any kind of coroutine.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// Doesn&#39;t allow access to the promise object.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">template</span> <span class="o">&lt;&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="nc">coroutine_handle</span><span class="o">&lt;</span><span class="kt">void</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// Constructs to the null handle.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">constexpr</span> <span class="nf">coroutine_handle</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Convert to/from a void* for passing into C-style interop functions.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">constexpr</span> <span class="kt">void</span><span class="o">*</span> <span class="nf">address</span><span class="p">()</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">static</span> <span class="k">constexpr</span> <span class="n">coroutine_handle</span> <span class="nf">from_address</span><span class="p">(</span><span class="kt">void</span><span class="o">*</span> <span class="n">addr</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Query if the handle is non-null.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">constexpr</span> <span class="k">explicit</span> <span class="k">operator</span> <span class="nf">bool</span><span class="p">()</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Query if the coroutine is suspended at the final_suspend point.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// Undefined behavior if coroutine is not currently suspend.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kt">bool</span> <span class="nf">done</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Resume/Destroy the suspended coroutinie
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kt">void</span> <span class="nf">resume</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">void</span> <span class="nf">destroy</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="c1">// Coroutine handle for coroutines with a known promise type.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// Template argument must exactly match coroutine&#39;s promise type.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">Promise</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="nc">coroutine_handle</span> <span class="o">:</span> <span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">using</span> <span class="n">coroutine_handle</span><span class="o">&lt;&gt;::</span><span class="n">coroutine_handle</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">static</span> <span class="k">constexpr</span> <span class="n">coroutine_handle</span> <span class="nf">from_address</span><span class="p">(</span><span class="kt">void</span><span class="o">*</span> <span class="n">addr</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Access to the coroutine&#39;s promise object.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">Promise</span><span class="o">&amp;</span> <span class="n">promise</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// You can reconstruct the coroutine handle from the promise object.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">static</span> <span class="n">coroutine_handle</span> <span class="nf">from_promise</span><span class="p">(</span><span class="n">Promise</span><span class="o">&amp;</span> <span class="n">promise</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        你可以通过两种方式获取一个协程的 $coroutine_-handle$ ：</p>
+<ol>
+<li>$coroutine_-handle$ 会在 $co_-await$ 表达式中被传递给 $await_-suspend\left(\right)$ 。</li>
+<li>如果你有一个协程 $promise$ 对象的引用，你可以通过 $coroutine_-handle$&lt;$Promise$&gt;::$from_-promise\left(\right)$ 重新构造它的 $coroutine_-handle$ 。</li>
+</ol>
+<p>        挂起协程的 $coroutine_-handle$ 会在 $co_-await$ 表达式中，协程到达 &lt;$suspend$-$point$&gt; 被暂停后，传给 $awaiter$ 的 $await_-suspend\left(\right)$ 方法。你可以认为这个 $coroutine_-handle$ 代表 <a href="https://en.wikipedia.org/wiki/Continuation-passing_style">连续传递风格</a> ( $continuation-passing$ $style$ ) 调用协程的连续传递。<br>
+        注意 $coroutine_-handle$ <strong>不是</strong><code>RAII</code>对象。你必须手动调用 $.destroy\left(\right)$ 来销毁协程帧，释放资源。可以把它视为一个用于管理内存的 $void*$ 值。这么设计是出于性能原因：<code>RAII</code>会带来额外的开销，比如需要引用计数管理。<br>
+        你应该尝试使用更高级的支持协程<code>RAII</code>语义的类型，例如<a href="https://github.com/lewissbaker/cppcoro">cppcoro</a>提供的 ( 不要脸地打广告 )，或者编写一个你自己的更高级的类型，封装你协程类型的协程帧生命周期。</p>
+<h3 id="自定义-co_await-行为">自定义 co_await 行为</h3>
+<p>        $promise$ 类型可以自定义出现在协程体内的每个 $co_-await$ 表达式行为。<br>
+        通过简单地定义 $promise$ 类型的 $await_-transform\left(\right)$ 方法，编译器会把协程体里的每个 $co_-await$ &lt;$expr$&gt; 转换成 $co_-await$ $promise.await_-transform$(&lt;$expr$&gt;)。<br>
+        这里有一些重要且有用的用法：<br>
+        <strong>它能挂起一些非 $awaitable$ 类型。</strong><br>
+        例如，一个返回 $std$::$optional$&lt;$T$&gt; 类型的协程可能会重载 $promise$ 类型的 $await_-transform\left(\right)$ ，使用 $std$::$optional$&lt;$U$&gt; 并返回一个 $awaitable$ 类型，该类型会返回类型 $U$ 的值，或者在<code>nullopt</code>时暂停协程。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">optional_promise</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="p">...</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">U</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">auto</span> <span class="n">await_transform</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">U</span><span class="o">&gt;&amp;</span> <span class="n">value</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">class</span> <span class="nc">awaiter</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">U</span><span class="o">&gt;&amp;</span> <span class="n">value</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">      <span class="k">explicit</span> <span class="n">awaiter</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">U</span><span class="o">&gt;&amp;</span> <span class="n">x</span><span class="p">)</span> <span class="k">noexcept</span> <span class="o">:</span> <span class="n">value</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">      <span class="kt">bool</span> <span class="nf">await_ready</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{</span> <span class="k">return</span> <span class="n">value</span><span class="p">.</span><span class="n">has_value</span><span class="p">();</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">      <span class="kt">void</span> <span class="nf">await_suspend</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">experimental</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">      <span class="n">U</span><span class="o">&amp;</span> <span class="n">await_resume</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{</span> <span class="k">return</span> <span class="o">*</span><span class="n">value</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">};</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">awaiter</span><span class="p">{</span> <span class="n">value</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        <strong>它可以让你通过删除 $await_-transform$ 方法来禁止挂起一个特定类型。</strong><br>
+        例如，一个 $std$::$generator$&lt;$T$&gt; 返回类型的 $promise$ 类型可能会声明一个已删除的 $await_-transform\left(\right)$ 且接收所有类型的模板成员函数。这基本上禁止了所有在协程内的 $co_-await$ 调用。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">generator_promise</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="p">...</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="c1">// Disable any use of co_await within this type of coroutine.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">U</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">experimental</span><span class="o">::</span><span class="n">suspend_never</span> <span class="n">await_transform</span><span class="p">(</span><span class="n">U</span><span class="o">&amp;&amp;</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        <strong>它可以适配和改变一般 $awaitable$ 值的行为。</strong><br>
+        例如，你可以定义一个协程类型，通过把 $awaitable$ 包装在 $resume_-on\left(\right)$ 操作中 ( 参考 $cppcoro$::$resume_-on\left(\right)$ )，保证协程始终在关联的 $executor$ 上的 $co_-await$ 表达式中恢复。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="k">typename</span> <span class="n">Executor</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">executor_task_promise</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Executor</span> <span class="n">executor</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">Awaitable</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">auto</span> <span class="n">await_transform</span><span class="p">(</span><span class="n">Awaitable</span><span class="o">&amp;&amp;</span> <span class="n">awaitable</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">using</span> <span class="n">cppcoro</span><span class="o">::</span><span class="n">resume_on</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nf">resume_on</span><span class="p">(</span><span class="k">this</span><span class="o">-&gt;</span><span class="n">executor</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">Awaitable</span><span class="o">&gt;</span><span class="p">(</span><span class="n">awaitable</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        作为 $await_-transform\left(\right)$ 介绍的最后一句话，要注意的是，如果 $promise$ 类型定义了 $await_-transform\left(\right)$ 成员，编译器就会把所有 $co_-await$ 替换成 $promise.await_-transform\left(\right)$ 调用。这意味着如果你想要只给某些类型定制 $co_-await$ 行为，你也需要重载默认的只转发参数的 $await_-transform\left(\right)$ 实现。</p>
+<h3 id="自定义-co_yield-行为">自定义 co_yield 行为</h3>
+<p>        最后一个你可以通过 $promise$ 类型自定义行为的是 $co_-yield$ 关键字。<br>
+        如果 $co_-yield$ 关键字在协程内出现，编译器会把表达式 $co_-yield$ &lt;$expr$&gt; 翻译成 $co_-await$ $promise.yield_-value$(&lt;$expr$&gt;) 。因此 $co_-yield$ 的行为可以通过定义一个或多个 $promise$ 类型的 $yield_-value\left(\right)$ 方法定制。<br>
+        注意，不像 $await_-transform$ ，如果 $promise$ 类型没有定义 $yield_-value\left(\right)$ 方法，$co_-yield$ 没有默认行为。所以如果需要禁止 $co_-await$ 表达式，$promise$ 类型需要显式删除 $await_-transform\left(\right)$ 方法，但是 $co_-yield$ 则不用。<br>
+        一种典型的 $promise$ 类型的 $yield_-value\left(\right)$ 方法实现是 $generator$&lt;$T$&gt; 类型：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">generator_promise</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">T</span><span class="o">*</span> <span class="n">valuePtr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="p">...</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">experimental</span><span class="o">::</span><span class="n">suspend_always</span> <span class="n">yield_value</span><span class="p">(</span><span class="n">T</span><span class="o">&amp;</span> <span class="n">value</span><span class="p">)</span> <span class="k">noexcept</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// Stash the address of the yielded value and then return an awaitable
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// that will cause the coroutine to suspend at the co_yield expression.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// Execution will then return from the call to coroutine_handle&lt;&gt;::resume()
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// inside either generator&lt;T&gt;::begin() or generator&lt;T&gt;::iterator::operator++().
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">valuePtr</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">addressof</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{};</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><h2 id="总结">总结</h2>
+<p>        在这篇文章中，我依次介绍了编译器将函数编译成协程时的每个转换。<br>
+        希望这篇能够帮你理解怎么通过定义自己的 $promise$ 类型的方式来定制不同类型的协程行为。协程机制中有许多可以变动的部分，所以有许多种自定义行为的方式。<br>
+        然而，编译器有一个更重要的转换我还没讲——把协程体转换成状态机。不过要是讲这块的话，这篇文章就太长了，所以我把它放到了下一篇文章。请保持关注！</p>
+
+            </div>
+            <div class="meta post-footer">
+                <span>2024 Jan 27 16:19</span>
+                <a href="https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B3%E7%90%86%E8%A7%A3promise%E7%B1%BB%E5%9E%8B/"><i class="fas fa-link"></i> link</a>
+            </div>
+        </div>
         
         <div class="post">
             
@@ -434,7 +868,7 @@
 </span></span><span class="line"><span class="cl">  <span class="kt">bool</span> <span class="nf">is_set</span><span class="p">()</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="nc">awaiter</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">  <span class="n">awaiter</span> <span class="k">operator</span> <span class="nf">co_awaiter</span><span class="p">()</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">awaiter</span> <span class="k">operator</span> <span class="nf">co_await</span><span class="p">()</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">set</span><span class="p">()</span> <span class="k">noexcept</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">reset</span><span class="p">()</span> <span class="k">noexcept</span><span class="p">;</span>
@@ -466,8 +900,9 @@
 </span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">await_resume</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{};</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="k">friend</span> <span class="k">class</span> <span class="nc">async_manual_reset_event</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">const</span> <span class="n">async_manual_reset_event</span><span class="o">&amp;&amp;</span> <span class="n">m_event</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">const</span> <span class="n">async_manual_reset_event</span><span class="o">&amp;</span> <span class="n">m_event</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">experimental</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">m_awaitingCoroutine</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">awaiter</span><span class="o">*</span> <span class="n">m_next</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="p">};</span>
@@ -930,174 +1365,6 @@
             <div class="meta post-footer">
                 <span>2022 Nov 13 16:18</span>
                 <a href="https://z217blog.cn/post/%E5%88%86%E5%B8%83%E5%BC%8F%E6%95%B0%E6%8D%AE%E7%B3%BB%E7%BB%9F%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95/"><i class="fas fa-link"></i> link</a>
-            </div>
-        </div>
-        
-        <div class="post">
-            
-            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/%E5%88%86%E5%B8%83%E5%BC%8F%E6%95%B0%E6%8D%AE%E7%B3%BB%E7%BB%9F%E4%B8%BB%E4%BB%8E%E8%8A%82%E7%82%B9/">分布式数据系统：主从节点</a></h1>
-            <div class="post-content">
-                
-                
-                <h2 id="1-主从模式">1. 主从模式</h2>
-<h3 id="11-同步复制">1.1 同步复制</h3>
-<p>        对于关系型数据库，同步或者异步通常是一个可选项，而其他系统可能是硬性指定二选一。<br>
-        同步复制的优点是：一旦向用户确认，从节点可以保证已经完成了与主节点的同步，数据已经处于最新版本。如果主节点发生故障，总是可以确保之后继续访问从节点的数据一定是最新的。缺点是：如果同步的从节点无法确认成功，整个写入就不能成功，主节点会阻塞之后的所有写操作，直到同步副本确认。由于该缺点的存在，把所有从节点都配置为同步复制有些不切实际。在实践中，如果数据库启用了同步复制，通常意味着其中某个从节点是同步的，其他从节点则是异步的。如果同步的从节点不可用或者性能下降，则将另一个从节点升级为同步。这样可以保证至少有两个节点拥有最新的数据，这种配置也被称为<strong>半同步</strong>。<br>
-        在主从模式下，如果要提高读性能，需要添加更多的从节点。但是，这种方式实际上只能用于异步模式，因为随着从节点的增加，全同步模式需要同步的从节点数量也会增加，任何单节点的故障或者网络中断都会导致整个集群无法写入，节点的增加也会提高故障机率，所以全同步模式在实践中是非常不可靠的。</p>
-<h3 id="12-异步复制">1.2 异步复制</h3>
-<p>        主从复制通常会被配置为全异步模式。此时，如果主节点失败且不可恢复，则所有尚未同步的从节点的写请求都会丢失，即使已经向客户端确认了写操作完成，仍然无法保证数据的持久化。全异步模式的优点是，不管从节点的数据多么滞后，总是可以继续响应写请求，具有较高吞吐性。异步模式听起来很不靠谱，但是却被广泛使用，特别是那些从节点数据巨大，或者分布于广域地理环境的情况。<br>
-        异步模式下节点的数据同步可能存在滞后，意味着对主节点和从节点同时发起相同的查询，返回的结果可能是不一致的。但是，这种不一致只是暂时的状态，在不写数据库的情况下，从节点最终会与主节点的数据保持一致，这种效应也被称为<strong>最终一致性</strong>。<br>
-        理论上，复制的滞后并没有上限。正常情况下，这个延迟可能不到 $1s$ ，实践中通常不会有太大影响。但是，如果系统的性能抵达上限，或者存在网络问题，延迟可能会达到几秒甚至几分钟。</p>
-<h4 id="121-读写一致性">1.2.1 读写一致性</h4>
-<p>        许多应用让用户提交数据，并在之后查询这些数据。用户向主节点提交数据后，之后的查询可能是在从节点上，在大多数情况下，这是个很合适的方案。然而，异步模式下，同步可能存在滞后，意味着，返回的数据是旧数据，在用户看来，代表他刚刚提交的数据丢了。<br>
-        这种情况，我们需要<strong>读写一致性</strong>，或者叫<em><strong>写后读一致性</strong></em>。该机制保证，如果用户重新加载页面，总是能看到最近提交的更新。有几种方式可以实现读写一致性：</p>
-<ul>
-<li>如果用户访问可能会被修改的内容，从主节点读取。这种方式要球一些方法在执行实际查询前，就知道内容是否改变。比如，社交网络上的用户信息通常只能由所有者编辑，因此，可以让用户总是从主节点读取自己的用户信息，从节点读其他人的用户信息；</li>
-<li>如果应用的大部分内容都可以被所有用户修改，这种方式就不太有效了。此时需要其他方式来判断，比如跟踪更新时间，在更新后的一分钟内，总是从主节点读取；或者监控从节点的复制滞后程度，避免从滞后超过一分钟的从节点读取数据；</li>
-<li>客户端记录最近更新的时间戳，附带在请求中，节点可以通过该时间戳确保返回该时间戳之后的更新，如果无法返回，交由另外一个节点处理。时间戳可以是逻辑时间戳 ( 比如日志序列号 ) 或者实际系统时间；</li>
-<li>如果副本分布在多个数据中心，这时情况会比较复杂，应当将请求路由到主节点所在的数据中心，即使该数据中心可能离用户距离很远。</li>
-</ul>
-<p>        如果同一用户从多端访问 ( 比如<code>Web</code>端和移动端 )，情况就更加复杂了，不仅要提供跨设备的读写一致性，还有新问题：</p>
-<ul>
-<li>时间戳方式难以实现，因为一台设备并不知道另一台设备的操作，如果需要实现时间戳方式，元数据需要做到全局共享；</li>
-<li>如果副本分布在多数据中心，无法保证来自不同设备的连接路由到同一个数据中心。</li>
-</ul>
-<h4 id="122-单调读">1.2.2 单调读</h4>
-<p>        假定用户发起多次读取，读请求可能会被路由到不同节点，则可能会出现请求返回不同结果的情况。<strong>单调读</strong>一致性可以确保不会发生这种异常。单调读一致性比强一致性弱，但是比最终一致性强。读取数据时，单调读保证同一个用户一次发起的多次读取不会看到回滚 ( 数据不一致 ) 现象。一种实现单调读的方式是：确保每个用户总是固定读同一个节点，例如基于用户<code>ID</code>哈希。</p>
-<h4 id="123-前缀一致读">1.2.3 前缀一致读</h4>
-<p>        用户发起两个请求，后一个请求的内容依赖于前一个请求，比如用户先写入 $1$ ，再递增为 $2$ 。从用户的角度，这个顺序没有问题。但是在其他观察者的角度，可能会存在逻辑问题，比如由于网络延迟，观察者先观察到后一个请求，这时顺序就变成了用户先写入 $2$ ，再写入 $1$ 。为了防止这种异常，需要引入<strong>前缀一致性</strong>，即对于一系列按照某个顺序发起的写请求，读取的时候也应该按照这个顺序。<br>
-        这个问题是存在于分区数据库的一个特殊问题。如果数据库总是以相同的顺序写入，那么读取的时候看到的会是一致的序列。但是，分区数据库的不同分区之间是独立运行的，所以没有一个全局的写入顺序，导致用户读取的时候，会读到一部分新值和一部分旧值。一种解决方案是：将所有具有因果关系的写入都交给同一个分区完成，但是会导致效率大打折扣。</p>
-<h3 id="13-节点失效">1.3 节点失效</h3>
-<h4 id="131-从节点失效">1.3.1 从节点失效</h4>
-<p>        从节点的磁盘上保存了数据变更日志，如果从节点崩溃，或者与主节点之间发生暂时性的网络中断，可以通过该日志获取故障前处理的最后一个事务，向主节点请求该事务之后的中断期内所有数据变更，将其应用到本地即可，之后就可以像正常情况一样持续接收来自主节点的数据流变化。</p>
-<h4 id="132-主节点失效">1.3.2 主节点失效</h4>
-<p>        主节点失效，则需要选择某个从节点，将其提升为主节点。同时，客户端也要将之后的写请求发送给新的主节点。故障切换可以是手动的，也可以是自动的，自动切换的步骤如下：</p>
-<ol>
-<li>确认主节点失效。主节点可能出于多种原因失效，比如系统崩溃、停电、网络中断等，并没有什么办法可以检测出失效原因，所以大多数系统都采用了超时机制判断。节点间会持续地互相发送心跳消息，如果发现某个节点在一段时间 ( 比如 $30s$ ) 内都没有响应，就认为该节点已经失效；</li>
-<li>选举新的主节点。新的主节点可以通过一种共识算法来选举，或者由控制节点指定。候选节点最好是与主节点之间数据差异最小的，从而最小化数据丢失的风险；</li>
-<li>重新配置系统使得新主节点生效。客户端需要将写请求发送给新的主节点，如果原来的主节点之后重新上线，需要将其降级为从节点，并认可新的主节点。</li>
-</ol>
-<p>        切换过程中可能存在很多变数：</p>
-<ul>
-<li>如果使用异步复制，新的主节点相比原主节点的数据存在滞后，在选举完成后，原主节点又很快恢复并加入集群，接下来的写操作要怎么处理？新的主节点可能会收到冲突的写请求，因为原主节点并没有意识到发生了主节点切换，仍然会尝试同步其他从节点。一种常见的解决方案是，直接丢弃这些冲突的写请求，虽然这会违背数据更新持久化的承诺；</li>
-<li>如果有其他依赖于数据库的组件在一起协同使用，丢弃数据的方案就很危险。例如，在<code>GitHub</code>的一个事故中，主节点在未完全同步的情况下失效，新主节点被选举，由于存在滞后，原主节点已经分配出去，存储在<code>Redis</code>中的自增主键，被新主节点再次使用，导致了<code>MySQL</code>与<code>Redis</code>之间的数据不一致；</li>
-<li>某些情况下，可能会发生两个节点都认为自己是主节点的情况，称为<strong>脑裂</strong>。脑裂非常危险，它可能会导致两个主节点同时接收写请求，并且没有很好的解决数据冲突，导致数据被丢失或者被破坏。有些系统会通过强制关闭其中一个节点的方式，来解决脑裂问题。然而，如果设计或者实现考虑不周，也是有可能出现两个节点都被关闭的情况；</li>
-<li>如果设置超时时间？超时时间越厂，确认主节点失效的时间也就越长，意味着总体的恢复时间就越长。例如，突发的负载峰值会导致节点的响应时间变长甚至超时，或者由于网络故障导致延迟增加，如果这时系统已经处于高负载情况，或者网络严重拥堵的情况，不必要的切换只会使情况更糟。</li>
-</ul>
-<h3 id="14-日志">1.4 日志</h3>
-<h4 id="141-语句复制">1.4.1 语句复制</h4>
-<p>        主节点记录执行的写请求语句，将该操作语句作为日志，发送给从节点。在关系型数据库中，意味着发送 $INSERT$ 、$UPDATE$ 等语句，从节点分析并执行这些语句，像来自客户端那样。基于语句复制存在一些不适用场景：</p>
-<ul>
-<li>调用非确定性函数的语句，比如 $NOW(\ )$ 或者 $RAND(\ )$ 函数，这会导致在不同副本产生不一样的值；</li>
-<li>依赖于自增列，或者现有数据的语句，这意味着所有副本必须按照完全相同的顺序执行，否则会产生不同的结果。进而，如果存在多个并发事务，也会影响事务之间的执行；</li>
-<li>存在副作用的语句（如触发器、存储过程、用户定义函数等），可能会在不同副本上产生不同副作用。</li>
-</ul>
-<p>        这些问题可以采取某些措施来解决，比如主节点记录操作语句时将非确定性函数替换为确定结果。遗憾的是，存在太多边界条件，因此基于语句的复制通常不是首选。</p>
-<h4 id="142-wal">1.4.2 <code>WAL</code></h4>
-<p>        通常，数据库的每个写操作，都会以追加形式写入<code>WAL</code>日志中，可以使用完全相同的日志在另一个节点上构建副本，即主节点不仅将<code>WAL</code>日志写入磁盘，还会通过网络发送给从节点。<br>
-        基于<code>WAL</code>复制的缺点是日志描述的数据结果非常底层，比如关系型数据库，<code>WAL</code>会记录磁盘块的哪些字节发生改变，以及其他细节等，从而与具体的存储方案高度耦合，如果数据的存储格式发生了改变，之前的同步方式也会失效。如果复制协议允许从节点的软件版本比主节点更新，那么可以实现数据库软件的不停机升级；相反，如果要求版本严格一致，那么升级就只能以停机为代价。</p>
-<h4 id="143-行复制">1.4.3 行复制</h4>
-<p>        基于行的复制将复制和存储引擎分离，复制与存储引擎采用不同的日志，这时复制日志称为逻辑日志。</p>
-<ul>
-<li>对于行插入，日志包含所有相关列的新值；</li>
-<li>对于行删除，日志应该以某种方式标识已删除的行 ( 通常是主键 )；</li>
-<li>对于行更新，日志应该以某种方式标识被更新的行，以及被更新列的新值。</li>
-</ul>
-<p>        如果一个事务涉及多行数据修改，就会产生多条行日志，并在之后跟着一条记录，指出该事务已经提交。<code>MySQL</code>的<code>binlog</code>支持该种方式。由于逻辑日志与存储引擎解耦，因此数据库存储可以向后兼容，主从节点可以基于不同版本的软件，甚至是不同存储引擎运行。<br>
-        对于外部应用，逻辑日志也更容易被解析。解析逻辑日志也被称为变更数据捕获。</p>
-<h4 id="144-触发器">1.4.4 触发器</h4>
-<p>        在某些时候，我们可能需要一种具有更高灵活性的复制方式，比如只复制一部分数据，或者从一个数据库复制到另一种数据库，或者指定冲突解决逻辑等，这种情况下，可以借助许多关系数据库都支持的功能：触发器和存储过程。触发器支持注册自己的应用层代码，当数据库系统发生数据改变时，自动执行这些代码。基于触发器的复制通常具有比其他方式更高的开销，也更容易出错。</p>
-<h2 id="2-多主模式">2. 多主模式</h2>
-<p>        目前为止，我们只考虑了单主节点的主从复制架构，这也是较为常见的方式。但是，也存在一些其他方式。主从复制的缺点很明显：只存在一个主节点，所有写入都必须经过主节点。如果存在某种原因，比如网络中断等，导致主节点无法连接，那么整个集群的写入都会受到影响。</p>
-<h3 id="21-多主节点">2.1 多主节点</h3>
-<p>        多主节点是一种对主从复制模型的扩展，允许配置多个主节点，每个主节点都可以接收写操作，并将数据更改转发到其他节点。这样，每个主节点既扮演主节点，也扮演其他主节点的从节点。<br>
-        多主节点存在以下适用场景：</p>
-<ul>
-<li>多数据中心：为了容忍数据中心级别的故障，或者在地理上更接近用户，可以把数据库的副本横跨多个数据中心。在常规的主从复制模式中，主节点只能放在其中一个数据中心，而多主节点允许在每个数据中心都配置一个主节点。这样每个写操作都可以在本地数据中心内快速响应，并且，同数据中心之间的网络性能和稳定性通常会更好，意味着用户的体验也会更好。但是这种情况也要考虑用户同时修改相同数据的情况，必须解决潜在的写冲突；</li>
-<li>离线客户端操作：如果应用需要在网络断开后继续工作，那么应当在设备提供一个充当主节点的本地数据库，所有设备之间采用异步方式同步副本，滞后时间可能是几小时或者数天。从架构层面来看，这基本上等同于数据中心之间的多主复制，但是数据中心的概念缩小到了某个具体设备上，并且网络连接十分不可靠；</li>
-<li>协作编辑：实时协作编辑应用允许多个用户同时编辑文档，虽然这不能完全等价于数据库复制，但是在很多方面具有相似性。用户编辑文档时需要将修改立即应用到本地副本，再通过异步方式同步到服务器，以及一起编辑文档的其他用户。要确保不会发生编辑冲突，应用程序需要将文档锁定，再进行编辑。这也意味着一个用户要编译时，必须先等另一个用户提交修改并释放锁。为了加快编辑效率，锁的粒度应该很小，单个按键甚至可以是全程无锁的。</li>
-</ul>
-<h3 id="22-写冲突">2.2 写冲突</h3>
-<p>        多主复制的最大问题是存在写冲突。</p>
-<h4 id="221-同步与异步检测">2.2.1 同步与异步检测</h4>
-<p>        如果是主从复制，发生冲突时，第二个写请求会被阻塞，直到第一个完成，或者被中止。在多主节点模式下，这两个写请求都会成功，并且只能在之后的异步检测时才能发现冲突。理论上，同步检测冲突也是可行的，但是需要写请求等待所有副本完成同步，反而会失去多主节点的优势。</p>
-<h4 id="222-冲突避免">2.2.2 冲突避免</h4>
-<p>        如果应用层可以保证对某个特定记录的写总是经过同一节点，就不会发生冲突。实践中，不少主节点复制模型锁实现的冲突解决方案存在瑕疵，因此，冲突避免通常是首选方案。比如，一个用户需要更新自己的数据，我们可以通过用户<code>ID</code>哈希的方式，保证同一个用户的写请求总是发送到同一个数据中心。从用户角度来看，等同于主从复制。有时候，可能需要改变指定的节点，比如数据中心故障，或者用户漫游到另一个位置，需要换到更近的数据中心，这时这种方案就不再有效了。</p>
-<h4 id="223-一致收敛">2.2.3 一致收敛</h4>
-<p>        主从模型下，数据更新符合顺序性原则，即对同一个字段的多次更新，字段最终值由最后一个更新操作决定。多主节点模型中，由于不存在这个顺序，所以最终值也是不确定的。如果每个副本都是按照其看到的顺序写入，那么数据最终可能会不一致。因此，数据库必须以一种收敛趋同的方式解决冲突，这也意味着所有更改被复制、同步之后，所有副本的最终值相同。一致收敛有如下解决方案：</p>
-<ul>
-<li>为写入分配一个唯一<code>ID</code>，比如时间戳、哈希或者随机数，选择<code>ID</code>最大的作为胜者，丢弃其他写入。如果基于时间戳，则称为最后写入者获胜。虽然这种方法很常见，但是容易造成数据丢失；</li>
-<li>为每个副本分配一个<code>ID</code>，制定一个规则，比如<code>ID</code>较大的副本写入优于<code>ID</code>较小的副本。同样的，这种方式也会导致数据丢失；</li>
-<li>通过某种方式将值合并，比如字母顺序排序等；</li>
-<li>利用预定义格式记录和保留冲突信息，再通过应用层逻辑解决冲突，可能会经过用户。</li>
-</ul>
-<h4 id="224-自定义冲突解决逻辑">2.2.4 自定义冲突解决逻辑</h4>
-<p>        解决冲突最合适的还是依赖于应用层代码，所以大多数多主模型都支持用户编写应用代码解决冲突：</p>
-<ul>
-<li>写入时执行：数据库系统在复制变更日志时检测到冲突，调用应用层代码解决；</li>
-<li>读取时执行：写入时保留冲突值，读取时返回多个版本的数据，应用层可能自动解决冲突，或者将冲突交给用户解决，并将最终结果返回给数据库。</li>
-</ul>
-<p>        冲突解决通常针对某一行或者某个文档，而不是整个事务。如果有一个原子事务包含多个不同写请求，每个写请求仍然需要分开来考虑。</p>
-<h3 id="23-拓扑结构">2.3 拓扑结构</h3>
-<p>        多主模式下，写请求从一个节点传播到其他节点的路径，可以通过<strong>拓扑结构</strong>描述。最常见的拓扑结构是全链路拓扑：主节点将写入同步到其他所有主节点。除此之外，还存在着其他一些拓扑结构，例如，默认情况下<code>MySQL</code>只支持环形拓扑结构，即所有主节点围成一个环，每个节点只接收来自前序节点的写入，只会写后续节点。星形结构也是另一种流行的拓扑结构，一个指定的根节点会将写入转发给所有其他节点，其他节点只会写该根节点。类似的，也可以对星形结构进行推广，拓展到树形结构。<br>
-        环形结构和星形结构下，写请求需要通过多个节点才能到达所有副本，中间节点需要转发从其他节点收到的数据变更。为了防止循环，每个节点需要一个唯一<code>ID</code>，并在变更日志中标识已经经过的节点<code>ID</code>。环形和星形的问题是，如果某个节点发生故障，会影响其他节点的转发。可以通过重新配置的方式排除故障节点。全链路拓扑也有自己的问题，通常发生在网络拥塞的情况下，某些网络链路可能会比其他网络链路更快，导致变更日志的互相覆盖。</p>
-<h2 id="3-无主模式">3. 无主模式</h2>
-<p>        目前为止讨论的所有复制方法，都要求客户端先向主节点发送写请求，再由数据库复制到其他副本。主节点决定写顺序，从节点重放。一些数据存储系统则采取了不同的思路，放弃主节点，允许任何节点接收来自客户端的写请求。最早的数据复制系统就是无主节点的，但是在后来被渐渐遗忘了，当亚马逊采用<code>Dynamo</code>系统之后，无主模式又成为了一种时髦的架构，<code>Riak</code>、<code>Cassandra</code>和<code>Voldemort</code>都是受<code>Dynamo</code>启发设计的无主节点的开源数据库系统，也被称为<code>Dynamo</code>风格数据库。<br>
-        在一些无主节点实现中，客户端直接将写请求发送给多副本。而在一些其他实现中，会有一个协调者代表客户端写入。与主节点不同，协调者并不负责维护写入顺序。</p>
-<h3 id="31-节点失效">3.1 节点失效</h3>
-<p>        假设存在一个三副本数据库，一个副本不可用。用户向三个副本发起写请求，有两个副本成功确认，一个副本无法处理。用户在接收到两个成功确认后，认为写入成功。之后，失效节点重新上线，由于滞后数据尚未同步，客户端读取该节点数据，会得到过期数据。一种解决方式是，客户端读取时，不是只向一个副本发起请求，而是并行向多个副本发起请求，并通过版本号来确定哪些值更新。</p>
-<h4 id="311-读修复和反熵">3.1.1 读修复和反熵</h4>
-<p>        节点失效滞后重新上线，由于数据滞后，所以需要重新同步。<code>Dynamo</code>风格数据库通常使用以下两种机制：</p>
-<ul>
-<li>读修复：客户端并行读取多个副本时，可以通过版本号等方式，检测过期的返回值；</li>
-<li>反熵：一些数据存储的后台进程会不断检测副本之间的数据差异，同步滞后的数据。与主从同步不同，这种方式并不保证顺序写入，并且会有明显的同步滞后。</li>
-</ul>
-<p>        要注意的是，并非所有的数据库都支持以上机制，例如<code>Voldemort</code>没有反熵。</p>
-<h3 id="32-quorum">3.2 <code>quorum</code></h3>
-<p>        如果有 $n$ 个副本，写入需要 $w$ 个节点确认，读取必须至少要查询 $r$ 个节点，则只需要 $w + r$ &gt; $n$ 就可以确保读取的节点一定会包含最新值。满足这些的 $r$ 、$w$ 值称为法定票数读 ( 或仲裁读 ) 或法定票数写 ( 或仲裁写 )。也可以认为 $r$ 和 $w$ 是用于判定读、写是否有效的最低票数。<br>
-        在<code>Dynamo</code>风格数据库中，$n$ 、$r$ 和 $w$ 通常是可以配置的，常见的是配置 $n$ 为奇数，$w = r = \lceil (n + 1) / 2 \rceil$ ，也可以根据需求灵活调整。$w + r$ &gt; $n$ 定义了系统可容忍的失效节点数：</p>
-<ul>
-<li>$w$ &lt; $n$ ，如果一个节点不可用，仍然可以处理写入；</li>
-<li>$r$ &lt; $n$ ，如果一个节点不可用，仍然可以处理读取；</li>
-</ul>
-<p>        如果可用节点数小于 $r$ 或者 $w$ ，写入或者读取就会返回错误。通常 $r$ 和 $w$ 会被设置为简单多数节点，但是<code>quorum</code>并不一定要求多数，只要读写节点之间存在重合节点即可。即使在 $w + r$ &gt; $n$ 的情况下，也可能存在返回旧值的边界条件：</p>
-<ul>
-<li>采用了 $sloppy\ quorum$ 的写操作节点和读操作节点可能完全不同，从而无法保证存在重合节点；</li>
-<li>如果两个写操作同时发生，无法确定顺序，这时唯一安全的解决方案是合并写入。如果根据时间戳选择，会存在时钟不一致的问题；</li>
-<li>如果读写同时发生，写操作可能只在一部分副本上进行，读取时返回的是新值还是旧值并不确定；</li>
-<li>如果某些副本上写入成功，另一些副本写入失败，并且总成功副本数少于 $w$ ，已成功副本不会回滚，意味着之后的读操作可能返回已失败的新值；</li>
-<li>如果具有新值的节点失效，之后重新加入集群后恢复的数据来自旧值，那么新值的副本数就会少于 $w$ ；</li>
-<li><code>quorum</code>也存在一些线性化读取的问题。</li>
-</ul>
-<p>        <code>Dynamo</code>风格数据库是针对最终一致性场景设计的，$w$ 和 $r$ 不应该是一种绝对保证，而是一种可以灵活调配的配置。配置适当<code>quorum</code>的数据库系统可以容忍某些节点故障，也不需要执行故障切换。它还可以容忍某些节点变慢，因为请求并不需要等待所有 $n$ 个节点响应。对于一些需要高可用和低延迟的场景，还可以容忍偶尔读取旧值。<br>
-        但是，<code>quorum</code>并不是总会提供高容错能力，一个网络中断可以很容易切断客户端到多数节点的连接。在断掉连接的客户端看来，相当于集群全部失效。在一个大规模集群中，客户端可能在网络中断时还可以连接到某些节点，但是这个节点数量又不能满足仲裁，数据库就面临一个选择：直接返回错误还是接收写请求并写入暂时可访问的节点？后一种方式称为<em><strong>宽松的仲裁</strong></em>：读写仍然需要 $r$ 和 $w$ 个成功的响应，但包含了那些并不在先前指定的 $n$ 个节点的响应。一旦网络问题解决，临时节点需要把接收到的所有写入发送给原始节点，即数据回传。$sloppy\ quorum$ 并非传统 $quorum$ ，更像是为了保证数据持久性设计的一个保证措施，除非回传结束，否则无法保证客户端一定能从 $r$ 个节点中读到新值。</p>
-<h2 id="4-并发写">4. 并发写</h2>
-<p>        <code>Dynamo</code>风格数据库允许多个客户端对相同主键发起写操作，意味着写冲突的存在。此外，读修复或者反熵也会导致写冲突。一个核心问题是，由于网络延迟或者部分节点失效，请求在不同节点上的顺序是不同的。如果节点每次收到写请求时就直接覆盖原有值，那么这些节点将永远也无法一致。</p>
-<h3 id="41-最后写入者获胜">4.1 最后写入者获胜</h3>
-<p>        一种实现收敛的方法是，每个副本总是保留最新的值。假定每个写请求都会最终同步到每个副本，我们需要一个明确的方法来确定哪个写入是最新的。多个客户端向节点发送请求时，一个客户端无法发现另一个客户端，也不知道哪个请求先发起。既然无法确定请求的自然排序，我们可以强制以某种方式排序，比如以时间戳排序。这种解决方法称为<strong>最后写入者获胜</strong> ( $last\ write\ wins$ , $LWW$ )。<code>LWW</code>可以实现最终收敛，代价是数据持久性。如果同一个主键有多个并发写，即使这些写都返回成功，但是最后只会有一个值获胜，其他的将被丢弃。<br>
-        在一些场景，比如缓存中，覆盖写是可以接受的。如果覆盖、丢失不可接受，<code>LWW</code>就不是很好的解决方案了。确保<code>LWW</code>安全无副作用的唯一方法是，只写一次然后将写入值视为不可变。例如，<code>Cassandra</code>的一个推荐使用方法就是使用<code>UUID</code>作为主键，这样每个写操作都针对不同、系统唯一的主键。</p>
-<h3 id="42-happens-before">4.2 Happens-before</h3>
-<p>        如何判断两个操作是否并发，可以通过以下两个例子分辨：</p>
-<ul>
-<li>一个插入操作发生在增量修改操作之前，并且增量操作基于插入的行，也就是这两个操作间存在因果关系；</li>
-<li>多个设备同时写入，一个设备并不知道另一个设备是否也对同一个主键进行写入，即操作间不存在因果关系。</li>
-</ul>
-<p>        如果操作 $B$ 知道操作 $A$ ，或者 $B$ 依赖于 $A$ ，则称 $A$ 和 $B$ 之间存在<code>Happens-before</code> ( 先序发生 ) 关系，这就是定义并发的关键。因此，对于两个操作 $A$ 和 $B$ ，存在三种可能：$A$ 先发于 $B$ 、$B$ 先发于 $A$ 、$A$ 和 $B$ 并发。如果属于并发，就需要解决潜在的冲突问题。</p>
-<h3 id="43-合并并发写的值">4.3 合并并发写的值</h3>
-<p>        通过版本号，服务器可以在不依赖值的情况下判断写是否并发。流程如下：</p>
-<ul>
-<li>服务器为每个主键维护一个版本号，每当主键新值写入时递增版本号；</li>
-<li>客户端读取时，服务器返回所有值以及最新版本号，并且在客户端写之前，要求必须先进行一次读；</li>
-<li>客户端写主键，写请求必须包含之前读到的版本号、读到的值和新值合并之后的集合。写请求可以返回当前值；</li>
-<li>服务收到写请求时，根据版本号，选择性地覆盖该版本号或者更低版本的所有值 ( 这些值已经被合并到更高版本集合中 )。</li>
-</ul>
-<p>        如果写请求带有版本号，说明它修改的是以前的状态。如果没有版本号，将会与其他操作同时进行，不会覆盖已有值。<br>
-        上述算法适用于单副本的情况，但是对于多副本的情况，它们之间的版本号并不相同。为了保证一致，我们需要为每个副本和每个主键均定义一个版本号。每个副本在写入时增加自己的版本号，跟踪从其他副本看到的版本号。所有副本的版本号集合称为<strong>版本矢量</strong>。当读取数据时，版本矢量会被返回给客户端，并在随后写入时包含在请求中一起发送给数据库。</p>
-
-            </div>
-            <div class="meta post-footer">
-                <span>2022 Nov 6 15:24</span>
-                <a href="https://z217blog.cn/post/%E5%88%86%E5%B8%83%E5%BC%8F%E6%95%B0%E6%8D%AE%E7%B3%BB%E7%BB%9F%E4%B8%BB%E4%BB%8E%E8%8A%82%E7%82%B9/"><i class="fas fa-link"></i> link</a>
             </div>
         </div>
         

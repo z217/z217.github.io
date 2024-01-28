@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A personal blog of z217">
+  <meta name="Author" content="z217">
+  <meta name="keywords" content="z217&#39;s blog">
+  <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
+  <link rel="stylesheet" href=https://z217blog.cn/css/syntax.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/style.css>
+  <link rel="stylesheet" href=https://z217blog.cn/css/jquery.floatingscroll.css>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+    integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <script src=https://z217blog.cn/js/jquery.floatingscroll.min.js></script>
+  <title>z217&#39;s blog</title>
+</head><script src=https://z217blog.cn/js/navbutton.js></script>
+<script src=https://z217blog.cn/js/lightswitcher.js></script>
+<script src=https://z217blog.cn/js/toc.js></script>
+
+<body><aside id="sidenav">
+    <header>
+        
+        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+        
+
+        <a id="branding" href=https://z217blog.cn>
+            
+            z217&#39;s blog
+            
+        </a>
+    </header>
+
+    <nav>
+        
+        
+        <a href="/" >
+            <i class="fas fa-home fa-ms"></i>
+            <span>首页</span>
+        </a>
+        
+        
+        <a href="/post/" >
+            <i class="fas fa-keyboard fa-ms"></i>
+            <span>文章</span>
+        </a>
+        
+        
+        <a href="/tags" >
+            <i class="fas fa-tags fa-sm"></i>
+            <span>标签</span>
+        </a>
+        
+        
+        <a href="/about" >
+            <i class="fas fa-user fa-ms"></i>
+            <span>关于</span>
+        </a>
+        
+        
+        <a href="https://github.com/z217"  target="_blank" >
+            <i class="fab fa-github fa-ms"></i>
+            <span>Github</span>
+        </a>
+        
+        
+        <a href="/index.xml" >
+            <i class="fas fa-rss fa-sm"></i>
+            <span>RSS</span>
+        </a>
+        
+        
+        <a href="/friend" >
+            <i class="fas fa-map fa-sm"></i>
+            <span>友链</span>
+        </a>
+        
+    </nav>
+</aside><main id="main">
+        <a href="javascript:void(0)" id="closebtn" onclick="navToggle()"><i class="fas fa-bars fa-lg"></i></a><br/>
+        <a href="javascript:void(0)" id="scroll-top" onclick="scrollToTop()">回到顶部</a>
+        <a href="javascript:void(0)" id="light-switcher">暗色模式</a>
+        <div class="content">
+
+<h1 id="title">C&#43;&#43;协程（3）：理解promise</h1>
+
+
+
+
+<p>        这篇文章是<a href="http://wg21.link/N4736"><code>C++</code>协程标准</a>系列的第三篇文章。<br>
+        之前的文章可以在这里查看：</p>
+<ul>
+<li><a href="https://z217blog.cn/post/c++%E5%8D%8F%E7%A8%8B1%E5%8D%8F%E7%A8%8B%E7%90%86%E8%AE%BA/">协程理论</a></li>
+<li><a href="https://z217blog.cn/post/c++%E5%8D%8F%E7%A8%8B2%E7%90%86%E8%A7%A3co_await/">理解co_await</a></li>
+</ul>
+<p>        在这篇文章我会讲解你写的代码是怎么被编译器编译成协程代码的，并且你可以通过定义自己的 $Promise$ 类型来自定义协程行为。</p>
+<h2 id="协程concepts">协程<code>concepts</code></h2>
+<p>        协程标准添加了三个新的关键字：$co_-await$，$co_-yield$ 和 $co_-return$ 。无论你在函数体里使用哪个，编译器都会把这个函数编译成协程，这个函数也不再是普通函数。<br>
+        编译器使用一些相当机械的转换来把你写的代码变成状态机，从而可以在函数内的特定点暂停，并在之后恢复执行。<br>
+        在之前的文章我描述了协程标准引入的两个接口中的第一个接口：$Awaitable$ 接口。而第二个接口, $Promise$ 接口则对于这种代码转换来说十分重要。<br>
+        $Promise$ 接口规定了自定义它所在协程行为的方法。库开发者可以用它定义协程被调用时的行为，协程返回的行为 ( 包括普通方式返回或者通过未处理异常返回 )，协程内使用 $co_-await$ 或者 $co_-yield$ 表达式的行为。</p>
+<h2 id="promise对象">Promise对象</h2>
+<p>        $Promise$ 对象通过实现协程执行过程中特定点的调用方法的形式来定义和控制对应协程的行为。</p>
+<blockquote>
+<p>在继续之前，我希望你能忘掉之前所有关于 $promise$ 是什么的记忆。在一些用例中，协程的 $promise$ 对象与 $std$::$future$ 的 $std$::$promise$ 的功能很相似，但在其他用例中，并不能拿来相比。可能把协程的 $promise$ 对象想象成一个用于控制协程行为、跟踪协程状态的“协程状态控制器”会更合适。</p>
+</blockquote>
+<p>        $promise$ 对象实例会跟随着每个协程函数调用时创建的协程帧一起被构造。<br>
+        编程器会在协程执行的关键点生成对 $promise$ 对象的特定方法的调用。<br>
+        在接下来的例子中，我们假设某个特定协程调用创建的 $promise$ 对象叫做 $promise$ 。<br>
+        当你编写一个协程函数体 &lt;$body$-$statement$&gt; ，函数体包含了某个协程关键字 ( $co_-return$，$co_-await$，$co_-yield$ )，那么协程体将转变为 ( 大致地 ) 如下形式：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">co_await</span> <span class="n">promise</span><span class="p">.</span><span class="n">initial_suspend</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="k">try</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="o">&lt;</span><span class="n">body</span><span class="o">-</span><span class="n">statement</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="k">catch</span> <span class="p">(...)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">promise</span><span class="p">.</span><span class="n">unhandled_exception</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="nl">FinalSuspend</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">  <span class="k">co_await</span> <span class="n">promise</span><span class="p">.</span><span class="n">final_suspend</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        一个协程函数被调用后，在执行之前会有一系列的准备步骤，这些步骤与常规的函数会有些不同。<br>
+        以下是一个步骤总结 ( 我会在接下来详细介绍每个步骤 )：</p>
+<ol>
+<li>通过 $operator$ $new$ ( 可选的 ) 分配协程帧。</li>
+<li>将所有函数参数拷贝到协程帧。</li>
+<li>调用 $promise$ 对象的构造函数，$promise$ 类型记为 $P$ 。</li>
+<li>调用 $promise.get_-return_-object\left(\right)$ 方法获取协程首次暂停时需要返回给主调的返回值，并保存为一个局部变量。</li>
+<li>$co_-await$ 调用 $promise.initial_-suspend\left(\right)$ 方法获取结果。</li>
+<li>当 $co_-await$ $promise.initial_-suspend\left(\right)$ 表达式恢复 ( 可能立即恢复或者异步恢复 ) 后，协程开始执行你编写的协程体语句。</li>
+</ol>
+<p>        当协程执行到 $co_-return$ 语句时，会进行一些额外的步骤：</p>
+<ol>
+<li>调用 $promise.return_-void\left(\right)$ 或者 $promise.return_-value$(&lt;$expr$&gt;)。</li>
+<li>以与创建顺序相反的顺序自动销毁所有具有自动生命周期的变量。</li>
+<li>$co_-await$ 调用 $promise.final_-suspend\left(\right)$ 获取结果。</li>
+</ol>
+<p>        如果执行因为一个未处理异常停止，那么会发生：</p>
+<ol>
+<li>在<code>catch</code>块中捕获异常，调用 $promise.unhandled_-exception\left(\right)$ 。</li>
+<li>$co_-await$ 调用 $promise.final_-suspend\left(\right)$ 获取结果。</li>
+</ol>
+<p>        一旦执行到协程体之外，协程帧就会被销毁。通过以下步骤销毁协程帧：</p>
+<ol>
+<li>调用 $promise$ 对象的析构函数。</li>
+<li>调用拷贝的函数参数的析构函数。</li>
+<li>调用 $operator$ $delete$ 释放协程帧的内存空间 ( 可选的 )。</li>
+<li>返回控制权给主调/恢复者。</li>
+</ol>
+<p>        当执行首次到达 $co_-await$ 表达式的 &lt;$return$-$to$-$caller$-$resumer$&gt; 点，或者协程没有到达任何 &lt;$return$-$to$-$caller$-$or$-$resumer$&gt; 点就完成时，协程要么被暂停，要么被销毁，然后之前 $promise.get_-return_-object\left(\right)$ 调用返回的结果就会被返回给协程的主调。</p>
+<h3 id="分配协程帧">分配协程帧</h3>
+<p>        首先，编译器生成一个对协程帧的 $operator$ $new$ 调用来分配内存。<br>
+        如果 $promise$ 类型 $P$，定义了一个特殊的 $operator$ $new$ ，那么就会调用它定义的，否则就调用全局的。<br>
+        这里有几个重要点需要注意：<br>
+        传给 $operator$ $new$ 的大小不是 $sizeof\left(P\right)$ ，而是整个编译过程中编译器计算出来的协程帧大小，包括了入参的数量和大小、$promise$ 对象的大小、局部变量的数量和大小，以及一些其他编译器相关的用来管理协程状态的空间。<br>
+        如果满足以下条件，编译器可以省掉对 $operator$ $new$ 的调用：</p>
+<ul>
+<li>协程帧的生命周期严格内嵌于主调。</li>
+<li>编译器可以在调用点知道协程帧需要的内存大小。</li>
+</ul>
+<p>        在这种情况下，编译器可以在主调的调用栈 ( 栈帧部分或者协程帧部分 ) 上分配协程帧的空间。<br>
+        协程标准没有定义什么情况下需要跳过分配，所以你需要在协程帧分配可能抛出 $std$::$bad_-alloc$ 异常的前提下编写代码。这意味着你不应该把一个协程函数声明成<code>noexcept</code>，除非你确定协程分配协程帧内存失败后会调用 $std$::$terminate\left(\right)$ 。<br>
+        然而，有一个后备方案可以处理协程帧分配失败。在不允许异常的环境下，例如集成场景或者高性能场景这种不能容忍异常开销的场景，这种方式十分必要。<br>
+        如果 $promise$ 类型提供了一个静态的 $P$::$get_-return_-object_-on_-allocation_-failure\left(\right)$ 成员函数，编译器会生成一个对 $operator$ $new$($size_-t$, $nothrow_-t$) 的重载调用。如果调用返回<code>nullptr</code>，那么协程会立即调用 $P$::$get_-return_-object_-on_-allocation_-failure\left(\right)$ 并把结果返回给主调，而不是抛出异常。</p>
+<h4 id="自定义协程帧内存分配">自定义协程帧内存分配</h4>
+<p>        你的 $promise$ 类型可以重载 $operator$ $new$ ，这样如果编译器需要分配协程帧内存，就会使用你定义的 $operator$ $new$ 而不是全局的 $operator$ $new$ 。<br>
+        例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">my_promise_type</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span><span class="o">*</span> <span class="k">operator</span> <span class="nf">new</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">size</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">void</span><span class="o">*</span> <span class="n">ptr</span> <span class="o">=</span> <span class="n">my_custom_allocate</span><span class="p">(</span><span class="n">size</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">ptr</span><span class="p">)</span> <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">bad_alloc</span><span class="p">{};</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">ptr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="k">operator</span> <span class="nf">delete</span><span class="p">(</span><span class="kt">void</span><span class="o">*</span> <span class="n">ptr</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">size</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">my_custom_free</span><span class="p">(</span><span class="n">ptr</span><span class="p">,</span> <span class="n">size</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="p">...</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        我知道你想问什么：“但是自定义 $allocator$ 呢?”。<br>
+        你也可以提供 $P$::$operator$ $new\left(\right)$ 的重载，接收额外的参数，如果能找到合适的重载，将使用协程函数参数的左值引用调用。这种方式可以用来 $hook$ $operator$ $new$ ，使其调用某个作为参数传递给协程函数的 $allocator$ 的 $allocate\left(\right)$ 方法。<br>
+        你需要做一些额外工作来在分配好的内存中拷贝一份 $allocator$ 的副本，这样才能在相应的 $operator$ $delete$ 调用中引用它，因为 $allocator$ 不会作为参数传递给的 $operator$ $delete$ 。这是因为入参会被存储在协程帧，所以他们有可能会在 $operator$ $delete$ 调用之前就被销毁了。<br>
+        例如，你可以实现 $operator$ $new$ 来给协程帧分配一些额外内存，并利用这个空间来存储 $allocator$，用于释放协程帧内存。<br>
+        例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">ALLOCATOR</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">my_promise_type</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">ARGS</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span><span class="o">*</span> <span class="k">operator</span> <span class="k">new</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">sz</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">allocator_arg_t</span><span class="p">,</span> <span class="n">ALLOCATOR</span><span class="o">&amp;</span> <span class="n">allocator</span><span class="p">,</span> <span class="n">ARGS</span><span class="o">&amp;</span><span class="p">...</span> <span class="n">args</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// Round up sz to next multiple of ALLOCATOR alignment
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">allocatorOffset</span> <span class="o">=</span>
+</span></span><span class="line"><span class="cl">      <span class="p">(</span><span class="n">sz</span> <span class="o">+</span> <span class="k">alignof</span><span class="p">(</span><span class="n">ALLOCATOR</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1u</span><span class="p">)</span> <span class="o">&amp;</span> <span class="o">~</span><span class="p">(</span><span class="k">alignof</span><span class="p">(</span><span class="n">ALLOCATOR</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1u</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    
+</span></span><span class="line"><span class="cl">    <span class="c1">// CAll onto allocator to allocate space for coroutine frame.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kt">void</span><span class="o">*</span> <span class="n">ptr</span> <span class="o">=</span> <span class="n">allocator</span><span class="p">.</span><span class="n">allocate</span><span class="p">(</span><span class="n">allocatorOffset</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">ALLOCATOR</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Take a copy of the allocator (assuming noexcept copy constructor here)
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">new</span> <span class="p">(((</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">ptr</span><span class="p">)</span> <span class="o">+</span> <span class="n">allocatorOffset</span><span class="p">)</span> <span class="n">ALLOCATOR</span><span class="p">(</span><span class="n">allocator</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">ptr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="k">operator</span> <span class="nf">delete</span><span class="p">(</span><span class="kt">void</span><span class="o">*</span> <span class="n">ptr</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">sz</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">allocatorOffset</span> <span class="o">=</span>
+</span></span><span class="line"><span class="cl">      <span class="p">(</span><span class="n">sz</span> <span class="o">+</span> <span class="k">alignof</span><span class="p">(</span><span class="n">ALLOCATOR</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1u</span><span class="p">)</span> <span class="o">&amp;</span> <span class="o">~</span><span class="p">(</span><span class="k">alignof</span><span class="p">(</span><span class="n">ALLOCATOR</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1u</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">ALLOCATOR</span><span class="o">&amp;</span> <span class="n">allocator</span> <span class="o">=</span> <span class="o">*</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">ALLOCATOR</span><span class="o">*&gt;</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">      <span class="p">((</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">ptr</span><span class="p">)</span> <span class="o">+</span> <span class="n">allocatorOffset</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Move allocator to local variable first so it isn&#39;t freeing its
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// own memory from underneath itself.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// Assuming allocator move-constructor is noexcept here.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">ALLOCATOR</span> <span class="n">allocatorCopy</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">allocator</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// But don&#39;t forget to destruct allocator object in coroutine frame
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">allocator</span><span class="p">.</span><span class="o">~</span><span class="n">ALLOCATOR</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Finally, free the memory using the allocator.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">allocatorFactory</span><span class="p">.</span><span class="n">deallocate</span><span class="p">(</span><span class="n">ptr</span><span class="p">,</span> <span class="n">allocatorOffset</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">ALLOCATOR</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        为了 $hook$ 成功，让自定义的 $my_-promise_-type$ 被协程使用，需要让 $std$::$allocator_-arg$ 作为第一个入参，这需要通过 $coroutine_-traits$ 类 ( 详细见后续的 $coroutine_-traits$ 章节 ) 来指定。<br>
+        例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">std</span><span class="o">::</span><span class="n">experimental</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">ALLOCATOR</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">ARGS</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="nc">coroutine_traits</span><span class="o">&lt;</span><span class="n">my_return_type</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">allocator_arg_t</span><span class="p">,</span> <span class="n">ALLOCATOR</span><span class="p">,</span> <span class="n">ARGS</span><span class="p">...</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">using</span> <span class="n">promise_type</span> <span class="o">=</span> <span class="n">my_promise_type</span><span class="o">&lt;</span><span class="n">ALLOCATOR</span><span class="o">&gt;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        注意，即使你自定义了协程的内存分配策略，编译器还是可以跳过你的内存分配过程。</p>
+<h3 id="拷贝参数到协程帧">拷贝参数到协程帧</h3>
+<p>        协程需要从原始主调中把所有传给协程的参数拷贝到协程帧，这样才能保证协程被暂停后，它们依然有效。<br>
+        如果参数是值传递的，那么这些参数将会通过移动构造函数拷贝到协程帧。<br>
+        如果参数以引用传递 ( 左值或者右值 )，那么只有引用会被拷贝到协程帧，而不是它们指向的值。<br>
+        注意如果类型的析构函数是默认的，并且在到达 &lt;$return$-$to$-$caller$-$or$-$resumer$&gt; 点后不再引用，编译器可以跳过析构该参数副本。<br>
+        在以引用方式传递参数给协程的过程中，存在几个陷阱，也因此你不能在协程生命周期中依赖引用。许多常见的用于普通函数的技术，例如完美转发和通用引用，用到协程上可能导致代码出现未定义行为。如果你想了解更多，Toby Allsopp 写了一篇关于这个主题的<a href="https://toby-allsopp.github.io/2017/04/22/coroutines-reference-params.html">好文章</a>。<br>
+        如果某个参数的拷贝/移动构造函数抛出了异常，那么已经构造好的参数的析构函数将被调用，协程帧会被释放，异常会传播给主调。</p>
+<h3 id="构造-promise-对象">构造 promise 对象</h3>
+<p>        一旦所有参数被拷贝到协程帧，协程会构造 $promise$ 对象。<br>
+        参数在 $promise$ 对象之前构造的原因是让 $promise$ 对象可以在构造函数中访问先前拷贝的参数。<br>
+        首先，编译器检查 $promise$ 构造函数是否存在接收每个拷贝的参数左值引用的重载函数，如果找到了这种函数，编译器会生成对这个构造函数的调用，如果没有找到，编译器会使用 $promise$ 类型的默认构造函数。<br>
+        注意 $promise$ 构造函数可以“看到”入参是一个对协程标准相对较新的改动，在 Jacksonville 2018 会议的<a href="http://wg21.link/N4723">N4723</a> 中被采纳，提案为<a href="http://wg21.link/P0914R1">P0914R1</a>。因此对于一些较老版本的<code>Clang</code>或者<code>MSVC</code>来说可能还不支持。<br>
+        如果 $promise$ 构造函数抛出了一个异常，那么入参的拷贝会析构，协程帧会在异常传播回给主调之前被释放。</p>
+<h3 id="获取返回对象">获取返回对象</h3>
+<p>        协程要对 $promise$ 对象做的第一件事是调用 $promise.get_-return_-object\left(\right)$ 获取返回对象。<br>
+        返回对象是协程函数初始暂停或者运行完成移交控制权后要返回给主调的值。<br>
+        你可以认为控制流是这样的 ( 大致的 )：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="c1">// Pretend there&#39;s a compiler-generated structure called &#39;coroutine_frame&#39;
+</span></span></span><span class="line"><span class="cl"><span class="c1">// thta holds all of the state needed for the coroutines. It&#39;s constructor
+</span></span></span><span class="line"><span class="cl"><span class="c1">// takes a copy of parameters and default-constructs a promise object.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">struct</span> <span class="nc">coroutine_frame</span> <span class="p">{</span> <span class="p">...</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">T</span> <span class="nf">some_corouine</span><span class="p">(</span><span class="n">P</span> <span class="n">param</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">auto</span><span class="o">*</span> <span class="n">f</span> <span class="o">=</span> <span class="k">new</span> <span class="n">coroutine_frame</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">P</span><span class="o">&gt;</span><span class="p">(</span><span class="n">param</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">auto</span> <span class="n">returnObject</span> <span class="o">=</span> <span class="n">f</span><span class="o">-&gt;</span><span class="n">promise</span><span class="p">.</span><span class="n">get_return_object</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="c1">// Start execution of the coroutine body by resuming it.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// This call will return when the coroutine gets to the first.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// suspend-point or when the coroutine runs to completion.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">coroutine_handle</span><span class="o">&lt;</span><span class="k">decltype</span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">promise</span><span class="p">)</span><span class="o">&gt;::</span><span class="n">from_promise</span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">promise</span><span class="p">).</span><span class="n">resume</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="c1">// Then the return object is returned to the caller.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">return</span> <span class="n">returnObject</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        注意我们需要在协程体之前获取返回对象，因为协程帧 ( 或者说 $promise$ 对象 ) 可能在 $coroutine_-handle$::$resume\left(\right)$ 调用返回前就被销毁，可能在当前线程销毁，也可能在其他线程，所以在协程体开始执行后调用 $get_-return_-object\left(\right)$ 是不安全的。</p>
+<h3 id="初始暂停点">初始暂停点</h3>
+<p>        协程帧初始化，获取返回对象之后，要做的下一件事是执行 $co_-await$ $promise.initial_-suspend\left(\right);$ 。<br>
+        这让 $promise$ 类型的开发者可以控制协程在执行编写好的协程体代码之前是否需要等待，或者立即执行协程体。<br>
+        如果协程在初始暂停点暂停，那么它可以在之后你选择的某个时间点对 $coroutine_-handle$ 调用 $resume\left(\right)$ 来恢复，或者调用 $destroy\left(\right)$ 销毁。<br>
+        $co_-await$ $promise.initial_-suspend\left(\right)$ 表达式的结果会被丢弃，所以实现 $awaiter$ 的 $await_-resume\left(\right)$ 函数实现应该返回<code>void</code>。<br>
+        注意这个语句是在<code>try/catch</code>块保护之外的 ( 如果你忘记了，可以往上翻翻再看下代码 )。这意味着 $co_-await$ $promise.initial_-suspend\left(\right)$ 抛出的异常等同于到达它的 &lt;$return$-$to$-$caller$-$or$-$resumer$&gt; 点，会在协程销毁调用栈和返回对象后，再抛回给主调。<br>
+        要明白如果你的返回对象是<code>RAII</code>，即会在协程帧被析构的时候销毁，那么你需要保证 $co_-await$ $promise.initial_-suspend\left(\right)$ 是<code>noexcept</code>的，这样才能避免 double-free。</p>
+<blockquote>
+<p>注意这里有个提案，希望调整语义，以便 $co_-await$ $promise.initial_-suspend\left(\right)$ 表达的全部或者部分位于<code>try/catch</code>块内，所以这里的明确语义可能会在最终确定前发生变化。</p>
+</blockquote>
+<p>        对于许多协程类型来说，$initial_-suspend\left(\right)$ 方法要么返回 $std$::$experimental$::$suspend_-always$ ( 如果操作懒开始 )，要么返回 $std$::$experimental$::$suspend_-never$ ( 如果操作立即开始 )。而它们都是<code>noexcept</code>的 $awaitable$ ，所以这通常不是问题。</p>
+<h3 id="返回给主调">返回给主调</h3>
+<p>        当协程函数达到首个 &lt;$return$-$to$-$caller$-$or$-$resumer$&gt; 点 ( 或者没有到达，但是协程执行完成 ) 时，通过 $get_-return_-object\left(\right)$ 获取的返回对象会返回给协程的主调。<br>
+        注意返回对象的类型并不需要与协程函数的返回类型相同。在必要的时候，返回对象可以是一个能够隐式转换为协程返回类型的类型。</p>
+<blockquote>
+<p>注意<code>Clang</code>的协程实现 ( 从$5.0$ 开始 ) 会在返回对象从协程调用返回后才会转换，而<code>MSVC</code>自从 2017 Update 3 开始会在 $get_-return_-object\left(\right)$ 调用之后立即转换。虽然协程标准没有显式给出预期行为，我相信<code>MSVC</code>有计划把它们的实现改成更像<code>Clang</code>的实现，因为这种实现允许一些<a href="https://github.com/toby-allsopp/coroutine_monad">有趣的用例</a>。</p>
+</blockquote>
+<h3 id="使用-co_return-从协程返回">使用 co_return 从协程返回</h3>
+<p>        当协程到达 $co_-return$ 语句，它会被翻译成一个 $promise.return_-void\left(\right)$ 调用或者 $promise.return_-value$(&lt;$expr$&gt;) 以及一个 $goto$ $FinalSuspend$ 调用。<br>
+        翻译规则如下：</p>
+<ul>
+<li>$co_-return$;
+<ul>
+<li>-&gt; $promise.return_-void\left(\right)$</li>
+</ul>
+</li>
+<li>$co_-return$ &lt;$expr$&gt;
+<ul>
+<li>-&gt; 如果 &lt;$expr$&gt; 类型为<code>void</code>，&lt;$expr$&gt;; $promise.return_-void\left(\right)$;</li>
+<li>-&gt; 如果 &lt;$expr$&gt; 类型不为<code>void</code>，$promise.return_-value$(&lt;$expr$&gt;);</li>
+</ul>
+</li>
+</ul>
+<p>        随后的 $goto$ $FinalSuspend;$ ，会在 $co_-await$ $promise.final_-suspend\left(\right)$ 之前触发所有自动生命周期的局部变量按照与构造顺序相反的顺序析构。<br>
+        注意如果协程函数体代码没有以 $co_-return$ 语句结束，会等同于以 $co_-return;$ 结束。在这个例子中，如果 $promise$ 类型没有 $return_-void\left(\right)$ 方法，那么行为会是未定义的。<br>
+        如果 &lt;$expr$&gt; 或者 $promise.return_-void\left(\right)$ 调用或者 $promise.return_-value\left(\right)$ 抛出了一个异常，那么异常仍然会传给 $promise.unhandled_-exception\left(\right)$ ( 见以下 )。</p>
+<h3 id="处理传播到协程体以外的异常">处理传播到协程体以外的异常</h3>
+<p>        如果一个异常传播到协程体之外，那么异常会被<code>catch</code>块捕获，并调用 $promise.unhandled_-exception\left(\right)$ 方法。<br>
+        这个方法典型实现是调用 $std$::$current_-exception\left(\right)$ 来捕获异常的副本，在后续抛出到其他上下文。<br>
+        其他可选实现是立即通过 $throw;$ 语句重新抛出异常，例如 <a href="https://github.com/facebook/folly/blob/4af3040b4c2192818a413bad35f7a6cc5846ed0b/folly/Optional.h#L587">$folly$::$Optional$</a>。然而，这么做会 ( 或者说很可能，见以下 ) 导致协程帧被立即销毁，并将异常传播回主调 / 恢复者。这可能会导致某些 $abstractions$ 出现问题，因为它们假设 / 要求对 $coroutine_-handle$::$resume\left(\right)$ 的调用是<code>noexcept</code>，所以你应该只在能够完全控制谁 / 什么调用 $resume\left(\right)$ 时使用这种方式。<br>
+        注意现在<a href="http://wg21.link/N4736">协程标准</a>在调用 $unhandled_-exception\left(\right)$ 时重新抛出异常 ( 或者在<code>try-catch</code>块之外抛出异常 ) 的预期行为描述<a href="https://github.com/GorNishanov/CoroutineWording/issues/17">并不是很清晰</a>。<br>
+        我现在对标准的解释是如果控制权离开了协程体，可以通过 $co_-await$ $promise.initial_-suspend\left(\right)$ 、$promise.unhandled_-exception\left(\right)$ 或者 $co_-await$ $promise.final_-suspend\left(\right)$ 把异常传播出去，也可以通过 $co_-await$ $promise.final_-suspend\left(\right)$ 调用同步结束协程执行。无论哪种方式，都会在返回给主调 / 恢复者前自动销毁协程帧。然而，这种解释也有问题。<br>
+        我希望在未来版本中能够细化并阐述清楚这种情况。不管如何，在那之前我不会从 $initial_-suspend\left(\right)$ 、$final_-suspend\left(\right)$ 或者 $unhandled_-exception\left(\right)$ 中抛出异常。敬请关注！</p>
+<h3 id="最终暂停点">最终暂停点</h3>
+<p>        一旦协程体执行离开了用户定义的部分后，结果会通过 $return_-void\left(\right)$ 、$return_-value\left(\right)$ 或者 $unhandled_-exception\left(\right)$ 调用捕获，所有局部变量被析构，在返还控制权给主调 / 恢复者之前，协程可以执行一些额外的逻辑。<br>
+        这时候协程执行的是 $co_-await$ $promise.final_-suspend\left(\right);$ 语句。<br>
+        它允许协程执行一些逻辑，比如生成结果，发出完成信号或者恢复一个任务。它也允许协程选择性地在协程完成、协程帧被销毁前立即暂停。<br>
+        注意 $resume\left(\right)$ 一个在 $final_-suspend$ 点暂停的协程是未定义行为。对于这种协程，你只能调用 $destroy\left(\right)$。<br>
+        根据 Gor Nishanov 的观点，这种限制的理由是它能减少一些协程的暂停状态，以及一些潜在的分支，让编译器可以做出更好的优化。<br>
+        注意协程也可以不在 $final_-suspend$ 点暂停，<strong>只是建议你设计一个会在这个点暂停的协程</strong>。因为这样可以强制你在协程外调用 $.destroy\left(\right)$ ( 通常通过<code>RAII</code>对象的析构函数调用 )，并且可以方便编译器确定协程帧的生命周期是否内嵌于主调，从更让编译器更有可能优化掉协程帧的内存分配。</p>
+<h3 id="编译器怎么选择-promise-类型">编译器怎么选择 promise 类型</h3>
+<p>        让我们看看编译器怎么决定协程使用的 $promise$ 类型。<br>
+        协程 $promise$ 对象的类型通过 $std$::$experimental$::$coroutine_-traits$ 类决定。<br>
+        如果你有一个协程函数签名如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">task</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span> <span class="n">foo</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">x</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">flag</span><span class="p">);</span>
+</span></span></code></pre></div><p>        那么编译器会通过返回类型和参数类型作为 $coroutine_-traits$ 的模板参数来推导协程的 $promise$ 类型。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">typename</span> <span class="n">coroutine_traits</span><span class="o">&lt;</span><span class="n">task</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span> <span class="kt">bool</span><span class="o">&gt;::</span><span class="n">promise_type</span><span class="p">;</span>
+</span></span></code></pre></div><p>        如果函数是非静态成员函数，<code>class</code>类型会作为第二个模板参数传递给 $coroutine_-traits$。注意如果你的方法是右值引用重载的，那么第二个模板参数也会是右值引用。<br>
+        例如，如果你有以下方法：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">task</span><span class="o">&lt;</span><span class="kt">void</span><span class="o">&gt;</span> <span class="n">my_class</span><span class="o">::</span><span class="n">method1</span><span class="p">(</span><span class="kt">int</span> <span class="n">x</span><span class="p">)</span> <span class="k">const</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">task</span><span class="o">&lt;</span><span class="n">foo</span><span class="o">&gt;</span> <span class="n">my_class</span><span class="o">::</span><span class="n">method2</span><span class="p">()</span> <span class="o">&amp;&amp;</span><span class="p">;</span>
+</span></span></code></pre></div><p>        编译器会使用以下 $promise$ 类型：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="c1">// method1 promise type
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">typename</span> <span class="n">coroutine_traits</span><span class="o">&lt;</span><span class="n">task</span><span class="o">&lt;</span><span class="kt">void</span><span class="o">&gt;</span><span class="p">,</span> <span class="k">const</span> <span class="n">my_class</span><span class="o">&amp;</span><span class="p">,</span> <span class="kt">int</span><span class="o">&gt;::</span><span class="n">promise_type</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// method2 promise type
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">typename</span> <span class="n">coroutine_traits</span><span class="o">&lt;</span><span class="n">task</span><span class="o">&lt;</span><span class="n">foo</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">my_class</span><span class="o">&amp;&amp;&gt;::</span><span class="n">promise_type</span><span class="p">;</span>
+</span></span></code></pre></div><p>        $coroutine_-traits$ 模板会默认查找返回类型是否存在内嵌 $promise$ 类型，并使用其作为 $promise$ 类型，例如这样 ( 不过通过一些<code>SFINAE</code>魔法，如果 $RET$::$promise_-type$ 没有定义，那么 $promise$ 类型也是未定义的 )：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">std</span><span class="o">::</span><span class="n">experimental</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">RET</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">ARGS</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="nc">coroutine_traits</span><span class="o">&lt;</span><span class="n">RET</span><span class="p">,</span> <span class="n">ARGS</span><span class="p">...</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">using</span> <span class="n">promise_type</span> <span class="o">=</span> <span class="k">typename</span> <span class="n">RET</span><span class="o">::</span><span class="n">promise_type</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        所以对于你可以控制的协程返回类型，你可以在里面定义一个内嵌的 $promise$ 类型，让编译器直接使用作为协程的 $promise$ 对象。<br>
+        例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">task</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">using</span> <span class="n">promise_type</span> <span class="o">=</span> <span class="n">task_promise</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">...</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        然而，对于你无法控制的协程返回类型，你可以在不修改类型的前提下，通过指定 $coroutine_-traits$ 来控制 $promise$ 类型。<br>
+        例如，给一个返回 $std$::$optional$&lt;$T$&gt; 的协程定义 $promise$ 类型：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">std</span><span class="o">::</span><span class="n">experimental</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="k">typename</span><span class="p">...</span> <span class="n">ARGS</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="nc">coroutine_traits</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">ARGS</span><span class="p">...</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">using</span> <span class="n">promise_type</span> <span class="o">=</span> <span class="n">optional_promise</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h3 id="识别特定协程调用栈">识别特定协程调用栈</h3>
+<p>        当你调用一个协程函数时，协程帧会被创建。为了恢复协程或者销毁协程帧，你需要一些方法识别或者引用对应的协程帧。<br>
+        协程标准通过 $coroutine_-handle$ 类型提供了这个机制。<br>
+        类型接口 ( 大致的 ) 如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">std</span><span class="o">::</span><span class="n">experimental</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">Promise</span> <span class="o">=</span> <span class="kt">void</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="nc">coroutine_handle</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="c1">// Type-erased coroutine handle. Can refer to any kind of coroutine.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// Doesn&#39;t allow access to the promise object.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">template</span> <span class="o">&lt;&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="nc">coroutine_handle</span><span class="o">&lt;</span><span class="kt">void</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// Constructs to the null handle.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">constexpr</span> <span class="nf">coroutine_handle</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Convert to/from a void* for passing into C-style interop functions.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">constexpr</span> <span class="kt">void</span><span class="o">*</span> <span class="nf">address</span><span class="p">()</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">static</span> <span class="k">constexpr</span> <span class="n">coroutine_handle</span> <span class="nf">from_address</span><span class="p">(</span><span class="kt">void</span><span class="o">*</span> <span class="n">addr</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Query if the handle is non-null.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">constexpr</span> <span class="k">explicit</span> <span class="k">operator</span> <span class="nf">bool</span><span class="p">()</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Query if the coroutine is suspended at the final_suspend point.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// Undefined behavior if coroutine is not currently suspend.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kt">bool</span> <span class="nf">done</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Resume/Destroy the suspended coroutinie
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kt">void</span> <span class="nf">resume</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">void</span> <span class="nf">destroy</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="c1">// Coroutine handle for coroutines with a known promise type.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// Template argument must exactly match coroutine&#39;s promise type.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">Promise</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="nc">coroutine_handle</span> <span class="o">:</span> <span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">using</span> <span class="n">coroutine_handle</span><span class="o">&lt;&gt;::</span><span class="n">coroutine_handle</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">static</span> <span class="k">constexpr</span> <span class="n">coroutine_handle</span> <span class="nf">from_address</span><span class="p">(</span><span class="kt">void</span><span class="o">*</span> <span class="n">addr</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Access to the coroutine&#39;s promise object.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">Promise</span><span class="o">&amp;</span> <span class="n">promise</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// You can reconstruct the coroutine handle from the promise object.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">static</span> <span class="n">coroutine_handle</span> <span class="nf">from_promise</span><span class="p">(</span><span class="n">Promise</span><span class="o">&amp;</span> <span class="n">promise</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        你可以通过两种方式获取一个协程的 $coroutine_-handle$ ：</p>
+<ol>
+<li>$coroutine_-handle$ 会在 $co_-await$ 表达式中被传递给 $await_-suspend\left(\right)$ 。</li>
+<li>如果你有一个协程 $promise$ 对象的引用，你可以通过 $coroutine_-handle$&lt;$Promise$&gt;::$from_-promise\left(\right)$ 重新构造它的 $coroutine_-handle$ 。</li>
+</ol>
+<p>        挂起协程的 $coroutine_-handle$ 会在 $co_-await$ 表达式中，协程到达 &lt;$suspend$-$point$&gt; 被暂停后，传给 $awaiter$ 的 $await_-suspend\left(\right)$ 方法。你可以认为这个 $coroutine_-handle$ 代表 <a href="https://en.wikipedia.org/wiki/Continuation-passing_style">连续传递风格</a> ( $continuation-passing$ $style$ ) 调用协程的连续传递。<br>
+        注意 $coroutine_-handle$ <strong>不是</strong><code>RAII</code>对象。你必须手动调用 $.destroy\left(\right)$ 来销毁协程帧，释放资源。可以把它视为一个用于管理内存的 $void*$ 值。这么设计是出于性能原因：<code>RAII</code>会带来额外的开销，比如需要引用计数管理。<br>
+        你应该尝试使用更高级的支持协程<code>RAII</code>语义的类型，例如<a href="https://github.com/lewissbaker/cppcoro">cppcoro</a>提供的 ( 不要脸地打广告 )，或者编写一个你自己的更高级的类型，封装你协程类型的协程帧生命周期。</p>
+<h3 id="自定义-co_await-行为">自定义 co_await 行为</h3>
+<p>        $promise$ 类型可以自定义出现在协程体内的每个 $co_-await$ 表达式行为。<br>
+        通过简单地定义 $promise$ 类型的 $await_-transform\left(\right)$ 方法，编译器会把协程体里的每个 $co_-await$ &lt;$expr$&gt; 转换成 $co_-await$ $promise.await_-transform$(&lt;$expr$&gt;)。<br>
+        这里有一些重要且有用的用法：<br>
+        <strong>它能挂起一些非 $awaitable$ 类型。</strong><br>
+        例如，一个返回 $std$::$optional$&lt;$T$&gt; 类型的协程可能会重载 $promise$ 类型的 $await_-transform\left(\right)$ ，使用 $std$::$optional$&lt;$U$&gt; 并返回一个 $awaitable$ 类型，该类型会返回类型 $U$ 的值，或者在<code>nullopt</code>时暂停协程。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">optional_promise</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="p">...</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">U</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">auto</span> <span class="n">await_transform</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">U</span><span class="o">&gt;&amp;</span> <span class="n">value</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">class</span> <span class="nc">awaiter</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">U</span><span class="o">&gt;&amp;</span> <span class="n">value</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">      <span class="k">explicit</span> <span class="n">awaiter</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">U</span><span class="o">&gt;&amp;</span> <span class="n">x</span><span class="p">)</span> <span class="k">noexcept</span> <span class="o">:</span> <span class="n">value</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">      <span class="kt">bool</span> <span class="nf">await_ready</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{</span> <span class="k">return</span> <span class="n">value</span><span class="p">.</span><span class="n">has_value</span><span class="p">();</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">      <span class="kt">void</span> <span class="nf">await_suspend</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">experimental</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">      <span class="n">U</span><span class="o">&amp;</span> <span class="n">await_resume</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{</span> <span class="k">return</span> <span class="o">*</span><span class="n">value</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">};</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">awaiter</span><span class="p">{</span> <span class="n">value</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        <strong>它可以让你通过删除 $await_-transform$ 方法来禁止挂起一个特定类型。</strong><br>
+        例如，一个 $std$::$generator$&lt;$T$&gt; 返回类型的 $promise$ 类型可能会声明一个已删除的 $await_-transform\left(\right)$ 且接收所有类型的模板成员函数。这基本上禁止了所有在协程内的 $co_-await$ 调用。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">generator_promise</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="p">...</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="c1">// Disable any use of co_await within this type of coroutine.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">U</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">experimental</span><span class="o">::</span><span class="n">suspend_never</span> <span class="n">await_transform</span><span class="p">(</span><span class="n">U</span><span class="o">&amp;&amp;</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        <strong>它可以适配和改变一般 $awaitable$ 值的行为。</strong><br>
+        例如，你可以定义一个协程类型，通过把 $awaitable$ 包装在 $resume_-on\left(\right)$ 操作中 ( 参考 $cppcoro$::$resume_-on\left(\right)$ )，保证协程始终在关联的 $executor$ 上的 $co_-await$ 表达式中恢复。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="p">,</span> <span class="k">typename</span> <span class="n">Executor</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">executor_task_promise</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">Executor</span> <span class="n">executor</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">Awaitable</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">auto</span> <span class="n">await_transform</span><span class="p">(</span><span class="n">Awaitable</span><span class="o">&amp;&amp;</span> <span class="n">awaitable</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">using</span> <span class="n">cppcoro</span><span class="o">::</span><span class="n">resume_on</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nf">resume_on</span><span class="p">(</span><span class="k">this</span><span class="o">-&gt;</span><span class="n">executor</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">forward</span><span class="o">&lt;</span><span class="n">Awaitable</span><span class="o">&gt;</span><span class="p">(</span><span class="n">awaitable</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        作为 $await_-transform\left(\right)$ 介绍的最后一句话，要注意的是，如果 $promise$ 类型定义了 $await_-transform\left(\right)$ 成员，编译器就会把所有 $co_-await$ 替换成 $promise.await_-transform\left(\right)$ 调用。这意味着如果你想要只给某些类型定制 $co_-await$ 行为，你也需要重载默认的只转发参数的 $await_-transform\left(\right)$ 实现。</p>
+<h3 id="自定义-co_yield-行为">自定义 co_yield 行为</h3>
+<p>        最后一个你可以通过 $promise$ 类型自定义行为的是 $co_-yield$ 关键字。<br>
+        如果 $co_-yield$ 关键字在协程内出现，编译器会把表达式 $co_-yield$ &lt;$expr$&gt; 翻译成 $co_-await$ $promise.yield_-value$(&lt;$expr$&gt;) 。因此 $co_-yield$ 的行为可以通过定义一个或多个 $promise$ 类型的 $yield_-value\left(\right)$ 方法定制。<br>
+        注意，不像 $await_-transform$ ，如果 $promise$ 类型没有定义 $yield_-value\left(\right)$ 方法，$co_-yield$ 没有默认行为。所以如果需要禁止 $co_-await$ 表达式，$promise$ 类型需要显式删除 $await_-transform\left(\right)$ 方法，但是 $co_-yield$ 则不用。<br>
+        一种典型的 $promise$ 类型的 $yield_-value\left(\right)$ 方法实现是 $generator$&lt;$T$&gt; 类型：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">T</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">generator_promise</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">T</span><span class="o">*</span> <span class="n">valuePtr</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="p">...</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">experimental</span><span class="o">::</span><span class="n">suspend_always</span> <span class="n">yield_value</span><span class="p">(</span><span class="n">T</span><span class="o">&amp;</span> <span class="n">value</span><span class="p">)</span> <span class="k">noexcept</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// Stash the address of the yielded value and then return an awaitable
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// that will cause the coroutine to suspend at the co_yield expression.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// Execution will then return from the call to coroutine_handle&lt;&gt;::resume()
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// inside either generator&lt;T&gt;::begin() or generator&lt;T&gt;::iterator::operator++().
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">valuePtr</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">addressof</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{};</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><h2 id="总结">总结</h2>
+<p>        在这篇文章中，我依次介绍了编译器将函数编译成协程时的每个转换。<br>
+        希望这篇能够帮你理解怎么通过定义自己的 $promise$ 类型的方式来定制不同类型的协程行为。协程机制中有许多可以变动的部分，所以有许多种自定义行为的方式。<br>
+        然而，编译器有一个更重要的转换我还没讲——把协程体转换成状态机。不过要是讲这块的话，这篇文章就太长了，所以我把它放到了下一篇文章。请保持关注！</p>
+
+
+<div>
+    <a href="javascript:void(0);" id="tocbtn"><i class="fas fa-bars fa-lg"></i></a>
+    <div id="sidetoc">
+        <header>
+            <h4>C&#43;&#43;协程（3）：理解promise</h4>
+        </header>
+        <nav id="TableOfContents">
+            <ul></ul>
+        </nav>
+    </div>
+    <script>
+        isTocOpen = true;
+    </script>
+</div>
+
+
+<div class="nav-next-prev">
+    <div class="nav-prev">
+        
+        <a href="https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B2%E7%90%86%E8%A7%A3co_await/"><i class="fas fa-chevron-left"></i></a>
+        
+    </div>
+    <a class="nav-top" href="#">回到顶部</i></a>
+    <div class="nav-next">
+        
+        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        
+    </div>
+</div>
+<script type="text/javascript">
+    tocInit();
+</script>
+
+
+        </div><footer>
+    <div class="footer-content">
+        
+        <div class="contact-info">
+            
+            <div class="footer-github">
+                <i class="fab fa-github fa-ms"></i> <a target="_blank" href="https://github.com/z217">github.com/z217</a>
+            </div>
+            
+            
+            <div class="footer-mail">
+                <i class="far fa-envelope"></i> <a href="mailto:zihan.zhouchn@outlook.com">zihan.zhouchn@outlook.com</a>
+            </div>
+            
+            
+        </div>
+        
+        
+        <p class="copyright meta">Copyright © 2020–2024, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+                href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
+        
+    </div>
+    <script>
+        InitLightSwitcher()
+    </script>
+</footer>
+
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [
+                ['$', '$'],
+                ['\\(', '\\)']
+            ],
+            displayMath: [
+                ['$$', '$$'],
+                ['\[\[', '\]\]']
+            ],
+            processEscapes: true,
+            processEnvironments: true,
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+            TeX: {
+                equationNumbers: {
+                    autoNumber: "AMS"
+                },
+                extensions: ["AMSmath.js", "AMSsymbols.js"]
+            }
+        }
+    });
+
+    MathJax.Hub.Queue(function () {
+        let all = MathJax.Hub.getAllJax(),
+            i;
+        
+        for (i = 0; i < all.length; i += 1) {
+            all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+    });
+</script>
+</main>
+</body>
+
+</html>

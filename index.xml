@@ -7,8 +7,15 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2024, z217 and the hugo authors, all rights reserved.</copyright>
-    <lastBuildDate>Thu, 25 Jan 2024 00:00:42 +0800</lastBuildDate>
+    <lastBuildDate>Sat, 27 Jan 2024 16:19:06 +0800</lastBuildDate>
     <atom:link href="https://z217blog.cn/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>C&#43;&#43;协程（3）：理解promise</title>
+      <link>https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B3%E7%90%86%E8%A7%A3promise%E7%B1%BB%E5%9E%8B/</link>
+      <pubDate>Sat, 27 Jan 2024 16:19:06 +0800</pubDate>
+      <guid>https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B3%E7%90%86%E8%A7%A3promise%E7%B1%BB%E5%9E%8B/</guid>
+      <description>这篇文章是C++协程标准系列的第三篇文章。&#xA;之前的文章可以在这里查看：&#xA;协程理论 理解co_await 在这篇文章我会讲解你写的代码是怎么被编译器编译成协程代码的，并且你可以通过定义自己的 $Promise$ 类型来自定义协程行为。&#xA;协程concepts 协程标准添加了三个新的关键字：$co_-await$，$co_-yield$ 和 $co_-return$ 。无论你在函数体里使用哪个，编译器都会把这个函数编译成协程，这个函数也不再是普通函数。&#xA;编译器使用一些相当机械的转换来把你写的代码变成状态机，从而可以在函数内的特定点暂停，并在之后恢复执行。&#xA;在之前的文章我描述了协程标准引入的两个接口中的第一个接口：$Awaitable$ 接口。而第二个接口, $Promise$ 接口则对于这种代码转换来说十分重要。&#xA;$Promise$ 接口规定了自定义它所在协程行为的方法。库开发者可以用它定义协程被调用时的行为，协程返回的行为 ( 包括普通方式返回或者通过未处理异常返回 )，协程内使用 $co_-await$ 或者 $co_-yield$ 表达式的行为。&#xA;Promise对象 $Promise$ 对象通过实现协程执行过程中特定点的调用方法的形式来定义和控制对应协程的行为。&#xA;在继续之前，我希望你能忘掉之前所有关于 $promise$ 是什么的记忆。在一些用例中，协程的 $promise$ 对象与 $std$::$future$ 的 $std$::$promise$ 的功能很相似，但在其他用例中，并不能拿来相比。可能把协程的 $promise$ 对象想象成一个用于控制协程行为、跟踪协程状态的“协程状态控制器”会更合适。&#xA;$promise$ 对象实例会跟随着每个协程函数调用时创建的协程帧一起被构造。&#xA;编程器会在协程执行的关键点生成对 $promise$ 对象的特定方法的调用。&#xA;在接下来的例子中，我们假设某个特定协程调用创建的 $promise$ 对象叫做 $promise$ 。&#xA;当你编写一个协程函数体 &amp;lt;$body$-$statement$&amp;gt; ，函数体包含了某个协程关键字 ( $co_-return$，$co_-await$，$co_-yield$ )，那么协程体将转变为 ( 大致地 ) 如下形式：&#xA;{ co_await promise.initial_suspend(); try { &amp;lt;body-statement&amp;gt; } catch (...) { promise.</description>
+    </item>
     <item>
       <title>C&#43;&#43;协程（2）：理解co_await</title>
       <link>https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B2%E7%90%86%E8%A7%A3co_await/</link>
