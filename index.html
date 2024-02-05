@@ -92,7 +92,25 @@
     
     
     <div class="list-item">
-        <a class="entry-title" href="https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B3%E7%90%86%E8%A7%A3promise%E7%B1%BB%E5%9E%8B/">C&#43;&#43;协程（3）：理解promise</a>
+        <a class="entry-title" href="https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B4%E7%90%86%E8%A7%A3%E5%AF%B9%E7%A7%B0%E8%BD%AC%E7%A7%BB/">C&#43;&#43;协程（4）：理解对称转移</a>
+        
+        
+        <p>无栈协程介绍，翻译自 https://lewissbaker.github.io/</p>
+        
+        <div class="meta">
+            
+            <i class="far fa-calendar-alt"></i> 2024 Jan 28 23:45
+            
+            <br>
+            
+            <i class="fas fa-tags"></i>
+            Tags: C&amp;C&#43;&#43;
+            
+        </div>
+    </div>
+    
+    <div class="list-item">
+        <a class="entry-title" href="https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B3%E7%90%86%E8%A7%A3promise/">C&#43;&#43;协程（3）：理解promise</a>
         
         
         <p>无栈协程介绍，翻译自 https://lewissbaker.github.io/</p>
@@ -163,24 +181,6 @@
         </div>
     </div>
     
-    <div class="list-item">
-        <a class="entry-title" href="https://z217blog.cn/post/%E5%88%86%E5%B8%83%E5%BC%8F%E6%95%B0%E6%8D%AE%E7%B3%BB%E7%BB%9F%E4%B8%BB%E4%BB%8E%E8%8A%82%E7%82%B9/">分布式数据系统：主从节点</a>
-        
-        
-        <p>数据密集型应用系统设计：分布式数据系统</p>
-        
-        <div class="meta">
-            
-            <i class="far fa-calendar-alt"></i> 2022 Nov 06 15:24
-            
-            <br>
-            
-            <i class="fas fa-tags"></i>
-            Tags: Arch
-            
-        </div>
-    </div>
-    
 </div>
 
 
@@ -192,7 +192,681 @@
         
         <div class="post">
             
-            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B3%E7%90%86%E8%A7%A3promise%E7%B1%BB%E5%9E%8B/">C&#43;&#43;协程（3）：理解promise</a></h1>
+            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B4%E7%90%86%E8%A7%A3%E5%AF%B9%E7%A7%B0%E8%BD%AC%E7%A7%BB/">C&#43;&#43;协程（4）：理解对称转移</a></h1>
+            <div class="post-content">
+                
+                
+                <p>        协程标准提供了一种有趣的方式来编写异步代码，就好像你还在写同步代码那样。你只需要在合适的点调用 $co_-await$，编译器就会负责暂停协程，在暂停点之间保存状态，并在操作完成后恢复协程执行。<br>
+        然而，协程标准，就像它最初定义的，有着很不友好的限制，一不小心就很容易导致栈溢出。并且如果想要避免这种溢出，就需要你在的 $task$&lt;$T$&gt; 类型中进行额外的同步开销。<br>
+        还好，2018年对协程设计进行了调整，增加了一种叫做“对称转移” ( $symmetric$ $transfer$ ) 的功能，让你可以在不消耗任何额外栈空间的前提下暂停一个协程的同时恢复另一个协程的执行。此功能的加入解决了协程标准的一个关键限制，并且允许更简单有效的，不需要任何安全方面的措施来防止栈溢出的方式来实现一个异步协程。<br>
+        在这篇文章我会试着解释栈溢出问题，以及这个关键的“对称转移”能力是怎么解决这个问题的。</p>
+<h2 id="首先是一些关于任务协程怎么工作的背景">首先是一些关于任务协程怎么工作的背景</h2>
+<p>        考虑如下协程：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">task</span> <span class="nf">foo</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">co_return</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">task</span> <span class="nf">bar</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">co_await</span> <span class="n">foo</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        假设我们有一个简单的 $task$ 类型，当其他协程等待它时会懒执行。这个特别的 $task$ 类型没有返回值。<br>
+        让我们分析下当 $bar\left(\right)$ 执行 $co_-await$ $foo\left(\right)$ 时发生了什么。</p>
+<ul>
+<li>$bar\left(\right)$ 协程调用 $foo\left(\right)$ 函数。注意从主调的角度看协程只是一个普通函数。</li>
+<li>$foo\left(\right)$ 调用执行一些步骤：
+<ul>
+<li>分配协程帧内存 ( 一般在堆上 )。</li>
+<li>把参数拷贝到协程帧 ( 如果没有参数，不执行这一步 )。</li>
+<li>在协程帧构造 $promise$ 对象。</li>
+<li>调用 $promise.get_-return_-object\left(\right)$ 来获取 $foo\left(\right)$ 的返回值。这一步生成将被返回的 $task$ 对象，使用指向刚创建的协程帧的 $std$::$coroutine_-handle$ 初始化。</li>
+<li>在最初暂停点 ( 即左大括号处 ) 暂停协程。</li>
+<li>把 $task$ 对象返回给 $bar\left(\right)$。</li>
+</ul>
+</li>
+<li>接着 $bar\left(\right)$ 协程对 $foo\left(\right)$ 返回的 $task$ 执行 $co_-await$ 表达式。
+<ul>
+<li>$bar\left(\right)$ 协程暂停，调用 $task$ 的 $await_-suspend\left(\right)$ 方法，传入指向 $bar\left(\right)$ 协程帧的 $std$::$coroutine_-handle$ 。</li>
+<li>$await_-suspend\left(\right)$ 函数保存 $bar\left(\right)$ 的 $std$::$coroutine_-handle$ 到 $foo\left(\right)$ 的 $promise$ 对象中，调用 $foo\left(\right)$ 的 $std$::$coroutine_-handle$ 的 $.resume\left(\right)$ 方法，恢复 $foo\left(\right)$ 协程的执行。</li>
+</ul>
+</li>
+<li>$foo\left(\right)$ 协程执行同步完成。</li>
+<li>$foo\left(\right)$ 协程在最终暂停点 ( 即右大括号处 ) 暂停，通过启动前存储在 $promise$ 对象的 $std$::$coroutine_-handle$ 恢复协程 $bar\left(\right)$ 的执行。</li>
+<li>$bar\left(\right)$ 协程恢复，继续执行，直到到达 $co_-await$ 表达式语句的结尾，这时它调用 $foo\left(\right)$ 返回的临时变量 $task$ 的析构函数。</li>
+<li>$task$ 的析构函数再调用 $foo\left(\right)$ 协程句柄的 $.destroy\left(\right)$ 方法，销毁协程帧，包括 $promise$ 对象和拷贝的参数。</li>
+</ul>
+<p>        好，这么看来一个简单的调用包含了许多步骤。<br>
+        为了更深的理解这些步骤，让我们看看一种简单的使用协程标准设计 ( 不支持对称转移 ) 的 $task$ 类实现。</p>
+<h2 id="task-的大体实现">task 的大体实现</h2>
+<p>        类的实现大体是这样：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">task</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="k">class</span> <span class="nc">promise_type</span> <span class="p">{</span> <span class="cm">/* see below */</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">task</span><span class="p">(</span><span class="n">task</span><span class="o">&amp;&amp;</span> <span class="n">t</span><span class="p">)</span> <span class="k">noexcept</span>
+</span></span><span class="line"><span class="cl">  <span class="o">:</span> <span class="n">coro_</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">exchange</span><span class="p">(</span><span class="n">t</span><span class="p">.</span><span class="n">coro_</span><span class="p">,</span> <span class="p">{}))</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="o">~</span><span class="n">task</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">coro_</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="n">coro_</span><span class="p">.</span><span class="n">destroy</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">class</span> <span class="nc">awaiter</span> <span class="p">{</span> <span class="cm">/* see below */</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">awaiter</span> <span class="k">operator</span> <span class="nf">co_await</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="k">noexcept</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="k">explicit</span> <span class="n">task</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;</span><span class="n">promise_type</span><span class="o">&gt;</span> <span class="n">h</span><span class="p">)</span> <span class="k">noexcept</span>
+</span></span><span class="line"><span class="cl">  <span class="o">:</span> <span class="n">coro_</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;</span><span class="n">promise_type</span><span class="o">&gt;</span> <span class="n">coro_</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        $task$ 独占一个指向协程帧的 $std$::$coroutine_-handle$，在协程调用时创建。$task$ 对象是<code>RAII</code>对象，保证当 $task$ 离开作用域时，$std$::$coroutine_-handle$ 的 $.destroy\left(\right)$ 会被调用。<br>
+        接着让我们实现 $promise$ 类型。</p>
+<h2 id="实现-taskpromise_type">实现 task::promise_type</h2>
+<p>        根据<a href="https://z217blog.cn/post/c++%E5%8D%8F%E7%A8%8B3%E7%90%86%E8%A7%A3promise/">以前的文章</a>，我们知道 $promise$ 类型成员定义了协程帧中的 $Promise$ 对象类型，控制协程行为。<br>
+        首先，我们需要实现 $get_-return_-object\left(\right)$ 来构造在协程创建时返回的 $task$ 对象。这个方法只需要使用新创建的协程帧的 $std$::$coroutine_-handle$ 来初始化 $task$。<br>
+        我们可以使用 $std$::$coroutine_-handle$::$from_-promise\left(\right)$ 方法来从 $promise$ 对象获取一个句柄。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">task</span><span class="o">::</span><span class="n">promise_type</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="n">task</span> <span class="n">get_return_object</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">task</span><span class="p">{</span><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;</span><span class="n">promise_type</span><span class="o">&gt;::</span><span class="n">from_promise</span><span class="p">(</span><span class="o">*</span><span class="k">this</span><span class="p">)};</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        接着，我们想要协程在左大括号处进行初始化暂停，这样稍后可以在挂起 $task$ 的点恢复协程。<br>
+        懒启动协程有一些优点：</p>
+<ol>
+<li>可以在开始协程执行前设置 $std$::$coroutine_-handle$。这意味着我们不需要使用线程同步来处理设置和协程运行之间的竞态。</li>
+<li>$task$ 析构函数可以无条件地销毁协程帧，不需要担心协程是否还在另一个线程运行，因为协程只会在主动 $await$ 时执行。并且开始后主调协程会被暂停，所以直到协程执行完成，我们才能调用 $task$ 的析构函数。这让编译器可以更好的把协程帧直接分配在主调的调用栈上，参考<a href="https://wg21.link/P0981R0">P0981R0</a>了解更多关于堆分配跳过优化 ( $Heap$ $Allocation$ $eLision$ $Optimisation$, $HALO$ )。</li>
+<li>提升协程代码的异常安全性。如果你不立即 $co_-await$ 返回的 $task$，并且做了一些其他逻辑，抛出了异常，导致栈回退，这时 $task$ 的析构函数会被调用，这样我们也可以安全的销毁协程帧，因为我们知道它还没开始运行。我们不需要处理 $detach$，悬垂引用，析构函数阻塞，进程终止或者未定义行为。这也是我在<a href="https://www.youtube.com/watch?v=1Wy5sq3s2rg">CppCon 2019 talk on Structured Concurrency</a>中讲到的。</li>
+</ol>
+<p>        为了让协程在左大括号处进行初始化暂停，我们实现了一个返回内置 $suspend_-always$ 类型的 $initial_-suspend\left(\right)$ 方法。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">suspend_always</span> <span class="n">initial_suspend</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="p">{};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        接着，我们需要定义 $return_-void\left(\right)$ 方法，这个方法会在执行到 $co_-return;$ 时，或者协程执行结束时被调用。这个方法并不需要做任何事，只需要声明来让编译器知道这个协程类型可以使用 $co_-return;$ 语句。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">return_void</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{}</span>
+</span></span></code></pre></div><p>        我们也需要增加一个 $unhandled_-exception\left(\right)$ 方法，如果一个异常逃出协程体之外，这个方法会被调用。在我们的场景，可以认为 $task$ 协程体是<code>noexcept</code>的，如果出现异常，直接调用 $std$::$terminate\left(\right)$。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">unhandled_exception</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">terminate</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        最后，当协程执行到右大括号时，我们想让协程在最终暂停点暂停，并恢复等待这个协程完成的另一个协程的执行。<br>
+        为了实现这个，我们需要 $promise$ 有一个数据成员来保存接着执行的协程的 $std$::$coroutine_-handle$。我们也需要定义 $final_-suspend\left(\right)$ 方法，返回一个 $awaitble$ 对象，在当前协程在最终暂停点暂停后，恢复下一个协程。<br>
+        把恢复延后到当前协程暂停后进行是很重要的，因为下一个协程可能会立即调用 $task$ 的析构函数，后者再调用协程帧的 $.destroy\left(\right)$ 。$.destroy\left(\right)$ 只对暂停协程有效，所以这时可能会导致未定义行为。<br>
+        编译器会在右大括号处插入 $co_-await$ $promise.final_-suspend\left(\right)$ 语句。<br>
+        十分要注意的是，当 $final_-suspend\left(\right)$ 被调用时，当前协程还没有暂停。在协程暂停前，我们需要等待返回的 $awaitble$ 对象 $await_-suspend\left(\right)$ 方法调用。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">final_awaiter</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">bool</span> <span class="nf">await_ready</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">await_suspend</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">coroutin_handle</span><span class="o">&lt;</span><span class="n">promise_type</span><span class="o">&gt;</span> <span class="n">h</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// The coroutine is now suspended at the final-suspend point.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// Lookup its continuation in the promise and resume it.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">h</span><span class="p">.</span><span class="n">promise</span><span class="p">().</span><span class="n">continuation</span><span class="p">.</span><span class="n">resume</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">await_resume</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">final_awaiter</span> <span class="nf">final_suspend</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="p">{};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">continuation</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>        好了，$promise$ 类型完成了。最后还剩下 $task$::$operator$ $co_-await\left(\right)$。</p>
+<h2 id="实现-taskoperator-co_await">实现 task::operator co_await()</h2>
+<p>        你可能记得<a href="https://z217blog.cn/post/c++%E5%8D%8F%E7%A8%8B2%E7%90%86%E8%A7%A3co_await/">理解co_await</a>这篇文章讲的，当执行 $co_-await$ 表达式时，编译器会生成一个对 $operator$ $co_-await\left(\right)$ 的调用，如果定义了这个方法，返回对象必须同时定义 $await_-ready\left(\right)$、$await_-suspend\left(\right)$ 和 $await_-resume\left(\right)$ 方法。<br>
+        当一个协程 $await$ 一个 $task$ 时，我们希望挂起的协程总是暂停，并且在暂停后，把挂起协程的句柄保存在即将恢复的协程的 $promise$ 中，并在之后对 $task$ 的 $std$::$coroutine_-handle$ 调用 $.resume\left(\right)$ 来开始 $task$ 执行。<br>
+        因此代码会相对直接：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">task</span><span class="o">::</span><span class="n">awaiter</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">bool</span> <span class="n">await_ready</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">await_suspend</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">continuation</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// Store the continuation in the task&#39;promise so that the final_suspend()
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// knows to resume this corotuine when the task completes.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">coro_</span><span class="p">.</span><span class="n">promise</span><span class="p">().</span><span class="n">continuation</span> <span class="o">=</span> <span class="n">continuation</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Then we resume the task&#39;s coroutine, which is currently suspended
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// at the initial-suspend-point (ie. at the open curly brace).
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">coro_</span><span class="p">.</span><span class="n">resume</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">await_resume</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="k">explicit</span> <span class="n">awaiter</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;</span><span class="n">task</span><span class="o">::</span><span class="n">promise_type</span><span class="o">&gt;</span> <span class="n">h</span><span class="p">)</span> <span class="k">noexcept</span>
+</span></span><span class="line"><span class="cl">  <span class="o">:</span> <span class="n">coro_</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;</span><span class="n">task</span><span class="o">::</span><span class="n">promise_type</span><span class="o">&gt;</span> <span class="n">coro_</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">task</span><span class="o">::</span><span class="n">awaiter</span> <span class="n">task</span><span class="o">::</span><span class="k">operator</span> <span class="k">co_await</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="k">noexcept</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">awaiter</span><span class="p">{</span><span class="n">coro_</span><span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        这样就完成了 $task$ 类型功能所需的代码。<br>
+        你可以在 $Compiler$ $Explorer$ 查看完整代码：<a href="https://godbolt.org/z/-Kw6Nf">https://godbolt.org/z/-Kw6Nf</a>。</p>
+<h3 id="栈溢出问题">栈溢出问题</h3>
+<p>        然而，当你尝试在协程中编写循环，并且 $co_-await$ 可能在循环体内同步完成的 $task$ 时，会受到一些限制。<br>
+        例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">task</span> <span class="nf">completes_synchronously</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">co_return</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">task</span> <span class="nf">loop_synchronously</span><span class="p">(</span><span class="kt">int</span> <span class="n">count</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">count</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">co_await</span> <span class="n">completes_synchronously</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        使用上文中的 $task$ 实现，$loop_-synchronously\left(\right)$ 函数 ( 可能 ) 会在 $count$ 是 $10$、$10000$，甚至 $100'000$ 时都能正常运行。但是有些值会导致协程崩溃。<br>
+        例如，当 $count$ 是 $1'000'000$ 时就会崩溃，可以查看：<a href="https://godbolt.org/z/gy5Q8q">https://godbolt.org/z/gy5Q8q</a>。<br>
+        崩溃的原因是栈溢出。<br>
+        为了理解栈溢出的原因，我们需要看看代码执行的时候发生了什么，尤其是栈帧上面发生了什么。<br>
+        当其他协程 $co_-await$ 了返回的 $task$ 后，$loop_-synchronously\left(\right)$ 开始执行。这将暂停挂起的协程，调用 $task$::$awaiter$::$await_-suspend\left(\right)$，后者调用 $task$ 的 $std$::$coroutine_-handle$ 的 $.resume\left(\right)$ 方法。<br>
+        因此在 $loop_-synchronously\left(\right)$ 启动时，栈看起来就像这样：</p>
+<pre tabindex="0"><code>           Stack                                                   Heap
++------------------------------+  &lt;-- top of stack   +--------------------------+
+| loop_synchronously$resume    | active coroutine -&gt; | loop_synchronously frame |
++------------------------------+                     | +----------------------+ |
+| coroutine_handle::resume     |                     | | task::promise        | |
++------------------------------+                     | | - continuation --.   | |
+| task::awaiter::await_suspend |                     | +------------------|---+ |
++------------------------------+                     | ...                |     |
+| awaiting_coroutine$resume    |                     +--------------------|-----+
++------------------------------+                                          V
+|  ....                        |                     +--------------------------+
++------------------------------+                     | awaiting_coroutine frame |
+                                                     |                          |
+                                                     +--------------------------+
+</code></pre><blockquote>
+<p>注意：一个协程函数通常被编译器编译成两部分：</p>
+<ol>
+<li>“活动函数” ( $ramp$ $function$ )，处理协程帧构造、参数拷贝，$promise$ 构造和获取返回值，以及</li>
+<li>“协程体” ( $coroutine$ $body$ )，包含用户编写的逻辑。</li>
+</ol>
+</blockquote>
+<blockquote>
+<p>我使用 $\$resume$ 后缀表示协程的“协程体”部分。<br>
+后面的文章会详细介绍这种分割方式。</p>
+</blockquote>
+<p>        当 $loop_-synchronously\left(\right)$ $await$ $complete_-synchronously\left(\right)$ 返回的 $task$ 时，当前协程会被暂停，调用 $task$::$awaiter$::$await_-suspend\left(\right)$。$await_-suspend\left(\right)$ 方法再调用 $complete_-synchronously\left(\right)$ 协程句柄的 $.resume\left(\right)$ 方法。<br>
+        这会恢复 $complete_-synchronously\left(\right)$ 协程，后者会同步运行结束，并在最终暂停点暂停，调用 $task$::$promise$::$final_-awaiter$::$await_-suspend\left(\right)$ 方法，后者会调用 $loop_-synchronously\left(\right)$ 协程句柄的 $.resume\left(\right)$ 方法。<br>
+        接着当 $loop_-synchronously\left(\right)$ 协程恢复之后、$complete_-synchronously\left(\right)$ 返回的临时变量 $task$ 在分号处销毁时，我们再看看当前程序状态，栈 / 堆看起来就像这样：</p>
+<pre tabindex="0"><code>           Stack                                                   Heap
++-------------------------------+ &lt;-- top of stack
+| loop_synchronously$resume     | active coroutine -.
++-------------------------------+                   |
+| coroutine_handle::resume      |            .------&#39;
++-------------------------------+            |
+| final_awaiter::await_suspend  |            |
++-------------------------------+            |  +--------------------------+ &lt;-.
+| completes_synchronously$resume|            |  | completes_synchronously  |   |
++-------------------------------+            |  | frame                    |   |
+| coroutine_handle::resume      |            |  +--------------------------+   |
++-------------------------------+            &#39;---.                             |
+| task::awaiter::await_suspend  |                V                             |
++-------------------------------+ &lt;-- prev top  +--------------------------+   |
+| loop_synchronously$resume     |     of stack  | loop_synchronously frame |   |
++-------------------------------+               | +----------------------+ |   |
+| coroutine_handle::resume      |               | | task::promise        | |   |
++-------------------------------+               | | - continuation --.   | |   |
+| task::awaiter::await_suspend  |               | +------------------|---+ |   |
++-------------------------------+               | - task temporary --|---------&#39;
+| awaiting_coroutine$resume     |               +--------------------|-----+
++-------------------------------+                                    V
+|  ....                         |               +--------------------------+
++-------------------------------+               | awaiting_coroutine frame |
+                                                |                          |
+                                                +--------------------------+
+</code></pre><p>        接着下一个要做的就是调用 $task$ 的析构函数，销毁 $complete_-synchronously\left(\right)$ 的协程帧，并递增 $count$ 变量，继续循环，再创建一个新的 $complete_-synchronously\left(\right)$ 协程并恢复它。<br>
+        事实上，这里会做的就是 $loop_-synchronously\left(\right)$ 和 $complete_-synchronously\left(\right)$ 返回递归调用对方，每次调用都会占用一部分栈空间，直到迭代够一定次数后，栈溢出并导致了未定义行为，导致程序立即崩溃。<br>
+        协程内编写循环这种看着没有任何递归的行为，却是很简单的导致函数越界的方式。<br>
+        那么，在这种原始协程标准设计之下，又该怎么解决这个问题呢？</p>
+<h2 id="协程标准解法">协程标准解法</h2>
+<p>        好，那么这种无界递归问题该怎么避免呢？<br>
+        在上面的实现中，我们使用返回 $void$ 的 $await_-suspend\left(\right)$。协程标准中还有另外一个返回<code>bool</code>的 $await_-suspend\left(\right)$，返回<code>true</code>代表协程已暂停，控制权移交给 $resume\left(\right)$ 的调用者，返回<code>false</code>则协程立即恢复，不需要消耗任何额外的栈空间。<br>
+        所以，为了避免无界地循环递归，我们希望利用返回<code>bool</code>版本的 $await_-suspend\left(\right)$，让 $task$::$awaiter$::$await_-suspend\left(\right)$ 在任务同步结束时返回<code>false</code>，而不是递归地通过 $std$::$coroutine_-handle$::$resume\left(\right)$ 恢复协程。<br>
+        实现这种解法需要两部分：</p>
+<ol>
+<li>在 $task$::$awaiter$::$await_-suspend\left(\right)$ 方法，你可以调用 $.resume\left(\right)$ 来启动协程执行。然后在 $.resume\left(\right)$ 返回时，检查协程是否执行完成。如果执行完成，我们可以返回<code>false</code>，表示挂起的协程应当立即恢复。如果没有完成，我们可以返回<code>true</code>，表示将控制权移交给 $std$::$coroutine_-handle$::$resume\left(\right)$ 的调用者。</li>
+<li>在协程执行完成后调用的 $task$::$promise_-type$::$final_-awaiter$::$await_-suspend\left(\right)$ 方法内，我们需要检查挂起的协程是否已经 ( 或者即将 ) 从 $task$::$awaiter$::$await_-suspend\left(\right)$ 调用中返回<code>true</code>。如果是，调用 $.resume\left(\right)$ 来恢复它。否则我们需要避免恢复协程，并且告诉 $task$::$awaiter$::$await_-suspend\left(\right)$，让它返回<code>false</code>。</li>
+</ol>
+<p>        然而，有一个更复杂的问题，就是协程可能在当前线程开始执行、暂停，并在 $.resume\left(\right)$ 调用返回前，在其他线程恢复并执行完成。因此，我们需要解决第一部分和第二部分之间可能的并发冲突。<br>
+        我们需要使用 $std$::$atomic$ 值同步。<br>
+        现在我们可以对代码进行以下修改：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">task</span><span class="o">::</span><span class="n">promise_type</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="p">...</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">continuation</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span> <span class="n">ready</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">bool</span> <span class="n">task</span><span class="o">::</span><span class="n">awaiter</span><span class="o">::</span><span class="n">await_suspend</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">continuation</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">promise_type</span><span class="o">&amp;</span> <span class="n">promise</span> <span class="o">=</span> <span class="n">coro_</span><span class="p">.</span><span class="n">promise</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="n">promise</span><span class="p">.</span><span class="n">continuation</span> <span class="o">=</span> <span class="n">continuation</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">coro_</span><span class="p">.</span><span class="n">resume</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="o">!</span><span class="n">promise</span><span class="p">.</span><span class="n">ready</span><span class="p">.</span><span class="n">exchange</span><span class="p">(</span><span class="nb">true</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">memory_order_acq_rel</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">task</span><span class="o">::</span><span class="n">promise_type</span><span class="o">::</span><span class="n">final_awaiter</span><span class="o">::</span><span class="n">await_suspend</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;</span><span class="n">promise_type</span><span class="o">&gt;</span> <span class="n">h</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">promise_type</span><span class="o">&amp;</span> <span class="n">promise</span> <span class="o">=</span> <span class="n">h</span><span class="p">.</span><span class="n">promise</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">promise</span><span class="p">.</span><span class="n">ready</span><span class="p">.</span><span class="n">exchange</span><span class="p">(</span><span class="nb">true</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">memory_order_acq_rel</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// The coroutine did not complete synchronously, resume it here.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">promise</span><span class="p">.</span><span class="n">continuation</span><span class="p">.</span><span class="n">resume</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        可以在 $Compiler$ $Explorer$ 上查看修改后的例子：<a href="https://godbolt.org/z/7fm8Za">https://godbolt.org/z/7fm8Za</a>。注意这时当 $count$ $==$ $1'000'000$ 时，程序不再崩溃了。<br>
+        这就是 $cppcoro$::$task$&lt;$T$&gt; 里面实现的，规避无界递归问题的方式 ( 在某些平台也是一样 )，而且运行得很好。<br>
+        哇哦！问题解决了，吗？发布！可以吗&hellip;？</p>
+<h2 id="问题">问题</h2>
+<p>        以上方法在解决递归的同时，也引入了一些问题。<br>
+        首先，它需要 $std$::$atomic$ 操作，开销可能很大。主调等待挂起的协程需要进行一次值交换，并且被调执行完成后也需要一次原子交换。如果你的程序是单线程的，那么你会在永远不需要的线程同步原子操作上花费额外的开销。<br>
+        其次，它引入了额外的分支。一个在主调，需要判断是否暂停或者立即恢复协程，另一个在被调，需要判断是否恢复下个协程或者暂停。<br>
+        注意这个额外分支的开销，甚至原子操作的开销，跟协程程序的业务逻辑相比通常不值一提。然而，协程被称为零成本抽象，并且有许多人使用协程暂停操作来避免等待<code>L1</code>缓存未命中问题 ( 更多细节可以查看 Gor 的 <a href="https://www.youtube.com/watch?v=j9tlJAqMV7U">great CppCon talk on nanocoroutines</a> )。<br>
+        最后，也可能是最重要的，它在挂起协程的恢复中引入了一些执行时不确定的值。<br>
+        假设我有以下代码：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">cppcoro</span><span class="o">::</span><span class="n">static_thread_pool</span> <span class="n">tp</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">task</span> <span class="nf">foo</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;foo1 &#34;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">get_id</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// Suspend coroutine and reschedule onto thread-poll thread.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">co_await</span> <span class="n">tp</span><span class="p">.</span><span class="n">schedule</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;foo2 &#34;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">get_id</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">task</span> <span class="nf">bar</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;bar1 &#34;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">get_id</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">co_await</span> <span class="n">foo</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;bar2 &#34;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">get_id</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        在原来实现中，我们保证在 $co_-await$ $foo\left(\right)$ 执行完成后的代码会在相同的线程中内联执行。<br>
+        例如，一种可能的输出：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">bar1</span> <span class="mi">1234</span>
+</span></span><span class="line"><span class="cl"><span class="n">foo1</span> <span class="mi">1234</span>
+</span></span><span class="line"><span class="cl"><span class="n">foo2</span> <span class="mi">3456</span>
+</span></span><span class="line"><span class="cl"><span class="n">bar2</span> <span class="mi">3456</span>
+</span></span></code></pre></div><p>        然而，通过使用原子变量，$foo\left(\right)$ 执行完成可能与 $bar\left(\right)$ 的暂停之间并发冲突，在一些情况下，这意味着 $co_-await$ $foo\left(\right)$ 之后的代码可能在 $bar\left(\right)$ 启动的线程上执行。<br>
+        例如，一种可能的输出：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">bar1</span> <span class="mi">1234</span>
+</span></span><span class="line"><span class="cl"><span class="n">foo1</span> <span class="mi">1234</span>
+</span></span><span class="line"><span class="cl"><span class="n">foo2</span> <span class="mi">3456</span>
+</span></span><span class="line"><span class="cl"><span class="n">bar2</span> <span class="mi">1234</span>
+</span></span></code></pre></div><p>        对于许多用例来说，这种行为没有区别。然而，对于想要传递运行上下文的算法来说就有问题了。<br>
+        例如，$via\left(\right)$ 算法等待一些 $Awaitable$，然后在对应的 $scheduler$ 的运行上下文上返回。这个算法的一个简单版本如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">Awaitable</span><span class="p">,</span> <span class="k">typename</span> <span class="n">Scheduler</span><span class="o">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="n">task</span><span class="o">&lt;</span><span class="n">await_result_t</span><span class="o">&lt;</span><span class="n">Awaitable</span><span class="o">&gt;&gt;</span> <span class="n">via</span><span class="p">(</span><span class="n">Awaitable</span> <span class="n">a</span><span class="p">,</span> <span class="n">Scheduler</span> <span class="n">s</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">auto</span> <span class="n">result</span> <span class="o">=</span> <span class="k">co_await</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="k">co_await</span> <span class="n">s</span><span class="p">.</span><span class="n">schedule</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="k">co_return</span> <span class="n">result</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">task</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">get_value</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">consume</span><span class="p">(</span><span class="k">const</span> <span class="n">T</span><span class="o">&amp;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">task</span><span class="o">&lt;</span><span class="kt">void</span><span class="o">&gt;</span> <span class="n">consumer</span><span class="p">(</span><span class="n">static_thread_pool</span><span class="o">::</span><span class="n">scheduler</span> <span class="n">s</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">T</span> <span class="n">result</span> <span class="o">=</span> <span class="k">co_await</span> <span class="n">via</span><span class="p">(</span><span class="n">get_value</span><span class="p">(),</span> <span class="n">s</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="n">consume</span><span class="p">(</span><span class="n">result</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        最初版本的 $consume\left(\right)$ 调用总是保证在线程池 $s$ 上执行。然而，在使用原子变量后，$consume\left(\right)$ 可能在与 $scheduler$ $s$ 相关的线程上执行，也可能在 $consumer\left(\right)$ 开始执行的线程上执行。<br>
+        所以我们应该怎么在没有原子操作、额外分支和不确定的恢复上下文的前提下解决栈溢出问题呢？</p>
+<h2 id="进入对称转移">进入“对称转移”</h2>
+<p>        Gor Nishanov ( $2018$ ) 的论文<a href="https://wg21.link/P0913R0">P0913R0</a>《增加对称协程控制转移》，提出了这种问题的解法，通过提供一种允许一种不需要消耗任何额外栈空间的前提下，让一个协程暂停时对称恢复另一个协程的能力。<br>
+        论文提出了两个关键改变：</p>
+<ul>
+<li>允许 $await_-suspend\left(\right)$ 返回 $std$::$coroutine_-handle$&lt;$T$&gt;，表示执行需要对称转移给返回的句柄标识的协程。</li>
+<li>增加 $std$::$experimental$::$noop_-coroutine\left(\right)$ 函数，返回一个特别的 $std$::$coroutine_-handle$，可以作为 $await_-suspend\left(\right)$ 的返回值，暂停当前协程，从 $.resume\left(\right)$ 调用返回而不是将控制权转移给其他协程。</li>
+</ul>
+<p>        所以“对称转移”是什么意思呢？<br>
+        当你调用 $std$::$coroutine_-handle$ 的 $.resume\left(\right)$ 来恢复协程，$.resume\left(\right)$ 的调用者在协程恢复后仍然是活跃的。接着，协程暂停，在暂停点调用 $await_-suspend\left(\right)$ 返回<code>void</code>( 无条件暂停 ) 或者<code>true</code> ( 有条件暂停 ) 时，$.resume\left(\right)$ 的调用才会返回。<br>
+        这可以认为是一种“对称转移”，协程执行和行为就像普通函数调用一样。$.resume\left(\right)$ 的主调可以是任意函数 ( 协程或非协程 )。当协程暂停并且 $await_-suspend\left(\right)$ 返回<code>true</code>或者<code>void</code>时，控制权会返回给 $.resume\left(\right)$ 的调用者。<br>
+        每次调用 $.resume\left(\right)$ 恢复协程时，都会创建一个新的协程的栈帧。<br>
+        然而，通过“对称转移”，我们可以简单的暂停协程，并恢复另一个协程。两个协程之间不需要显式的主被调关系，一个协程暂停时，它就可以把控制权转移给其他暂停的协程 ( 包括它自己 )，并且不需要在下次暂停或者执行完成时把控制权转移给上一个协程。<br>
+        让我们看看在 $awaiter$ 使用对称转移时，编译器会怎么处理 $co_-await$ 表达式：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">value</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">expr</span><span class="o">&gt;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">awaitble</span> <span class="o">=</span>
+</span></span><span class="line"><span class="cl">      <span class="n">get_awaitable</span><span class="p">(</span><span class="n">promise</span><span class="p">,</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="k">decltype</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">&amp;&amp;&gt;</span><span class="p">(</span><span class="n">value</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">  <span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">awaiter</span> <span class="o">=</span>
+</span></span><span class="line"><span class="cl">      <span class="n">get_awaiter</span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="k">decltype</span><span class="p">(</span><span class="n">awaitable</span><span class="p">)</span><span class="o">&amp;&amp;&gt;</span><span class="p">(</span><span class="n">awaitable</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">awaiter</span><span class="p">.</span><span class="n">await_ready</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">using</span> <span class="n">handle_t</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;</span><span class="n">P</span><span class="o">&gt;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// &lt;suspend-coroutine&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">    <span class="k">auto</span> <span class="n">h</span> <span class="o">=</span> <span class="n">awaiter</span><span class="p">.</span><span class="n">await_suspend</span><span class="p">(</span><span class="n">handle_t</span><span class="o">::</span><span class="n">from_promise</span><span class="p">(</span><span class="n">p</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">    <span class="n">h</span><span class="p">.</span><span class="n">resume</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// &lt;return-to-caller-or-resumer&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// &lt;resume-point&gt;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">awaiter</span><span class="p">.</span><span class="n">await_resume</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        让我们放大与其他 $co_-await$ 行为不同的部分：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">h</span> <span class="o">=</span> <span class="n">awaiter</span><span class="p">.</span><span class="n">await_suspend</span><span class="p">(</span><span class="n">handle_t</span><span class="o">::</span><span class="n">from_promise</span><span class="p">(</span><span class="n">p</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl"><span class="n">h</span><span class="p">.</span><span class="n">resume</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="c1">// &lt;return-to-caller-or-resumer&gt;
+</span></span></span></code></pre></div><p>        一旦协程状态机处于 $lower$ 状态 ( 另一篇文章的主题 )，&lt;$return$-$to$-$caller$-$or$-$resumer$&gt; 部分一般是 $return;$ 语句，这会导致上次 $.resume\left(\right)$ 的调用返回给主调。<br>
+        这意味着我们在原来 $std$::$coroutine_-handle$::$resume\left(\right)$ 调用的函数体内，又产生了一个对同一个签名的函数的调用，即 $std$::$coroutine_-handle$::$resume\left(\right)$ ，跟着一条 $return;$ 语句。<br>
+        一些编译器在开启编译优化后，能够在条件满足的时候，把函数结尾的调用 ( 即返回之前 ) 转变为尾调用 ( $tail$-$calls$ )。<br>
+        而这种优化正是我们想要的，可以避免栈溢出问题的方式。但是与其期望优化器来决定进行尾调用转移，我们更想要确保这种优化一直有效，即使是未开启优化的情况。<br>
+        但是首先，我们先了解下尾调用的含义。</p>
+<h3 id="尾调用">尾调用</h3>
+<p>        尾调用意味着在当前栈帧弹出前，把当前函数的返回地址修改为被调的返回地址 ( 即被调直接返回给当前函数的主调 )。<br>
+        在<code>X86/X64</code>架构，这通常意味着编译器生成的代码会先弹出当前栈帧，然后调用 $jmp$ 指令来跳转到被调函数入口，而不是使用 $call$ 指令，并在 $call$ 返回后才弹出当前栈帧。<br>
+        这个优化通常只会在有限情况下发生，然而：<br>
+        特别的，它需要：</p>
+<ul>
+<li>调用机制支持尾调用，包括主调和被调；</li>
+<li>返回类型相同；</li>
+<li>没有需要在调用返回前执行的非默认析构函数；</li>
+<li>调用不在<code>try/catch</code>块内。</li>
+</ul>
+<p>        $co_-await$ 对称转移形式的设计使得它刚好能满足所有需求。我们一个个来看。<br>
+        <strong>调用机制</strong>：当编译器把协程 $lower$ 成状态机时，它实际上分成两部分：活跃部分 ( $ramp$，分配和初始化协程框架 ) 和主体 ( 包含用户编写的协程体的状态机 )。<br>
+        协程的函数签名 ( 以及所有用户指定的调用机制 ) 只会影响活跃函数部分，主体部分则受编译器控制，永远不会被用户代码调用，只能通过 $ramp$ 函数和 $std$::$coroutine_-handle$::$resume\left(\right)$ 调用。<br>
+        协程体部分的调用机制是用户不可见的，完全由编译器决定，因此它可以选择一种合适的支持尾调用的机制，并被所有协程体使用。<br>
+        <strong>返回类型相同</strong>：源和目的协程的 $.resume\left(\right)$ 方法的返回值都是<code>void</code>，所以这个需求也能满足。<br>
+        <strong>没有非默认析构函数</strong>：当执行尾调用时，我们需要在调用目标函数前释放当前栈帧，这需要所有栈上对象的生命周期都在调用结束之前。<br>
+        一般情况下，一旦作用域内有对象的析构函数非默认，这些对象会在协程暂停的时候存活，所以它们会被分配在协程帧上，而非栈帧上。<br>
+        局部变量不需要在协程暂停时存活，可能分配在栈帧上，它们的生命周期会在协程下次暂停时结束。<br>
+        因此栈分配对象不存在需要在尾调用返回之前调用的非默认析构函数。<br>
+        <strong>调用不在<code>try/catch</code>块内</strong>：这个可能有点 trick，因为每个协程内都有个显式的<code>try/catch</code>块，包裹用户编写的协程体。<br>
+        根据规范，协程被定义为：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="n">promise_type</span> <span class="n">promise</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">co_await</span> <span class="n">promise</span><span class="p">.</span><span class="n">initial_suspend</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="k">try</span> <span class="p">{</span> <span class="n">F</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="k">catch</span> <span class="p">(...)</span> <span class="p">{</span> <span class="n">promise</span><span class="p">.</span><span class="n">unhandled_exception</span><span class="p">();</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="nl">final_suspend</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">  <span class="k">co_await</span> <span class="n">promise</span><span class="p">.</span><span class="n">final_suspend</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        $F$ 就是用户编写的协程体部分。<br>
+        因此所有用户编写的 $co_-await$ 表达式 ( 除了 $initial$/$final_-suspend$ ) 都在<code>try/catch</code>块的上下文中。<br>
+        然而，实现上会把 $.resume\left(\right)$ 执行放到<code>try/catch</code>块的外部。<br>
+        我希望在另一篇文章讲协程怎么变成状态机的文章中讲解更多这方面的细节 ( 这篇文章已经够长了 )。</p>
+<blockquote>
+<p>注意，然而，当前<code>C++</code>规范对实现这个操作需求的描述不够清晰，并且只是一个非规范注释，暗示这可能是必须的。希望我们将来能够修复这个规范。</p>
+</blockquote>
+<p>        那么我们知道了执行对称转移的协程已经满足了所有尾调用的需求。编译器会确保它永远是尾调用，无论是否开启了优化。<br>
+        这意味着通过使用 $await_-suspend\left(\right)$ 返回的 $std$::$coroutine_-handle$，我们可以暂停当前协程，并在不消耗额外栈空间的前提下，把控制权转移给另一个协程。<br>
+        这让我们可以编写任意深度的相互递归调用代码，不需要担心栈溢出。<br>
+        这就是我们需要修复的 $task$ 的实现。</p>
+<h2 id="再看task">再看<code>task</code></h2>
+<p>        有了“对称转移”能力，我们再来修复 $task$ 类型实现。<br>
+        我们要修改两个 $await_-suspend\left(\right)$ 方法的实现：</p>
+<ul>
+<li>首先当我们 $await$ $task$ 时，我们执行对称转移，来恢复任务协程。</li>
+<li>其次当任务协程完成，它执行一次对称转移，恢复挂起的协程。</li>
+</ul>
+<p>        为了指明 $await$ 的方向，我们需要把 $task$::$awaiter$ 方法从：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">task</span><span class="o">::</span><span class="n">awaiter</span><span class="o">::</span><span class="n">await_suspend</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">continuation</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// Store the continuation in the task&#39;s promise so that the final_suspend()
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// knows to resume this coroutine when the task completes.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">coro_</span><span class="p">.</span><span class="n">promise</span><span class="p">().</span><span class="n">continuation</span> <span class="o">=</span> <span class="n">continuation</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="c1">// Then we resume the task&#39;s coroutine, which is currently suspended
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// at the initial-suspend-point (ie. at the open curly brace).
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">coro_</span><span class="p">.</span><span class="n">resume</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        改成：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">task</span><span class="o">::</span><span class="n">awaiter</span><span class="o">::</span><span class="n">await_suspend</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">continuation</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// Store the continuation in the task&#39;s promise so that the final_suspend()
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// knows to resume this coroutine when the task completes.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">coro_</span><span class="p">.</span><span class="n">promise</span><span class="p">().</span><span class="n">continuation</span> <span class="o">=</span> <span class="n">continuation</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="c1">// Then we tail-resume the task&#39;s coroutine, which is currently suspended
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// at the initial-suspend-point (ie. at the open curly brace), by returning
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// its handle from await_suspend().
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">return</span> <span class="n">coro_</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        同时为了指明返回路径，我们需要把 $task$::$promise_-type$::$final_-awaiter$ 方法从：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">task</span><span class="o">::</span><span class="n">promise_type</span><span class="o">::</span><span class="n">final_awaiter</span><span class="o">::</span><span class="n">await_suspend</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;</span><span class="n">promise_type</span><span class="o">&gt;</span> <span class="n">h</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// The coroutine is now suspended at the final-suspend point.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// Lookup its continuation in the promise and resume it.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">h</span><span class="p">.</span><span class="n">promise</span><span class="p">().</span><span class="n">continuation</span><span class="p">.</span><span class="n">resume</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        改成：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">task</span><span class="o">::</span><span class="n">promise_type</span><span class="o">::</span><span class="n">final_awaiter</span><span class="o">::</span><span class="n">await_suspend</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;</span><span class="n">promise_type</span><span class="o">&gt;</span> <span class="n">h</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// The coroutine is now suspended at the final-suspend point.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// Lookup its continuation in the promise and resume it symmetrically.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">return</span> <span class="n">h</span><span class="p">.</span><span class="n">promise</span><span class="p">().</span><span class="n">continuation</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        这样我们就有了一个不需要担心栈溢出问题的 $task$ 实现，并且 $await_-suspend$ 是<code>void</code>返回的，没有<code>bool</code>返回带来的不确定恢复上下文问题。</p>
+<h3 id="观察栈">观察栈</h3>
+<p>        现在让我们看看最初的例子：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">task</span> <span class="nf">completes_synchronously</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">co_return</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">task</span> <span class="nf">loop_synchronously</span><span class="p">(</span><span class="kt">int</span> <span class="n">count</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">count</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">co_await</span> <span class="n">completes_synchronously</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        当其他协程 $co_-await$ $task$ 时， $loop_-synchronously\left(\right)$ 协程首次开始执行。这会触发其他协程的对称转移，并通过 $std$::$coroutine_-handle$::$resume\left(\right)$ 调用恢复。<br>
+        因此当 $loop_-synchronously\left(\right)$ 开始时，栈看起来会像这样：</p>
+<pre tabindex="0"><code>           Stack                                                Heap
++---------------------------+  &lt;-- top of stack   +--------------------------+
+| loop_synchronously$resume | active coroutine -&gt; | loop_synchronously frame |
++---------------------------+                     | +----------------------+ |
+| coroutine_handle::resume  |                     | | task::promise        | |
++---------------------------+                     | | - continuation --.   | |
+|     ...                   |                     | +------------------|---+ |
++---------------------------+                     | ...                |     |
+                                                  +--------------------|-----+
+                                                                       V
+                                                  +--------------------------+
+                                                  | awaiting_coroutine frame |
+                                                  |                          |
+                                                  +--------------------------+
+</code></pre><p>        现在，当执行 $co_-await$ $completes_-synchronously\left(\right)$ ，它会对称转移到 $completes_-synchronously$ 协程。<br>
+        通过：</p>
+<ul>
+<li>调用 $task$::$operator$ $co_-await\left(\right)$，后者会在稍后返回 $task$::$awaiter$ 对象</li>
+<li>然后暂停并调用 $task$::$awaiter$::$await_-suspend\left(\right)$，后者稍后返回 $completes_-synchronously$ 协程的 $coroutine_-handle$。</li>
+<li>然后执行尾调用 / 跳转到 $completes_-synchronously$ 协程，在激活 $completes_-synchronously$ 栈帧前弹出 $loop_-synchronously$ 栈帧。</li>
+</ul>
+<p>        在 $completes_-synchronously$ 恢复后，栈看起来会像这样：</p>
+<pre tabindex="0"><code>              Stack                                          Heap
+                                            .-&gt; +--------------------------+ &lt;-.
+                                            |   | completes_synchronously  |   |
+                                            |   | frame                    |   |
+                                            |   | +----------------------+ |   |
+                                            |   | | task::promise        | |   |
+                                            |   | | - continuation --.   | |   |
+                                            |   | +------------------|---+ |   |
+                                            `-, +--------------------|-----+   |
+                                              |                      V         |
++-------------------------------+ &lt;-- top of  | +--------------------------+   |
+| completes_synchronously$resume|     stack   | | loop_synchronously frame |   |
++-------------------------------+ active -----&#39; | +----------------------+ |   |
+| coroutine_handle::resume      | coroutine     | | task::promise        | |   |
++-------------------------------+               | | - continuation --.   | |   |
+|     ...                       |               | +------------------|---+ |   |
++-------------------------------+               | task temporary     |     |   |
+                                                | - coro_       -----|---------`
+                                                +--------------------|-----+
+                                                                     V
+                                                +--------------------------+
+                                                | awaiting_coroutine frame |
+                                                |                          |
+                                                +--------------------------+
+</code></pre><p>        注意这里栈帧数量增长了。<br>
+        在 $completes_-synchronously$ 协程完成，执行到右大括号处，它会执行 $co_-await$ $promise.final_-suspend\left(\right)$。<br>
+        这会暂停协程，并调用 $final_-awaiter$::$await_-suspend\left(\right)$ ，后者返回下个协程的 $std$::$coroutine_-handle$ ( 即指向 $loop_-synchronously$ 协程的句柄 )。这会触发一次对称转移 / 尾调用来恢复 $loop_-synchronously$ 协程。<br>
+        $loop_-synchronously$ 恢复后的栈看起来就像这样：</p>
+<pre tabindex="0"><code>           Stack                                                   Heap
+                                                   +--------------------------+ &lt;-.
+                                                   | completes_synchronously  |   |
+                                                   | frame                    |   |
+                                                   | +----------------------+ |   |
+                                                   | | task::promise        | |   |
+                                                   | | - continuation --.   | |   |
+                                                   | +------------------|---+ |   |
+                                                   +--------------------|-----+   |
+                                                                        V         |
++----------------------------+  &lt;-- top of stack   +--------------------------+   |
+| loop_synchronously$resume  | active coroutine -&gt; | loop_synchronously frame |   |
++----------------------------+                     | +----------------------+ |   |
+| coroutine_handle::resume() |                     | | task::promise        | |   |
++----------------------------+                     | | - continuation --.   | |   |
+|     ...                    |                     | +------------------|---+ |   |
++----------------------------+                     | task temporary     |     |   |
+                                                   | - coro_       -----|---------`
+                                                   +--------------------|-----+
+                                                                        V
+                                                   +--------------------------+
+                                                   | awaiting_coroutine frame |
+                                                   |                          |
+</code></pre><p>        $loop_-synchronously$ 协程被恢复后，在执行到达分号后，要做的第一件事就是调用 $completes_-synchronously$ 调用返回的临时 $task$ 的析构函数。这会销毁协程帧，释放内存，这时情况会是这样：</p>
+<pre tabindex="0"><code>           Stack                                                   Heap
++---------------------------+  &lt;-- top of stack   +--------------------------+
+| loop_synchronously$resume | active coroutine -&gt; | loop_synchronously frame |
++---------------------------+                     | +----------------------+ |
+| coroutine_handle::resume  |                     | | task::promise        | |
++---------------------------+                     | | - continuation --.   | |
+|     ...                   |                     | +------------------|---+ |
++---------------------------+                     | ...                |     |
+                                                  +--------------------|-----+
+                                                                       V
+                                                  +--------------------------+
+                                                  | awaiting_coroutine frame |
+                                                  |                          |
+                                                  +--------------------------+
+</code></pre><p>        我们现在返回到 $loop_-synchronously$ 协程的执行，并且栈帧和协程帧数量与开始执行时一样，并且之后每次循环也是一样。<br>
+        因此我们可以执行许多次迭代，只消耗常数级的存储空间。<br>
+        完整的对称转移版本的 $task$ 类型可以看以下的 $Compiler$ $Explorer$ 链接：<a href="https://godbolt.org/z/9baieF">https://godbolt.org/z/9baieF</a>。</p>
+<h2 id="通用形式-await_suspend-的对称转移">通用形式 <code>await_suspend</code> 的对称转移</h2>
+<p>        既然我们已经见识过了对称转移形式的 $awaitable$ $concept$ 的能力和重要性，我想向你展示一下通用形式，理论上可以替换<code>void</code>和<code>bool</code>返回形式的 $await_-suspend\left(\right)$。<br>
+        但首先，我们需要看一下<a href="https://wg21.link/P0913R0">P0913R0</a>提案添加的新的协程设计：$std$::$noop_-coroutine\left(\right)$。</p>
+<h3 id="循环终止">循环终止</h3>
+<p>        通过对称转移形式的协程，每次协程暂停，它都会对称恢复另一个协程。只要你有其他协程可以恢复，它就非常有用。但是有时我们不想要执行其他协程，只需要暂停并把控制权返回给 $std$::$coroutine_-handle$::$resume\left(\right)$ 的主调。<br>
+        <code>void</code>和<code>bool</code>返回形式的 $await_-suspend\left(\right)$ 都允许协程暂停并从 $std$::$coroutine_-handle$::$resmue\left(\right)$ 调用中返回，那么我们怎么让对称转移形式的协程返回呢？<br>
+        答案是使用内置的特殊 $std$::$coroutine_-handle$，称为无操作协程句柄 ( $noop$ $coroutine$ $handle$ )，通过函数 $std$::$noop_-coroutine\left(\right)$ 生成。<br>
+        无操作协程句柄之所以叫这个名字，是因为它的 $.resume\left(\right)$ 实现是立即返回，即恢复协程后没有操作。一般它的实现包含一条简单的 $ret$ 指令。<br>
+        如果 $await_-suspend\left(\right)$ 方法返回 $std$::$noop_-coroutine\left(\right)$ 句柄，那么协程不会把控制权转移给下一个协程，而是转移给 $std$::$coroutine_-handle$::$resume\left(\right)$ 的主调。</p>
+<h3 id="其他风格的-await_suspend-表示方式">其他风格的 <code>await_suspend()</code> 表示方式</h3>
+<p>        有了这个信息，我们再看其他风格的 $await_-suspend\left(\right)$ 如何使用对称转移。<br>
+        我们有<code>void</code>返回格式的：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">my_awaiter</span><span class="o">::</span><span class="n">await_suspend</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">h</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">this</span><span class="o">-&gt;</span><span class="n">coro</span> <span class="o">=</span> <span class="n">h</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">enqueue</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        可以改成<code>bool</code>返回格式的：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">bool</span> <span class="n">my_awaiter</span><span class="o">::</span><span class="n">await_suspend</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">h</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">this</span><span class="o">-&gt;</span><span class="n">coro</span> <span class="o">=</span> <span class="n">h</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">enqueue</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        也可以再改成对称转移风格：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">noop_coroutine_handle</span> <span class="n">my_awaiter</span><span class="o">::</span><span class="n">await_suspend</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">h</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">this</span><span class="o">-&gt;</span><span class="n">coro</span> <span class="o">=</span> <span class="n">h</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="n">enqueue</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">noop_coroutine</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        我们有<code>bool</code>返回格式的：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">bool</span> <span class="n">my_awaiter</span><span class="o">::</span><span class="n">await_suspend</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">h</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">this</span><span class="o">-&gt;</span><span class="n">coro</span> <span class="o">=</span> <span class="n">h</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">try_start</span><span class="p">(</span><span class="k">this</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// Operation will complete asynchronously.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// Return true to transfer execution to caller of
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// coroutine_handle::resume().
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="c1">// Operation completed asynchronously.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// Return false to immediately resume the current coroutine.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        可以改成对称转移格式的：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">my_awaiter</span><span class="o">::</span><span class="n">await_suspend</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">h</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">this</span><span class="o">-&gt;</span><span class="n">coro</span> <span class="o">=</span> <span class="n">h</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">try_start</span><span class="p">(</span><span class="k">this</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// Operation will complete asynchronously.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// Return std::noop_coroutine() to transfer execution to caller of
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// coroutine_handle::resume().
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">noop_coroutine</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="c1">// Operation completed asynchronously.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// Return current coroutine&#39;s handle to immediately resume
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// the current coroutine.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">return</span> <span class="n">h</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h3 id="为什么有三种风格">为什么有三种风格？</h3>
+<p>        那么为什么在有对称转移风格的前提下，我们还继续使用<code>void</code>和<code>bool</code>返回风格的 $await_-suspend\left(\right)$ 呢？<br>
+        一部分历史原因，一部分实用性原因，一部分性能原因。<br>
+        $await_-suspend\left(\right)$ 返回 $std$::$noop_-coroutine_-handle$ 可以完全替代<code>void</code>返回版本，因为这两种对于编译器来说，都表示协程会无条件地把控制权转移给 $std$::$coroutine_-handle$::$resume\left(\right)$ 的主调。<br>
+        在我看来，它还能留下来的原因，一部分是它在对称转移被提出之前就已经在使用了，另一部分是因为<code>void</code>返回对于无条件暂停的情况可以少写一点代码。<br>
+        <code>bool</code>返回版本，在某些情况下，可以优化得比对称转移形式的更好。<br>
+        假设我们有一个<code>bool</code>返回的 $await_-suspend\left(\right)$，定义在另一个编译单元。这时编译器可以在挂起协程生成代码，暂停当前协程并在 $await_-suspend\left(\right)$ 调用返回之后，通过执行下一块代码的方式来有条件地恢复它。如果 $await_-suspend\left(\right)$ 返回<code>false</code>，那么就可以明确知道需要执行哪段代码。<br>
+        即使有了对称转移风格，我们还是需要表示相同的结果：返回主调 / 恢复者，或者恢复当前协程。相比返回<code>true</code>或者<code>false</code>，我们需要返回 $std$::$noop_-coroutine\left(\right)$ 或者当前协程的句柄。我们可以把这些句柄都统一成 $std$::$coroutine_-handle$&lt;$void$&gt; 返回。<br>
+        然而，因为 $await_-suspend\left(\right)$ 定义在其他编译单元，编译器看不到协程返回的句柄指向什么，所以当协程恢复后，它需要一些更重的间接调用，并且相比<code>bool</code>返回的单个分支而言，可能会有更多的恢复协程分支。<br>
+        有可能在将来的某一天，对称转移版本可以获得同等性能。例如，我们可以编写内联的 $await_-suspend\left(\right)$，但是调用一个<code>bool</code>返回的非内联方法，并有条件地返回合适的句柄。<br>
+        例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">my_awaiter</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kt">bool</span> <span class="nf">await_ready</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="c1">// Compiler should in-theory be able to optimise this to the same
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// as the bool-returning version, but currently don&#39;t do this optimisation.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">await_suspend</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">h</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">try_start</span><span class="p">(</span><span class="n">h</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">noop_coroutine</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="k">return</span> <span class="n">h</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">await_resume</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// This method is defined out-of-line in a seperate translation unit.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">bool</span> <span class="n">try_start</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">h</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>        然而，现在的编译器 ( 比如<code>Clang 10</code> ) 还不能把这种情况优化成和<code>bool</code>返回版本一样高效的代码。话虽如此，除非你编写了一个非常紧凑的循环，否则可能不会注意到它们的差异。<br>
+        到目前为止，通用的规则是：</p>
+<ul>
+<li>如果你需要无条件地返回给 $.resume\left(\right)$ 的主调，使用<code>void</code>返回风格。</li>
+<li>如果你需要有条件地返回给 $.resume\left(\right)$ 的主调，或者恢复当前协程，使用<code>bool</code>返回风格。</li>
+<li>如果你需要恢复其他协程，使用对称转移风格。</li>
+</ul>
+<h2 id="补充">补充</h2>
+<p>        <code>C++ 20</code>新加的对称转移能力，使得协程递归恢复对方变得简单，不需要担心栈溢出。这个能力是编写高效、安全的异步协程类型的关键，就像 $task$ 那样。<br>
+        这篇关于对称转移的文章比预期的要长，十分感谢你坚持读完了它！希望能帮到你。<br>
+        在下篇文章，我会讲解编译器怎么把协程函数转换成状态机。</p>
+<h2 id="致谢">致谢</h2>
+<p>        也是不翻了~</p>
+
+            </div>
+            <div class="meta post-footer">
+                <span>2024 Jan 28 23:45</span>
+                <a href="https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B4%E7%90%86%E8%A7%A3%E5%AF%B9%E7%A7%B0%E8%BD%AC%E7%A7%BB/"><i class="fas fa-link"></i> link</a>
+            </div>
+        </div>
+        
+        <div class="post">
+            
+            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B3%E7%90%86%E8%A7%A3promise/">C&#43;&#43;协程（3）：理解promise</a></h1>
             <div class="post-content">
                 
                 
@@ -620,7 +1294,7 @@
             </div>
             <div class="meta post-footer">
                 <span>2024 Jan 27 16:19</span>
-                <a href="https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B3%E7%90%86%E8%A7%A3promise%E7%B1%BB%E5%9E%8B/"><i class="fas fa-link"></i> link</a>
+                <a href="https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B3%E7%90%86%E8%A7%A3promise/"><i class="fas fa-link"></i> link</a>
             </div>
         </div>
         
@@ -1200,171 +1874,6 @@
             <div class="meta post-footer">
                 <span>2024 Jan 23 23:59</span>
                 <a href="https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B1%E5%8D%8F%E7%A8%8B%E7%90%86%E8%AE%BA/"><i class="fas fa-link"></i> link</a>
-            </div>
-        </div>
-        
-        <div class="post">
-            
-            <h1 style="text-align: center;"><a href="https://z217blog.cn/post/%E5%88%86%E5%B8%83%E5%BC%8F%E6%95%B0%E6%8D%AE%E7%B3%BB%E7%BB%9F%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95/">分布式数据系统：共识算法</a></h1>
-            <div class="post-content">
-                
-                
-                <p>        分布式计算中有很多重要场景需要集群节点达成某种一致，例如：</p>
-<ul>
-<li>主节点选举：对于主从模式的数据库，节点间需要对谁来充当主节点达成一致。如果由于网络故障原因出现节点之间无法通信，就很容易出现争议；</li>
-<li>原子事务提交：对于支持跨节点或跨分区事务的数据库，某个事务可能在一些节点上执行成功，而在另一些节点上失败。为了维护事务的原子性，所有节点必须对事务结果达成一致。</li>
-</ul>
-<h2 id="1-原子提交与两阶段提交">1. 原子提交与两阶段提交</h2>
-<p>        对于单节点事务，原子性通常由存储引擎负责。当客户端请求数据库节点提交事务时，数据库首先使事务的写入持久化 ( 通常保存在<code>WAL</code>中 )，然后把提交记录追加到磁盘的日志文件中。如果数据库在该过程中发生了崩溃，在节点重启后，可以通过日志恢复事务。如果崩溃之前已经写入了提交记录，则认为事务已经成功，否则，回滚该事务。因此，单节点事务十分依赖于数据写入磁盘的顺序：先写入数据，再提交记录。<br>
-        将单节点事务延伸到多节点，虽然大多数<code>NoSQL</code>分布式数据库都不支持这种分布式事务，但是有很多集群关系型数据库支持。向所有节点发送请求，然后各节点独立执行是不够的，这样很容易发生不一致，从而违反了原子性。一旦某个节点提交了事务，即使事后发现其他节点发生了中止，它也无法再撤销已提交的事务，所以，如果有部分节点提交了事务，所有节点也必须一起提交。<br>
-        事务提交不可撤销，一旦数据被提交，就代表其他事务可见，继而客户端会依赖这些数据做出相应决策。这是事务<strong>提交读</strong>隔离级别的基础，如果事务在提交后还能撤销，就违反了提交读的原则，从而被迫产生级联式的追溯和撤销。当然，已提交事务可以被另一个新的事务覆盖，即<em><strong>补偿性事务</strong></em>。不过，在数据库的角度，它们是两个完全独立的事务，这种跨事务的正确性保证需要应用层负责。</p>
-<h3 id="11-两阶段提交">1.1 两阶段提交</h3>
-<p>        <strong>两阶段提交</strong> ( $two-phase\ commit$ , $2PC$ ) 是一种在多节点之间实现事务原子提交的算法，用来确保所有节点要么全部提交，要么全部中止。<code>2PC</code>在某些数据库内存使用，或者以<code>XA</code>事务的形式提供给应用程序使用。<br>
-        <code>2PC</code>引入了单节点事务所没有的新组件：协调者 ( 也被称为事务管理器 )，通常实现为共享库。<code>2PC</code>事务从应用程序在多个数据库节点上执行数据读/写开始，数据库节点称为事务的参与者。当应用程序准备提交事务时，协调者发送一个准备请求到所有节点，询问它们是否可以进行事务提交：</p>
-<ul>
-<li>如果所有参与者回答是，表示它们已经准备好提交，协调者会发出提交请求，所有节点开始执行事务提交；</li>
-<li>如果有任何参与者回答否，协调者会放弃发送提交请求。</li>
-</ul>
-<p>        为了理解<code>2PC</code>，我们可以分解这个过程：</p>
-<ol>
-<li>应用程序启动一个分布式事务，首先向协调者请求一个全局唯一的事务<code>ID</code>；</li>
-<li>应用程序在每个参与节点上执行单节点事务，并将全局唯一事务<code>ID</code>附加到事务上。此时，每个节点独立执行事务，如果有任何一个节点执行失败，协调者和其他参与者都可以安全回滚事务；</li>
-<li>应用程序准备提交事务，协调者向所有参与者发送准备请求，附带全局事务<code>ID</code>。如果接收到拒绝或者超时响应，协调者会通知所有节点放弃事务；</li>
-<li>参与者在收到准备请求后，检查事务是否可以提交，是否存在冲突或者违反约束。一旦向协调者返回确认响应，无论发生什么情况，都不能拒绝提交事务；</li>
-<li>协调者收到所有准备请求的响应后，会将决定写入磁盘中，用于崩溃后恢复决定，这个时刻称为提交点；</li>
-<li>协调者将决定写入磁盘后，向所有参与者发送提交或者放弃请求。如果请求出现失败或者超时，协调者会一种重试，直到成功。所有参与者都不能拒绝该请求，即使需要很多重试，或者中间出现崩溃。</li>
-</ol>
-<p>        如果参与者或者网络在<code>2PC</code>期间发生故障，比如在准备请求期间，协调者就会决定回滚事务；或者在提交请求期间，协调者会不断重试。而对于协调者故障，如果协调者在准备请求之前故障，参与者可以安全地回滚；而一旦参与者收到了准备请求并回答是，参与者便无法单方面放弃，必须一直等待协调者的决定，此时如果协调者故障，参与者便处于一种不确定的状态。理论上，参与者之间可以互相通信，了解每个参与者的投票情况，并达成一致，但是这已经不是<code>2PC</code>的范畴了。<code>2PC</code>能够顺利完成的唯一办法是等待协调者恢复，因此协调者在发送提交请求之前要将决定写入磁盘的事务日志。<br>
-        <code>2PC</code>也被称为阻塞式原子提交协议，因为等待协调者从故障恢复的这个过程是阻塞的。理论上，也可以改为非阻塞的，这种称为<strong>三阶段提交</strong>。<code>3PC</code>假定一个有限的网络延迟，要求节点在规定时间内响应。然而实际情况是，网络延迟可能是无限的。通常，非阻塞原子提交依赖一个完美的故障检测器，即一种十分可靠的可以判断节点是否崩溃的机制。但是，在一个网络延迟可能是无限的场景中，超时并非一种可靠的判断机制。正常情况下，请求也可能由于网络问题而超时。正是这些原因，大家更倾向于<code>2PC</code>而非<code>3PC</code>。</p>
-<h2 id="2-分布式事务实践">2. 分布式事务实践</h2>
-<p>        分布式事务，尤其是那些通过<code>2PC</code>实现的事务，声誉混杂。一方面，它们提供了一种其他方案难以企及的安全保证。但是另一方面，由于操作、性能上的缺陷，以及并非完全可靠，一直被人诟病。目前，许多云服务商由于运维方面的问题而决定不支持分布式事务。分布式事务的某些实现存在严重的性能问题，例如，有报告显示<code>MySQL</code>的分布式事务比单节点事务慢 $10$ 倍以上。<code>2PC</code>性能下降的主要原因是与协调者通信带来额外的网络开销，以及为了协调者崩溃恢复做的磁盘<code>I/O</code> ( $fsync$ )。<br>
-        目前存在着两种不同的分布式事务概念：</p>
-<ul>
-<li>数据库内部的分布式事务：某些分布式事务支持的跨数据节点的内部事务，即所有参与者节点运行着相同的数据库软件；</li>
-<li>异构分布式事务：存在两种或两种以上不同参与者软件的事务，例如来自不同供应商的数据库，甚至可以是非数据库。</li>
-</ul>
-<p>        对于数据库内部事务，由于不需要考虑不同系统之间的兼容，可以采用任何形式的协议，并进行针对性优化，这些分布式事务往往可行。但是异构分布式事务就没那么简单了。</p>
-<h3 id="21-exactly-once消息处理">2.1 <code>Exactly-once</code>消息处理</h3>
-<p>        异构分布式事务旨在无缝集成多种不同的系统。例如，当且仅当数据库中处理消息的事务成功提交，消息队列才会标记该消息已处理完毕。这个过程是通过自动提交消息确认和数据库写入实现的。即使消息系统和数据库运行在不同节点上，分布式事务也能实现上述目标。如果消息发送失败或者某个节点事务失败，两者都必须中止。消息队列可以在之后重传消息。因此通过自动提交和消息处理结果，可以确保消息有效处理只有一次。<br>
-        需要注意，只有所有相关系统都使用相同的原子性提交协议的前提下，这种分布式事务才是可行的。例如，如果处理结果之一是发送邮件，而邮件服务器不支持<code>2PC</code>，此时某个过程出错，消息重新入队重试，邮件就可能会被发送多次。</p>
-<h3 id="22-xa事务">2.2 <code>XA</code>事务</h3>
-<p>        <code>X/Open XA</code> ( $eXtended\ Architecture$ , $XA$ ) 是异构环境下进行<code>2PC</code>的一个工业标准。目前，许多关系型数据库 ( <code>PostgreSQL</code>、<code>MySQL</code>、<code>Oracle</code>等 ) 和消息队列 ( <code>ActiveMQ</code>、<code>MSMQ</code>、<code>IBM MQ</code>等 ) 都支持<code>XA</code>。<code>XA</code>并不是一个网络协议，而是一个与事务协调者进行通信的<code>C API</code>。当然，它也支持与其他语言的<code>API</code>绑定，例如<code>Java</code>。<br>
-        <code>XA</code>假定应用程序通过网络或客户端的库函数与参与者节点进行通信，如果驱动程序支持<code>XA</code>，意味着应用程序可以调用<code>XA API</code>确定操作是否属于异构分布式事务的一部分。如果是，则发送必要的信息给数据库服务器。它还支持回调，这样协调者可以通过回调函数通知所有参与者执行准备或者提交 ( 或者中止 )。<br>
-        协调者需要实现<code>XA API</code>。虽然标准没有规定如何实现，但实际上，协调者也通常是一个<code>API</code>库，与产生事务的应用程序运行在相同进程中。这些<code>API</code>跟踪事务的参与者，收集投票，并在本地磁盘中记录决定。如果应用程序发生崩溃，或者节点故障，在重启后，协调者会通过<code>XA API</code>读取日志，恢复决定。完成这些后，协调者才能继续通过回调函数来要求参与者执行提交或者中止。数据库服务器无法直接与协调者通信，必须通过相应<code>API</code>。</p>
-<h3 id="23-协调者故障">2.3 协调者故障</h3>
-<p>        数据库事务通常持有待修改行的行锁，用于防止脏写。此外，如果要使用串行化的隔离级别，<code>2PC</code>还会对曾经读取的行持有读锁。在事务提交之前，这些锁都不会被释放。因此，在<code>2PC</code>中，如果出现协调者故障带来的停顿，那么这些锁在停顿期间都不会被释放。长时间持有锁是一件坏事，这意味着其他事务无法有效执行，使得许多上层应用处于不可用状态。<br>
-        理论上，如果协调者崩溃后重新启动，它应该可以从日志中恢复那些停顿的事务。然而，实践中，孤立的不确定事务是可能发生的，例如由于软件 $bug$ 导致交易日志丢失或者损坏。这些事务无法自己解决，而是一直停留在那里，即使重启节点也无法解决，因为<code>2PC</code>要求重启后继续保持重启前的事务状态。<br>
-        唯一的办法就是让管理员手动决定提交还是回滚。这可能会带来大量的手工操作，并且可能在关键生产环境的中断间隙，存在巨大的压力和时间限制。许多<code>XA</code>的实现都支持某种紧急避险措施，称为<strong>启发式决策</strong>：允许参与者节点在紧急情况下单方面做出决定，放弃或者继续停顿的事务。这种做法可能会破坏事务的原子性，违背了<code>2PC</code>原则。要注意，这种做法只是为了应急，不能作为常规手段使用。</p>
-<h3 id="24-分布式事务的限制">2.4 分布式事务的限制</h3>
-<p>        <code>XA</code>事务解决了多个参与者之间达成一直的问题，但是也引入了很多操作限制。特别是，核心的事务协调者本身就是一种数据库，因此需要和其他重要的数据库一样格外小心：</p>
-<ul>
-<li>如果协调者不支持数据复制，在单节点上运行，那么它就是整个系统的单点故障。实际上，许多协调者并非高可用，或者只支持最基本的复制；</li>
-<li>许多服务端应用程序都倾向于无状态模式 ( 更适合<code>HTTP</code> )，将所有持久状态都保存在数据库中。这样应用服务器可以轻松地添加或者删除实例。但是当协调者本身就是服务器的一部分时，协调者的日志就成为了可靠系统的重要组成部分，与数据库本身一样重要，这样的服务器本身就不是无状态的了；</li>
-<li><code>XA</code>需要与各种数据系统保持兼容，最终其实是多系统可兼容的最低标准。例如，它无法检测不同系统的死锁条件 ( 这需要其他标准化协议，多个系统需要交换锁信息 )；</li>
-<li>数据库内部的分布式事务比起<code>XA</code>来说，限制要少很多。然而对于<code>2PC</code>还是存在潜在的限制，比如所有参与者必须投票赞成。所以分布式事务扩大了事务失败的可能性，与构建容错系统的目标背道而驰。</li>
-</ul>
-<h2 id="3-共识算法">3. 共识算法</h2>
-<p>        共识是让几个节点就某项提议达成一致，通常形式化描述为：一个或多个节点可以提议某些值，由共识算法来决定最终值。共识算法必须满足以下性质：</p>
-<ul>
-<li><strong>协商一致性</strong> ( $Uniform\ agreement$ )：所有节点都接受相同决议；</li>
-<li><strong>诚实性</strong> ( $Integrity$ )：所有节点做出决定后都不能反悔，即一个决议不能有两个结果；</li>
-<li><strong>合法性</strong> ( $Validity$ )：决议的结果一定是由某个节点提议的；</li>
-<li><strong>可终止性</strong> ( $Termination$ )：节点在不崩溃的前提下一定可以达成协议。</li>
-</ul>
-<p>        如果不关心容错，满足前三个属性很容易：可以强行指定某个节点为“独裁者”，由它做出所有决定，唯一要注意的就是该节点失败的情况。上述共识的系统模型假定当某个节点崩溃后，节点就彻底消失，永远不会回来。在这种条件下，<code>2PC</code>显然不满足可终止性。当然，如果所有节点都崩溃了，那么无论哪种算法都不能继续做出决定。因此，可终止性的前提是，发生崩溃或者不可用的节点数必须小于半数节点。<br>
-        最著名的共识算法包括<code>VSR</code>、<code>Paxos</code>、<code>Raft</code>和<code>Zab</code>，这些算法存在很多相似之处，但又不完全相同。它们大部分并不是直接使用形式化模式，而是决定了一系列值，再通过全序关系广播算法。全序关系广播通常指节点之间交换消息的某种协议，下面是一个非正式定义，要求满足两个基本安全属性：</p>
-<ul>
-<li>可靠发送：没有消息丢失，如果某个消息发送到了一个节点，那么它也要发送给其他节点；</li>
-<li>严格有序：消息总是以相同顺序发送。</li>
-</ul>
-<p>        即使节点或者网络出现故障，全序关系广播算法的实现也必须保证以上两条。实现全序关系广播，要求消息顺序在发送前就已确定。理解全序关系广播的另一种方式是将其视为日志，传递消息就像追加日志，所有节点都可以读取日志并看到相同的消息序列。共识算法的全序关系广播相当于持续的多轮共识：</p>
-<ul>
-<li>由于协商一致性，所有节点以相同顺序发送相同消息；</li>
-<li>由于诚实性，消息不能重复；</li>
-<li>由于合法性，消息不会被破坏；</li>
-<li>由于可终止性，消息不会丢失。</li>
-</ul>
-<p>        <code>VSR</code>、<code>Raft</code>和<code>Zab</code>都直接采取了全序关系广播，而<code>Paxos</code>则有对应的优化版本，称为<code>Multi-Paxos</code>。</p>
-<h3 id="31-epoch和quorum">3.1 <code>Epoch</code>和<code>Quorum</code></h3>
-<p>        目前所讨论的素有共识协议在内部都使用了某种形式的主节点，虽然主节点并不是固定的。相反，它们都采用了一种弱保证：定义一个世代编号 ( $epoch$ $number$ )，并保证在每个世代中，主节点是唯一的。如果发现当前主节点失效，节点间就开始新一轮投票，选举新的主节点。每次选举都会被赋予一个单调递增的<code>epoch</code>，如果出现了两个不同的主节点对应于不同<code>epoch</code>好，则更高<code>epoch</code>的主节点将获胜。<br>
-        主节点做出任何决定前，都必须检查是否存在更高的<code>epoch</code>，否则就会产生冲突的决定。主节点如果想要做出某个决定，需要将提议发送给其他节点，等待<code>quorum</code>节点响应。<code>quorum</code>节点通常不是由多数节点组成的，并且，只有当没有发现更高<code>epoch</code>主节点存在时，才会对当前提议 ( 带有<code>epoch</code> ) 进行投票。因此，这里其实是有两轮不同的投票：首先投票决定主节点，然后再投票决定提议。其中关键一点是，两轮投票的<code>quorum</code>必须存在重叠。<br>
-        投票的过程很像<code>2PC</code>，最大区别是，<code>2PC</code>并不需要通过选举产生协调者，共识算法只需要多数节点同意即可通过。此外，共识算法还定义了恢复过程，出现故障后，通过该过程即可以选举出新的主节点，重新进入一致状态。</p>
-<h3 id="32-共识的局限">3.2 共识的局限</h3>
-<p>        共识算法为一切不确定系统带来了明确的安全属性，还支持容错。但是这种好处也是有代价的：</p>
-<ul>
-<li>达成一致之前的投票是一个同步复制过程。但是对于数据库，通常为了更好的性能，会采用异步复制；</li>
-<li>共识体系需要严格多数节点；</li>
-<li>多数共识算法假定一组固定参与投票的节点集，意味着不能动态添加或删除节点；</li>
-<li>共识系统通常依靠超时机制来检测节点失效，在网络延迟高度不确定的环境中，特别是跨区域分布的系统，经常由于网络延迟的原因，节点会被错误地认为发生了故障。虽然这种误判不会影响安全，但是频繁的主节点选举会影响性能；</li>
-<li>共识算法对网络问题特别敏感。例如，<code>Raft</code>被发现存在不合理的边界处理：如果网络中存在某一条网络连接持续不可靠，它会在两个节点之间反复切换主节点，当前主节点会被不断赶下台。其他的共识算法也会有类似问题，所以面对不可靠网络，如何设计更具鲁棒性的共识算法仍然是一个开放性的研究问题。</li>
-</ul>
-<h3 id="33-paxos">3.3 <code>Paxos</code></h3>
-<p>        <code>Paxos</code>算法运行在允许宕机的异步系统中，不要求可靠的消息传递，可容忍消息丢失、延迟、乱序以及重复。它利用多数机制，在具有 $2F + 1$ 个节点的系统中，最多允许 $F$ 个节点的故障。<code>Paxos</code>具有以下系统角色：</p>
-<ul>
-<li>提议者 ( $Proposer$ )：提出提议，包含提议编号 ( $Proposal$ $ID$ ) 和提议值 ( $Value$ )；</li>
-<li>决策者 ( $Acceptor$ )：参与决策，回应提议者的提议；</li>
-<li>学习者 ( $Learner$ )：不参与决策，从其他节点学习最终的提议值。</li>
-</ul>
-<p>        在多副本状态机中，每个副本都是提议者、决策者和学习者。<br>
-        <code>Paxos</code>算法分为两阶段：</p>
-<ol>
-<li>准备阶段：提议者向决策者发出准备请求，决策者针对收到的准备请求进行承诺；</li>
-<li>决策阶段：提议者在接收到多数决策者的回应 ( $Promise$ ) 之后，向决策者发出提议请求，决策者收到请求后处理；</li>
-<li>学习阶段：提议者在接收到多数决策者的决策之后，标记本次决策成功，将提议值发送给所有学习者。</li>
-</ol>
-<p>        决策者会对提议者的准备请求做出两个承诺和一个回应：</p>
-<ul>
-<li>承诺不再接收<code>ID</code>小于等于当前准备请求<code>ID</code>的准备请求；</li>
-<li>承诺不再接收<code>ID</code>小于当前准备请求的决策请求；</li>
-<li>回应之前接收过的<code>ID</code>最大的提议的<code>ID</code>和提议值。</li>
-</ul>
-<p>        原始的<code>Paxos</code>算法只能对一个值进行决策，每次决策需要至少两次收发请求，在高并发场景下可能需要更多次沟通，极端情况下还会形成<strong>活锁</strong>，即两个提议者交替发起请求，不断递增 $Proposal$ $ID$ 。因此，这种<code>Paxos</code>只适合理论研究，不适合应用在实际生产环境中。<br>
-        实际生产环境中往往需要连续确定多个值，而且具有更高效率。<code>Multi-Paxos</code>就是为此提出的，它作出了两点改进：</p>
-<ul>
-<li>针对每个提议者，生成一个 $Instance$ $ID$ ，每个提议者由一个<code>ID</code>标识；</li>
-<li>在所有提议者中选举一个主节点，由主节点将提议提交给决策者进行决策。这样就可以跳过准备请求阶段，因为实际上只有一个提议者会提议。</li>
-</ul>
-<p>        <code>Multi-Paxos</code>首先需要选举一个主节点，选举的过程也可以通过<code>Paxos</code>算法决策，一种简单的方式如下：</p>
-<ul>
-<li>具有最高<code>ID</code>的服务器作为主节点，每个服务器定时向其他服务器发送心跳消息检查状态；</li>
-<li>如果没有收到比它高的<code>ID</code>的节点的心跳消息，它就会尝试发起一轮选举，选举自己作为领导者；</li>
-<li>非主节点只会作为决策者，提议者只有主节点一个。</li>
-</ul>
-<p>        <code>Multi-Paxos</code>通过改变准备阶段的作用范围，使得多个实例的提交只需要一次决策，将两阶段变为一阶段，提高了效率。即使存在多个主节点 ( 脑裂 )，也不影响安全性，这时候只是会退化为原始的<code>Paxos</code>。</p>
-<h3 id="34-raft">3.4 <code>Raft</code></h3>
-<p>        <code>Raft</code>实现了和<code>Paxos</code>相同的功能，将共识问题分解为多个子问题，使用了更强的假设来减少需要考虑的状态。<code>Raft</code>将系统分为以下角色：</p>
-<ul>
-<li>领导者 ( $Leader$ )：接收客户端请求，同步给跟随者，当同步到多数节点后提交请求；</li>
-<li>跟随者 ( $Follower$ )：接收并持久化领导者的请求，在接收到领导者的提交请求后，进行提交；</li>
-<li>候选人 ( $Candidate$ )：可以参与选举的节点。</li>
-</ul>
-<p>        <code>Raft</code>算法只允许一个领导者的存在。节点之间存在心跳检测，如果跟随者长时间没有接收到来自领导者的心跳消息，则会开启新一轮选举。收到多数投票的候选人会称为新的领导者，直到其出现故障。<code>Raft</code>通过任期 ( $term$ ) 管理选举，任期通过时间划分，每个 $term$ 的开始都是选举，选举完成后，在这个任期内领导者会负责管理集群。<br>
-        <code>Raft</code>拥有两条限制，用于保证安全性：</p>
-<ul>
-<li>拥有最大偏移量的候选人才可以成为领导者。这要求候选人在选举中发送自己的偏移量；</li>
-<li>只允许提交当前任期的请求，之前任期的无法不能再提交。这要求领导者在请求中带上任期。</li>
-</ul>
-<h2 id="4-成员与协调服务">4. 成员与协调服务</h2>
-<p>        <code>ZooKeeper</code>或者<code>etcd</code>这样的项目通常称为“分布式键值存储”或者“协调与配置服务”。它们对外提供的<code>API</code>与数据库非常相像：读取、写入对应主键值，或者按序便利主键。应用程序开发者其实很少直接使用<code>ZooKeeper</code>，因为它并非通用数据库，绝大部分通过其他项目来间接依赖，比如<code>HBase</code>、<code>Hadoop YARN</code>、<code>Kafka</code>等。<code>ZooKeeper</code>和<code>etcd</code>主要针对保存少量、可完全载入内存的数据 ( 即使最终还是要写入磁盘 )，不适合用于保存大量数据。它们通常采用容错的全序广播算法在所有节点上复制数据从而实现高可靠。<code>ZooKeeper</code>的实现其实模仿了<code>Google</code>的<code>Chubby</code>分布式锁服务，不仅实现了全序广播，还提供了其他有趣的特性：</p>
-<ul>
-<li>线性化的原子操作：使用<code>CAS</code>操作，实现加锁服务。例如多个节点同时尝试执行相同操作，则确保只会有一个节点成功。共识算法满足了原子性和线性化，即使某些节点发生故障或者网络中断。分布式锁通常是一个带有过期时间的租约，保证即使某些客户端故障也可被释放；</li>
-<li>操作全序：<code>fencing</code>令牌保证每次加锁的数字总是单调递增的，<code>ZooKeeper</code>会对所有操作执行全局排序，为每个操作赋予一个唯一的事务<code>ID</code>和版本号；</li>
-<li>故障检测：客户端与<code>ZooKeeper</code>之间会维持一个长期会话，客户端会周期性地与<code>ZooKeeper</code>服务节点互相交换心跳信息，以检查对方是否存活。即使出现连接中断，或者某个<code>ZooKeeper</code>节点失效，会话仍处于活动状态。如果连接断开时间超过了超时时间，<code>ZooKeeper</code>会声明会话失败，此时该会话持有的所有锁资源会被自动释放 ( 即<code>ZooKeeper</code>中的临时节点 )；</li>
-<li>更改通知：客户端不仅可以读取其他客户端所创建的锁和键值，还可以监视它们的变化。因此，客户端可以知道其他客户端何时加入了集群，以及客户端是否发生了故障。通过订阅机制，客户端不需要频繁轮询服务。</li>
-</ul>
-<h3 id="41-节点任务分配">4.1 节点任务分配</h3>
-<p>        <code>ZooKeeper</code>和<code>Chubby</code>的一个非常适合的场景是，如果系统有多个流程或服务的实例，并且需要其中一个实例充当主节点，在主节点失效时由其他节点接管。显然，这是主从模型的特征。此外，它对于作业调度系统也十分有用。还有另一个场景，对于一些分区资源 ( 数据库、消息流、文件存储等 )，需要决定节点分区分配。当有新节点加入集群时，需要将某些现有分区从当前节点迁移到新节点，从而实现动态的负载均衡。<br>
-        上述场景都可以借助<code>ZooKeeper</code>的原子操作 ( 临时节点和订阅机制 ) 来实现。应用程序最初可能只运行在单节点，之后扩展到数千节点。在这么多节点上进行投票是很低效的。而<code>ZooKeeper</code>通常是在固定数量的节点上运行，可以非常高效的支持大量客户端。通常，<code>ZooKeeper</code>管理的数据变化十分缓慢，更改频率往往是分钟级甚至小时级，如果需要频繁修改，应该考虑其他工具。</p>
-<h3 id="42-服务发现">4.2 服务发现</h3>
-<p>        <code>ZooKeeper</code>、<code>etcd</code>和<code>Consul</code>经常用于服务发现。在典型的云环境中，虚拟机可能会动态变化，这时无法提前知道服务节点的<code>IP</code>地址，因此，可以在每次节点启动时将网络端口信息向<code>ZooKeeper</code>等服务注册，其他人只需要向<code>ZooKeeper</code>的注册表请求即可。<br>
-        但是，关于服务发现是否需要共识还缺乏统一认识，习惯上是通过<code>DNS</code>来将服务名称转为<code>IP</code>。从<code>DNS</code>读取肯定不满足线性化，然而现实情况是，如果<code>DNS</code>返回的是过期值也不会有什么大问题。总体来讲，<code>DNS</code>更看重网络中断时的可用性和鲁棒性。</p>
-<h3 id="43-成员服务">4.3 成员服务</h3>
-<p>        <code>ZooKeeper</code>还可以作为成员服务的一部分，用于确定当前哪些节点处于活动状态，并且是集群的有效成员。这里依然存在误判的可能，即使这样，系统就成员资格的认识是一致的。</p>
-
-            </div>
-            <div class="meta post-footer">
-                <span>2022 Nov 13 16:18</span>
-                <a href="https://z217blog.cn/post/%E5%88%86%E5%B8%83%E5%BC%8F%E6%95%B0%E6%8D%AE%E7%B3%BB%E7%BB%9F%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95/"><i class="fas fa-link"></i> link</a>
             </div>
         </div>
         

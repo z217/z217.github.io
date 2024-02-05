@@ -7,13 +7,20 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>Copyright © 2020–2024, z217 and the hugo authors, all rights reserved.</copyright>
-    <lastBuildDate>Sat, 27 Jan 2024 16:19:06 +0800</lastBuildDate>
+    <lastBuildDate>Sun, 28 Jan 2024 23:45:37 +0800</lastBuildDate>
     <atom:link href="https://z217blog.cn/post/index.xml" rel="self" type="application/rss+xml" />
     <item>
+      <title>C&#43;&#43;协程（4）：理解对称转移</title>
+      <link>https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B4%E7%90%86%E8%A7%A3%E5%AF%B9%E7%A7%B0%E8%BD%AC%E7%A7%BB/</link>
+      <pubDate>Sun, 28 Jan 2024 23:45:37 +0800</pubDate>
+      <guid>https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B4%E7%90%86%E8%A7%A3%E5%AF%B9%E7%A7%B0%E8%BD%AC%E7%A7%BB/</guid>
+      <description>协程标准提供了一种有趣的方式来编写异步代码，就好像你还在写同步代码那样。你只需要在合适的点调用 $co_-await$，编译器就会负责暂停协程，在暂停点之间保存状态，并在操作完成后恢复协程执行。&#xA;然而，协程标准，就像它最初定义的，有着很不友好的限制，一不小心就很容易导致栈溢出。并且如果想要避免这种溢出，就需要你在的 $task$&amp;lt;$T$&amp;gt; 类型中进行额外的同步开销。&#xA;还好，2018年对协程设计进行了调整，增加了一种叫做“对称转移” ( $symmetric$ $transfer$ ) 的功能，让你可以在不消耗任何额外栈空间的前提下暂停一个协程的同时恢复另一个协程的执行。此功能的加入解决了协程标准的一个关键限制，并且允许更简单有效的，不需要任何安全方面的措施来防止栈溢出的方式来实现一个异步协程。&#xA;在这篇文章我会试着解释栈溢出问题，以及这个关键的“对称转移”能力是怎么解决这个问题的。&#xA;首先是一些关于任务协程怎么工作的背景 考虑如下协程：&#xA;task foo() { co_return; } task bar() { co_await foo(); } 假设我们有一个简单的 $task$ 类型，当其他协程等待它时会懒执行。这个特别的 $task$ 类型没有返回值。&#xA;让我们分析下当 $bar\left(\right)$ 执行 $co_-await$ $foo\left(\right)$ 时发生了什么。&#xA;$bar\left(\right)$ 协程调用 $foo\left(\right)$ 函数。注意从主调的角度看协程只是一个普通函数。 $foo\left(\right)$ 调用执行一些步骤： 分配协程帧内存 ( 一般在堆上 )。 把参数拷贝到协程帧 ( 如果没有参数，不执行这一步 )。 在协程帧构造 $promise$ 对象。 调用 $promise.get_-return_-object\left(\right)$ 来获取 $foo\left(\right)$ 的返回值。这一步生成将被返回的 $task$ 对象，使用指向刚创建的协程帧的 $std$::$coroutine_-handle$ 初始化。 在最初暂停点 ( 即左大括号处 ) 暂停协程。 把 $task$ 对象返回给 $bar\left(\right)$。 接着 $bar\left(\right)$ 协程对 $foo\left(\right)$ 返回的 $task$ 执行 $co_-await$ 表达式。 $bar\left(\right)$ 协程暂停，调用 $task$ 的 $await_-suspend\left(\right)$ 方法，传入指向 $bar\left(\right)$ 协程帧的 $std$::$coroutine_-handle$ 。 $await_-suspend\left(\right)$ 函数保存 $bar\left(\right)$ 的 $std$::$coroutine_-handle$ 到 $foo\left(\right)$ 的 $promise$ 对象中，调用 $foo\left(\right)$ 的 $std$::$coroutine_-handle$ 的 $.</description>
+    </item>
+    <item>
       <title>C&#43;&#43;协程（3）：理解promise</title>
-      <link>https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B3%E7%90%86%E8%A7%A3promise%E7%B1%BB%E5%9E%8B/</link>
+      <link>https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B3%E7%90%86%E8%A7%A3promise/</link>
       <pubDate>Sat, 27 Jan 2024 16:19:06 +0800</pubDate>
-      <guid>https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B3%E7%90%86%E8%A7%A3promise%E7%B1%BB%E5%9E%8B/</guid>
+      <guid>https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B3%E7%90%86%E8%A7%A3promise/</guid>
       <description>这篇文章是C++协程标准系列的第三篇文章。&#xA;之前的文章可以在这里查看：&#xA;协程理论 理解co_await 在这篇文章我会讲解你写的代码是怎么被编译器编译成协程代码的，并且你可以通过定义自己的 $Promise$ 类型来自定义协程行为。&#xA;协程concepts 协程标准添加了三个新的关键字：$co_-await$，$co_-yield$ 和 $co_-return$ 。无论你在函数体里使用哪个，编译器都会把这个函数编译成协程，这个函数也不再是普通函数。&#xA;编译器使用一些相当机械的转换来把你写的代码变成状态机，从而可以在函数内的特定点暂停，并在之后恢复执行。&#xA;在之前的文章我描述了协程标准引入的两个接口中的第一个接口：$Awaitable$ 接口。而第二个接口, $Promise$ 接口则对于这种代码转换来说十分重要。&#xA;$Promise$ 接口规定了自定义它所在协程行为的方法。库开发者可以用它定义协程被调用时的行为，协程返回的行为 ( 包括普通方式返回或者通过未处理异常返回 )，协程内使用 $co_-await$ 或者 $co_-yield$ 表达式的行为。&#xA;Promise对象 $Promise$ 对象通过实现协程执行过程中特定点的调用方法的形式来定义和控制对应协程的行为。&#xA;在继续之前，我希望你能忘掉之前所有关于 $promise$ 是什么的记忆。在一些用例中，协程的 $promise$ 对象与 $std$::$future$ 的 $std$::$promise$ 的功能很相似，但在其他用例中，并不能拿来相比。可能把协程的 $promise$ 对象想象成一个用于控制协程行为、跟踪协程状态的“协程状态控制器”会更合适。&#xA;$promise$ 对象实例会跟随着每个协程函数调用时创建的协程帧一起被构造。&#xA;编程器会在协程执行的关键点生成对 $promise$ 对象的特定方法的调用。&#xA;在接下来的例子中，我们假设某个特定协程调用创建的 $promise$ 对象叫做 $promise$ 。&#xA;当你编写一个协程函数体 &amp;lt;$body$-$statement$&amp;gt; ，函数体包含了某个协程关键字 ( $co_-return$，$co_-await$，$co_-yield$ )，那么协程体将转变为 ( 大致地 ) 如下形式：&#xA;{ co_await promise.initial_suspend(); try { &amp;lt;body-statement&amp;gt; } catch (...) { promise.</description>
     </item>
     <item>
