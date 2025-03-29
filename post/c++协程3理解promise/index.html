@@ -12,7 +12,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
     integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+    integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src=https://z217blog.cn/js/jquery.floatingscroll.min.js></script>
   <title>z217&#39;s blog</title>
 </head><script src=https://z217blog.cn/js/navbutton.js></script>
@@ -22,10 +24,10 @@
 <body><aside id="sidenav">
     <header>
         
-        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+        <a href=https://z217blog.cn/><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
         
 
-        <a id="branding" href=https://z217blog.cn>
+        <a id="branding" href=https://z217blog.cn/>
             
             z217&#39;s blog
             
@@ -103,8 +105,7 @@
 <h2 id="promise对象">Promise对象</h2>
 <p>        $Promise$ 对象通过实现协程执行过程中特定点的调用方法的形式来定义和控制对应协程的行为。</p>
 <blockquote>
-<p>在继续之前，我希望你能忘掉之前所有关于 $promise$ 是什么的记忆。在一些用例中，协程的 $promise$ 对象与 $std$::$future$ 的 $std$::$promise$ 的功能很相似，但在其他用例中，并不能拿来相比。可能把协程的 $promise$ 对象想象成一个用于控制协程行为、跟踪协程状态的“协程状态控制器”会更合适。</p>
-</blockquote>
+<p>在继续之前，我希望你能忘掉之前所有关于 $promise$ 是什么的记忆。在一些用例中，协程的 $promise$ 对象与 $std$::$future$ 的 $std$::$promise$ 的功能很相似，但在其他用例中，并不能拿来相比。可能把协程的 $promise$ 对象想象成一个用于控制协程行为、跟踪协程状态的“协程状态控制器”会更合适。</p></blockquote>
 <p>        $promise$ 对象实例会跟随着每个协程函数调用时创建的协程帧一起被构造。<br>
         编程器会在协程执行的关键点生成对 $promise$ 对象的特定方法的调用。<br>
         在接下来的例子中，我们假设某个特定协程调用创建的 $promise$ 对象叫做 $promise$ 。<br>
@@ -285,15 +286,13 @@
         注意这个语句是在<code>try/catch</code>块保护之外的 ( 如果你忘记了，可以往上翻翻再看下代码 )。这意味着 $co_-await$ $promise.initial_-suspend\left(\right)$ 抛出的异常等同于到达它的 &lt;$return$-$to$-$caller$-$or$-$resumer$&gt; 点，会在协程销毁调用栈和返回对象后，再抛回给主调。<br>
         要明白如果你的返回对象是<code>RAII</code>，即会在协程帧被析构的时候销毁，那么你需要保证 $co_-await$ $promise.initial_-suspend\left(\right)$ 是<code>noexcept</code>的，这样才能避免 double-free。</p>
 <blockquote>
-<p>注意这里有个提案，希望调整语义，以便 $co_-await$ $promise.initial_-suspend\left(\right)$ 表达的全部或者部分位于<code>try/catch</code>块内，所以这里的明确语义可能会在最终确定前发生变化。</p>
-</blockquote>
+<p>注意这里有个提案，希望调整语义，以便 $co_-await$ $promise.initial_-suspend\left(\right)$ 表达的全部或者部分位于<code>try/catch</code>块内，所以这里的明确语义可能会在最终确定前发生变化。</p></blockquote>
 <p>        对于许多协程类型来说，$initial_-suspend\left(\right)$ 方法要么返回 $std$::$experimental$::$suspend_-always$ ( 如果操作懒开始 )，要么返回 $std$::$experimental$::$suspend_-never$ ( 如果操作立即开始 )。而它们都是<code>noexcept</code>的 $awaitable$ ，所以这通常不是问题。</p>
 <h3 id="返回给主调">返回给主调</h3>
 <p>        当协程函数达到首个 &lt;$return$-$to$-$caller$-$or$-$resumer$&gt; 点 ( 或者没有到达，但是协程执行完成 ) 时，通过 $get_-return_-object\left(\right)$ 获取的返回对象会返回给协程的主调。<br>
         注意返回对象的类型并不需要与协程函数的返回类型相同。在必要的时候，返回对象可以是一个能够隐式转换为协程返回类型的类型。</p>
 <blockquote>
-<p>注意<code>Clang</code>的协程实现 ( 从$5.0$ 开始 ) 会在返回对象从协程调用返回后才会转换，而<code>MSVC</code>自从 2017 Update 3 开始会在 $get_-return_-object\left(\right)$ 调用之后立即转换。虽然协程标准没有显式给出预期行为，我相信<code>MSVC</code>有计划把它们的实现改成更像<code>Clang</code>的实现，因为这种实现允许一些<a href="https://github.com/toby-allsopp/coroutine_monad">有趣的用例</a>。</p>
-</blockquote>
+<p>注意<code>Clang</code>的协程实现 ( 从$5.0$ 开始 ) 会在返回对象从协程调用返回后才会转换，而<code>MSVC</code>自从 2017 Update 3 开始会在 $get_-return_-object\left(\right)$ 调用之后立即转换。虽然协程标准没有显式给出预期行为，我相信<code>MSVC</code>有计划把它们的实现改成更像<code>Clang</code>的实现，因为这种实现允许一些<a href="https://github.com/toby-allsopp/coroutine_monad">有趣的用例</a>。</p></blockquote>
 <h3 id="使用-co_return-从协程返回">使用 co_return 从协程返回</h3>
 <p>        当协程到达 $co_-return$ 语句，它会被翻译成一个 $promise.return_-void\left(\right)$ 调用或者 $promise.return_-value$(&lt;$expr$&gt;) 以及一个 $goto$ $FinalSuspend$ 调用。<br>
         翻译规则如下：</p>

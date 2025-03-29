@@ -12,7 +12,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
     integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+    integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src=https://z217blog.cn/js/jquery.floatingscroll.min.js></script>
   <title>z217&#39;s blog</title>
 </head><script src=https://z217blog.cn/js/navbutton.js></script>
@@ -22,10 +24,10 @@
 <body><aside id="sidenav">
     <header>
         
-        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+        <a href=https://z217blog.cn/><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
         
 
-        <a id="branding" href=https://z217blog.cn>
+        <a id="branding" href=https://z217blog.cn/>
             
             z217&#39;s blog
             
@@ -281,12 +283,10 @@
 <ol>
 <li>“活动函数” ( $ramp$ $function$ )，处理协程帧构造、参数拷贝，$promise$ 构造和获取返回值，以及</li>
 <li>“协程体” ( $coroutine$ $body$ )，包含用户编写的逻辑。</li>
-</ol>
-</blockquote>
+</ol></blockquote>
 <blockquote>
 <p>我使用 $\$resume$ 后缀表示协程的“协程体”部分。<br>
-后面的文章会详细介绍这种分割方式。</p>
-</blockquote>
+后面的文章会详细介绍这种分割方式。</p></blockquote>
 <p>        当 $loop_-synchronously\left(\right)$ $await$ $complete_-synchronously\left(\right)$ 返回的 $task$ 时，当前协程会被暂停，调用 $task$::$awaiter$::$await_-suspend\left(\right)$。$await_-suspend\left(\right)$ 方法再调用 $complete_-synchronously\left(\right)$ 协程句柄的 $.resume\left(\right)$ 方法。<br>
         这会恢复 $complete_-synchronously\left(\right)$ 协程，后者会同步运行结束，并在最终暂停点暂停，调用 $task$::$promise$::$final_-awaiter$::$await_-suspend\left(\right)$ 方法，后者会调用 $loop_-synchronously\left(\right)$ 协程句柄的 $.resume\left(\right)$ 方法。<br>
         接着当 $loop_-synchronously\left(\right)$ 协程恢复之后、$complete_-synchronously\left(\right)$ 返回的临时变量 $task$ 在分号处销毁时，我们再看看当前程序状态，栈 / 堆看起来就像这样：</p>
@@ -491,8 +491,7 @@
         然而，实现上会把 $.resume\left(\right)$ 执行放到<code>try/catch</code>块的外部。<br>
         我希望在另一篇文章讲协程怎么变成状态机的文章中讲解更多这方面的细节 ( 这篇文章已经够长了 )。</p>
 <blockquote>
-<p>注意，然而，当前<code>C++</code>规范对实现这个操作需求的描述不够清晰，并且只是一个非规范注释，暗示这可能是必须的。希望我们将来能够修复这个规范。</p>
-</blockquote>
+<p>注意，然而，当前<code>C++</code>规范对实现这个操作需求的描述不够清晰，并且只是一个非规范注释，暗示这可能是必须的。希望我们将来能够修复这个规范。</p></blockquote>
 <p>        那么我们知道了执行对称转移的协程已经满足了所有尾调用的需求。编译器会确保它永远是尾调用，无论是否开启了优化。<br>
         这意味着通过使用 $await_-suspend\left(\right)$ 返回的 $std$::$coroutine_-handle$，我们可以暂停当前协程，并在不消耗额外栈空间的前提下，把控制权转移给另一个协程。<br>
         这让我们可以编写任意深度的相互递归调用代码，不需要担心栈溢出。<br>

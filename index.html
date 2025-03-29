@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN"><head>
-	<meta name="generator" content="Hugo 0.122.0">
+	<meta name="generator" content="Hugo 0.145.0">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="A personal blog of z217">
@@ -13,7 +13,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
     integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+    integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src=https://z217blog.cn/js/jquery.floatingscroll.min.js></script>
   <title>z217&#39;s blog</title>
 </head><script src=https://z217blog.cn/js/navbutton.js></script>
@@ -23,10 +25,10 @@
 <body><aside id="sidenav">
     <header>
         
-        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+        <a href=https://z217blog.cn/><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
         
 
-        <a id="branding" href=https://z217blog.cn>
+        <a id="branding" href=https://z217blog.cn/>
             
             z217&#39;s blog
             
@@ -389,12 +391,10 @@
 <ol>
 <li>“活动函数” ( $ramp$ $function$ )，处理协程帧构造、参数拷贝，$promise$ 构造和获取返回值，以及</li>
 <li>“协程体” ( $coroutine$ $body$ )，包含用户编写的逻辑。</li>
-</ol>
-</blockquote>
+</ol></blockquote>
 <blockquote>
 <p>我使用 $\$resume$ 后缀表示协程的“协程体”部分。<br>
-后面的文章会详细介绍这种分割方式。</p>
-</blockquote>
+后面的文章会详细介绍这种分割方式。</p></blockquote>
 <p>        当 $loop_-synchronously\left(\right)$ $await$ $complete_-synchronously\left(\right)$ 返回的 $task$ 时，当前协程会被暂停，调用 $task$::$awaiter$::$await_-suspend\left(\right)$。$await_-suspend\left(\right)$ 方法再调用 $complete_-synchronously\left(\right)$ 协程句柄的 $.resume\left(\right)$ 方法。<br>
         这会恢复 $complete_-synchronously\left(\right)$ 协程，后者会同步运行结束，并在最终暂停点暂停，调用 $task$::$promise$::$final_-awaiter$::$await_-suspend\left(\right)$ 方法，后者会调用 $loop_-synchronously\left(\right)$ 协程句柄的 $.resume\left(\right)$ 方法。<br>
         接着当 $loop_-synchronously\left(\right)$ 协程恢复之后、$complete_-synchronously\left(\right)$ 返回的临时变量 $task$ 在分号处销毁时，我们再看看当前程序状态，栈 / 堆看起来就像这样：</p>
@@ -599,8 +599,7 @@
         然而，实现上会把 $.resume\left(\right)$ 执行放到<code>try/catch</code>块的外部。<br>
         我希望在另一篇文章讲协程怎么变成状态机的文章中讲解更多这方面的细节 ( 这篇文章已经够长了 )。</p>
 <blockquote>
-<p>注意，然而，当前<code>C++</code>规范对实现这个操作需求的描述不够清晰，并且只是一个非规范注释，暗示这可能是必须的。希望我们将来能够修复这个规范。</p>
-</blockquote>
+<p>注意，然而，当前<code>C++</code>规范对实现这个操作需求的描述不够清晰，并且只是一个非规范注释，暗示这可能是必须的。希望我们将来能够修复这个规范。</p></blockquote>
 <p>        那么我们知道了执行对称转移的协程已经满足了所有尾调用的需求。编译器会确保它永远是尾调用，无论是否开启了优化。<br>
         这意味着通过使用 $await_-suspend\left(\right)$ 返回的 $std$::$coroutine_-handle$，我们可以暂停当前协程，并在不消耗额外栈空间的前提下，把控制权转移给另一个协程。<br>
         这让我们可以编写任意深度的相互递归调用代码，不需要担心栈溢出。<br>
@@ -885,8 +884,7 @@
 <h2 id="promise对象">Promise对象</h2>
 <p>        $Promise$ 对象通过实现协程执行过程中特定点的调用方法的形式来定义和控制对应协程的行为。</p>
 <blockquote>
-<p>在继续之前，我希望你能忘掉之前所有关于 $promise$ 是什么的记忆。在一些用例中，协程的 $promise$ 对象与 $std$::$future$ 的 $std$::$promise$ 的功能很相似，但在其他用例中，并不能拿来相比。可能把协程的 $promise$ 对象想象成一个用于控制协程行为、跟踪协程状态的“协程状态控制器”会更合适。</p>
-</blockquote>
+<p>在继续之前，我希望你能忘掉之前所有关于 $promise$ 是什么的记忆。在一些用例中，协程的 $promise$ 对象与 $std$::$future$ 的 $std$::$promise$ 的功能很相似，但在其他用例中，并不能拿来相比。可能把协程的 $promise$ 对象想象成一个用于控制协程行为、跟踪协程状态的“协程状态控制器”会更合适。</p></blockquote>
 <p>        $promise$ 对象实例会跟随着每个协程函数调用时创建的协程帧一起被构造。<br>
         编程器会在协程执行的关键点生成对 $promise$ 对象的特定方法的调用。<br>
         在接下来的例子中，我们假设某个特定协程调用创建的 $promise$ 对象叫做 $promise$ 。<br>
@@ -1067,15 +1065,13 @@
         注意这个语句是在<code>try/catch</code>块保护之外的 ( 如果你忘记了，可以往上翻翻再看下代码 )。这意味着 $co_-await$ $promise.initial_-suspend\left(\right)$ 抛出的异常等同于到达它的 &lt;$return$-$to$-$caller$-$or$-$resumer$&gt; 点，会在协程销毁调用栈和返回对象后，再抛回给主调。<br>
         要明白如果你的返回对象是<code>RAII</code>，即会在协程帧被析构的时候销毁，那么你需要保证 $co_-await$ $promise.initial_-suspend\left(\right)$ 是<code>noexcept</code>的，这样才能避免 double-free。</p>
 <blockquote>
-<p>注意这里有个提案，希望调整语义，以便 $co_-await$ $promise.initial_-suspend\left(\right)$ 表达的全部或者部分位于<code>try/catch</code>块内，所以这里的明确语义可能会在最终确定前发生变化。</p>
-</blockquote>
+<p>注意这里有个提案，希望调整语义，以便 $co_-await$ $promise.initial_-suspend\left(\right)$ 表达的全部或者部分位于<code>try/catch</code>块内，所以这里的明确语义可能会在最终确定前发生变化。</p></blockquote>
 <p>        对于许多协程类型来说，$initial_-suspend\left(\right)$ 方法要么返回 $std$::$experimental$::$suspend_-always$ ( 如果操作懒开始 )，要么返回 $std$::$experimental$::$suspend_-never$ ( 如果操作立即开始 )。而它们都是<code>noexcept</code>的 $awaitable$ ，所以这通常不是问题。</p>
 <h3 id="返回给主调">返回给主调</h3>
 <p>        当协程函数达到首个 &lt;$return$-$to$-$caller$-$or$-$resumer$&gt; 点 ( 或者没有到达，但是协程执行完成 ) 时，通过 $get_-return_-object\left(\right)$ 获取的返回对象会返回给协程的主调。<br>
         注意返回对象的类型并不需要与协程函数的返回类型相同。在必要的时候，返回对象可以是一个能够隐式转换为协程返回类型的类型。</p>
 <blockquote>
-<p>注意<code>Clang</code>的协程实现 ( 从$5.0$ 开始 ) 会在返回对象从协程调用返回后才会转换，而<code>MSVC</code>自从 2017 Update 3 开始会在 $get_-return_-object\left(\right)$ 调用之后立即转换。虽然协程标准没有显式给出预期行为，我相信<code>MSVC</code>有计划把它们的实现改成更像<code>Clang</code>的实现，因为这种实现允许一些<a href="https://github.com/toby-allsopp/coroutine_monad">有趣的用例</a>。</p>
-</blockquote>
+<p>注意<code>Clang</code>的协程实现 ( 从$5.0$ 开始 ) 会在返回对象从协程调用返回后才会转换，而<code>MSVC</code>自从 2017 Update 3 开始会在 $get_-return_-object\left(\right)$ 调用之后立即转换。虽然协程标准没有显式给出预期行为，我相信<code>MSVC</code>有计划把它们的实现改成更像<code>Clang</code>的实现，因为这种实现允许一些<a href="https://github.com/toby-allsopp/coroutine_monad">有趣的用例</a>。</p></blockquote>
 <h3 id="使用-co_return-从协程返回">使用 co_return 从协程返回</h3>
 <p>        当协程到达 $co_-return$ 语句，它会被翻译成一个 $promise.return_-void\left(\right)$ 调用或者 $promise.return_-value$(&lt;$expr$&gt;) 以及一个 $goto$ $FinalSuspend$ 调用。<br>
         翻译规则如下：</p>
@@ -1324,7 +1320,7 @@
 </ul>
 <p>        <code>C++</code>协程标准可以认为在语言层面提供了一个低级汇编语言协程。这些功能很难以一种安全的方式直接使用，主要是提供给库开发者来实现高级抽象，从而应用开发者可以安全使用。<br>
         之后的语言标准 ( 希望是<code>C++20</code> ) 计划加入这些低级功能，同时让标准库提供一些包装了这些功能的高级类型，让应用开发者以更方便安全的方式使用。</p>
-<h2 id="编译器-lt-gt-库交互">编译器 &lt;-&gt; 库交互</h2>
+<h2 id="编译器---库交互">编译器 &lt;-&gt; 库交互</h2>
 <p>        有趣的是，协程标准并没有明确定义协程语义，包括协程如何把值返回给主调，$co_-return$ 如何处理返回值，如何处理传播到协程之外的异常，以及协程应该在哪个线程恢复。<br>
         相反的，它指定了一种可以让库代码客制化协程行为的机制，通过实现特定的接口类型。编译器使用库代码生成对应的调用。这种方式很像<code>range</code>模式，后者可以让库开发者通过定义 $begin\left(\right)$ / $end\left(\right)$ 和 $iterator$ 类型，来客制化代码。<br>
         协程的这种没有给机制定义特殊语义的方式，让它变成了一个强大的工具，允许库开发者实现各种类型的协程，以各种方式，出于各种目的。<br>

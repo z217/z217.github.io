@@ -12,7 +12,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
     integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+    integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src=https://z217blog.cn/js/jquery.floatingscroll.min.js></script>
   <title>z217&#39;s blog</title>
 </head><script src=https://z217blog.cn/js/navbutton.js></script>
@@ -22,10 +24,10 @@
 <body><aside id="sidenav">
     <header>
         
-        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+        <a href=https://z217blog.cn/><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
         
 
-        <a id="branding" href=https://z217blog.cn>
+        <a id="branding" href=https://z217blog.cn/>
             
             z217&#39;s blog
             
@@ -93,62 +95,62 @@
         对于单核<code>CPU</code>来说，数据更新时缓存更新只用考虑自己的就行了，主要有两种处理方法。<strong>写回法</strong> ( $write\ \ back$ )，是当处理器执行写操作时，信息只写入<code>cache</code>，当<code>cache</code>中的数据被替换出去时写回主存。为了减少内存写操作，<code>cache</code>中通常还会设置一个脏位 ( $dirty\ \ bit$ )，标识该块在被载入后是否发生了更新。<strong>直写法</strong> ( $write\ \ through$ ) 是当处理器执行写操作时，既向<code>cache</code>中写入也向主存中写入。直写法会造成大量写内存操作，需要设置一个缓冲来减少硬件冲突，称为写缓冲器 ( $write\ \ buffer$ )，通常不超过 $4$ 个缓存块的大小，也适用于写回法。<br>
         相比于单核<code>CPU</code>，多核<code>CPU</code>除了要保证<code>L1</code>和<code>L2</code>最新外还要考虑到其他核中<code>L1</code>和<code>L2</code>的实时性和有效性。<code>MESI</code>协议是一个基于失效的缓存一致性协议，是支持写回缓存的最常用协议。该协议对总线上的操作进行监听，即核 $A$ 可以窥探到核 $B$ 对过期值的读操作，并更新主存中的过期值。<code>MESI</code>把<code>cache</code>中的数据分为几个状态：</p>
 <div class="div-table" data-fl-scrolls><table>
-<thead>
-<tr>
-<th style="text-align:center">状态</th>
-<th style="text-align:center">描述</th>
-<th style="text-align:center">监听</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">$Invalid$</td>
-<td style="text-align:center">该<code>cache</code>字段失效</td>
-<td style="text-align:center">无</td>
-</tr>
-<tr>
-<td style="text-align:center">$Shared$</td>
-<td style="text-align:center">字段数据一致并且多核<code>cache</code>共享该字段</td>
-<td style="text-align:center">监听其他缓存使该字段无效或者变为 $Exclusive$ 的请求，监听到对应事件后会将该字段设为 $Invalid$</td>
-</tr>
-<tr>
-<td style="text-align:center">$Exclusive$</td>
-<td style="text-align:center">字段数据一致并且只在当前核<code>cache</code>中独有</td>
-<td style="text-align:center">监听其他缓存读主存中该字段的操作，监听到对应事件后将该字段变为 $Shared$</td>
-</tr>
-<tr>
-<td style="text-align:center">$Modified$</td>
-<td style="text-align:center">该字段有效但是与主存不一致，只存在于当前核<code>cache</code>中</td>
-<td style="text-align:center">监听所有试图读该字段对应主存字段的操作，该操作会被延迟到当前缓存字段写回主存并将状态设为 $Shared$ 之后执行</td>
-</tr>
-</tbody>
+  <thead>
+      <tr>
+          <th style="text-align: center">状态</th>
+          <th style="text-align: center">描述</th>
+          <th style="text-align: center">监听</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td style="text-align: center">$Invalid$</td>
+          <td style="text-align: center">该<code>cache</code>字段失效</td>
+          <td style="text-align: center">无</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">$Shared$</td>
+          <td style="text-align: center">字段数据一致并且多核<code>cache</code>共享该字段</td>
+          <td style="text-align: center">监听其他缓存使该字段无效或者变为 $Exclusive$ 的请求，监听到对应事件后会将该字段设为 $Invalid$</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">$Exclusive$</td>
+          <td style="text-align: center">字段数据一致并且只在当前核<code>cache</code>中独有</td>
+          <td style="text-align: center">监听其他缓存读主存中该字段的操作，监听到对应事件后将该字段变为 $Shared$</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">$Modified$</td>
+          <td style="text-align: center">该字段有效但是与主存不一致，只存在于当前核<code>cache</code>中</td>
+          <td style="text-align: center">监听所有试图读该字段对应主存字段的操作，该操作会被延迟到当前缓存字段写回主存并将状态设为 $Shared$ 之后执行</td>
+      </tr>
+  </tbody>
 </table></div>
 <p><img src="/image/2021-08-16-01.png" alt="状态机"></p>
 <div class="div-table" data-fl-scrolls><table>
-<thead>
-<tr>
-<th style="text-align:center">事件</th>
-<th style="text-align:center">描述</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">$Local\ \ Read$</td>
-<td style="text-align:center">读取本地<code>cache</code>字段</td>
-</tr>
-<tr>
-<td style="text-align:center">$Local\ \ Write$</td>
-<td style="text-align:center">写入本地<code>cache</code>字段</td>
-</tr>
-<tr>
-<td style="text-align:center">$Remote\ \ Read$</td>
-<td style="text-align:center">其他<code>cache</code>读取字段</td>
-</tr>
-<tr>
-<td style="text-align:center">$Remote\ \ Write$</td>
-<td style="text-align:center">其他<code>cache</code>写入字段</td>
-</tr>
-</tbody>
+  <thead>
+      <tr>
+          <th style="text-align: center">事件</th>
+          <th style="text-align: center">描述</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td style="text-align: center">$Local\ \ Read$</td>
+          <td style="text-align: center">读取本地<code>cache</code>字段</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">$Local\ \ Write$</td>
+          <td style="text-align: center">写入本地<code>cache</code>字段</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">$Remote\ \ Read$</td>
+          <td style="text-align: center">其他<code>cache</code>读取字段</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">$Remote\ \ Write$</td>
+          <td style="text-align: center">其他<code>cache</code>写入字段</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>        对于 $Modified$ 和 $Exclusive$
 状态，数据是精确的，而 $Shared$ 状态可能是非一致的。如果一个处于 $Shared$ 的缓存字段作废了，另一个缓存实际上可能已经独享了该缓存字段，但是该缓存不会转为 $Exclusive$ ，因为其他缓存并不会广播他们作废该缓存字段的通知。如果一个<code>CPU</code>想修改一个处于 $Shared$ 状态的缓存字段，总线事务需要将所有该缓存字段的副本变为 $Invalid$ 状态，而修改 $Exclusive$ 状态的缓存字段不需要总线事务。<br>

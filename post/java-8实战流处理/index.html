@@ -12,7 +12,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
     integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="https://kit.fontawesome.com/1b7478c139.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+    integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src=https://z217blog.cn/js/jquery.floatingscroll.min.js></script>
   <title>z217&#39;s blog</title>
 </head><script src=https://z217blog.cn/js/navbutton.js></script>
@@ -22,10 +24,10 @@
 <body><aside id="sidenav">
     <header>
         
-        <a href=https://z217blog.cn><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
+        <a href=https://z217blog.cn/><img src="https://z217blog.cn/avatar.png" alt="avatar"></a>
         
 
-        <a id="branding" href=https://z217blog.cn>
+        <a id="branding" href=https://z217blog.cn/>
             
             z217&#39;s blog
             
@@ -92,146 +94,146 @@
         和<code>Collection API</code>相比，<code>Stream API</code>处理数据的方式非常不同。用集合的话，需要使用 $for$ 循环迭代并处理元素，我们称之为<code>外部迭代</code>。相反，<code>Stream API</code>的数据处理完全是在库内部进行的，我们称之为<code>内部迭代</code>。虽然都能访问数据项目的序列，但是相比之下，<code>Collection API</code>主要是为了存储和访问数据，而<code>Stream API</code>主要用于描述对数据的计算。这里的关键点在于，<code>Stream API</code>允许并行处理一个 $Stream$ 中的元素。筛选一个 $Collection$ 最快的方式通常是将其转换为 $Stream$ ，进行并行处理，再转换回 $List$ 。粗略地说，流与集合之间的差异就在于什么时候进行计算。集合是一个内存中的数据结构，包含数据结构中目前所有的值，集合中的元素只有经过计算后才能添加；相比之下，流是在概念上固定的数据结构，不能通过流添加或删除元素，流中的元素是按需计算的，即只从流中提取出需要的值。与迭代器类似，流只能遍历一次。遍历完之后，我们就说这个流已经被消费掉了。要想重新遍历，可以从原始数据源中重新获取一个新的流。尝试再次遍历一个已经消费的流会抛出 $IllegalStateException$ 异常。流与集合的另一个关键区别在于遍历数据的方式，正如之前所说，使用 $Collection$ 接口需要用户进行外部迭代，而 $Steams$ 库使用的是内部迭代，即库自动完成迭代，并将流值存放在某个地方。相较于显式的外部迭代，内部迭代下项目可以透明地并行处理，或者用更优化的顺序进行处理，例如同时处理多个数据，或者优先处理某些数据等。<br/></p>
 <h2 id="1-流操作">1. 流操作</h2>
 <div class="div-table" data-fl-scrolls><table>
-<thead>
-<tr>
-<th style="text-align:center">操作</th>
-<th style="text-align:center">类型</th>
-<th style="text-align:center">返回类型</th>
-<th style="text-align:center">操作参数</th>
-<th style="text-align:center">函数描述符</th>
-<th style="text-align:center">目的</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">$filter$</td>
-<td style="text-align:center">中间</td>
-<td style="text-align:center">$Stream$&lt;$T$&gt;</td>
-<td style="text-align:center">$Predicate$&lt;$T$&gt;</td>
-<td style="text-align:center">$T \rightarrow boolean$</td>
-<td style="text-align:center">返回一个包含所有符合谓词的元素的流</td>
-</tr>
-<tr>
-<td style="text-align:center">$distinct$</td>
-<td style="text-align:center">中间</td>
-<td style="text-align:center">$Stream$&lt;$T$&gt;</td>
-<td style="text-align:center"></td>
-<td style="text-align:center"></td>
-<td style="text-align:center">返回一个元素各异的流</td>
-</tr>
-<tr>
-<td style="text-align:center">$map$</td>
-<td style="text-align:center">中间</td>
-<td style="text-align:center">$Stream$&lt;$R$&gt;</td>
-<td style="text-align:center">$Function$&lt;$T, R$&gt;</td>
-<td style="text-align:center">$T \rightarrow R$</td>
-<td style="text-align:center">将函数应用到每个元素上，并映射成一个新元素</td>
-</tr>
-<tr>
-<td style="text-align:center">$flatMap$</td>
-<td style="text-align:center">中间</td>
-<td style="text-align:center">$Stream$&lt;$R$&gt;</td>
-<td style="text-align:center">$Function$&lt;$T,R$&gt;</td>
-<td style="text-align:center">$T \rightarrow R$</td>
-<td style="text-align:center">将多个生成流扁平化为单个流</td>
-</tr>
-<tr>
-<td style="text-align:center">$limit$</td>
-<td style="text-align:center">中间</td>
-<td style="text-align:center">$Stream$&lt;$T$&gt;</td>
-<td style="text-align:center"></td>
-<td style="text-align:center"></td>
-<td style="text-align:center">返回一个不超过给定长度的流</td>
-</tr>
-<tr>
-<td style="text-align:center">$skip$</td>
-<td style="text-align:center">中间</td>
-<td style="text-align:center">$Stream$&lt;$T$&gt;</td>
-<td style="text-align:center"></td>
-<td style="text-align:center"></td>
-<td style="text-align:center">返回一个跳过给定数量元素的流</td>
-</tr>
-<tr>
-<td style="text-align:center">$sorted$</td>
-<td style="text-align:center">中间</td>
-<td style="text-align:center">$Stream$&lt;$T$&gt;</td>
-<td style="text-align:center">$Comparator$&lt;$T$&gt;</td>
-<td style="text-align:center">$(T, T) \rightarrow int$</td>
-<td style="text-align:center">返回一个经过排序的流</td>
-</tr>
-<tr>
-<td style="text-align:center">$forEach$</td>
-<td style="text-align:center">终端</td>
-<td style="text-align:center">$void$</td>
-<td style="text-align:center">$Consumer$&lt;$T$&gt;</td>
-<td style="text-align:center">$T \rightarrow void$</td>
-<td style="text-align:center">消费流中的每一个元素并对其应用<code>Lambda</code>，返回类型为 $void$</td>
-</tr>
-<tr>
-<td style="text-align:center">$count$</td>
-<td style="text-align:center">终端</td>
-<td style="text-align:center">$long$</td>
-<td style="text-align:center"></td>
-<td style="text-align:center"></td>
-<td style="text-align:center">返回流中元素的个数，返回类型为 $long$</td>
-</tr>
-<tr>
-<td style="text-align:center">$collect$</td>
-<td style="text-align:center">终端</td>
-<td style="text-align:center">$R$</td>
-<td style="text-align:center">$Collector$&lt;$T, A, R$&gt;</td>
-<td style="text-align:center"></td>
-<td style="text-align:center">把流归约成一个集合并返回</td>
-</tr>
-<tr>
-<td style="text-align:center">$anyMatch$</td>
-<td style="text-align:center">终端</td>
-<td style="text-align:center">$boolean$</td>
-<td style="text-align:center">$Predicate$&lt;$T$&gt;</td>
-<td style="text-align:center">$T \rightarrow boolean$</td>
-<td style="text-align:center">流中是否含有一个元素能匹配给定的谓词</td>
-</tr>
-<tr>
-<td style="text-align:center">$allMatch$</td>
-<td style="text-align:center">终端</td>
-<td style="text-align:center">$boolean$</td>
-<td style="text-align:center">$Predicate$&lt;$T$&gt;</td>
-<td style="text-align:center">$T \rightarrow boolean$</td>
-<td style="text-align:center">流中的元素是否都能匹配给定的谓词</td>
-</tr>
-<tr>
-<td style="text-align:center">$noneMatch$</td>
-<td style="text-align:center">终端</td>
-<td style="text-align:center">$boolean$</td>
-<td style="text-align:center">$Predicate$&lt;$T$&gt;</td>
-<td style="text-align:center">$T \rightarrow boolean$</td>
-<td style="text-align:center">流中是否没有元素与给定的谓词匹配</td>
-</tr>
-<tr>
-<td style="text-align:center">$findAny$</td>
-<td style="text-align:center">终端</td>
-<td style="text-align:center">$Optional$&lt;$T$&gt;</td>
-<td style="text-align:center"></td>
-<td style="text-align:center"></td>
-<td style="text-align:center">返回当前流中的任意元素</td>
-</tr>
-<tr>
-<td style="text-align:center">$findFirst$</td>
-<td style="text-align:center">终端</td>
-<td style="text-align:center">$Optional$&lt;$T$&gt;</td>
-<td style="text-align:center"></td>
-<td style="text-align:center"></td>
-<td style="text-align:center">返回当前流中第一个元素</td>
-</tr>
-<tr>
-<td style="text-align:center">$reduce$</td>
-<td style="text-align:center">终端</td>
-<td style="text-align:center">$Optional$&lt;$T$&gt;</td>
-<td style="text-align:center">$BinaryOperator$&lt;$T$&gt;</td>
-<td style="text-align:center">$(T, T) \rightarrow T$</td>
-<td style="text-align:center">对流中元素重复应用方法</td>
-</tr>
-</tbody>
+  <thead>
+      <tr>
+          <th style="text-align: center">操作</th>
+          <th style="text-align: center">类型</th>
+          <th style="text-align: center">返回类型</th>
+          <th style="text-align: center">操作参数</th>
+          <th style="text-align: center">函数描述符</th>
+          <th style="text-align: center">目的</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td style="text-align: center">$filter$</td>
+          <td style="text-align: center">中间</td>
+          <td style="text-align: center">$Stream$&lt;$T$&gt;</td>
+          <td style="text-align: center">$Predicate$&lt;$T$&gt;</td>
+          <td style="text-align: center">$T \rightarrow boolean$</td>
+          <td style="text-align: center">返回一个包含所有符合谓词的元素的流</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">$distinct$</td>
+          <td style="text-align: center">中间</td>
+          <td style="text-align: center">$Stream$&lt;$T$&gt;</td>
+          <td style="text-align: center"></td>
+          <td style="text-align: center"></td>
+          <td style="text-align: center">返回一个元素各异的流</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">$map$</td>
+          <td style="text-align: center">中间</td>
+          <td style="text-align: center">$Stream$&lt;$R$&gt;</td>
+          <td style="text-align: center">$Function$&lt;$T, R$&gt;</td>
+          <td style="text-align: center">$T \rightarrow R$</td>
+          <td style="text-align: center">将函数应用到每个元素上，并映射成一个新元素</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">$flatMap$</td>
+          <td style="text-align: center">中间</td>
+          <td style="text-align: center">$Stream$&lt;$R$&gt;</td>
+          <td style="text-align: center">$Function$&lt;$T,R$&gt;</td>
+          <td style="text-align: center">$T \rightarrow R$</td>
+          <td style="text-align: center">将多个生成流扁平化为单个流</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">$limit$</td>
+          <td style="text-align: center">中间</td>
+          <td style="text-align: center">$Stream$&lt;$T$&gt;</td>
+          <td style="text-align: center"></td>
+          <td style="text-align: center"></td>
+          <td style="text-align: center">返回一个不超过给定长度的流</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">$skip$</td>
+          <td style="text-align: center">中间</td>
+          <td style="text-align: center">$Stream$&lt;$T$&gt;</td>
+          <td style="text-align: center"></td>
+          <td style="text-align: center"></td>
+          <td style="text-align: center">返回一个跳过给定数量元素的流</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">$sorted$</td>
+          <td style="text-align: center">中间</td>
+          <td style="text-align: center">$Stream$&lt;$T$&gt;</td>
+          <td style="text-align: center">$Comparator$&lt;$T$&gt;</td>
+          <td style="text-align: center">$(T, T) \rightarrow int$</td>
+          <td style="text-align: center">返回一个经过排序的流</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">$forEach$</td>
+          <td style="text-align: center">终端</td>
+          <td style="text-align: center">$void$</td>
+          <td style="text-align: center">$Consumer$&lt;$T$&gt;</td>
+          <td style="text-align: center">$T \rightarrow void$</td>
+          <td style="text-align: center">消费流中的每一个元素并对其应用<code>Lambda</code>，返回类型为 $void$</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">$count$</td>
+          <td style="text-align: center">终端</td>
+          <td style="text-align: center">$long$</td>
+          <td style="text-align: center"></td>
+          <td style="text-align: center"></td>
+          <td style="text-align: center">返回流中元素的个数，返回类型为 $long$</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">$collect$</td>
+          <td style="text-align: center">终端</td>
+          <td style="text-align: center">$R$</td>
+          <td style="text-align: center">$Collector$&lt;$T, A, R$&gt;</td>
+          <td style="text-align: center"></td>
+          <td style="text-align: center">把流归约成一个集合并返回</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">$anyMatch$</td>
+          <td style="text-align: center">终端</td>
+          <td style="text-align: center">$boolean$</td>
+          <td style="text-align: center">$Predicate$&lt;$T$&gt;</td>
+          <td style="text-align: center">$T \rightarrow boolean$</td>
+          <td style="text-align: center">流中是否含有一个元素能匹配给定的谓词</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">$allMatch$</td>
+          <td style="text-align: center">终端</td>
+          <td style="text-align: center">$boolean$</td>
+          <td style="text-align: center">$Predicate$&lt;$T$&gt;</td>
+          <td style="text-align: center">$T \rightarrow boolean$</td>
+          <td style="text-align: center">流中的元素是否都能匹配给定的谓词</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">$noneMatch$</td>
+          <td style="text-align: center">终端</td>
+          <td style="text-align: center">$boolean$</td>
+          <td style="text-align: center">$Predicate$&lt;$T$&gt;</td>
+          <td style="text-align: center">$T \rightarrow boolean$</td>
+          <td style="text-align: center">流中是否没有元素与给定的谓词匹配</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">$findAny$</td>
+          <td style="text-align: center">终端</td>
+          <td style="text-align: center">$Optional$&lt;$T$&gt;</td>
+          <td style="text-align: center"></td>
+          <td style="text-align: center"></td>
+          <td style="text-align: center">返回当前流中的任意元素</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">$findFirst$</td>
+          <td style="text-align: center">终端</td>
+          <td style="text-align: center">$Optional$&lt;$T$&gt;</td>
+          <td style="text-align: center"></td>
+          <td style="text-align: center"></td>
+          <td style="text-align: center">返回当前流中第一个元素</td>
+      </tr>
+      <tr>
+          <td style="text-align: center">$reduce$</td>
+          <td style="text-align: center">终端</td>
+          <td style="text-align: center">$Optional$&lt;$T$&gt;</td>
+          <td style="text-align: center">$BinaryOperator$&lt;$T$&gt;</td>
+          <td style="text-align: center">$(T, T) \rightarrow T$</td>
+          <td style="text-align: center">对流中元素重复应用方法</td>
+      </tr>
+  </tbody>
 </table></div>
 <p>        诸如 $filter$ 或 $Sorted$ 等操作会返回另一个流，这让多个操作可以连接起来形成一个查询，这种操作称为<code>中间操作</code>。除非流水线上触发一个终端操作，否则中间操作不会执行任何处理。<code>终端操作</code>会从流的流水线生成结果，其结果是任何不是流的值，比如 $List$ 、$Integer$ 等。总而言之，流的使用一般包括三件事：一个数据源、一个中间操作链和一个终端操作。<br/>
         诸如 $map$ 或 $filter$ 等操作会从输入流中获取每一个元素，并在输出流中得到 $0$ 或 $1$ 个结果。这些操作一般都是<code>无状态操作</code>。但诸如 $reduce$ 、$sum$ 、$max$ 等操作需要内部状态来累计结果，这些操作就是<code>有状态操作</code>。但是这些操作的内部状态很小，通常只是一些基本数据类型，不管流中有多少元素需要处理，内部状态都是有界的。而诸如 $sorted$ 或 $distinct$ 等操作，它们的内部状态可能很大，这时就要求无界的存储空间。<br/>
