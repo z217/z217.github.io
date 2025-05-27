@@ -2,7 +2,7 @@
 <html lang="zh-CN"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="A personal blog of z217">
+  <meta name="description" content="Personal blog of z217">
   <meta name="Author" content="z217">
   <meta name="keywords" content="z217&#39;s blog">
   <link rel="icon" type="image/x-icon" href=https://z217blog.cn/favicon.ico>
@@ -90,9 +90,9 @@
 
 
 
-<p>        协程标准提供了一种有趣的方式来编写异步代码，就好像你还在写同步代码那样。你只需要在合适的点调用 $co_-await$，编译器就会负责暂停协程，在暂停点之间保存状态，并在操作完成后恢复协程执行。<br>
-        然而，协程标准，就像它最初定义的，有着很不友好的限制，一不小心就很容易导致栈溢出。并且如果想要避免这种溢出，就需要你在的 $task$&lt;$T$&gt; 类型中进行额外的同步开销。<br>
-        还好，2018年对协程设计进行了调整，增加了一种叫做“对称转移” ( $symmetric$ $transfer$ ) 的功能，让你可以在不消耗任何额外栈空间的前提下暂停一个协程的同时恢复另一个协程的执行。此功能的加入解决了协程标准的一个关键限制，并且允许更简单有效的，不需要任何安全方面的措施来防止栈溢出的方式来实现一个异步协程。<br>
+<p>        协程标准提供了一种有趣的方式来编写异步代码，就好像你还在写同步代码那样。你只需要在合适的点调用 $co_-await$，编译器就会负责挂起协程，在挂起点之间保存状态，并在操作完成后恢复协程执行。<br>
+        然而，协程标准，就像它最初定义的那样，有着很不友好的限制，一不小心就很容易导致栈溢出。并且如果想要避免这种溢出，就需要你在的 $task$&lt;$T$&gt; 类型中进行额外的同步开销。<br>
+        还好，2018年对协程设计进行了调整，增加了一种叫做“对称转移” ( $symmetric$ $transfer$ ) 的功能，让你可以在不消耗任何额外栈空间的前提下挂起一个协程的同时恢复另一个协程的执行。此功能的加入解决了协程标准的一个关键限制，并且允许更简单有效的，不需要任何安全方面的措施来防止栈溢出的方式来实现一个异步协程。<br>
         在这篇文章我会试着解释栈溢出问题，以及这个关键的“对称转移”能力是怎么解决这个问题的。</p>
 <h2 id="首先是一些关于任务协程怎么工作的背景">首先是一些关于任务协程怎么工作的背景</h2>
 <p>        考虑如下协程：</p>
@@ -106,30 +106,30 @@
 </span></span></code></pre></div><p>        假设我们有一个简单的 $task$ 类型，当其他协程等待它时会懒执行。这个特别的 $task$ 类型没有返回值。<br>
         让我们分析下当 $bar\left(\right)$ 执行 $co_-await$ $foo\left(\right)$ 时发生了什么。</p>
 <ul>
-<li>$bar\left(\right)$ 协程调用 $foo\left(\right)$ 函数。注意从主调的角度看协程只是一个普通函数。</li>
+<li>$bar\left(\right)$ 协程调用 $foo\left(\right)$ 函数。注意从调用方的角度看协程只是一个普通函数。</li>
 <li>$foo\left(\right)$ 调用执行一些步骤：
 <ul>
 <li>分配协程帧内存 ( 一般在堆上 )。</li>
 <li>把参数拷贝到协程帧 ( 如果没有参数，不执行这一步 )。</li>
 <li>在协程帧构造 $promise$ 对象。</li>
 <li>调用 $promise.get_-return_-object\left(\right)$ 来获取 $foo\left(\right)$ 的返回值。这一步生成将被返回的 $task$ 对象，使用指向刚创建的协程帧的 $std$::$coroutine_-handle$ 初始化。</li>
-<li>在最初暂停点 ( 即左大括号处 ) 暂停协程。</li>
+<li>在最初挂起点 ( 即左大括号 ) 处挂起协程。</li>
 <li>把 $task$ 对象返回给 $bar\left(\right)$。</li>
 </ul>
 </li>
 <li>接着 $bar\left(\right)$ 协程对 $foo\left(\right)$ 返回的 $task$ 执行 $co_-await$ 表达式。
 <ul>
-<li>$bar\left(\right)$ 协程暂停，调用 $task$ 的 $await_-suspend\left(\right)$ 方法，传入指向 $bar\left(\right)$ 协程帧的 $std$::$coroutine_-handle$ 。</li>
+<li>$bar\left(\right)$ 协程挂起，调用返回的 $task$ 对象的 $await_-suspend\left(\right)$ 方法，传入指向 $bar\left(\right)$ 协程帧的 $std$::$coroutine_-handle$ 。</li>
 <li>$await_-suspend\left(\right)$ 函数保存 $bar\left(\right)$ 的 $std$::$coroutine_-handle$ 到 $foo\left(\right)$ 的 $promise$ 对象中，调用 $foo\left(\right)$ 的 $std$::$coroutine_-handle$ 的 $.resume\left(\right)$ 方法，恢复 $foo\left(\right)$ 协程的执行。</li>
 </ul>
 </li>
-<li>$foo\left(\right)$ 协程执行同步完成。</li>
-<li>$foo\left(\right)$ 协程在最终暂停点 ( 即右大括号处 ) 暂停，通过启动前存储在 $promise$ 对象的 $std$::$coroutine_-handle$ 恢复协程 $bar\left(\right)$ 的执行。</li>
+<li>$foo\left(\right)$ 协程同步执行完成。</li>
+<li>$foo\left(\right)$ 协程在最终挂起点 ( 即右大括号 ) 处挂起，通过开始执行前存储的 $promise$ 对象的 $std$::$coroutine_-handle$ ( 即 $bar\left(\right)$ 协程 ) 恢复 $bar\left(\right)$ 的执行。</li>
 <li>$bar\left(\right)$ 协程恢复，继续执行，直到到达 $co_-await$ 表达式语句的结尾，这时它调用 $foo\left(\right)$ 返回的临时变量 $task$ 的析构函数。</li>
 <li>$task$ 的析构函数再调用 $foo\left(\right)$ 协程句柄的 $.destroy\left(\right)$ 方法，销毁协程帧，包括 $promise$ 对象和拷贝的参数。</li>
 </ul>
 <p>        好，这么看来一个简单的调用包含了许多步骤。<br>
-        为了更深的理解这些步骤，让我们看看一种简单的使用协程标准设计 ( 不支持对称转移 ) 的 $task$ 类实现。</p>
+        为了更好地理解这些步骤，让我们看看一种简单的使用协程标准设计 ( 不支持对称转移 ) 的 $task$ 类实现。</p>
 <h2 id="task-的大体实现">task 的大体实现</h2>
 <p>        类的实现大体是这样：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">task</span> <span class="p">{</span>
@@ -161,35 +161,35 @@
 <h2 id="实现-taskpromise_type">实现 task::promise_type</h2>
 <p>        根据<a href="https://z217blog.cn/post/c++%E5%8D%8F%E7%A8%8B3%E7%90%86%E8%A7%A3promise/">以前的文章</a>，我们知道 $promise$ 类型成员定义了协程帧中的 $Promise$ 对象类型，控制协程行为。<br>
         首先，我们需要实现 $get_-return_-object\left(\right)$ 来构造在协程创建时返回的 $task$ 对象。这个方法只需要使用新创建的协程帧的 $std$::$coroutine_-handle$ 来初始化 $task$。<br>
-        我们可以使用 $std$::$coroutine_-handle$::$from_-promise\left(\right)$ 方法来从 $promise$ 对象获取一个句柄。</p>
+        我们可以使用 $std$::$coroutine_-handle$::$from_-promise\left(\right)$ 方法来从 $promise$ 对象构造出一个句柄。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">task</span><span class="o">::</span><span class="n">promise_type</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
 </span></span><span class="line"><span class="cl">  <span class="n">task</span> <span class="n">get_return_object</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">task</span><span class="p">{</span><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;</span><span class="n">promise_type</span><span class="o">&gt;::</span><span class="n">from_promise</span><span class="p">(</span><span class="o">*</span><span class="k">this</span><span class="p">)};</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>        接着，我们想要协程在左大括号处进行初始化暂停，这样稍后可以在挂起 $task$ 的点恢复协程。<br>
-        懒启动协程有一些优点：</p>
+</span></span></code></pre></div><p>        接着，我们想要协程在左大括号处进行初始化挂起，这样稍后可以在挂起 $task$ 的点恢复协程。<br>
+        协程懒启动有一些优点：</p>
 <ol>
-<li>可以在开始协程执行前设置 $std$::$coroutine_-handle$。这意味着我们不需要使用线程同步来处理设置和协程运行之间的竞态。</li>
-<li>$task$ 析构函数可以无条件地销毁协程帧，不需要担心协程是否还在另一个线程运行，因为协程只会在主动 $await$ 时执行。并且开始后主调协程会被暂停，所以直到协程执行完成，我们才能调用 $task$ 的析构函数。这让编译器可以更好的把协程帧直接分配在主调的调用栈上，参考<a href="https://wg21.link/P0981R0">P0981R0</a>了解更多关于堆分配跳过优化 ( $Heap$ $Allocation$ $eLision$ $Optimisation$, $HALO$ )。</li>
-<li>提升协程代码的异常安全性。如果你不立即 $co_-await$ 返回的 $task$，并且做了一些其他逻辑，抛出了异常，导致栈回退，这时 $task$ 的析构函数会被调用，这样我们也可以安全的销毁协程帧，因为我们知道它还没开始运行。我们不需要处理 $detach$，悬垂引用，析构函数阻塞，进程终止或者未定义行为。这也是我在<a href="https://www.youtube.com/watch?v=1Wy5sq3s2rg">CppCon 2019 talk on Structured Concurrency</a>中讲到的。</li>
+<li>可以在开始协程执行前绑定续体的 $std$::$coroutine_-handle$。这意味着我们不需要使用线程同步来处理绑定续体和协程执行完成之间的竞态。</li>
+<li>$task$ 析构函数可以无条件地销毁协程帧，不需要担心协程是否还在另一个线程运行，因为协程只会在 $co_-await$ 时执行。并且开始后调用方协程会被挂起，所以直到协程执行完成，我们才能调用 $task$ 的析构函数。这让编译器可以更好的把协程帧直接分配在调用方的调用栈上，参考<a href="https://wg21.link/P0981R0">P0981R0</a>了解更多关于堆分配跳过优化 ( $Heap$ $Allocation$ $eLision$ $Optimisation$, $HALO$ )。</li>
+<li>提升协程代码的异常安全性。如果你没有立马对返回的 $task$ 调用 $co_-await$，并且做了一些其他逻辑，抛出了异常，导致栈回退，这时 $task$ 的析构函数会被调用，这样我们也可以安全地销毁协程帧，因为我们知道它还没开始执行。我们不需要处理 $detach$，悬垂引用，析构函数阻塞，进程终止或者未定义行为。这也是我在<a href="https://www.youtube.com/watch?v=1Wy5sq3s2rg">CppCon 2019 talk on Structured Concurrency</a>中讲到的，后者包含更多细节。</li>
 </ol>
-<p>        为了让协程在左大括号处进行初始化暂停，我们实现了一个返回内置 $suspend_-always$ 类型的 $initial_-suspend\left(\right)$ 方法。</p>
+<p>        为了让协程在左大括号处进行初始化挂起，我们实现了一个返回内置 $suspend_-always$ 类型的 $initial_-suspend\left(\right)$ 方法。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">suspend_always</span> <span class="n">initial_suspend</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="p">{};</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>        接着，我们需要定义 $return_-void\left(\right)$ 方法，这个方法会在执行到 $co_-return;$ 时，或者协程执行结束时被调用。这个方法并不需要做任何事，只需要声明来让编译器知道这个协程类型可以使用 $co_-return;$ 语句。</p>
+</span></span></code></pre></div><p>        接着，我们需要定义 $return_-void\left(\right)$ 方法，这个方法会在执行到 $co_-return;$ 时，或者协程执行结束时被调用。这个方法并不需要做任何事，只需要声明一下来让编译器知道这个协程类型可以使用 $co_-return;$ 语句。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">return_void</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{}</span>
-</span></span></code></pre></div><p>        我们也需要增加一个 $unhandled_-exception\left(\right)$ 方法，如果一个异常逃出协程体之外，这个方法会被调用。在我们的场景，可以认为 $task$ 协程体是<code>noexcept</code>的，如果出现异常，直接调用 $std$::$terminate\left(\right)$。</p>
+</span></span></code></pre></div><p>        我们也需要增加一个 $unhandled_-exception\left(\right)$ 方法，如果一个异常逃逸出协程体之外，这个方法会被调用。在我们的场景，可以认为 $task$ 协程体是<code>noexcept</code>的，如果出现异常，直接调用 $std$::$terminate\left(\right)$。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">unhandled_exception</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">terminate</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>        最后，当协程执行到右大括号时，我们想让协程在最终暂停点暂停，并恢复等待这个协程完成的另一个协程的执行。<br>
-        为了实现这个，我们需要 $promise$ 有一个数据成员来保存接着执行的协程的 $std$::$coroutine_-handle$。我们也需要定义 $final_-suspend\left(\right)$ 方法，返回一个 $awaitble$ 对象，在当前协程在最终暂停点暂停后，恢复下一个协程。<br>
-        把恢复延后到当前协程暂停后进行是很重要的，因为下一个协程可能会立即调用 $task$ 的析构函数，后者再调用协程帧的 $.destroy\left(\right)$ 。$.destroy\left(\right)$ 只对暂停协程有效，所以这时可能会导致未定义行为。<br>
+</span></span></code></pre></div><p>        最后，当协程执行到右大括号时，我们想让协程在最终挂起点挂起，并恢复续体，即等待它完成的另一个协程的执行。<br>
+        为了实现这个，我们需要 $promise$ 有一个数据成员来保存续体的 $std$::$coroutine_-handle$。我们也需要定义 $final_-suspend\left(\right)$ 方法，返回一个 $awaitble$ 对象，在当前协程在最终挂起点挂起后，恢复续体。<br>
+        把恢复延后到当前协程挂起后进行是很重要的，因为下一个协程可能会立即调用 $task$ 的析构函数，后者再调用协程帧的 $.destroy\left(\right)$ 。$.destroy\left(\right)$ 只对挂起协程有效，所以这时可能会导致未定义行为。<br>
         编译器会在右大括号处插入 $co_-await$ $promise.final_-suspend\left(\right)$ 语句。<br>
-        十分要注意的是，当 $final_-suspend\left(\right)$ 被调用时，当前协程还没有暂停。在协程暂停前，我们需要等待返回的 $awaitble$ 对象 $await_-suspend\left(\right)$ 方法调用。</p>
+        特别要注意的是，当 $final_-suspend\left(\right)$ 被调用时，当前协程还没有挂起。在协程挂起前，我们需要等待直到返回的 $awaitble$ 对象 $await_-suspend\left(\right)$ 方法被调用。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">final_awaiter</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">bool</span> <span class="nf">await_ready</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
@@ -213,7 +213,7 @@
 </span></span></code></pre></div><p>        好了，$promise$ 类型完成了。最后还剩下 $task$::$operator$ $co_-await\left(\right)$。</p>
 <h2 id="实现-taskoperator-co_await">实现 task::operator co_await()</h2>
 <p>        你可能记得<a href="https://z217blog.cn/post/c++%E5%8D%8F%E7%A8%8B2%E7%90%86%E8%A7%A3co_await/">理解co_await</a>这篇文章讲的，当执行 $co_-await$ 表达式时，编译器会生成一个对 $operator$ $co_-await\left(\right)$ 的调用，如果定义了这个方法，返回对象必须同时定义 $await_-ready\left(\right)$、$await_-suspend\left(\right)$ 和 $await_-resume\left(\right)$ 方法。<br>
-        当一个协程 $await$ 一个 $task$ 时，我们希望挂起的协程总是暂停，并且在暂停后，把挂起协程的句柄保存在即将恢复的协程的 $promise$ 中，并在之后对 $task$ 的 $std$::$coroutine_-handle$ 调用 $.resume\left(\right)$ 来开始 $task$ 执行。<br>
+        当一个协程等待一个 $task$ 时，我们希望等待中的协程总是挂起，并且在挂起后，把等待中协程的句柄保存在即将恢复的协程的 $promise$ 中，并在之后对 $task$ 的 $std$::$coroutine_-handle$ 调用 $.resume\left(\right)$ 来开始 $task$ 执行。<br>
         因此代码会相对直接：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">task</span><span class="o">::</span><span class="n">awaiter</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
@@ -262,7 +262,7 @@
         例如，当 $count$ 是 $1'000'000$ 时就会崩溃，可以查看：<a href="https://godbolt.org/z/gy5Q8q">https://godbolt.org/z/gy5Q8q</a>。<br>
         崩溃的原因是栈溢出。<br>
         为了理解栈溢出的原因，我们需要看看代码执行的时候发生了什么，尤其是栈帧上面发生了什么。<br>
-        当其他协程 $co_-await$ 了返回的 $task$ 后，$loop_-synchronously\left(\right)$ 开始执行。这将暂停挂起的协程，调用 $task$::$awaiter$::$await_-suspend\left(\right)$，后者调用 $task$ 的 $std$::$coroutine_-handle$ 的 $.resume\left(\right)$ 方法。<br>
+        当其他协程 $co_-await$ 了返回的 $task$ 后，$loop_-synchronously\left(\right)$ 开始执行。这将挂起等待中的协程，调用 $task$::$awaiter$::$await_-suspend\left(\right)$，后者调用 $task$ 的 $std$::$coroutine_-handle$ 的 $.resume\left(\right)$ 方法。<br>
         因此在 $loop_-synchronously\left(\right)$ 启动时，栈看起来就像这样：</p>
 <pre tabindex="0"><code>           Stack                                                   Heap
 +------------------------------+  &lt;-- top of stack   +--------------------------+
@@ -281,15 +281,15 @@
 </code></pre><blockquote>
 <p>注意：一个协程函数通常被编译器编译成两部分：</p>
 <ol>
-<li>“活动函数” ( $ramp$ $function$ )，处理协程帧构造、参数拷贝，$promise$ 构造和获取返回值，以及</li>
+<li>“启动函数” ( $ramp$ $function$ )，处理协程帧构造、参数拷贝，$promise$ 构造和生成返回值，以及</li>
 <li>“协程体” ( $coroutine$ $body$ )，包含用户编写的逻辑。</li>
 </ol></blockquote>
 <blockquote>
 <p>我使用 $\$resume$ 后缀表示协程的“协程体”部分。<br>
 后面的文章会详细介绍这种分割方式。</p></blockquote>
-<p>        当 $loop_-synchronously\left(\right)$ $await$ $complete_-synchronously\left(\right)$ 返回的 $task$ 时，当前协程会被暂停，调用 $task$::$awaiter$::$await_-suspend\left(\right)$。$await_-suspend\left(\right)$ 方法再调用 $complete_-synchronously\left(\right)$ 协程句柄的 $.resume\left(\right)$ 方法。<br>
-        这会恢复 $complete_-synchronously\left(\right)$ 协程，后者会同步运行结束，并在最终暂停点暂停，调用 $task$::$promise$::$final_-awaiter$::$await_-suspend\left(\right)$ 方法，后者会调用 $loop_-synchronously\left(\right)$ 协程句柄的 $.resume\left(\right)$ 方法。<br>
-        接着当 $loop_-synchronously\left(\right)$ 协程恢复之后、$complete_-synchronously\left(\right)$ 返回的临时变量 $task$ 在分号处销毁时，我们再看看当前程序状态，栈 / 堆看起来就像这样：</p>
+<p>        当 $loop_-synchronously\left(\right)$ $co_-await$ $completes_-synchronously\left(\right)$ 返回的 $task$ 时，当前协程会被挂起，调用 $task$::$awaiter$::$await_-suspend\left(\right)$。$await_-suspend\left(\right)$ 方法再调用 $completes_-synchronously\left(\right)$ 协程句柄的 $.resume\left(\right)$ 方法。<br>
+        这会恢复 $completes_-synchronously\left(\right)$ 协程，后者会同步执行直到结束，并在最终挂起点处挂起，然后调用 $task$::$promise$::$final_-awaiter$::$await_-suspend\left(\right)$ 方法，后者会调用 $loop_-synchronously\left(\right)$ 协程句柄的 $.resume\left(\right)$ 方法。<br>
+        接着当 $loop_-synchronously\left(\right)$ 协程恢复之后、$completes_-synchronously\left(\right)$ 返回的临时变量 $task$ 在分号处销毁时，我们再看看当前程序状态，栈 / 堆看起来就像这样：</p>
 <pre tabindex="0"><code>           Stack                                                   Heap
 +-------------------------------+ &lt;-- top of stack
 | loop_synchronously$resume     | active coroutine -.
@@ -316,20 +316,20 @@
 +-------------------------------+               | awaiting_coroutine frame |
                                                 |                          |
                                                 +--------------------------+
-</code></pre><p>        接着下一个要做的就是调用 $task$ 的析构函数，销毁 $complete_-synchronously\left(\right)$ 的协程帧，并递增 $count$ 变量，继续循环，再创建一个新的 $complete_-synchronously\left(\right)$ 协程并恢复它。<br>
-        事实上，这里会做的就是 $loop_-synchronously\left(\right)$ 和 $complete_-synchronously\left(\right)$ 返回递归调用对方，每次调用都会占用一部分栈空间，直到迭代够一定次数后，栈溢出并导致了未定义行为，导致程序立即崩溃。<br>
-        协程内编写循环这种看着没有任何递归的行为，却是很简单的导致函数越界的方式。<br>
+</code></pre><p>        接着下一个要做的就是调用 $task$ 的析构函数，销毁 $completes_-synchronously\left(\right)$ 的协程帧，并递增 $count$ 变量，继续循环，再创建一个新的 $completes_-synchronously\left(\right)$ 协程并恢复它。<br>
+        事实上，这里会做的就是 $loop_-synchronously\left(\right)$ 和 $completes_-synchronously\left(\right)$ 返回递归调用对方，每次调用都会占用一部分栈空间，直到迭代够一定次数后，栈会溢出并产生未定义行为，通常会导致程序立即崩溃。<br>
+        协程内编写循环这种看着没有任何递归的行为，却很容易导致函数产生无限递归。<br>
         那么，在这种原始协程标准设计之下，又该怎么解决这个问题呢？</p>
 <h2 id="协程标准解法">协程标准解法</h2>
-<p>        好，那么这种无界递归问题该怎么避免呢？<br>
-        在上面的实现中，我们使用返回 $void$ 的 $await_-suspend\left(\right)$。协程标准中还有另外一个返回<code>bool</code>的 $await_-suspend\left(\right)$，返回<code>true</code>代表协程已暂停，控制权移交给 $resume\left(\right)$ 的调用者，返回<code>false</code>则协程立即恢复，不需要消耗任何额外的栈空间。<br>
-        所以，为了避免无界地循环递归，我们希望利用返回<code>bool</code>版本的 $await_-suspend\left(\right)$，让 $task$::$awaiter$::$await_-suspend\left(\right)$ 在任务同步结束时返回<code>false</code>，而不是递归地通过 $std$::$coroutine_-handle$::$resume\left(\right)$ 恢复协程。<br>
+<p>        好，那么这种无限递归问题该怎么避免呢？<br>
+        在上面的实现中，我们使用返回 $void$ 的 $await_-suspend\left(\right)$。协程标准中还有另外一个返回<code>bool</code>的 $await_-suspend\left(\right)$，返回<code>true</code>代表协程已挂起，控制权移交给 $resume\left(\right)$ 的调用方，返回<code>false</code>则协程立即恢复，不需要消耗任何额外的栈空间。<br>
+        所以，为了避免无限地循环递归，我们希望利用返回<code>bool</code>版本的 $await_-suspend\left(\right)$，让 $task$::$awaiter$::$await_-suspend\left(\right)$ 在任务同步结束时返回<code>false</code>，而不是递归地通过 $std$::$coroutine_-handle$::$resume\left(\right)$ 恢复协程。<br>
         实现这种解法需要两部分：</p>
 <ol>
-<li>在 $task$::$awaiter$::$await_-suspend\left(\right)$ 方法，你可以调用 $.resume\left(\right)$ 来启动协程执行。然后在 $.resume\left(\right)$ 返回时，检查协程是否执行完成。如果执行完成，我们可以返回<code>false</code>，表示挂起的协程应当立即恢复。如果没有完成，我们可以返回<code>true</code>，表示将控制权移交给 $std$::$coroutine_-handle$::$resume\left(\right)$ 的调用者。</li>
-<li>在协程执行完成后调用的 $task$::$promise_-type$::$final_-awaiter$::$await_-suspend\left(\right)$ 方法内，我们需要检查挂起的协程是否已经 ( 或者即将 ) 从 $task$::$awaiter$::$await_-suspend\left(\right)$ 调用中返回<code>true</code>。如果是，调用 $.resume\left(\right)$ 来恢复它。否则我们需要避免恢复协程，并且告诉 $task$::$awaiter$::$await_-suspend\left(\right)$，让它返回<code>false</code>。</li>
+<li>在 $task$::$awaiter$::$await_-suspend\left(\right)$ 方法，你可以调用 $.resume\left(\right)$ 来启动协程执行。然后在 $.resume\left(\right)$ 返回时，检查协程是否执行完成。如果执行完成，我们可以返回<code>false</code>，表示等待中的协程应当立即恢复。如果没有完成，我们可以返回<code>true</code>，表示将控制权移交给 $std$::$coroutine_-handle$::$resume\left(\right)$ 的调用方。</li>
+<li>在协程执行完成后调用的 $task$::$promise_-type$::$final_-awaiter$::$await_-suspend\left(\right)$ 方法内，我们需要检查等待中协程是否已经 ( 或者即将 ) 从 $task$::$awaiter$::$await_-suspend\left(\right)$ 调用中返回<code>true</code>。如果是，调用 $.resume\left(\right)$ 来恢复它。否则我们需要避免恢复协程，并且通知 $task$::$awaiter$::$await_-suspend\left(\right)$，让它返回<code>false</code>。</li>
 </ol>
-<p>        然而，有一个更复杂的问题，就是协程可能在当前线程开始执行、暂停，并在 $.resume\left(\right)$ 调用返回前，在其他线程恢复并执行完成。因此，我们需要解决第一部分和第二部分之间可能的并发冲突。<br>
+<p>        然而，有一个更复杂的问题，就是协程可能在当前线程开始执行、挂起，并在 $.resume\left(\right)$ 调用返回前，在其他线程恢复并执行完成。因此，我们需要解决第一部分和第二部分之间可能的竞态。<br>
         我们需要使用 $std$::$atomic$ 值同步。<br>
         现在我们可以对代码进行以下修改：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">task</span><span class="o">::</span><span class="n">promise_type</span> <span class="p">{</span>
@@ -356,14 +356,14 @@
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        可以在 $Compiler$ $Explorer$ 上查看修改后的例子：<a href="https://godbolt.org/z/7fm8Za">https://godbolt.org/z/7fm8Za</a>。注意这时当 $count$ $==$ $1'000'000$ 时，程序不再崩溃了。<br>
-        这就是 $cppcoro$::$task$&lt;$T$&gt; 里面实现的，规避无界递归问题的方式 ( 在某些平台也是一样 )，而且运行得很好。<br>
+        这就是 $cppcoro$::$task$&lt;$T$&gt; 里面实现的，规避无限递归问题的方式 ( 在某些平台也是一样 )，而且运行得很好。<br>
         哇哦！问题解决了，吗？发布！可以吗&hellip;？</p>
 <h2 id="问题">问题</h2>
 <p>        以上方法在解决递归的同时，也引入了一些问题。<br>
-        首先，它需要 $std$::$atomic$ 操作，开销可能很大。主调等待挂起的协程需要进行一次值交换，并且被调执行完成后也需要一次原子交换。如果你的程序是单线程的，那么你会在永远不需要的线程同步原子操作上花费额外的开销。<br>
-        其次，它引入了额外的分支。一个在主调，需要判断是否暂停或者立即恢复协程，另一个在被调，需要判断是否恢复下个协程或者暂停。<br>
-        注意这个额外分支的开销，甚至原子操作的开销，跟协程程序的业务逻辑相比通常不值一提。然而，协程被称为零成本抽象，并且有许多人使用协程暂停操作来避免等待<code>L1</code>缓存未命中问题 ( 更多细节可以查看 Gor 的 <a href="https://www.youtube.com/watch?v=j9tlJAqMV7U">great CppCon talk on nanocoroutines</a> )。<br>
-        最后，也可能是最重要的，它在挂起协程的恢复中引入了一些执行时不确定的值。<br>
+        首先，它需要 $std$::$atomic$ 操作，开销可能很大。调用方挂起等待中协程的过程中需要进行一次原子交换，并且被调方执行完成后也需要一次原子交换。如果你的程序是单线程的，那么你会在永远不需要的线程同步原子操作上花费额外的开销。<br>
+        其次，它引入了额外的分支。一个在调用方，需要判断是否挂起或者立即恢复协程，另一个在被调方，需要判断是否恢复续体或者挂起。<br>
+        注意这个额外分支的开销，甚至原子操作的开销，跟协程程序的业务逻辑相比通常不值一提。然而，协程被称为零成本抽象，并且有许多人使用协程挂起操作来避免等待<code>L1</code>缓存未命中问题 ( 更多细节可以查看 Gor 的 <a href="https://www.youtube.com/watch?v=j9tlJAqMV7U">great CppCon talk on nanocoroutines</a> )。<br>
+        最后，也可能是最重要的，它在恢复等待中协程的过程中引入了一些运行上下文中不确定的值。<br>
         假设我有以下代码：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">cppcoro</span><span class="o">::</span><span class="n">static_thread_pool</span> <span class="n">tp</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
@@ -387,7 +387,7 @@
 </span></span><span class="line"><span class="cl"><span class="n">foo1</span> <span class="mi">1234</span>
 </span></span><span class="line"><span class="cl"><span class="n">foo2</span> <span class="mi">3456</span>
 </span></span><span class="line"><span class="cl"><span class="n">bar2</span> <span class="mi">3456</span>
-</span></span></code></pre></div><p>        然而，通过使用原子变量，$foo\left(\right)$ 执行完成可能与 $bar\left(\right)$ 的暂停之间并发冲突，在一些情况下，这意味着 $co_-await$ $foo\left(\right)$ 之后的代码可能在 $bar\left(\right)$ 启动的线程上执行。<br>
+</span></span></code></pre></div><p>        然而，使用原子变量后，$foo\left(\right)$ 执行完成可能与 $bar\left(\right)$ 的挂起之间产生竞态，在一些情况下，这意味着 $co_-await$ $foo\left(\right)$ 之后的代码可能在 $bar\left(\right)$ 启动的线程上执行。<br>
         例如，一种可能的输出：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">bar1</span> <span class="mi">1234</span>
 </span></span><span class="line"><span class="cl"><span class="n">foo1</span> <span class="mi">1234</span>
@@ -413,18 +413,18 @@
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        最初版本的 $consume\left(\right)$ 调用总是保证在线程池 $s$ 上执行。然而，在使用原子变量后，$consume\left(\right)$ 可能在与 $scheduler$ $s$ 相关的线程上执行，也可能在 $consumer\left(\right)$ 开始执行的线程上执行。<br>
         所以我们应该怎么在没有原子操作、额外分支和不确定的恢复上下文的前提下解决栈溢出问题呢？</p>
-<h2 id="进入对称转移">进入“对称转移”</h2>
-<p>        Gor Nishanov ( $2018$ ) 的论文<a href="https://wg21.link/P0913R0">P0913R0</a>《增加对称协程控制转移》，提出了这种问题的解法，通过提供一种允许一种不需要消耗任何额外栈空间的前提下，让一个协程暂停时对称恢复另一个协程的能力。<br>
+<h2 id="进入对称转移">进入“对称转移”!</h2>
+<p>        Gor Nishanov ( $2018$ ) 的论文<a href="https://wg21.link/P0913R0">P0913R0</a>《增加对称协程控制转移》，提出了这种问题的解法，通过提供一种允许一种不需要消耗任何额外栈空间的前提下，让一个协程挂起时对称恢复另一个协程的能力。<br>
         论文提出了两个关键改变：</p>
 <ul>
 <li>允许 $await_-suspend\left(\right)$ 返回 $std$::$coroutine_-handle$&lt;$T$&gt;，表示执行需要对称转移给返回的句柄标识的协程。</li>
-<li>增加 $std$::$experimental$::$noop_-coroutine\left(\right)$ 函数，返回一个特别的 $std$::$coroutine_-handle$，可以作为 $await_-suspend\left(\right)$ 的返回值，暂停当前协程，从 $.resume\left(\right)$ 调用返回而不是将控制权转移给其他协程。</li>
+<li>增加 $std$::$experimental$::$noop_-coroutine\left(\right)$ 函数，返回一个特别的 $std$::$coroutine_-handle$，可以作为 $await_-suspend\left(\right)$ 的返回值，挂起当前协程，从 $.resume\left(\right)$ 调用返回而不是将控制权转移给其他协程。</li>
 </ul>
 <p>        所以“对称转移”是什么意思呢？<br>
-        当你调用 $std$::$coroutine_-handle$ 的 $.resume\left(\right)$ 来恢复协程，$.resume\left(\right)$ 的调用者在协程恢复后仍然是活跃的。接着，协程暂停，在暂停点调用 $await_-suspend\left(\right)$ 返回<code>void</code>( 无条件暂停 ) 或者<code>true</code> ( 有条件暂停 ) 时，$.resume\left(\right)$ 的调用才会返回。<br>
-        这可以认为是一种“对称转移”，协程执行和行为就像普通函数调用一样。$.resume\left(\right)$ 的主调可以是任意函数 ( 协程或非协程 )。当协程暂停并且 $await_-suspend\left(\right)$ 返回<code>true</code>或者<code>void</code>时，控制权会返回给 $.resume\left(\right)$ 的调用者。<br>
+        当你调用 $std$::$coroutine_-handle$ 的 $.resume\left(\right)$ 来恢复协程，$.resume\left(\right)$ 的调用方在协程恢复后仍然是活跃的。接着，协程再次挂起，在挂起点调用 $await_-suspend\left(\right)$ 返回<code>void</code>( 无条件挂起 ) 或者<code>true</code> ( 有条件挂起 ) 时，$.resume\left(\right)$ 的调用才会返回。<br>
+        这可以认为是一种“对称转移”，协程执行和行为就像普通函数调用一样。$.resume\left(\right)$ 的调用方可以是任意函数 ( 协程或非协程 )。当协程挂起并且 $await_-suspend\left(\right)$ 返回<code>true</code>或者<code>void</code>时，控制权会返回给 $.resume\left(\right)$ 的调用者。<br>
         每次调用 $.resume\left(\right)$ 恢复协程时，都会创建一个新的协程的栈帧。<br>
-        然而，通过“对称转移”，我们可以简单的暂停协程，并恢复另一个协程。两个协程之间不需要显式的主被调关系，一个协程暂停时，它就可以把控制权转移给其他暂停的协程 ( 包括它自己 )，并且不需要在下次暂停或者执行完成时把控制权转移给上一个协程。<br>
+        然而，通过“对称转移”，我们可以简单地挂起一个协程，并恢复另一个协程。两个协程之间不需要隐式的调用方 / 被调方关系，一个协程挂起时，它就可以把控制权转移给另一个挂起的协程 ( 包括它自己 )，并且不需要在下次挂起或者执行完成时把控制权转移给上一个协程。<br>
         让我们看看在 $awaiter$ 使用对称转移时，编译器会怎么处理 $co_-await$ 表达式：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="k">decltype</span><span class="p">(</span><span class="k">auto</span><span class="p">)</span> <span class="n">value</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">expr</span><span class="o">&gt;</span><span class="p">;</span>
@@ -451,32 +451,33 @@
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">h</span> <span class="o">=</span> <span class="n">awaiter</span><span class="p">.</span><span class="n">await_suspend</span><span class="p">(</span><span class="n">handle_t</span><span class="o">::</span><span class="n">from_promise</span><span class="p">(</span><span class="n">p</span><span class="p">));</span>
 </span></span><span class="line"><span class="cl"><span class="n">h</span><span class="p">.</span><span class="n">resume</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl"><span class="c1">// &lt;return-to-caller-or-resumer&gt;
-</span></span></span></code></pre></div><p>        一旦协程状态机处于 $lower$ 状态 ( 另一篇文章的主题 )，&lt;$return$-$to$-$caller$-$or$-$resumer$&gt; 部分一般是 $return;$ 语句，这会导致上次 $.resume\left(\right)$ 的调用返回给主调。<br>
-        这意味着我们在原来 $std$::$coroutine_-handle$::$resume\left(\right)$ 调用的函数体内，又产生了一个对同一个签名的函数的调用，即 $std$::$coroutine_-handle$::$resume\left(\right)$ ，跟着一条 $return;$ 语句。<br>
+</span></span></span></code></pre></div><p>        一旦协程状态机完成底层转换后 ( 另一篇文章的主题 )，&lt;$return$-$to$-$caller$-$or$-$resumer$&gt; 部分一般是 $return;$ 语句，这会导致最近一次恢复协程的 $.resume\left(\right)$ 的调用将返回给调用方。<br>
+        这意味着我们当前函数体的 $std$::$coroutine_-handle$::$resume\left(\right)$ 调用内，又产生了一个对同一个签名的函数的调用，即 $std$::$coroutine_-handle$::$resume\left(\right)$ ，紧跟着一条 $return;$ 语句。<br>
         一些编译器在开启编译优化后，能够在条件满足的时候，把函数结尾的调用 ( 即返回之前 ) 转变为尾调用 ( $tail$-$calls$ )。<br>
         而这种优化正是我们想要的，可以避免栈溢出问题的方式。但是与其期望优化器来决定进行尾调用转移，我们更想要确保这种优化一直有效，即使是未开启优化的情况。<br>
         但是首先，我们先了解下尾调用的含义。</p>
 <h3 id="尾调用">尾调用</h3>
-<p>        尾调用意味着在当前栈帧弹出前，把当前函数的返回地址修改为被调的返回地址 ( 即被调直接返回给当前函数的主调 )。<br>
+<p>        尾调用指在调用前弹出当前栈帧，把当前函数的返回地址作为被调方的返回地址 ( 即被调直接返回给当前函数的调用方 )。<br>
         在<code>X86/X64</code>架构，这通常意味着编译器生成的代码会先弹出当前栈帧，然后调用 $jmp$ 指令来跳转到被调函数入口，而不是使用 $call$ 指令，并在 $call$ 返回后才弹出当前栈帧。<br>
         这个优化通常只会在有限情况下发生，然而：<br>
         特别的，它需要：</p>
 <ul>
-<li>调用机制支持尾调用，包括主调和被调；</li>
+<li>调用机制支持尾调用，包括调用方和被调方；</li>
 <li>返回类型相同；</li>
 <li>没有需要在调用返回前执行的非默认析构函数；</li>
 <li>调用不在<code>try/catch</code>块内。</li>
 </ul>
 <p>        $co_-await$ 对称转移形式的设计使得它刚好能满足所有需求。我们一个个来看。<br>
-        <strong>调用机制</strong>：当编译器把协程 $lower$ 成状态机时，它实际上分成两部分：活跃部分 ( $ramp$，分配和初始化协程框架 ) 和主体 ( 包含用户编写的协程体的状态机 )。<br>
-        协程的函数签名 ( 以及所有用户指定的调用机制 ) 只会影响活跃函数部分，主体部分则受编译器控制，永远不会被用户代码调用，只能通过 $ramp$ 函数和 $std$::$coroutine_-handle$::$resume\left(\right)$ 调用。<br>
+        <strong>调用机制</strong>：当编译器把协程转换成底层状态机时，它实际上分成两部分：启动部分 ( $ramp$，分配和初始化协程框架 ) 和主体 ( 包含用户编写的协程体的状态机 )。<br>
+        协程的函数签名 ( 以及所有用户指定的调用机制 ) 只会影响启动函数部分，主体部分则受编译器控制，永远不会被用户代码调用，只能通过 $ramp$ 函数和 $std$::$coroutine_-handle$::$resume\left(\right)$ 调用。<br>
         协程体部分的调用机制是用户不可见的，完全由编译器决定，因此它可以选择一种合适的支持尾调用的机制，并被所有协程体使用。<br>
         <strong>返回类型相同</strong>：源和目的协程的 $.resume\left(\right)$ 方法的返回值都是<code>void</code>，所以这个需求也能满足。<br>
         <strong>没有非默认析构函数</strong>：当执行尾调用时，我们需要在调用目标函数前释放当前栈帧，这需要所有栈上对象的生命周期都在调用结束之前。<br>
-        一般情况下，一旦作用域内有对象的析构函数非默认，这些对象会在协程暂停的时候存活，所以它们会被分配在协程帧上，而非栈帧上。<br>
-        局部变量不需要在协程暂停时存活，可能分配在栈帧上，它们的生命周期会在协程下次暂停时结束。<br>
+        一般情况下，一旦作用域内有对象的析构函数非默认且分配在栈上，这些对象会在协程挂起的时候存活，就会产生问题。<br>
+        然而，当一个协程挂起时，它不会退出任何作用域，实现方式是把生命周期跨挂起点的对象放在协程帧上而不是栈上。<br>
+        局部变量的生命周期不会跨挂起点，可能分配在栈帧上，它们的生命周期会在协程下次挂起时结束。<br>
         因此栈分配对象不存在需要在尾调用返回之前调用的非默认析构函数。<br>
-        <strong>调用不在<code>try/catch</code>块内</strong>：这个可能有点 trick，因为每个协程内都有个显式的<code>try/catch</code>块，包裹用户编写的协程体。<br>
+        <strong>调用不在<code>try/catch</code>块内</strong>：这个可能有点 trick，因为每个协程内都有个隐式的<code>try/catch</code>块，包裹用户编写的协程体。<br>
         根据规范，协程被定义为：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="n">promise_type</span> <span class="n">promise</span><span class="p">;</span>
@@ -493,17 +494,17 @@
 <blockquote>
 <p>注意，然而，当前<code>C++</code>规范对实现这个操作需求的描述不够清晰，并且只是一个非规范注释，暗示这可能是必须的。希望我们将来能够修复这个规范。</p></blockquote>
 <p>        那么我们知道了执行对称转移的协程已经满足了所有尾调用的需求。编译器会确保它永远是尾调用，无论是否开启了优化。<br>
-        这意味着通过使用 $await_-suspend\left(\right)$ 返回的 $std$::$coroutine_-handle$，我们可以暂停当前协程，并在不消耗额外栈空间的前提下，把控制权转移给另一个协程。<br>
+        这意味着通过使用 $await_-suspend\left(\right)$ 返回 $std$::$coroutine_-handle$ 的风格，我们可以挂起当前协程，并在不消耗额外栈空间的前提下，把控制权转移给另一个协程。<br>
         这让我们可以编写任意深度的相互递归调用代码，不需要担心栈溢出。<br>
         这就是我们需要修复的 $task$ 的实现。</p>
 <h2 id="再看task">再看<code>task</code></h2>
 <p>        有了“对称转移”能力，我们再来修复 $task$ 类型实现。<br>
         我们要修改两个 $await_-suspend\left(\right)$ 方法的实现：</p>
 <ul>
-<li>首先当我们 $await$ $task$ 时，我们执行对称转移，来恢复任务协程。</li>
-<li>其次当任务协程完成，它执行一次对称转移，恢复挂起的协程。</li>
+<li>首先当我们等待 $task$ 时，我们执行对称转移，来恢复任务协程。</li>
+<li>其次当任务协程完成，它执行一次对称转移，恢复等待中的协程。</li>
 </ul>
-<p>        为了指明 $await$ 的方向，我们需要把 $task$::$awaiter$ 方法从：</p>
+<p>        为了指明等待的方向，我们需要把 $task$::$awaiter$ 方法从：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">task</span><span class="o">::</span><span class="n">awaiter</span><span class="o">::</span><span class="n">await_suspend</span><span class="p">(</span>
 </span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">continuation</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// Store the continuation in the task&#39;s promise so that the final_suspend()
@@ -553,7 +554,7 @@
 </span></span><span class="line"><span class="cl">    <span class="k">co_await</span> <span class="n">completes_synchronously</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>        当其他协程 $co_-await$ $task$ 时， $loop_-synchronously\left(\right)$ 协程首次开始执行。这会触发其他协程的对称转移，并通过 $std$::$coroutine_-handle$::$resume\left(\right)$ 调用恢复。<br>
+</span></span></code></pre></div><p>        当其他协程 $co_-await$ $task$ 时，$loop_-synchronously\left(\right)$ 协程首次开始执行。这会触发其他协程的对称转移，并通过 $std$::$coroutine_-handle$::$resume\left(\right)$ 调用恢复。<br>
         因此当 $loop_-synchronously\left(\right)$ 开始时，栈看起来会像这样：</p>
 <pre tabindex="0"><code>           Stack                                                Heap
 +---------------------------+  &lt;-- top of stack   +--------------------------+
@@ -573,7 +574,7 @@
         通过：</p>
 <ul>
 <li>调用 $task$::$operator$ $co_-await\left(\right)$，后者会在稍后返回 $task$::$awaiter$ 对象</li>
-<li>然后暂停并调用 $task$::$awaiter$::$await_-suspend\left(\right)$，后者稍后返回 $completes_-synchronously$ 协程的 $coroutine_-handle$。</li>
+<li>然后挂起并调用 $task$::$awaiter$::$await_-suspend\left(\right)$，后者稍后返回 $completes_-synchronously$ 协程的 $coroutine_-handle$。</li>
 <li>然后执行尾调用 / 跳转到 $completes_-synchronously$ 协程，在激活 $completes_-synchronously$ 栈帧前弹出 $loop_-synchronously$ 栈帧。</li>
 </ul>
 <p>        在 $completes_-synchronously$ 恢复后，栈看起来会像这样：</p>
@@ -603,7 +604,7 @@
                                                 +--------------------------+
 </code></pre><p>        注意这里栈帧数量增长了。<br>
         在 $completes_-synchronously$ 协程完成，执行到右大括号处，它会执行 $co_-await$ $promise.final_-suspend\left(\right)$。<br>
-        这会暂停协程，并调用 $final_-awaiter$::$await_-suspend\left(\right)$ ，后者返回下个协程的 $std$::$coroutine_-handle$ ( 即指向 $loop_-synchronously$ 协程的句柄 )。这会触发一次对称转移 / 尾调用来恢复 $loop_-synchronously$ 协程。<br>
+        这会挂起协程，并调用 $final_-awaiter$::$await_-suspend\left(\right)$ ，后者返回续体的 $std$::$coroutine_-handle$ ( 即指向 $loop_-synchronously$ 协程的句柄 )。这会触发一次对称转移 / 尾调用来恢复 $loop_-synchronously$ 协程。<br>
         $loop_-synchronously$ 恢复后的栈看起来就像这样：</p>
 <pre tabindex="0"><code>           Stack                                                   Heap
                                                    +--------------------------+ &lt;-.
@@ -628,7 +629,7 @@
                                                    +--------------------------+
                                                    | awaiting_coroutine frame |
                                                    |                          |
-</code></pre><p>        $loop_-synchronously$ 协程被恢复后，在执行到达分号后，要做的第一件事就是调用 $completes_-synchronously$ 调用返回的临时 $task$ 的析构函数。这会销毁协程帧，释放内存，这时情况会是这样：</p>
+</code></pre><p>        $loop_-synchronously$ 协程被恢复后，在执行到达分号后，要做的第一件事就是调用 $completes_-synchronously$ 返回的临时 $task$ 的析构函数。这会销毁协程帧，释放内存，这时情况会是这样：</p>
 <pre tabindex="0"><code>           Stack                                                   Heap
 +---------------------------+  &lt;-- top of stack   +--------------------------+
 | loop_synchronously$resume | active coroutine -&gt; | loop_synchronously frame |
@@ -650,11 +651,11 @@
 <p>        既然我们已经见识过了对称转移形式的 $awaitable$ $concept$ 的能力和重要性，我想向你展示一下通用形式，理论上可以替换<code>void</code>和<code>bool</code>返回形式的 $await_-suspend\left(\right)$。<br>
         但首先，我们需要看一下<a href="https://wg21.link/P0913R0">P0913R0</a>提案添加的新的协程设计：$std$::$noop_-coroutine\left(\right)$。</p>
 <h3 id="循环终止">循环终止</h3>
-<p>        通过对称转移形式的协程，每次协程暂停，它都会对称恢复另一个协程。只要你有其他协程可以恢复，它就非常有用。但是有时我们不想要执行其他协程，只需要暂停并把控制权返回给 $std$::$coroutine_-handle$::$resume\left(\right)$ 的主调。<br>
-        <code>void</code>和<code>bool</code>返回形式的 $await_-suspend\left(\right)$ 都允许协程暂停并从 $std$::$coroutine_-handle$::$resmue\left(\right)$ 调用中返回，那么我们怎么让对称转移形式的协程返回呢？<br>
+<p>        通过对称转移形式的协程，每次协程挂起，它都会对称恢复另一个协程。只要你有其他协程可以恢复，它就非常有用。但是有时我们不想要执行其他协程，只需要挂起并把控制权返回给 $std$::$coroutine_-handle$::$resume\left(\right)$ 的调用方。<br>
+        <code>void</code>和<code>bool</code>返回形式的 $await_-suspend\left(\right)$ 都允许协程挂起并从 $std$::$coroutine_-handle$::$resmue\left(\right)$ 调用中返回，那么我们怎么让对称转移形式的协程返回呢？<br>
         答案是使用内置的特殊 $std$::$coroutine_-handle$，称为无操作协程句柄 ( $noop$ $coroutine$ $handle$ )，通过函数 $std$::$noop_-coroutine\left(\right)$ 生成。<br>
         无操作协程句柄之所以叫这个名字，是因为它的 $.resume\left(\right)$ 实现是立即返回，即恢复协程后没有操作。一般它的实现包含一条简单的 $ret$ 指令。<br>
-        如果 $await_-suspend\left(\right)$ 方法返回 $std$::$noop_-coroutine\left(\right)$ 句柄，那么协程不会把控制权转移给下一个协程，而是转移给 $std$::$coroutine_-handle$::$resume\left(\right)$ 的主调。</p>
+        如果 $await_-suspend\left(\right)$ 方法返回 $std$::$noop_-coroutine\left(\right)$ 句柄，那么协程不会把控制权转移给下一个协程，而是转移给 $std$::$coroutine_-handle$::$resume\left(\right)$ 的调用方。</p>
 <h3 id="其他风格的-await_suspend-表示方式">其他风格的 <code>await_suspend()</code> 表示方式</h3>
 <p>        有了这个信息，我们再看其他风格的 $await_-suspend\left(\right)$ 如何使用对称转移。<br>
         我们有<code>void</code>返回格式的：</p>
@@ -707,11 +708,11 @@
 </span></span></code></pre></div><h3 id="为什么有三种风格">为什么有三种风格？</h3>
 <p>        那么为什么在有对称转移风格的前提下，我们还继续使用<code>void</code>和<code>bool</code>返回风格的 $await_-suspend\left(\right)$ 呢？<br>
         一部分历史原因，一部分实用性原因，一部分性能原因。<br>
-        $await_-suspend\left(\right)$ 返回 $std$::$noop_-coroutine_-handle$ 可以完全替代<code>void</code>返回版本，因为这两种对于编译器来说，都表示协程会无条件地把控制权转移给 $std$::$coroutine_-handle$::$resume\left(\right)$ 的主调。<br>
-        在我看来，它还能留下来的原因，一部分是它在对称转移被提出之前就已经在使用了，另一部分是因为<code>void</code>返回对于无条件暂停的情况可以少写一点代码。<br>
+        $await_-suspend\left(\right)$ 返回 $std$::$noop_-coroutine_-handle$ 可以完全替代<code>void</code>返回版本，因为这两种对于编译器来说，都表示协程会无条件地把控制权转移给 $std$::$coroutine_-handle$::$resume\left(\right)$ 的调用方。<br>
+        在我看来，它还能留下来的原因，一部分是它在对称转移被提出之前就已经在使用了，另一部分是因为<code>void</code>返回对于无条件挂起的情况可以少写一点代码。<br>
         <code>bool</code>返回版本，在某些情况下，可以优化得比对称转移形式的更好。<br>
-        假设我们有一个<code>bool</code>返回的 $await_-suspend\left(\right)$，定义在另一个编译单元。这时编译器可以在挂起协程生成代码，暂停当前协程并在 $await_-suspend\left(\right)$ 调用返回之后，通过执行下一块代码的方式来有条件地恢复它。如果 $await_-suspend\left(\right)$ 返回<code>false</code>，那么就可以明确知道需要执行哪段代码。<br>
-        即使有了对称转移风格，我们还是需要表示相同的结果：返回主调 / 恢复者，或者恢复当前协程。相比返回<code>true</code>或者<code>false</code>，我们需要返回 $std$::$noop_-coroutine\left(\right)$ 或者当前协程的句柄。我们可以把这些句柄都统一成 $std$::$coroutine_-handle$&lt;$void$&gt; 返回。<br>
+        假设我们有一个<code>bool</code>返回的 $await_-suspend\left(\right)$，定义在另一个编译单元。这时编译器可以在等待协程处生成代码，挂起当前协程并在 $await_-suspend\left(\right)$ 调用返回之后，通过执行下一块代码的方式来有条件地恢复它。如果 $await_-suspend\left(\right)$ 返回<code>false</code>，那么就可以明确知道需要执行哪段代码。<br>
+        即使有了对称转移风格，我们还是需要表示相同的结果：返回给调用方 / 恢复方，或者恢复当前协程。相比返回<code>true</code>或者<code>false</code>，我们需要返回 $std$::$noop_-coroutine\left(\right)$ 或者当前协程的句柄。我们可以把这些句柄都统一成 $std$::$coroutine_-handle$&lt;$void$&gt; 返回。<br>
         然而，因为 $await_-suspend\left(\right)$ 定义在其他编译单元，编译器看不到协程返回的句柄指向什么，所以当协程恢复后，它需要一些更重的间接调用，并且相比<code>bool</code>返回的单个分支而言，可能会有更多的恢复协程分支。<br>
         有可能在将来的某一天，对称转移版本可以获得同等性能。例如，我们可以编写内联的 $await_-suspend\left(\right)$，但是调用一个<code>bool</code>返回的非内联方法，并有条件地返回合适的句柄。<br>
         例如：</p>
@@ -737,8 +738,8 @@
 </span></span></code></pre></div><p>        然而，现在的编译器 ( 比如<code>Clang 10</code> ) 还不能把这种情况优化成和<code>bool</code>返回版本一样高效的代码。话虽如此，除非你编写了一个非常紧凑的循环，否则可能不会注意到它们的差异。<br>
         到目前为止，通用的规则是：</p>
 <ul>
-<li>如果你需要无条件地返回给 $.resume\left(\right)$ 的主调，使用<code>void</code>返回风格。</li>
-<li>如果你需要有条件地返回给 $.resume\left(\right)$ 的主调，或者恢复当前协程，使用<code>bool</code>返回风格。</li>
+<li>如果你需要无条件地返回给 $.resume\left(\right)$ 的调用方，使用<code>void</code>返回风格。</li>
+<li>如果你需要有条件地返回给 $.resume\left(\right)$ 的调用方，或者恢复当前协程，使用<code>bool</code>返回风格。</li>
 <li>如果你需要恢复其他协程，使用对称转移风格。</li>
 </ul>
 <h2 id="补充">补充</h2>
@@ -774,7 +775,7 @@
     <a class="nav-top" href="#">回到顶部</i></a>
     <div class="nav-next">
         
-        <a class="grayed-out" href="javascript:void()"><i class="fas fa-chevron-right"></i></a>
+        <a href="https://z217blog.cn/post/c&#43;&#43;%E5%8D%8F%E7%A8%8B5%E7%90%86%E8%A7%A3%E7%BC%96%E8%AF%91%E5%99%A8%E8%BD%AC%E6%8D%A2/"><i class="fas fa-chevron-right"></i></a>
         
     </div>
 </div>
@@ -801,7 +802,7 @@
         </div>
         
         
-        <p class="copyright meta">Copyright © 2020–2024, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+        <p class="copyright meta">Copyright © 2020–2025, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
                 href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
         
     </div>
