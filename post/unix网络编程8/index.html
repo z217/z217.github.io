@@ -93,14 +93,14 @@
 <p>        <code>Unix</code>域协议并不是一个实际的协议族，而是在单个主机上执行客户/服务器通信的一种方法，所用<code>API</code>就是在不同主机上执行客户/服务器通信所用的<code>API</code>，因此，<code>Unix</code>域协议可视为<code>IPC</code>方法之一。<code>Unix</code>域提供两类套接字：字节流套接字 ( 类似<code>TCP</code> ) 和数据报套接字 ( 类似<code>UDP</code> )。</p>
 <h2 id="1-套接字地址结构">1. 套接字地址结构</h2>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/un.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">sockaddr_un</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">sa_family_t</span> <span class="n">sun_family</span><span class="p">;</span>  <span class="c1">// AF_LOCAL
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">char</span> <span class="n">sun_path</span><span class="p">[</span><span class="mi">104</span><span class="p">];</span>  <span class="c1">// null-terminated pathname
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="n">sun_path</span><span class="p">[</span><span class="mi">104</span><span class="p">];</span>  <span class="c1">// null-terminated pathname
+</span></span></span><span class="line"><span class="cl"><span class="p">};</span>
 </span></span></code></pre></div><p>        存放在 $sun_-path$ 数组中的路径名必须以空字符结尾。实现提供一个 $SUN_-LEN$ 宏以一个指向 $sockaddr_-un$ 结构的指针为参数并返回该结构的长度，包括路径名中的非空字节数。未指定地址通过空字符串作为路径名指示，等价于<code>IPv4</code>的 $INADDR_-ANY$ 常值或<code>IPv6</code>的 $IN6ADDR_-ANY_-INIT$ 常值。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">sockfd</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">socklen_t</span> <span class="n">len</span><span class="p">;</span>
@@ -125,9 +125,9 @@
 </span></span></code></pre></div><p>        我们调用 $bind$ 捆绑到套接字上的路径名就是命令行参数，如果文件系统中已存在该路径名，$bind$ 将会失败，所以我们先调用 $unlink$ 删除这个路径名，防止它已存在。如果不存在，$unlink$ 会返回一个可以忽略的错误。</p>
 <h2 id="2-socketpair函数">2. <code>socketpair</code>函数</h2>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// 成功返回非0值，出错返回-1
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">socketpair</span><span class="p">(</span><span class="kt">int</span> <span class="n">family</span><span class="p">,</span> <span class="kt">int</span> <span class="n">type</span><span class="p">,</span> <span class="kt">int</span> <span class="n">protocol</span><span class="p">,</span> <span class="kt">int</span> <span class="n">sockfd</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+</span></span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">socketpair</span><span class="p">(</span><span class="kt">int</span> <span class="n">family</span><span class="p">,</span> <span class="kt">int</span> <span class="n">type</span><span class="p">,</span> <span class="kt">int</span> <span class="n">protocol</span><span class="p">,</span> <span class="kt">int</span> <span class="n">sockfd</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
 </span></span></code></pre></div><p>        $socketpair$ 函数创建两个随后连接起来的套接字，仅适用于<code>Unix</code>域套接字。$family$ 参数必须为 $AF_-LOCAL$ ，$protocol$ 参数必须为 $0$ ，$type$ 参数既可以是 $SOCK_-STREAM$ ，也可以是 $SOCK_-DGRAM$ 。新创建的两个套接字作为 $sockfd[0]$ 和 $sockfd[1]$ 返回。指定 $type$ 参数为 $SOCK_-STREAM$ 调用 $socketpair$ 得到的结果称为<strong>流管道</strong> ( $stream$ $pipe$ )，与调用 $pipe$ 创建的普通<code>Unix</code>管道类似，差别在于前者是全双工的，即两个描述符都是既可读又可写的。</p>
 <h2 id="3-套接字函数">3. 套接字函数</h2>
 <p>        当作用于<code>Unix</code>域套接字时，套接字函数中存在一些差异和限制：</p>
@@ -155,14 +155,14 @@
 <li>接收进程调用 $recvmsg$ 接收描述符，接收到的描述符值可以不同于发送的描述符值。另外，在期待接收描述符的 $recvmsg$ 调用中应该避免使用 $MSG_-PEEK$ 标志，否则后果不可预料。</li>
 </ol>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">ssize_t</span> <span class="nf">read_fd</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">ptr</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">bytes</span><span class="p">,</span> <span class="kt">int</span> <span class="o">*</span><span class="n">recvfd</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">msghdr</span> <span class="n">msg</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">iovec</span> <span class="n">iov</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">ssize_t</span> <span class="n">n</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cp">#ifdef HAVE_MSGHDR_MSG_CONTROL
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>  <span class="k">union</span> <span class="p">{</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">union</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="k">struct</span> <span class="n">cmsghdr</span> <span class="n">cm</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">    <span class="kt">char</span> <span class="n">control</span><span class="p">[</span><span class="nf">CMSG_SPACE</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">))];</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span> <span class="n">control_un</span><span class="p">;</span>
@@ -171,11 +171,11 @@
 </span></span><span class="line"><span class="cl">  <span class="n">msg</span><span class="p">.</span><span class="n">msg_control</span> <span class="o">=</span> <span class="n">control_un</span><span class="p">.</span><span class="n">control</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">msg</span><span class="p">.</span><span class="n">msg_controllen</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">control_un</span><span class="p">.</span><span class="n">control</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl"><span class="cp">#else
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>  <span class="kt">int</span> <span class="n">newfd</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">newfd</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">msg</span><span class="p">.</span><span class="n">msg_accrights</span> <span class="o">=</span> <span class="p">(</span><span class="kt">caddr_t</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">newfd</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">msg</span><span class="p">.</span><span class="n">msg_controllen</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">control_un</span><span class="p">.</span><span class="n">control</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl"><span class="cp">#endif
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="n">msg</span><span class="p">.</span><span class="n">msg_name</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">msg</span><span class="p">.</span><span class="n">msg_namelen</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">iov</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">iov_base</span> <span class="o">=</span> <span class="n">ptr</span><span class="p">;</span>
@@ -187,7 +187,7 @@
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">n</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cp">#ifdef HAVE_MSGHDR_MSG_CONTROL
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>  <span class="k">if</span> <span class="p">((</span><span class="n">cmptr</span> <span class="o">=</span> <span class="nf">CMSG_FIRSTHDR</span><span class="p">(</span><span class="o">&amp;</span><span class="n">msg</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">NULL</span> <span class="o">&amp;&amp;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">((</span><span class="n">cmptr</span> <span class="o">=</span> <span class="nf">CMSG_FIRSTHDR</span><span class="p">(</span><span class="o">&amp;</span><span class="n">msg</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">NULL</span> <span class="o">&amp;&amp;</span>
 </span></span><span class="line"><span class="cl">    <span class="n">cmptr</span><span class="o">-&gt;</span><span class="n">cmsg_len</span> <span class="o">==</span> <span class="nf">CMSG_LEN</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">)))</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">cmptr</span><span class="o">-&gt;</span><span class="n">cmsg_level</span> <span class="o">!=</span> <span class="n">SOL_SOCKET</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">      <span class="nf">err_quit</span><span class="p">(</span><span class="s">&#34;control level != SOL_SOCKET&#34;</span><span class="p">);</span>
@@ -196,24 +196,24 @@
 </span></span><span class="line"><span class="cl">    <span class="o">*</span><span class="n">recvfd</span> <span class="o">=</span> <span class="o">*</span><span class="p">((</span><span class="kt">int</span> <span class="o">*</span><span class="p">)</span> <span class="nf">CMSG_DATA</span><span class="p">(</span><span class="n">cmptr</span><span class="p">));</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span> <span class="k">else</span>
 </span></span><span class="line"><span class="cl">    <span class="o">*</span><span class="n">recvfd</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>  <span class="c1">// 描述符传递失败
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#else
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>  <span class="k">if</span> <span class="p">(</span><span class="n">msg</span><span class="p">.</span><span class="n">msg_accrightslen</span> <span class="o">==</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">))</span>
+</span></span></span><span class="line"><span class="cl"><span class="cp">#else
+</span></span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">msg</span><span class="p">.</span><span class="n">msg_accrightslen</span> <span class="o">==</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">))</span>
 </span></span><span class="line"><span class="cl">    <span class="o">*</span><span class="n">recvfd</span> <span class="o">=</span> <span class="n">newfd</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="k">else</span>
 </span></span><span class="line"><span class="cl">    <span class="o">*</span><span class="n">recvfd</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>  <span class="c1">// 描述符传递失败
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#endif
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl"><span class="cp">#endif
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">n</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        通过流管道发送和接收描述符时，我们总是发送 $1$ 字节的数据，即便接收进程不对数据做任何处理。要是不这样做，接收进程将难以辨别 $read_-fd$ 的返回为 $0$ 意味着没有数据还是文件已结束。$msg_-control$ 缓冲区必须为 $cmsghdr$ 结构适当地对齐，单纯分配一个字符数组是不够的，这里声明了一个联合。确保对齐的另一个办法是调用 $malloc$ ，不过需要在函数返回前释放所分配的空间。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">ssize_t</span> <span class="nf">write_fd</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">ptr</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">nbytes</span><span class="p">,</span> <span class="kt">int</span> <span class="n">sendfd</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">msghdr</span> <span class="n">msg</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">iovec</span> <span class="n">iov</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cp">#ifdef HAVE_MSGHDR_MSG_CONTROL
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>  <span class="k">union</span> <span class="p">{</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">union</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="k">struct</span> <span class="n">cmsghdr</span> <span class="n">cm</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">    <span class="kt">char</span> <span class="n">control</span><span class="p">[</span><span class="nf">CMSG_SPACE</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">))];</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span> <span class="n">control_un</span><span class="p">;</span>
@@ -226,10 +226,10 @@
 </span></span><span class="line"><span class="cl">  <span class="n">cmptr</span><span class="o">-&gt;</span><span class="n">cmsg_type</span> <span class="o">=</span> <span class="n">SCM_RIGHTS</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="o">*</span><span class="p">((</span><span class="kt">int</span> <span class="o">*</span><span class="p">)</span> <span class="nf">CMSG_DATA</span><span class="p">(</span><span class="n">cmptr</span><span class="p">))</span> <span class="o">=</span> <span class="n">sendfd</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="cp">#else
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>  <span class="n">msg</span><span class="p">.</span><span class="n">msg_accrights</span> <span class="o">=</span> <span class="p">(</span><span class="kt">caddr_t</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">sendfd</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="n">msg</span><span class="p">.</span><span class="n">msg_accrights</span> <span class="o">=</span> <span class="p">(</span><span class="kt">caddr_t</span><span class="p">)</span> <span class="o">&amp;</span><span class="n">sendfd</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">msg</span><span class="p">.</span><span class="n">msg_accrightslen</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl"><span class="cp">#endif
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="n">msg</span><span class="p">.</span><span class="n">msg_name</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">msg</span><span class="p">.</span><span class="n">msg_namelen</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">iov</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">iov_base</span> <span class="o">=</span> <span class="n">ptr</span><span class="p">;</span>
@@ -242,20 +242,20 @@
 </span></span></code></pre></div><h2 id="5-接收发送者凭证">5. 接收发送者凭证</h2>
 <p>        可通过<code>Unix</code>域套接字作为辅助数据传递的另一种数据是<strong>用户凭证</strong> ( $user$ $credential$ )，作为辅助数据的凭证其具体封装方式和发送方式往往特定于操作系统。凭证传递仍然是一个尚未普及而且无统一规范的特性，但还是一个对<code>Unix</code>域协议的简单却重要的补充。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">cmsgcred</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">pid_t</span> <span class="n">cmcred_pid</span><span class="p">;</span>  <span class="c1">// 发送端进程的PID
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">uid_t</span> <span class="n">cmcred_uid</span><span class="p">;</span>  <span class="c1">// 发送端进程的真实UID
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">uid_t</span> <span class="n">cmcred_euid</span><span class="p">;</span>  <span class="c1">// 发送端进程的有效UID
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">gid_t</span> <span class="n">cmcred_gid</span><span class="p">;</span>  <span class="c1">// 发送端进程的真实GID
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">short</span> <span class="n">cmcred_ngroups</span><span class="p">;</span>  <span class="c1">// 组数量
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">gid_t</span> <span class="n">cmcred_groups</span><span class="p">[</span><span class="n">CMGROUP_MAX</span><span class="p">];</span>  <span class="c1">// 组
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></span><span class="line"><span class="cl">  <span class="kt">uid_t</span> <span class="n">cmcred_uid</span><span class="p">;</span>  <span class="c1">// 发送端进程的真实UID
+</span></span></span><span class="line"><span class="cl">  <span class="kt">uid_t</span> <span class="n">cmcred_euid</span><span class="p">;</span>  <span class="c1">// 发送端进程的有效UID
+</span></span></span><span class="line"><span class="cl">  <span class="kt">gid_t</span> <span class="n">cmcred_gid</span><span class="p">;</span>  <span class="c1">// 发送端进程的真实GID
+</span></span></span><span class="line"><span class="cl">  <span class="kt">short</span> <span class="n">cmcred_ngroups</span><span class="p">;</span>  <span class="c1">// 组数量
+</span></span></span><span class="line"><span class="cl">  <span class="kt">gid_t</span> <span class="n">cmcred_groups</span><span class="p">[</span><span class="n">CMGROUP_MAX</span><span class="p">];</span>  <span class="c1">// 组
+</span></span></span><span class="line"><span class="cl"><span class="p">};</span>
 </span></span></code></pre></div><p>        $CMGROUP_-MAX$ 常值通常为 $16$ ，$cmcred_-ngroups$ 总是 $1$ ，而且 $cmcred_-groups$ 数组的第一个元素是有效组<code>ID</code>。当客户和服务器进行通信时，服务器通常需要以一定手段获取客户身份，以便验证客户是否有权限请求相应服务。凭证信息总是可以通过<code>Unix</code>域套接字在两个进程之间传递，然而发送进程发送它们时往往需要做特殊的封装处理，接收进程接收它们时也往往需要做特殊的接受处理。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cp">#define CONTROL_LEN (sizeof(struct cmsghdr) + sizeof(struct cmsgcred))
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">ssize_t</span> <span class="nf">read_cred</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">ptr</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">nbytes</span><span class="p">,</span> <span class="k">struct</span> <span class="n">cmsgcred</span> <span class="o">*</span><span class="n">cmsgcredptr</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">msghdr</span> <span class="n">msg</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">iovec</span> <span class="n">iov</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
@@ -276,7 +276,7 @@
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">n</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="n">cmsgcredptr</span><span class="o">-&gt;</span><span class="n">cmcread_ngroups</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// indicates no credentials returned
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">if</span> <span class="p">(</span><span class="n">cmsgcredptr</span> <span class="o">&amp;&amp;</span> <span class="n">msg</span><span class="p">.</span><span class="n">msg_controllen</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>  <span class="p">{</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">cmsgcredptr</span> <span class="o">&amp;&amp;</span> <span class="n">msg</span><span class="p">.</span><span class="n">msg_controllen</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>  <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="k">struct</span> <span class="n">cmsghdr</span> <span class="o">*</span><span class="n">cmptr</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">cmsghdr</span> <span class="o">*</span><span class="p">)</span> <span class="n">control</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">cmptr</span><span class="o">-&gt;</span><span class="n">cmsg_len</span> <span class="o">&lt;</span> <span class="n">CONTROL_LEN</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">      <span class="nf">err_quit</span><span class="p">(</span><span class="s">&#34;control length = %d&#34;</span><span class="p">,</span> <span class="n">cmptr</span><span class="o">-&gt;</span><span class="n">cmsg_len</span><span class="p">);</span>
@@ -343,7 +343,7 @@
         </div>
         
         
-        <p class="copyright meta">Copyright © 2020–2025, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+        <p class="copyright meta">Copyright © 2020–2026, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
                 href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
         
     </div>
@@ -385,8 +385,11 @@
             all[i].SourceElement().parentNode.className += ' has-jax';
         }
     });
-</script>
-</main>
+
+    MathJax.Hub.Register.StartupHook("End Jax", () => {
+        return MathJax.Hub.setRenderer("HTML-CSS");
+    });
+</script></main>
 </body>
 
 </html>

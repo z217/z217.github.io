@@ -139,7 +139,7 @@
 </span></span><span class="line"><span class="cl"><span class="p">};</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// unique_ptr为Investment *大小
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">Ts</span><span class="o">&gt;</span>
+</span></span></span><span class="line"><span class="cl"><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">Ts</span><span class="o">&gt;</span>
 </span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Investment</span><span class="p">,</span> <span class="k">decltype</span><span class="p">(</span><span class="n">delInvmt</span><span class="p">)</span><span class="o">&gt;</span>
 </span></span><span class="line"><span class="cl"><span class="n">makeInvestment</span><span class="p">(</span><span class="n">Ts</span> <span class="o">&amp;&amp;</span><span class="p">...</span><span class="n">params</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
@@ -149,7 +149,7 @@
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// unique_ptr为Investment *大小加上至少一个函数指针的大小
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">Ts</span><span class="o">&gt;</span>
+</span></span></span><span class="line"><span class="cl"><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">Ts</span><span class="o">&gt;</span>
 </span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Investment</span><span class="p">,</span> <span class="kt">void</span> <span class="p">(</span><span class="o">*</span><span class="p">)(</span><span class="n">Investment</span> <span class="o">*</span><span class="p">)</span><span class="o">&gt;</span>
 </span></span><span class="line"><span class="cl"><span class="n">makeInvestment</span><span class="p">(</span><span class="n">Ts</span> <span class="o">&amp;&amp;</span><span class="p">..</span><span class="n">params</span><span class="p">);</span>
 </span></span></code></pre></div><p>        具有很多状态的删除器会导致 $unique_-ptr$ 变得很大，如果这种情况发生，你需要修改删除器函数。<br>
@@ -191,19 +191,19 @@
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">void</span> <span class="n">process</span><span class="p">();</span>
+</span></span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="n">process</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl"><span class="p">};</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;&gt;</span> <span class="n">processedWidgets</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">Widget</span><span class="o">::</span><span class="n">process</span><span class="p">()</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="n">processedWidget</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>  <span class="c1">// 错误用法
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        上面的代码错误在于使用 $this$ 传递，由原始指针构造的 $shared_-ptr$ 会创建一个控制块。为了解决这个问题，<code>C++</code>引入了 $std::enable_-shared_-from_-this$ ，它是一个用作基类的模版类，可以从该类型的 $this$ 对象上安全创建 $shared_-ptr$ 。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span><span class="o">:</span> <span class="k">public</span> <span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">void</span> <span class="n">process</span><span class="p">();</span>
+</span></span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="n">process</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl"><span class="p">};</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">Widget</span><span class="o">::</span><span class="n">process</span><span class="p">()</span> <span class="p">{</span>
@@ -214,7 +214,7 @@
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span><span class="o">:</span> <span class="k">public</span> <span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">Ts</span><span class="o">&gt;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span> <span class="n">Ts</span><span class="o">&gt;</span>
 </span></span><span class="line"><span class="cl">  <span class="k">static</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">create</span><span class="p">(</span><span class="n">Ts</span> <span class="o">&amp;&amp;</span><span class="p">...</span><span class="n">params</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
@@ -233,15 +233,15 @@
 </span></span><span class="line"><span class="cl"><span class="n">spw</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="p">(</span><span class="n">wpw</span><span class="p">.</span><span class="n">expired</span><span class="p">())</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        $weak_-ptr$ 通过 $expired$ 来判断是否悬垂。但是通常，我们需要在 $weak_-ptr$ 未失效时进行解引用操作，可惜的是，并没有这样的函数。引入解引用会导致竞态条件：在 $expired$ 和解引用操作之间，如果其它线程的操作导致指向对象的析构，解引用会产生未定义行为。从这个角度来看，$weak_-ptr$ 应该从 $shared_-ptr$ 中创建，并且只用于判断指针是否无效。<br>
         为了满足解引用的需求，我们可以从 $weak_-ptr$ 中创建一个 $shared_-ptr$ 。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="c1">// if wpw is expired, spw1 is nullptr
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="n">spw1</span> <span class="o">=</span> <span class="n">wpw</span><span class="p">.</span><span class="n">lock</span><span class="p">();</span>
+</span></span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="n">spw1</span> <span class="o">=</span> <span class="n">wpw</span><span class="p">.</span><span class="n">lock</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl"><span class="c1">// same as above
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">auto</span> <span class="n">spw2</span> <span class="o">=</span> <span class="n">wpw</span><span class="p">.</span><span class="n">lock</span><span class="p">();</span>
+</span></span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">spw2</span> <span class="o">=</span> <span class="n">wpw</span><span class="p">.</span><span class="n">lock</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl"><span class="c1">// if wpw is expired, throw std::bad_weak_ptr
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="n">spw3</span><span class="p">(</span><span class="n">wpw</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span> <span class="n">spw3</span><span class="p">(</span><span class="n">wpw</span><span class="p">);</span>
 </span></span></code></pre></div><p>        以上三种方式都可以创建一个 $shared_-ptr$ 。<br>
         单从效率的角度来看，$weak_-ptr$ 和 $shared_-ptr$ 基本相同。两者的大小相同，使用相同的控制块。要注意 $weak_-ptr$ 也有引用计数，即之前提过的 $weak$ $count$ 。$weak_-ptr$ 也会对引用计数进行操作，同样的，这些操作是原子的。控制块只会在 $weak$ $count$ 为 $0$ 的时候析构。</p>
 <h2 id="4-make_unique和make_shared">4. <code>make_unique</code>和<code>make_shared</code></h2>
@@ -261,7 +261,7 @@
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">computePriority</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// potential resource leak
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">processWidget</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span><span class="p">(</span><span class="k">new</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">computePriority</span><span class="p">());</span>
+</span></span></span><span class="line"><span class="cl"><span class="n">processWidget</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span><span class="p">(</span><span class="k">new</span> <span class="n">Widget</span><span class="p">,</span> <span class="n">computePriority</span><span class="p">());</span>
 </span></span></code></pre></div><p>        上面这段代码可能会发生泄露。在 $processWidget$ 开始运行之前，程序必须先动态分配 $Widget$ 对象、构造 $shared_-ptr$ 和运行 $computePriority$ 。但是要注意，编译器不需要按序执行代码，除了 $shared_-ptr$ 必须在 $Widget$ 创建之后构造。如果程序在创建了 $Widget$ 之后，运行 $computePriority$ ，并且发生异常，那么就会导致 $Widget$ 泄露，因为它永远不会被释放。这个问题的解决是使用 $make_-shared$ ：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">processWidget</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">Widget</span><span class="o">&gt;</span><span class="p">(),</span> <span class="n">computePriority</span><span class="p">());</span>
 </span></span></code></pre></div><p>        $make_-shared$ 把之前的创建 $Widget$ 对象和构造 $shared_-ptr$ 合为一步，从而避免了泄露。<br>
@@ -284,7 +284,7 @@
 <p>        $Pimpl$ ( $Pointer$ $to$ $implementation$ ) 惯用法是一种将类数据成员指向一个包含具体实现的类的指针，并将主类的数据成员移动到实现类的办法。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">private</span><span class="o">:</span>
+</span></span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
 </span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">data</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">Gadget</span> <span class="n">g1</span><span class="p">,</span> <span class="n">g2</span><span class="p">,</span> <span class="n">g3</span><span class="p">;</span>
@@ -292,7 +292,7 @@
 </span></span></code></pre></div><p>        在上面这个类中，为了编译，我们需要包含 &lt;$string$&gt; 、&lt;$vector$&gt; 以及自定义头文件 $gadget.h$ ，这会增加 $Widget$ 的编译时间，并且如果后续有修改，也要重新编译。<code>C++98</code>中可以使用 $Pimpl$ 惯用法修改代码：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">private</span><span class="o">:</span>
+</span></span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
 </span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="nc">Impl</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">Impl</span> <span class="o">*</span><span class="n">pImpl</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="p">};</span>
@@ -300,7 +300,7 @@
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;gadget.h&#34;</span><span class="cp">
 </span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;string&gt;</span><span class="cp">
 </span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Widget</span><span class="o">::</span><span class="n">Impl</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">data</span><span class="p">;</span>
@@ -313,7 +313,7 @@
 </span></span></code></pre></div><p>        我们可以使用智能指针修改上面的代码：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">private</span><span class="o">:</span>
+</span></span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
 </span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="nc">Impl</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Impl</span><span class="o">&gt;</span> <span class="n">pImpl</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="p">};</span>
@@ -322,7 +322,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;gadget.h&#34;</span><span class="cp">
 </span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;string&gt;</span><span class="cp">
 </span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Widget</span><span class="o">::</span><span class="n">Impl</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">data</span><span class="p">;</span>
@@ -347,7 +347,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;gadget.h&#34;</span><span class="cp">
 </span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;string&gt;</span><span class="cp">
 </span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Widget</span><span class="o">::</span><span class="n">Impl</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">data</span><span class="p">;</span>
@@ -376,7 +376,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;gadget.h&#34;</span><span class="cp">
 </span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;string&gt;</span><span class="cp">
 </span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">Widget</span><span class="o">::</span><span class="n">Impl</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">data</span><span class="p">;</span>
@@ -451,7 +451,7 @@
         </div>
         
         
-        <p class="copyright meta">Copyright © 2020–2025, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+        <p class="copyright meta">Copyright © 2020–2026, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
                 href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
         
     </div>
@@ -493,8 +493,11 @@
             all[i].SourceElement().parentNode.className += ' has-jax';
         }
     });
-</script>
-</main>
+
+    MathJax.Hub.Register.StartupHook("End Jax", () => {
+        return MathJax.Hub.setRenderer("HTML-CSS");
+    });
+</script></main>
 </body>
 
 </html>

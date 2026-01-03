@@ -102,7 +102,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">num</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">40</span><span class="p">);</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">num</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">10</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">1</span><span class="p">;</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><p>        上述的实现方式是抛弃了 $41 \sim 49$ 之间的数字，抛弃了 $9$ 个数字的实现方式还是有点多的。从我们之前的讲解来看，可以不局限于生成两位数，三位数、四位数也是可以的，因此我们也可以这样实现：首先生成 $7$ 进制两位数，如果不大于 $40$ ，返回，否则利用两位数再次生成 $3$ 位数、$4$ 位数。对于 $Rand7()$ ，我们只需要生成到 $7$ 进制 $4$ 位数就行了，因为 $7^3=243$ ，$7^4=1701$ ，也就是 $4$ 位数最多只需要抛弃 $1$ 个数字，而如果是 $5$ 位数，则又要抛弃 $7$ 个数字才行。<br/>
         我们也可以利用取模 $10$ 这个点来进一步简化算法。如果生成的数字在 $41 \sim 49$ 之间，没有必要直接用该数字进行计算，因为 $40$ 在取模这一步会被消掉，无论乘以哪个数字，所以我们可以将生成的数字减去 $40$ 再进行计算。减去 $40$ 后生成的数字范围在 $1 \sim 63$ 之间，同样的，如果生成了 $61 \sim 63$ 之间的数字，也可以减去 $60$ 后再计算。实现方式如下：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">class</span> <span class="nc">Solution</span><span class="w"> </span><span class="kd">extends</span><span class="w"> </span><span class="n">SolBase</span><span class="w"> </span><span class="p">{</span><span class="w">
@@ -118,7 +118,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">num</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">10</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">1</span><span class="p">;</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div>
 
 
@@ -158,7 +158,7 @@
         </div>
         
         
-        <p class="copyright meta">Copyright © 2020–2025, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+        <p class="copyright meta">Copyright © 2020–2026, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
                 href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
         
     </div>
@@ -200,8 +200,11 @@
             all[i].SourceElement().parentNode.className += ' has-jax';
         }
     });
-</script>
-</main>
+
+    MathJax.Hub.Register.StartupHook("End Jax", () => {
+        return MathJax.Hub.setRenderer("HTML-CSS");
+    });
+</script></main>
 </body>
 
 </html>

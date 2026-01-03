@@ -103,7 +103,7 @@
         通过创建一个<code>Unix</code>域数据报套接字，我们就可以从自己的守护进程中通过往 $syslogd$ 绑定的路径名发送我们的消息，从而达到发送日志消息的目的。另外，我们也可以创建一个<code>UDP</code>套接字 ( 较新的实现为防止遭受攻击，会禁止套接字的创建 )，通过往环回地址和端口 $514$ 发送我们的消息达到发送日志消息的目的。</p>
 <h2 id="2-syslog函数">2. <code>syslog</code>函数</h2>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;syslog.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">syslog</span><span class="p">(</span><span class="kt">int</span> <span class="n">priority</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">message</span><span class="p">,</span> <span class="p">...);</span>
 </span></span></code></pre></div><p>        从守护进程中登记消息的常用技巧就是调用 $syslog$ 函数。本函数最初是为<code>BSD</code>系统开发的，不过如今几乎所有<code>Unix</code>厂商都有提供。$priority$ 是<em><strong>级别</strong></em> ( $level$ ) 和<em><strong>设施</strong></em> ( $facility$ ) 两者的组合。$message$ 参数类似于 $printf$ 的格式串，不过增加了 $\%m$ 规范，将 $errno$ 值替换为对应的错误消息，可以在 $message$ 的末尾添加换行符，不过并非必需。</p>
 <div class="div-table" data-fl-scrolls><table>
@@ -250,7 +250,7 @@
 </table></div>
 <p>        当 $syslog$ 被应用进程首次调用时，它创建一个<code>Unix</code>域数据报套接字，然后调用 $connect$ 连接到由 $syslogd$ 守护进程创建的<code>Unix</code>域数据报套接字的众所周知路径名 ( 譬如 $/var/run/log$ )。这个套接字一致保持打开，直到进程终止。作为替换，进程也可以调用 $openlog$ 和 $closelog$ 。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;syslog.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">openlog</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">ident</span><span class="p">,</span> <span class="kt">int</span> <span class="n">options</span><span class="p">,</span> <span class="kt">int</span> <span class="n">facility</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">closelog</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
@@ -287,11 +287,11 @@
 <p>        通过调用 $daemon_-init$ 函数，我们能够把一个普通进程转换为守护进程。有些<code>Unix</code>变体提供了一个名为 $daemon$ 的<code>C</code>库函数，实现类似的功能，<code>BSD</code>和<code>Linux</code>均提供了 $daemon$ 函数。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
 </span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;syslog.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cp">#define MAXFD 64
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">extern</span> <span class="kt">int</span> <span class="n">daemon_proc</span><span class="p">;</span>  <span class="c1">// defined in error.c
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">daemon_init</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">pname</span><span class="p">,</span> <span class="kt">int</span> <span class="n">facility</span><span class="p">)</span> <span class="p">{</span> 
 </span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">pid_t</span> <span class="n">pid</span><span class="p">;</span>
@@ -300,9 +300,9 @@
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">pid</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">_exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>  <span class="c1">// parent terminates
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// child 1 continues
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="nf">setsid</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
@@ -311,19 +311,19 @@
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">pid</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">_exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>  <span class="c1">// child 1 terminates
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// child 2 continues
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="n">daemon_proc</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>  <span class="c1">// for err_XXX() functions
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="nf">chdir</span><span class="p">(</span><span class="s">&#34;/&#34;</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// close off file descriptors
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">MAXFD</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">MAXFD</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">close</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// redirect stdin, stdout and stderr to /dev/null
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="nf">open</span><span class="p">(</span><span class="s">&#34;/dev/null&#34;</span><span class="p">,</span> <span class="n">O_RDONLY</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">  <span class="nf">open</span><span class="p">(</span><span class="s">&#34;/dev/null&#34;</span><span class="p">,</span> <span class="n">O_RDONLY</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="nf">open</span><span class="p">(</span><span class="s">&#34;/dev/null&#34;</span><span class="p">,</span> <span class="n">O_RDWR</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="nf">open</span><span class="p">(</span><span class="s">&#34;/dev/null&#34;</span><span class="p">,</span> <span class="n">O_RDWR</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
@@ -454,7 +454,7 @@
         </div>
         
         
-        <p class="copyright meta">Copyright © 2020–2025, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+        <p class="copyright meta">Copyright © 2020–2026, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
                 href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
         
     </div>
@@ -496,8 +496,11 @@
             all[i].SourceElement().parentNode.className += ' has-jax';
         }
     });
-</script>
-</main>
+
+    MathJax.Hub.Register.StartupHook("End Jax", () => {
+        return MathJax.Hub.setRenderer("HTML-CSS");
+    });
+</script></main>
 </body>
 
 </html>

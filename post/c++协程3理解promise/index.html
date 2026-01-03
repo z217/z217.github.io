@@ -105,7 +105,8 @@
 <h2 id="promise对象">Promise对象</h2>
 <p>        $Promise$ 对象通过实现协程执行过程中特定点的调用方法的形式来定义和控制对应协程的行为。</p>
 <blockquote>
-<p>在继续之前，我希望你能忘掉之前所有关于 $promise$ 是什么的记忆。在一些用例中，协程的 $promise$ 对象与 $std$::$future$ 的 $std$::$promise$ 的功能很相似，但在其他用例中，并不能拿来相比。可能把协程的 $promise$ 对象想象成一个用于控制协程行为、跟踪协程状态的“协程状态控制器”会更合适。</p></blockquote>
+<p>在继续之前，我希望你能忘掉之前所有关于 $promise$ 是什么的记忆。在一些用例中，协程的 $promise$ 对象与 $std$::$future$ 的 $std$::$promise$ 的功能很相似，但在其他用例中，并不能拿来相比。可能把协程的 $promise$ 对象想象成一个用于控制协程行为、跟踪协程状态的“协程状态控制器”会更合适。</p>
+</blockquote>
 <p>        $promise$ 对象实例会跟随着每个协程函数调用时创建的协程帧一起被构造。<br>
         编程器会在协程执行的关键点生成对 $promise$ 对象的特定方法的调用。<br>
         在接下来的例子中，我们把某个特定协程在协程帧内创建的 $promise$ 对象叫做 $promise$ 。<br>
@@ -197,15 +198,15 @@
 </span></span><span class="line"><span class="cl">  <span class="kt">void</span><span class="o">*</span> <span class="k">operator</span> <span class="k">new</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">sz</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">allocator_arg_t</span><span class="p">,</span> <span class="n">ALLOCATOR</span><span class="o">&amp;</span> <span class="n">allocator</span><span class="p">,</span> <span class="n">ARGS</span><span class="o">&amp;</span><span class="p">...</span> <span class="n">args</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">  <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="c1">// Round up sz to next multiple of ALLOCATOR alignment
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">allocatorOffset</span> <span class="o">=</span>
+</span></span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">size_t</span> <span class="n">allocatorOffset</span> <span class="o">=</span>
 </span></span><span class="line"><span class="cl">      <span class="p">(</span><span class="n">sz</span> <span class="o">+</span> <span class="k">alignof</span><span class="p">(</span><span class="n">ALLOCATOR</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1u</span><span class="p">)</span> <span class="o">&amp;</span> <span class="o">~</span><span class="p">(</span><span class="k">alignof</span><span class="p">(</span><span class="n">ALLOCATOR</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1u</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    
 </span></span><span class="line"><span class="cl">    <span class="c1">// CAll onto allocator to allocate space for coroutine frame.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kt">void</span><span class="o">*</span> <span class="n">ptr</span> <span class="o">=</span> <span class="n">allocator</span><span class="p">.</span><span class="n">allocate</span><span class="p">(</span><span class="n">allocatorOffset</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">ALLOCATOR</span><span class="p">));</span>
+</span></span></span><span class="line"><span class="cl">    <span class="kt">void</span><span class="o">*</span> <span class="n">ptr</span> <span class="o">=</span> <span class="n">allocator</span><span class="p">.</span><span class="n">allocate</span><span class="p">(</span><span class="n">allocatorOffset</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">ALLOCATOR</span><span class="p">));</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="c1">// Take a copy of the allocator (assuming noexcept copy constructor here)
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">new</span> <span class="p">(((</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">ptr</span><span class="p">)</span> <span class="o">+</span> <span class="n">allocatorOffset</span><span class="p">)</span> <span class="n">ALLOCATOR</span><span class="p">(</span><span class="n">allocator</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">    <span class="k">new</span> <span class="p">(((</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">ptr</span><span class="p">)</span> <span class="o">+</span> <span class="n">allocatorOffset</span><span class="p">)</span> <span class="n">ALLOCATOR</span><span class="p">(</span><span class="n">allocator</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">ptr</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
@@ -219,15 +220,15 @@
 </span></span><span class="line"><span class="cl">      <span class="p">((</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">ptr</span><span class="p">)</span> <span class="o">+</span> <span class="n">allocatorOffset</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="c1">// Move allocator to local variable first so it isn&#39;t freeing its
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// own memory from underneath itself.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// Assuming allocator move-constructor is noexcept here.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">ALLOCATOR</span> <span class="n">allocatorCopy</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">allocator</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// own memory from underneath itself.
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// Assuming allocator move-constructor is noexcept here.
+</span></span></span><span class="line"><span class="cl">    <span class="n">ALLOCATOR</span> <span class="n">allocatorCopy</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">allocator</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="c1">// But don&#39;t forget to destruct allocator object in coroutine frame
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">allocator</span><span class="p">.</span><span class="o">~</span><span class="n">ALLOCATOR</span><span class="p">();</span>
+</span></span></span><span class="line"><span class="cl">    <span class="n">allocator</span><span class="p">.</span><span class="o">~</span><span class="n">ALLOCATOR</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="c1">// Finally, free the memory using the allocator.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">allocatorFactory</span><span class="p">.</span><span class="n">deallocate</span><span class="p">(</span><span class="n">ptr</span><span class="p">,</span> <span class="n">allocatorOffset</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">ALLOCATOR</span><span class="p">));</span>
+</span></span></span><span class="line"><span class="cl">    <span class="n">allocatorFactory</span><span class="p">.</span><span class="n">deallocate</span><span class="p">(</span><span class="n">ptr</span><span class="p">,</span> <span class="n">allocatorOffset</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">ALLOCATOR</span><span class="p">));</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        为了 $hook$ 成功，让自定义的 $my_-promise_-type$ 被协程使用，需要让 $std$::$allocator_-arg$ 作为第一个入参，这需要通过 $coroutine_-traits$ 类 ( 详细见后续的 $coroutine_-traits$ 章节 ) 来指定。<br>
@@ -261,7 +262,7 @@
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="c1">// Pretend there&#39;s a compiler-generated structure called &#39;coroutine_frame&#39;
 </span></span></span><span class="line"><span class="cl"><span class="c1">// that holds all of the state needed for the coroutines. Its constructor
 </span></span></span><span class="line"><span class="cl"><span class="c1">// takes a copy of parameters and default-constructs a promise object.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">struct</span> <span class="nc">coroutine_frame</span> <span class="p">{</span> <span class="p">...</span> <span class="p">};</span>
+</span></span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="nc">coroutine_frame</span> <span class="p">{</span> <span class="p">...</span> <span class="p">};</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="n">T</span> <span class="nf">some_corouine</span><span class="p">(</span><span class="n">P</span> <span class="n">param</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl"><span class="p">{</span>
@@ -270,12 +271,12 @@
 </span></span><span class="line"><span class="cl">  <span class="k">auto</span> <span class="n">returnObject</span> <span class="o">=</span> <span class="n">f</span><span class="o">-&gt;</span><span class="n">promise</span><span class="p">.</span><span class="n">get_return_object</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// Start execution of the coroutine body by resuming it.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// This call will return when the coroutine gets to the first.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// suspend-point or when the coroutine runs to completion.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">coroutine_handle</span><span class="o">&lt;</span><span class="k">decltype</span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">promise</span><span class="p">)</span><span class="o">&gt;::</span><span class="n">from_promise</span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">promise</span><span class="p">).</span><span class="n">resume</span><span class="p">();</span>
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// This call will return when the coroutine gets to the first.
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// suspend-point or when the coroutine runs to completion.
+</span></span></span><span class="line"><span class="cl">  <span class="n">coroutine_handle</span><span class="o">&lt;</span><span class="k">decltype</span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">promise</span><span class="p">)</span><span class="o">&gt;::</span><span class="n">from_promise</span><span class="p">(</span><span class="n">f</span><span class="o">-&gt;</span><span class="n">promise</span><span class="p">).</span><span class="n">resume</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// Then the return object is returned to the caller.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">return</span> <span class="n">returnObject</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">returnObject</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        注意我们需要在协程体开始执行之前获取返回对象，因为协程帧 ( 或者说 $promise$ 对象 ) 可能在 $coroutine_-handle$::$resume\left(\right)$ 调用返回前就被销毁，可能在当前线程销毁，也可能在其他线程，所以在协程体开始执行后调用 $get_-return_-object\left(\right)$ 是不安全的。</p>
 <h3 id="初次挂起点">初次挂起点</h3>
@@ -286,13 +287,15 @@
         特别注意这个语句是在<code>try/catch</code>块保护之外的 ( 如果你忘记了，可以往上翻翻再看下代码 )。这意味着 $co_-await$ $promise.initial_-suspend\left(\right)$ 抛出的异常等同于到达它的 &lt;$return$-$to$-$caller$-$or$-$resumer$&gt; 点，会在协程销毁调用栈和返回对象后，再抛回给调用方。<br>
         要明白如果你的返回对象是<code>RAII</code>的，即会在协程帧被析构的时候销毁，那么你需要保证 $co_-await$ $promise.initial_-suspend\left(\right)$ 是<code>noexcept</code>的，这样才能避免 double-free。</p>
 <blockquote>
-<p>注意这里有个提案，希望调整语义，以便 $co_-await$ $promise.initial_-suspend\left(\right)$ 表达的全部或者部分位于<code>try/catch</code>块内，所以这里的明确语义可能会在最终确定前发生变化。</p></blockquote>
+<p>注意这里有个提案，希望调整语义，以便 $co_-await$ $promise.initial_-suspend\left(\right)$ 表达的全部或者部分位于<code>try/catch</code>块内，所以这里的明确语义可能会在最终确定前发生变化。</p>
+</blockquote>
 <p>        对于许多协程类型来说，$initial_-suspend\left(\right)$ 方法要么返回 $std$::$experimental$::$suspend_-always$ ( 如果操作懒开始 )，要么返回 $std$::$experimental$::$suspend_-never$ ( 如果操作立即开始 )。而它们都是<code>noexcept</code>的 $awaitable$ ，所以这通常不是问题。</p>
 <h3 id="返回给调用方">返回给调用方</h3>
 <p>        当协程函数达到首个 &lt;$return$-$to$-$caller$-$or$-$resumer$&gt; 点 ( 或者没有到达，但是协程执行完成 ) 时，通过 $get_-return_-object\left(\right)$ 获取的返回对象会返回给协程的调用方。<br>
         注意返回对象的类型并不需要与协程函数的返回类型相同。在必要的时候，返回对象可以是一个能够隐式转换为协程返回类型的类型。</p>
 <blockquote>
-<p>注意<code>Clang</code>的协程实现 ( 从$5.0$ 开始 ) 会在返回对象从协程调用返回后才会转换，而<code>MSVC</code>自从 2017 Update 3 开始会在 $get_-return_-object\left(\right)$ 调用之后立即转换。虽然协程标准没有显式给出预期行为，我相信<code>MSVC</code>有计划把它们的实现改成更像<code>Clang</code>的实现，因为这种实现允许一些<a href="https://github.com/toby-allsopp/coroutine_monad">有趣的用例</a>。</p></blockquote>
+<p>注意<code>Clang</code>的协程实现 ( 从$5.0$ 开始 ) 会在返回对象从协程调用返回后才会转换，而<code>MSVC</code>自从 2017 Update 3 开始会在 $get_-return_-object\left(\right)$ 调用之后立即转换。虽然协程标准没有显式给出预期行为，我相信<code>MSVC</code>有计划把它们的实现改成更像<code>Clang</code>的实现，因为这种实现允许一些<a href="https://github.com/toby-allsopp/coroutine_monad">有趣的用例</a>。</p>
+</blockquote>
 <h3 id="使用-co_return-从协程返回">使用 co_return 从协程返回</h3>
 <p>        当协程到达 $co_-return$ 语句，它会被翻译成一个 $promise.return_-void\left(\right)$ 调用或者 $promise.return_-value$(&lt;$expr$&gt;) 以及一个 $goto$ $FinalSuspend$; 调用。<br>
         翻译规则如下：</p>
@@ -339,10 +342,10 @@
 </span></span><span class="line"><span class="cl"><span class="n">task</span><span class="o">&lt;</span><span class="n">foo</span><span class="o">&gt;</span> <span class="n">my_class</span><span class="o">::</span><span class="n">method2</span><span class="p">()</span> <span class="o">&amp;&amp;</span><span class="p">;</span>
 </span></span></code></pre></div><p>        编译器会使用以下 $promise$ 类型：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="c1">// method1 promise type
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">typename</span> <span class="n">coroutine_traits</span><span class="o">&lt;</span><span class="n">task</span><span class="o">&lt;</span><span class="kt">void</span><span class="o">&gt;</span><span class="p">,</span> <span class="k">const</span> <span class="n">my_class</span><span class="o">&amp;</span><span class="p">,</span> <span class="kt">int</span><span class="o">&gt;::</span><span class="n">promise_type</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl"><span class="k">typename</span> <span class="n">coroutine_traits</span><span class="o">&lt;</span><span class="n">task</span><span class="o">&lt;</span><span class="kt">void</span><span class="o">&gt;</span><span class="p">,</span> <span class="k">const</span> <span class="n">my_class</span><span class="o">&amp;</span><span class="p">,</span> <span class="kt">int</span><span class="o">&gt;::</span><span class="n">promise_type</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// method2 promise type
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">typename</span> <span class="n">coroutine_traits</span><span class="o">&lt;</span><span class="n">task</span><span class="o">&lt;</span><span class="n">foo</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">my_class</span><span class="o">&amp;&amp;&gt;::</span><span class="n">promise_type</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl"><span class="k">typename</span> <span class="n">coroutine_traits</span><span class="o">&lt;</span><span class="n">task</span><span class="o">&lt;</span><span class="n">foo</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">my_class</span><span class="o">&amp;&amp;&gt;::</span><span class="n">promise_type</span><span class="p">;</span>
 </span></span></code></pre></div><p>        $coroutine_-traits$ 模板会默认查找返回类型是否存在内嵌 $promise$ 类型，并使用其作为 $promise$ 类型，例如这样 ( 不过通过一些<code>SFINAE</code>魔法，如果 $RET$::$promise_-type$ 没有定义，那么 $promise$ 类型也是未定义的 )：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">namespace</span> <span class="n">std</span><span class="o">::</span><span class="n">experimental</span>
 </span></span><span class="line"><span class="cl"><span class="p">{</span>
@@ -380,32 +383,32 @@
 </span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="nc">coroutine_handle</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// Type-erased coroutine handle. Can refer to any kind of coroutine.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// Doesn&#39;t allow access to the promise object.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">template</span> <span class="o">&lt;&gt;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// Doesn&#39;t allow access to the promise object.
+</span></span></span><span class="line"><span class="cl">  <span class="k">template</span> <span class="o">&lt;&gt;</span>
 </span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="nc">coroutine_handle</span><span class="o">&lt;</span><span class="kt">void</span><span class="o">&gt;</span>
 </span></span><span class="line"><span class="cl">  <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="c1">// Constructs to the null handle.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">constexpr</span> <span class="nf">coroutine_handle</span><span class="p">();</span>
+</span></span></span><span class="line"><span class="cl">    <span class="k">constexpr</span> <span class="nf">coroutine_handle</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="c1">// Convert to/from a void* for passing into C-style interop functions.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">constexpr</span> <span class="kt">void</span><span class="o">*</span> <span class="nf">address</span><span class="p">()</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">    <span class="k">constexpr</span> <span class="kt">void</span><span class="o">*</span> <span class="nf">address</span><span class="p">()</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">    <span class="k">static</span> <span class="k">constexpr</span> <span class="n">coroutine_handle</span> <span class="nf">from_address</span><span class="p">(</span><span class="kt">void</span><span class="o">*</span> <span class="n">addr</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="c1">// Query if the handle is non-null.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">constexpr</span> <span class="k">explicit</span> <span class="k">operator</span> <span class="nf">bool</span><span class="p">()</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">    <span class="k">constexpr</span> <span class="k">explicit</span> <span class="k">operator</span> <span class="nf">bool</span><span class="p">()</span> <span class="k">const</span> <span class="k">noexcept</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="c1">// Query if the coroutine is suspended at the final_suspend point.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// Undefined behavior if coroutine is not currently suspended.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kt">bool</span> <span class="nf">done</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// Undefined behavior if coroutine is not currently suspended.
+</span></span></span><span class="line"><span class="cl">    <span class="kt">bool</span> <span class="nf">done</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="c1">// Resume/Destroy the suspended coroutinie
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kt">void</span> <span class="nf">resume</span><span class="p">();</span>
+</span></span></span><span class="line"><span class="cl">    <span class="kt">void</span> <span class="nf">resume</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">    <span class="kt">void</span> <span class="nf">destroy</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">  <span class="p">};</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// Coroutine handle for coroutines with a known promise type.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// Template argument must exactly match coroutine&#39;s promise type.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">Promise</span><span class="o">&gt;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// Template argument must exactly match coroutine&#39;s promise type.
+</span></span></span><span class="line"><span class="cl">  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">Promise</span><span class="o">&gt;</span>
 </span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="nc">coroutine_handle</span> <span class="o">:</span> <span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span>
 </span></span><span class="line"><span class="cl">  <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="k">using</span> <span class="n">coroutine_handle</span><span class="o">&lt;&gt;::</span><span class="n">coroutine_handle</span><span class="p">;</span>
@@ -413,10 +416,10 @@
 </span></span><span class="line"><span class="cl">    <span class="k">static</span> <span class="k">constexpr</span> <span class="n">coroutine_handle</span> <span class="nf">from_address</span><span class="p">(</span><span class="kt">void</span><span class="o">*</span> <span class="n">addr</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="c1">// Access to the coroutine&#39;s promise object.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">Promise</span><span class="o">&amp;</span> <span class="n">promise</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">    <span class="n">Promise</span><span class="o">&amp;</span> <span class="n">promise</span><span class="p">()</span> <span class="k">const</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="c1">// You can reconstruct the coroutine handle from the promise object.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">static</span> <span class="n">coroutine_handle</span> <span class="nf">from_promise</span><span class="p">(</span><span class="n">Promise</span><span class="o">&amp;</span> <span class="n">promise</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">    <span class="k">static</span> <span class="n">coroutine_handle</span> <span class="nf">from_promise</span><span class="p">(</span><span class="n">Promise</span><span class="o">&amp;</span> <span class="n">promise</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="p">};</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        你可以通过两种方式获取一个协程的 $coroutine_-handle$ ：</p>
@@ -461,7 +464,7 @@
 </span></span><span class="line"><span class="cl">  <span class="p">...</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// Disable any use of co_await within this type of coroutine.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">U</span><span class="o">&gt;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="n">U</span><span class="o">&gt;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">experimental</span><span class="o">::</span><span class="n">suspend_never</span> <span class="n">await_transform</span><span class="p">(</span><span class="n">U</span><span class="o">&amp;&amp;</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="p">};</span>
 </span></span></code></pre></div><p>        <strong>它可以适配和改变常规 $awaitable$ 值的行为。</strong><br>
@@ -496,10 +499,10 @@
 </span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">experimental</span><span class="o">::</span><span class="n">suspend_always</span> <span class="n">yield_value</span><span class="p">(</span><span class="n">T</span><span class="o">&amp;</span> <span class="n">value</span><span class="p">)</span> <span class="k">noexcept</span>
 </span></span><span class="line"><span class="cl">  <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="c1">// Stash the address of the yielded value and then return an awaitable
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// that will cause the coroutine to suspend at the co_yield expression.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// Execution will then return from the call to coroutine_handle&lt;&gt;::resume()
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// inside either generator&lt;T&gt;::begin() or generator&lt;T&gt;::iterator::operator++().
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">valuePtr</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">addressof</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// that will cause the coroutine to suspend at the co_yield expression.
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// Execution will then return from the call to coroutine_handle&lt;&gt;::resume()
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// inside either generator&lt;T&gt;::begin() or generator&lt;T&gt;::iterator::operator++().
+</span></span></span><span class="line"><span class="cl">    <span class="n">valuePtr</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">addressof</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{};</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl"><span class="p">};</span>
@@ -561,7 +564,7 @@
         </div>
         
         
-        <p class="copyright meta">Copyright © 2020–2025, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+        <p class="copyright meta">Copyright © 2020–2026, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
                 href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
         
     </div>
@@ -603,8 +606,11 @@
             all[i].SourceElement().parentNode.className += ' has-jax';
         }
     });
-</script>
-</main>
+
+    MathJax.Hub.Register.StartupHook("End Jax", () => {
+        return MathJax.Hub.setRenderer("HTML-CSS");
+    });
+</script></main>
 </body>
 
 </html>

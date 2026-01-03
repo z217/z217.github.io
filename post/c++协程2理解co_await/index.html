@@ -284,25 +284,25 @@
 </span></span><span class="line"><span class="cl"><span class="n">async_manual_reset_event</span> <span class="n">event</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// A single call to produce a value
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">void</span> <span class="nf">producer</span><span class="p">()</span>
+</span></span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">producer</span><span class="p">()</span>
 </span></span><span class="line"><span class="cl"><span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="n">value</span> <span class="o">=</span> <span class="n">some_long_running_computation</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// Publish the value by setting the event.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">event</span><span class="p">.</span><span class="n">set</span><span class="p">();</span>
+</span></span></span><span class="line"><span class="cl">  <span class="n">event</span><span class="p">.</span><span class="n">set</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// Supports multiple concurrent consumers
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">task</span><span class="o">&lt;&gt;</span> <span class="n">consumer</span><span class="p">()</span>
+</span></span></span><span class="line"><span class="cl"><span class="n">task</span><span class="o">&lt;&gt;</span> <span class="n">consumer</span><span class="p">()</span>
 </span></span><span class="line"><span class="cl"><span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// Wait until the event is signalled by call to event.set()
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// in the producer() function
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">co_await</span> <span class="n">event</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// in the producer() function
+</span></span></span><span class="line"><span class="cl">  <span class="k">co_await</span> <span class="n">event</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// Now it&#39;s safe to consume &#39;value&#39;
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// This is guaranteed to &#39;happen after&#39; assignment to &#39;value&#39;
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">value</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// This is guaranteed to &#39;happen after&#39; assignment to &#39;value&#39;
+</span></span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">value</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        让我们先想想这个 $event$ 可能的状态：$not$ $set$ 和 $set$ 。<br>
         当处于 $not$ $set$ 状态，存在一个等待 $set$ 状态的等待协程列表 ( 可能为空 )。<br>
@@ -320,7 +320,7 @@
 </span></span><span class="line"><span class="cl">  <span class="n">async_manual_reset_event</span><span class="p">(</span><span class="kt">bool</span> <span class="n">initiallySet</span> <span class="o">=</span> <span class="nb">false</span><span class="p">)</span> <span class="k">noexcept</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// No copying/moving
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">async_manual_reset_event</span><span class="p">(</span><span class="k">const</span> <span class="n">asnyc_manual_reset_event</span><span class="o">&amp;</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="n">async_manual_reset_event</span><span class="p">(</span><span class="k">const</span> <span class="n">asnyc_manual_reset_event</span><span class="o">&amp;</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">async_manual_reset_event</span><span class="p">(</span><span class="n">async_manual_reset_event</span><span class="o">&amp;&amp;</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">async_manual_reset_event</span><span class="o">&amp;</span> <span class="k">operator</span><span class="o">=</span><span class="p">(</span><span class="k">const</span> <span class="n">asnyc_manual_reset_event</span><span class="o">&amp;</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">async_manual_reset_event</span><span class="o">&amp;</span> <span class="k">operator</span><span class="o">=</span><span class="p">(</span><span class="n">async_manual_reset_event</span><span class="o">&amp;&amp;</span><span class="p">)</span> <span class="o">=</span> <span class="k">delete</span><span class="p">;</span>
@@ -338,8 +338,8 @@
 </span></span><span class="line"><span class="cl">  <span class="k">friend</span> <span class="k">struct</span> <span class="nc">awaiter</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// - &#39;this&#39; =&gt; set state
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// - otherwise =&gt; not set, head of linked list of awaiter*.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">mutable</span> <span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">void</span><span class="o">*&gt;</span> <span class="n">m_state</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// - otherwise =&gt; not set, head of linked list of awaiter*.
+</span></span></span><span class="line"><span class="cl">  <span class="k">mutable</span> <span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">void</span><span class="o">*&gt;</span> <span class="n">m_state</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="p">};</span>
 </span></span></code></pre></div><p>        这里我们给出了一个相当简单直接的接口。主要要注意的点是 $operator$ $co_-await\left(\right)$ 返回一个未定义的 $awaiter$ 类型。<br>
         让我们先实现 $awaiter$ 。</p>
@@ -379,31 +379,31 @@
 </span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">experimental</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">awaitingCoroutine</span><span class="p">)</span> <span class="k">noexcept</span>
 </span></span><span class="line"><span class="cl"><span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// Special m_state value that indicates the event is in the &#39;set&#39; state.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">const</span> <span class="kt">void</span><span class="o">*</span> <span class="k">const</span> <span class="n">setState</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">m_event</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">const</span> <span class="kt">void</span><span class="o">*</span> <span class="k">const</span> <span class="n">setState</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">m_event</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// Remember the handle of the awaiting coroutine.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">m_awaitingCoroutine</span> <span class="o">=</span> <span class="n">awaitingCoroutine</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="n">m_awaitingCoroutine</span> <span class="o">=</span> <span class="n">awaitingCoroutine</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// Try to atomically push this awaiter onto the front of the list.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">void</span><span class="o">*</span> <span class="n">oldValue</span> <span class="o">=</span> <span class="n">m_event</span><span class="p">.</span><span class="n">m_state</span><span class="p">.</span><span class="n">load</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">memory_order_acquire</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">  <span class="kt">void</span><span class="o">*</span> <span class="n">oldValue</span> <span class="o">=</span> <span class="n">m_event</span><span class="p">.</span><span class="n">m_state</span><span class="p">.</span><span class="n">load</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">memory_order_acquire</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="k">do</span>
 </span></span><span class="line"><span class="cl">  <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="c1">// Resume immediately if already in &#39;set&#39; state.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">oldValue</span> <span class="o">==</span> <span class="n">setState</span><span class="p">)</span> <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">oldValue</span> <span class="o">==</span> <span class="n">setState</span><span class="p">)</span> <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="c1">// Upload linked list to point at current head.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">m_next</span> <span class="o">=</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="n">awaiter</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">oldValue</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">    <span class="n">m_next</span> <span class="o">=</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="n">awaiter</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">oldValue</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="c1">// Finally, try to swap the old list head, inserting this awaiter
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// as the new list head.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="n">m_event</span><span class="p">.</span><span class="n">m_state</span><span class="p">.</span><span class="n">compare_exchange_weak</span><span class="p">(</span>
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// as the new list head.
+</span></span></span><span class="line"><span class="cl">  <span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="n">m_event</span><span class="p">.</span><span class="n">m_state</span><span class="p">.</span><span class="n">compare_exchange_weak</span><span class="p">(</span>
 </span></span><span class="line"><span class="cl">            <span class="n">oldValue</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">            <span class="k">this</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">            <span class="n">std</span><span class="o">::</span><span class="n">memory_order_release</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">            <span class="n">std</span><span class="o">::</span><span class="n">memory_order_acquire</span><span class="p">));</span>
 </span></span><span class="line"><span class="cl">  
 </span></span><span class="line"><span class="cl">  <span class="c1">// Successfully enqueued. Remain suspend.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        注意我们使用 $acquire$ 内存序读取旧状态，这样我们就可以看到所有发生在 $set\left(\right)$ 调用之前的写操作了。<br>
         我们需要用 $release$ 内存序调用 $compare$-$exchange$ ，这样之后的 $set\left(\right)$ 就可以看到我们写入的 $m_-awaitingCoroutine$ 和更早写入的协程状态。</p>
@@ -429,21 +429,21 @@
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">async_manual_reset_event</span><span class="o">::</span><span class="n">set</span><span class="p">()</span> <span class="k">noexcept</span>
 </span></span><span class="line"><span class="cl"><span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// Needs to be &#39;release&#39; so that subsequent &#39;co_await&#39; has
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// visibility of our prior writes.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// Needs to be &#39;acquire&#39; so that we have visibility of prior
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// writes by awaiting coroutines.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">void</span><span class="o">*</span> <span class="n">oldValue</span> <span class="o">=</span> <span class="n">m_state</span><span class="p">.</span><span class="n">exchange</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">memory_order_acq_rel</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// visibility of our prior writes.
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// Needs to be &#39;acquire&#39; so that we have visibility of prior
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// writes by awaiting coroutines.
+</span></span></span><span class="line"><span class="cl">  <span class="kt">void</span><span class="o">*</span> <span class="n">oldValue</span> <span class="o">=</span> <span class="n">m_state</span><span class="p">.</span><span class="n">exchange</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">memory_order_acq_rel</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">oldValue</span> <span class="o">!=</span> <span class="k">this</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">  <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="c1">// Wasn&#39;t already in &#39;set&#39; state.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// Treat old value as head of a linked-list of waiters
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// which we have now acquired and need to resume.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">auto</span><span class="o">*</span> <span class="n">waiters</span> <span class="o">=</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="n">awaiter</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">oldValue</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// Treat old value as head of a linked-list of waiters
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// which we have now acquired and need to resume.
+</span></span></span><span class="line"><span class="cl">    <span class="k">auto</span><span class="o">*</span> <span class="n">waiters</span> <span class="o">=</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="n">awaiter</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">oldValue</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="k">while</span> <span class="p">(</span><span class="n">waiters</span> <span class="o">!=</span> <span class="k">nullptr</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="p">{</span>
 </span></span><span class="line"><span class="cl">      <span class="c1">// Read m_next before resuming the coroutines as resuming
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>      <span class="c1">// the coroutine will likely destroy the awaiter object.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>      <span class="k">auto</span><span class="o">*</span> <span class="n">next</span> <span class="o">=</span> <span class="n">waiters</span><span class="o">-&gt;</span><span class="n">m_next</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">      <span class="c1">// the coroutine will likely destroy the awaiter object.
+</span></span></span><span class="line"><span class="cl">      <span class="k">auto</span><span class="o">*</span> <span class="n">next</span> <span class="o">=</span> <span class="n">waiters</span><span class="o">-&gt;</span><span class="n">m_next</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">      <span class="n">waiters</span><span class="o">-&gt;</span><span class="n">m_awaitingCoroutine</span><span class="p">.</span><span class="n">resume</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">      <span class="n">waiters</span> <span class="o">=</span> <span class="n">next</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">    <span class="p">}</span>
@@ -519,7 +519,7 @@
         </div>
         
         
-        <p class="copyright meta">Copyright © 2020–2025, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+        <p class="copyright meta">Copyright © 2020–2026, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
                 href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
         
     </div>
@@ -561,8 +561,11 @@
             all[i].SourceElement().parentNode.className += ' has-jax';
         }
     });
-</script>
-</main>
+
+    MathJax.Hub.Register.StartupHook("End Jax", () => {
+        return MathJax.Hub.setRenderer("HTML-CSS");
+    });
+</script></main>
 </body>
 
 </html>

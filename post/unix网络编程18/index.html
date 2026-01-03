@@ -92,7 +92,7 @@
 
 <h2 id="1-互斥锁上锁和解锁">1. 互斥锁上锁和解锁</h2>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cm">/* 成功返回0，出错返回非负错误码 */</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">pthread_mutex_lock</span><span class="p">(</span><span class="kt">pthread_mutex_t</span> <span class="o">*</span><span class="n">mptr</span><span class="p">);</span>
@@ -104,12 +104,12 @@
 <h2 id="2-生产者消费者问题">2. 生产者消费者问题</h2>
 <p>        <strong>生产者-消费者</strong> ( $producer-consumer$ ) 问题，也称为<strong>有界缓冲区</strong> ( $bounded$ $buffer$ ) 问题。一个或多个生产者创建一个个数据条目，这些条目由一个或多个消费者处理。数据条目在生产者和消费者之间使用某种方式的<code>IPC</code>传递。对于使用管道或消息队列进行通信的生产者和消费者，内核会进行隐式同步。然而对于使用共享内存区进行通信的生产者和消费者，需要进行显式同步。我们使用互斥锁进行显式同步。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cp">#define MAXNITEMS 1000000
 </span></span></span><span class="line"><span class="cl"><span class="cp">#define MAXNTHREADS 100
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">nitems</span><span class="p">;</span>  <span class="c1">// read-only by producer and consumer
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">struct</span> <span class="p">{</span>
+</span></span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">pthread_mutex_t</span> <span class="n">mutex</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">buff</span><span class="p">[</span><span class="n">MAXNITEMS</span><span class="p">];</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">nput</span><span class="p">;</span>
@@ -132,19 +132,19 @@
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="nf">Set_concurrency</span><span class="p">(</span><span class="n">nthreads</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// start all the producer threads
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nthreads</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nthreads</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="n">count</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_produce</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">produce</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">count</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// wait for all the producer threads
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nthreads</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nthreads</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">Pthread_join</span><span class="p">(</span><span class="n">tid_produce</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">printf</span><span class="p">(</span><span class="s">&#34;count[%d] = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">count</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// start, then wait for the consumer thread
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="nf">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">  <span class="nf">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="nf">Pthread_join</span><span class="p">(</span><span class="n">tid_consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="nf">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
@@ -156,7 +156,7 @@
 </span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">shared</span><span class="p">.</span><span class="n">nput</span> <span class="o">&gt;=</span> <span class="n">nitems</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">      <span class="nf">Pthread_mutex_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">      <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>  <span class="c1">// array is full, we&#39;re done
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="p">}</span>
+</span></span></span><span class="line"><span class="cl">    <span class="p">}</span>
 </span></span><span class="line"><span class="cl">    <span class="n">shared</span><span class="p">.</span><span class="n">buff</span><span class="p">[</span><span class="n">shared</span><span class="p">.</span><span class="n">nput</span><span class="p">]</span> <span class="o">=</span> <span class="n">shared</span><span class="p">.</span><span class="n">nval</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">    <span class="n">shared</span><span class="p">.</span><span class="n">nput</span><span class="o">++</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">    <span class="n">shared</span><span class="p">.</span><span class="n">nval</span><span class="o">++</span><span class="p">;</span>
@@ -186,7 +186,7 @@
 </span></span><span class="line"><span class="cl">  <span class="n">nthreads</span> <span class="o">=</span> <span class="nf">min</span><span class="p">(</span><span class="nf">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">MAXNTHREADS</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// create all producers and one consumer
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="nf">Set_concurrency</span><span class="p">(</span><span class="n">nthreads</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">  <span class="nf">Set_concurrency</span><span class="p">(</span><span class="n">nthreads</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nthreads</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="n">count</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_produce</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">produce</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">count</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
@@ -194,7 +194,7 @@
 </span></span><span class="line"><span class="cl">  <span class="nf">Pthread_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tid_consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">consume</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// wait for all producers and the consumer
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nthreads</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nthreads</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">Pthread_join</span><span class="p">(</span><span class="n">tid_produce</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">NULL</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">printf</span><span class="p">(</span><span class="s">&#34;count[%d] = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">count</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
@@ -209,7 +209,7 @@
 </span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">shared</span><span class="p">.</span><span class="n">nput</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">      <span class="nf">Pthread_mutex_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">      <span class="k">return</span><span class="p">;</span>  <span class="c1">// an item is ready
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="p">}</span>
+</span></span></span><span class="line"><span class="cl">    <span class="p">}</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">Pthread_mutex_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">shared</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
@@ -228,7 +228,7 @@
 </span></span></code></pre></div><p>        当数组中对应的位置缺少数据，从而消费者不能消费时，我们采用了轮询的方式等待生产者生产。</p>
 <h2 id="4-条件变量的唤醒和等待">4. 条件变量的唤醒和等待</h2>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cm">/* 成功返回0，出错返回非负错误码 */</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">pthread_cond_wait</span><span class="p">(</span><span class="kt">pthread_cond_t</span> <span class="o">*</span><span class="n">cptr</span><span class="p">,</span> <span class="kt">pthread_mutex_t</span> <span class="o">*</span><span class="n">mptr</span><span class="p">);</span>
@@ -236,18 +236,18 @@
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">pthread_cond_signal</span><span class="p">(</span><span class="kt">pthread_cond_t</span> <span class="o">*</span><span class="n">cptr</span><span class="p">);</span>
 </span></span></code></pre></div><p>        条件变量是类型为 $pthread_-cond_-t$ 的变量。每个条件变量总是与一个互斥锁关联。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cp">#define MAXNITEMS 1000000
 </span></span></span><span class="line"><span class="cl"><span class="cp">#define MAXNTHREADS 100
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// globals shared by threads
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="n">nitems</span><span class="p">;</span>  <span class="c1">// read-only by producer and consumer
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="n">buff</span><span class="p">[</span><span class="n">MAXNITEMS</span><span class="p">];</span>
+</span></span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">nitems</span><span class="p">;</span>  <span class="c1">// read-only by producer and consumer
+</span></span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">buff</span><span class="p">[</span><span class="n">MAXNITEMS</span><span class="p">];</span>
 </span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">pthread_mutex_t</span> <span class="n">mutex</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">nput</span><span class="p">;</span>  <span class="c1">// next index to store
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">int</span> <span class="n">nval</span><span class="p">;</span>  <span class="c1">// next value to store
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span> <span class="n">put</span> <span class="o">=</span> <span class="p">{</span>
+</span></span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">nval</span><span class="p">;</span>  <span class="c1">// next value to store
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="n">put</span> <span class="o">=</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="n">PTHREAD_MUTEX_INITIALIZER</span>
 </span></span><span class="line"><span class="cl"><span class="p">};</span>
 </span></span><span class="line"><span class="cl">
@@ -255,7 +255,7 @@
 </span></span><span class="line"><span class="cl">  <span class="kt">pthread_mutex_t</span> <span class="n">mutex</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">pthread_cond_t</span> <span class="n">cond</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">nready</span><span class="p">;</span>  <span class="c1">// number ready for consumer
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span> <span class="n">nready</span> <span class="o">=</span> <span class="p">{</span>
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="n">nready</span> <span class="o">=</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="n">PTHREAD_MUTEX_INITIALIZER</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">  <span class="n">PTHREAD_COND_INITIALIZER</span>
 </span></span><span class="line"><span class="cl"><span class="p">};</span>
@@ -266,7 +266,7 @@
 </span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">put</span><span class="p">.</span><span class="n">nput</span> <span class="o">&gt;=</span> <span class="n">nitems</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">      <span class="nf">Pthread_mutex_unlock</span><span class="p">(</span><span class="o">&amp;</span><span class="n">put</span><span class="p">.</span><span class="n">mutex</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">      <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>  <span class="c1">// array is full, we&#39;re done
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="p">}</span>
+</span></span></span><span class="line"><span class="cl">    <span class="p">}</span>
 </span></span><span class="line"><span class="cl">    <span class="n">buff</span><span class="p">[</span><span class="n">put</span><span class="p">.</span><span class="n">nput</span><span class="p">]</span> <span class="o">=</span> <span class="n">put</span><span class="p">.</span><span class="n">nval</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">    <span class="n">put</span><span class="p">.</span><span class="n">nput</span><span class="o">++</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">    <span class="n">put</span><span class="p">.</span><span class="n">nval</span><span class="o">++</span><span class="p">;</span>
@@ -316,7 +316,7 @@
 </span></span></code></pre></div><p>        <code>POSIX</code>允许线程在没有持有与该条件变量相关联的互斥锁的前提下调用 $pthread_-cond_-signal$ ，但是对于需要可预见的调度行为，在调用前必须获取互斥锁。</p>
 <h2 id="5-条件变量的定时等待和广播">5. 条件变量的定时等待和广播</h2>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cm">/* 成功返回0，出错返回非负错误码 */</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">pthread_cond_broadcast</span><span class="p">(</span><span class="kt">pthread_cond_t</span> <span class="o">*</span><span class="n">cptr</span><span class="p">);</span>
@@ -326,7 +326,7 @@
 </span></span></code></pre></div><p>        $pthread_-cond_-broadcast$ 唤醒在条件变量上等待的所有线程。 $pthread_-cond_-timedwait$ 允许线程设置一个阻塞时间上限，$abstime$ 是绝对时间而不是时间差。</p>
 <h2 id="6-互斥锁和条件变量属性">6. 互斥锁和条件变量属性</h2>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cm">/* 成功返回0，出错返回非负错误码 */</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">pthread_mutex_init</span><span class="p">(</span><span class="kt">pthread_mutex_t</span> <span class="o">*</span><span class="n">mptr</span><span class="p">,</span> <span class="k">const</span> <span class="kt">pthread_mutexattr_t</span> <span class="o">*</span><span class="n">attr</span><span class="p">);</span>
@@ -338,7 +338,7 @@
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">pthread_cond_destroy</span><span class="p">(</span><span class="kt">pthread_cond_t</span> <span class="o">*</span><span class="n">cptr</span><span class="p">);</span>
 </span></span></code></pre></div><p>        静态分配时通常使用 $PTHREAD_-MUTEX_-INITIALIZER$ 和 $PTHREAD_-COND_-INITIALIZER$ 初始化，这种方式初始化的互斥锁和条件变量具有默认属性。动态分配或者在共享内存区中的需要使用以上函数进行初始化和销毁。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cm">/* 成功返回0，出错返回非负错误码 */</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">pthread_mutexattr_init</span><span class="p">(</span><span class="kt">pthread_mutexattr_t</span> <span class="o">*</span><span class="n">attr</span><span class="p">);</span>
@@ -350,7 +350,7 @@
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">pthread_mutexattr_destroy</span><span class="p">(</span><span class="kt">pthread_condattr_t</span> <span class="o">*</span><span class="n">attr</span><span class="p">);</span>
 </span></span></code></pre></div><p>        互斥锁和条件变量的属性类型分别为 $pthread_-mutexattr_-t$ 和 $pthread_-condattr_-t$ ，由以上函数初始化和销毁。一旦某个互斥锁或条件变量的属性对象已经被初始化，就可以通过调用不同函数启用或禁止特定属性。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cm">/* 成功返回0，出错返回非负错误码 */</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">pthread_mutexattr_getpshared</span><span class="p">(</span><span class="k">const</span> <span class="kt">pthread_mutexattr_t</span> <span class="o">*</span><span class="n">attr</span><span class="p">,</span> <span class="kt">int</span> <span class="o">*</span><span class="n">valptr</span><span class="p">);</span>
@@ -363,7 +363,7 @@
 </span></span></code></pre></div><p>        两个 $get$ 函数的 $valptr$ 返回属性当前值，$set$ 函数则根据 $value$ 设置该值。$value$ 可以是 $PTHREAD_-PROCESS_-PRIVATE$ 或 $PTHREAD_-PROCESS_-SHARED$ ，后者也称为进程间共享属性。当在多个进程间共享互斥锁时，进程终止时系统是不会释放所有持有的锁的。而对于线程，如果在持有互斥锁时被其他线程取消，可以通过安装取消时调用的函数来清理。</p>
 <h2 id="7-读写锁">7. 读写锁</h2>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cm">/* 成功返回0，出错返回非负错误码 */</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">pthread_rwlock_rdlock</span><span class="p">(</span><span class="kt">pthread_rwlock_t</span> <span class="o">*</span><span class="n">rwptr</span><span class="p">);</span>
@@ -377,7 +377,7 @@
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">pthread_rwlock_unlock</span><span class="p">(</span><span class="kt">pthread_rwlock_t</span> <span class="o">*</span><span class="n">rwptr</span><span class="p">);</span>
 </span></span></code></pre></div><p>        $pthread_-rwlock_-tryrdlock$ 和 $pthread_-rwlock_-trywrlock$ 尝试以非阻塞方式获取锁，如果失败，返回 $EBUSY$ 错误。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cm">/* 成功返回0，出错返回非负错误码 */</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">pthread_rwlock_init</span><span class="p">(</span><span class="kt">pthread_rwlock_t</span> <span class="o">*</span><span class="n">rwptr</span><span class="p">,</span>
@@ -386,7 +386,7 @@
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">pthread_rwlock_destroy</span><span class="p">(</span><span class="kt">pthread_rwlock_t</span> <span class="o">*</span><span class="n">rwptr</span><span class="p">);</span>
 </span></span></code></pre></div><p>        如果某个读写锁是静态分配的，可以通过 $PTHREAD_-RWLOCK_-INITIALIZER$ 初始化。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cm">/* 成功返回0，出错返回非负错误码 */</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">pthread_rwlockattr_init</span><span class="p">(</span><span class="kt">pthread_rwlockattr_t</span> <span class="o">*</span><span class="n">attr</span><span class="p">);</span>
@@ -399,9 +399,9 @@
 </span></span></code></pre></div><p>        $value$ 的值为 $PTHREAD_-PROCESS_-PRIVATE$ 或者 $PTHREAD_-PROCESS_-SHARED$ 。</p>
 <h2 id="8-线程取消">8. 线程取消</h2>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// 成功返回0，出错返回非负错误码
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">pthread_cancel</span><span class="p">(</span><span class="kt">pthread_t</span> <span class="n">pid</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">pthread_cancel</span><span class="p">(</span><span class="kt">pthread_t</span> <span class="n">pid</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">pthread_cleanup_push</span><span class="p">(</span><span class="kt">void</span> <span class="p">(</span><span class="o">*</span><span class="n">function</span><span class="p">)(</span><span class="kt">void</span> <span class="o">*</span><span class="p">),</span> <span class="kt">void</span> <span class="o">*</span><span class="n">arg</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
@@ -410,17 +410,17 @@
 <h2 id="9-记录上锁">9. 记录上锁</h2>
 <p>        <code>POSIX</code>记录上锁定义了一个特殊的字节范围以指定整个文件。它的起始偏移为 $0$ ，长度也为 $0$ 。<strong>粒度</strong> ( $granularity$ ) 标识能够被锁住的对象的大小。对记录上锁来说，粒度就是单个字节。通常情况下，粒度越小，意味着允许同时使用的用户数量就越多。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;fcntl.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// 返回值取决于cmd，出错返回-1
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">fcntl</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">cmd</span><span class="p">,</span> <span class="p">...</span> <span class="cm">/* struct flock *arg */</span> <span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">fcntl</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">cmd</span><span class="p">,</span> <span class="p">...</span> <span class="cm">/* struct flock *arg */</span> <span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">flock</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">short</span> <span class="n">l_type</span><span class="p">;</span>  <span class="c1">// F_RDLCK, F_WRLCK, F_UNLCK
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">short</span> <span class="n">l_whence</span><span class="p">;</span>  <span class="c1">// SEEK_SET, SEEK_CUR, SEEK_END
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">off_t</span> <span class="n">l_start</span><span class="p">;</span>  <span class="c1">// relative starting offset in bytes
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">off_t</span> <span class="n">l_len</span><span class="p">;</span>  <span class="c1">// #bytes; 0 means until end-of-file
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">pid_t</span> <span class="n">l_pid</span><span class="p">;</span>  <span class="c1">// PID returned by F_GETLK
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></span><span class="line"><span class="cl">  <span class="kt">short</span> <span class="n">l_whence</span><span class="p">;</span>  <span class="c1">// SEEK_SET, SEEK_CUR, SEEK_END
+</span></span></span><span class="line"><span class="cl">  <span class="kt">off_t</span> <span class="n">l_start</span><span class="p">;</span>  <span class="c1">// relative starting offset in bytes
+</span></span></span><span class="line"><span class="cl">  <span class="kt">off_t</span> <span class="n">l_len</span><span class="p">;</span>  <span class="c1">// #bytes; 0 means until end-of-file
+</span></span></span><span class="line"><span class="cl">  <span class="kt">pid_t</span> <span class="n">l_pid</span><span class="p">;</span>  <span class="c1">// PID returned by F_GETLK
+</span></span></span><span class="line"><span class="cl"><span class="p">};</span>
 </span></span></code></pre></div><ul>
 <li>$F_-SETLK$ ：获取 ( $l_-type$ 为 $F_-RDLCK$ 或 $F_-WRLCK$ ) 或释放 ( $l_-type$ 为 $F_-UNLCK$ ) 由 $arg$ 指向的 $flock$ 结构的锁。如果当前进程无法获取锁，返回 $EACCES$ 或 $EAGAIN$ 错误；</li>
 <li>$F_-SETLKW$ ：与上个命令类似，但是如果无法获取锁不会立即返回，而是阻塞直到获取成功；</li>
@@ -440,7 +440,7 @@
 </ol>
 <p>        $fcntl$ 记录上锁既可以用于读也可以用于写。对于一个字节，它只能存在一种锁。一个字节可以有多个读锁，但只能有一个写锁。当一个描述符没有以写的模式打开时不能上写锁，同样的，没有以读模式打开的描述符也不能上读锁。对于一个打开着某个文件的给定进程来说，当它关闭该文件的所有描述符或它本身终止时，与该文件关联的锁都会被删除。记录锁与进程<code>ID</code>相关，不能通过 $fork$ 继承。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">my_lock</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">flock</span> <span class="n">lock</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
@@ -448,7 +448,7 @@
 </span></span><span class="line"><span class="cl">  <span class="n">lock</span><span class="p">.</span><span class="n">l_whence</span> <span class="o">=</span> <span class="n">SEEK_SET</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">lock</span><span class="p">.</span><span class="n">l_start</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">lock</span><span class="p">.</span><span class="n">l_len</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// write lock entire file
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="nf">Fcntl</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">F_SETLKW</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">lock</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span><span class="line"><span class="cl">
@@ -459,12 +459,12 @@
 </span></span><span class="line"><span class="cl">  <span class="n">lock</span><span class="p">.</span><span class="n">l_whence</span> <span class="o">=</span> <span class="n">SEEK_SET</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">lock</span><span class="p">.</span><span class="n">l_start</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">lock</span><span class="p">.</span><span class="n">l_len</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// unlock entire file
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="nf">Fcntl</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">F_SETLK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">lock</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        上锁和解锁的过程有些复杂，可以通过宏简化。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cp">#define read_lock(fd, offset, whence, len) \
 </span></span></span><span class="line"><span class="cl"><span class="cp">  lock_reg(fd, F_SETLK, F_RDLCK, offset, whence, len)
 </span></span></span><span class="line"><span class="cl"><span class="cp">#define readw_lock(fd, offset, whence, len) \
@@ -479,47 +479,47 @@
 </span></span></span><span class="line"><span class="cl"><span class="cp">  !lock_test(fd, F_RDLCK, offset, whence, len)
 </span></span></span><span class="line"><span class="cl"><span class="cp">#define is_write_lockable(fd, offset, whence, len) \
 </span></span></span><span class="line"><span class="cl"><span class="cp">  !lock_test(fd, F_WRLCK, offset, whence, len)
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">lock_reg</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">cmd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">type</span><span class="p">,</span> <span class="kt">off_t</span> <span class="n">offset</span><span class="p">,</span> <span class="kt">int</span> <span class="n">whence</span><span class="p">,</span> <span class="kt">off_t</span> <span class="n">len</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">flock</span> <span class="n">lock</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="n">lock</span><span class="p">.</span><span class="n">l_type</span> <span class="o">=</span> <span class="n">type</span><span class="p">;</span>  <span class="c1">// F_RDLCK, F_WRLCK, F_UNLCK
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">lock</span><span class="p">.</span><span class="n">l_start</span> <span class="o">=</span> <span class="n">offset</span><span class="p">;</span>  <span class="c1">// byte offset, relative to l_whence
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">lock</span><span class="p">.</span><span class="n">l_whence</span> <span class="o">=</span> <span class="n">whence</span><span class="p">;</span>  <span class="c1">// SEEK_SET, SEEK_CUR, SEEK_END
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">lock</span><span class="p">.</span><span class="n">l_len</span> <span class="o">=</span> <span class="n">len</span><span class="p">;</span>  <span class="c1">// #bytes (0 means to EOF)
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span></span><span class="line"><span class="cl">  <span class="n">lock</span><span class="p">.</span><span class="n">l_start</span> <span class="o">=</span> <span class="n">offset</span><span class="p">;</span>  <span class="c1">// byte offset, relative to l_whence
+</span></span></span><span class="line"><span class="cl">  <span class="n">lock</span><span class="p">.</span><span class="n">l_whence</span> <span class="o">=</span> <span class="n">whence</span><span class="p">;</span>  <span class="c1">// SEEK_SET, SEEK_CUR, SEEK_END
+</span></span></span><span class="line"><span class="cl">  <span class="n">lock</span><span class="p">.</span><span class="n">l_len</span> <span class="o">=</span> <span class="n">len</span><span class="p">;</span>  <span class="c1">// #bytes (0 means to EOF)
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="nf">fcntl</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">lock</span><span class="p">);</span>  <span class="c1">// -1 upon error
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">pid_t</span> <span class="nf">lock_test</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">type</span><span class="p">,</span> <span class="kt">off_t</span> <span class="n">offset</span><span class="p">,</span> <span class="kt">int</span> <span class="n">whence</span><span class="p">,</span> <span class="kt">off_t</span> <span class="n">len</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">flock</span> <span class="n">lock</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="n">lock</span><span class="p">.</span><span class="n">l_type</span> <span class="o">=</span> <span class="n">type</span><span class="p">;</span>  <span class="c1">// F_RDLCK or F_WRLCK
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">lock</span><span class="p">.</span><span class="n">l_start</span> <span class="o">=</span> <span class="n">offset</span><span class="p">;</span>  <span class="c1">// byte offset, relative to l_whence
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">lock</span><span class="p">.</span><span class="n">l_whence</span> <span class="o">=</span> <span class="n">whence</span><span class="p">;</span>  <span class="c1">// SEEK_SET, SEEK_CUR, SEEK_END
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">lock</span><span class="p">.</span><span class="n">l_len</span> <span class="o">=</span> <span class="n">len</span><span class="p">;</span>  <span class="c1">// #bytes (0 means to EOF)
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span></span><span class="line"><span class="cl">  <span class="n">lock</span><span class="p">.</span><span class="n">l_start</span> <span class="o">=</span> <span class="n">offset</span><span class="p">;</span>  <span class="c1">// byte offset, relative to l_whence
+</span></span></span><span class="line"><span class="cl">  <span class="n">lock</span><span class="p">.</span><span class="n">l_whence</span> <span class="o">=</span> <span class="n">whence</span><span class="p">;</span>  <span class="c1">// SEEK_SET, SEEK_CUR, SEEK_END
+</span></span></span><span class="line"><span class="cl">  <span class="n">lock</span><span class="p">.</span><span class="n">l_len</span> <span class="o">=</span> <span class="n">len</span><span class="p">;</span>  <span class="c1">// #bytes (0 means to EOF)
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="nf">fcntl</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">F_GETLK</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">lock</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>  <span class="c1">// unexpected error
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">lock</span><span class="p">.</span><span class="n">l_type</span> <span class="o">==</span> <span class="n">F_UNLCK</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// false, region not locked by another proc
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">return</span> <span class="n">lock</span><span class="p">.</span><span class="n">l_pid</span><span class="p">;</span>  <span class="c1">// true, return positive PID of lock owner
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">lock</span><span class="p">.</span><span class="n">l_pid</span><span class="p">;</span>  <span class="c1">// true, return positive PID of lock owner
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        记录上锁的一个常见用途是确保某个程序 ( 例如守护进程 ) 在任何时刻只有一个副本在运行。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cp">#define PATH_PIDFILE &#34;pidfile&#34;
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">pidfd</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="n">line</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">];</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// open the PID file, create if nonexistent
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">pidfd</span> <span class="o">=</span> <span class="nf">Open</span><span class="p">(</span><span class="n">PATH_PIDFILE</span><span class="p">,</span> <span class="n">O_RDWR</span> <span class="o">|</span> <span class="n">O_CREAT</span><span class="p">,</span> <span class="n">FILE_MODE</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">  <span class="n">pidfd</span> <span class="o">=</span> <span class="nf">Open</span><span class="p">(</span><span class="n">PATH_PIDFILE</span><span class="p">,</span> <span class="n">O_RDWR</span> <span class="o">|</span> <span class="n">O_CREAT</span><span class="p">,</span> <span class="n">FILE_MODE</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// try to write lock the entire file
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">if</span> <span class="p">(</span><span class="nf">write_lock</span><span class="p">(</span><span class="n">pidfd</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">SEEK_SET</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="nf">write_lock</span><span class="p">(</span><span class="n">pidfd</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">SEEK_SET</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">=</span> <span class="n">EACCES</span> <span class="o">||</span> <span class="n">errno</span> <span class="o">=</span> <span class="n">EAGAIN</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">      <span class="nf">err_quit</span><span class="p">(</span><span class="s">&#34;unable to lock %s, is %s already running?&#34;</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">        <span class="n">PATH_PIDFILE</span><span class="p">,</span> <span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
@@ -528,20 +528,20 @@
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// write my PID, leave file open to hold the write lock
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="nf">snprintf</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">line</span><span class="p">),</span> <span class="s">&#34;%ld</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span> <span class="nf">getpid</span><span class="p">());</span>
+</span></span></span><span class="line"><span class="cl">  <span class="nf">snprintf</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">line</span><span class="p">),</span> <span class="s">&#34;%ld</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="p">(</span><span class="kt">long</span><span class="p">)</span> <span class="nf">getpid</span><span class="p">());</span>
 </span></span><span class="line"><span class="cl">  <span class="nf">Ftruncate</span><span class="p">(</span><span class="n">pidfd</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="nf">Write</span><span class="p">(</span><span class="n">pidfd</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="nf">strlen</span><span class="p">(</span><span class="n">line</span><span class="p">));</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// then do whatever the daemon does
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="nf">pause</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><h2 id="10-文件锁">10. 文件锁</h2>
 <p>        <code>POSIX</code>保证如果以 $O_-CREAT$ 和 $O_-EXCL$ 标志调用 $open$ 函数，那么一旦该文件存在，函数就返回错误。而且考虑到其他进程的存在，检查该文件是否存在和创建文件必须是原子的。从而，我们可以把这种文件当锁使用。释放这样的锁只需要调用 $unlink$ 。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cp">#define LOCKFILE &#34;/tmp/seqno.lock&#34;
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">my_lock</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">tempfd</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
@@ -549,13 +549,13 @@
 </span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EEXIST</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">      <span class="nf">err_sys</span><span class="p">(</span><span class="s">&#34;open error for lock file&#34;</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="c1">// someone else has the lock, loop around adn try again
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="p">}</span>
+</span></span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl">  <span class="nf">Close</span><span class="p">(</span><span class="n">tempfd</span><span class="p">);</span>  <span class="c1">// opened the file, we have the lock
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">my_lock</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="nf">Unlink</span><span class="p">(</span><span class="n">LOCKFILE</span><span class="p">);</span>  <span class="c1">// release lock by removing file
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        这种技巧存在三个问题：</p>
 <ol>
 <li>如果当前持有锁的进程没有释放就终止，那么文件不会被删除。对于这个问题，可以通过检查文件最近访问时间，如果超过一定时间没访问就认为锁已经释放，但是这种方法不完美。另一种方法是在文件内写入进程<code>ID</code>，然后检查该进程<code>ID</code>是否在运行。这个方法同样存在问题，因为进程<code>ID</code>在经过一段时间后会重用；</li>
@@ -622,7 +622,7 @@
         </div>
         
         
-        <p class="copyright meta">Copyright © 2020–2025, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+        <p class="copyright meta">Copyright © 2020–2026, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
                 href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
         
     </div>
@@ -664,8 +664,11 @@
             all[i].SourceElement().parentNode.className += ' has-jax';
         }
     });
-</script>
-</main>
+
+    MathJax.Hub.Register.StartupHook("End Jax", () => {
+        return MathJax.Hub.setRenderer("HTML-CSS");
+    });
+</script></main>
 </body>
 
 </html>

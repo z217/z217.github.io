@@ -114,7 +114,7 @@
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></span><span class="line"><span class="cl"><span class="p">};</span>
 </span></span></code></pre></div><p>        但是，正如我们之前所说的，通用引用也会带来新问题。而且，因为它是模版函数，所以定义也要放在头文件中。在模版函数实例化的过程中，根据类型的不同，这个函数也会实例化很多个版本。<br>
         既然如此，我们能不能只用一个函数解决这个问题？答案是使用值传递。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Widget</span> <span class="p">{</span>
@@ -124,12 +124,12 @@
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></span><span class="line"><span class="cl"><span class="p">};</span>
 </span></span></code></pre></div><p>        因为 $newName$ 是通过值传递的，这意味着它是一个副本，所以我们可以使用移动。但是值传递会不会带来效率问题？在<code>C++98</code>中，可以肯定的是 $newName$ 在传递过来的时候已经经过一次拷贝了。然而在<code>C++11</code>中并不是，它可能是左值拷贝或者右值移动。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">Widget</span> <span class="n">w</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">(</span><span class="s">&#34;Bart&#34;</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl"><span class="n">w</span><span class="p">.</span><span class="n">addName</span><span class="p">(</span><span class="n">name</span><span class="p">);</span>  <span class="c1">// 左值
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">w</span><span class="p">.</span><span class="n">addName</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s">&#34;Jenne&#34;</span><span class="p">);</span>  <span class="c1">// 右值
+</span></span></span><span class="line"><span class="cl"><span class="n">w</span><span class="p">.</span><span class="n">addName</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s">&#34;Jenne&#34;</span><span class="p">);</span>  <span class="c1">// 右值
 </span></span></span></code></pre></div><p>        在第一次调用中，因为参数是左值，所以调用了一次拷贝构造函数。但在第二次调用中，因为参数是右值，所以调用的是移动构造函数。<br>
         回顾我们之前列举的三种方式，比较一下它们的开销：</p>
 <ol>
@@ -180,7 +180,7 @@
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Password</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl"><span class="k">public</span><span class="o">:</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">void</span> <span class="n">changeTo</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">newPwd</span><span class="p">)</span> <span class="p">{</span>
+</span></span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="n">changeTo</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">newPwd</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="n">text</span> <span class="o">=</span> <span class="n">newPwd</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl">
@@ -207,7 +207,7 @@
 </ol>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span> <span class="n">vs</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">vs</span><span class="p">.</span><span class="n">emplace</span><span class="p">(</span><span class="n">vs</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="s">&#34;xyzzy&#34;</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="n">vs</span><span class="p">.</span><span class="n">emplace</span><span class="p">(</span><span class="n">vs</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="s">&#34;xyzzy&#34;</span><span class="p">);</span>
 </span></span></code></pre></div><p>        假设 $vs$ 非空，那么这次 $emplace$ 调用将通过移动函数插入，移动函数需要一个已存在的对象，意味着需要创建一个临时对象。</p>
 <ol start="2">
 <li>传递的参数类型与容器持有元素类型不同。$emplace$ 的优势在于不需要创建临时对象，但是当传入的对象本身就不需要创建临时对象时，$emplace$ 的优势也就不存在了；</li>
@@ -231,10 +231,10 @@
 </span></span><span class="line"><span class="cl"><span class="n">regexes</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="k">nullptr</span><span class="p">);</span>
 </span></span></code></pre></div><p>        很神奇的是，上面的代码可以运行，但是下面的代码会出错：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">regex</span> <span class="n">r</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>  <span class="c1">// 错误
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">regexes</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="k">nullptr</span><span class="p">);</span>  <span class="c1">// 错误
+</span></span></span><span class="line"><span class="cl"><span class="n">regexes</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="k">nullptr</span><span class="p">);</span>  <span class="c1">// 错误
 </span></span></span></code></pre></div><p>        理解这个问题，我们需要先知道 $std::regex$ 可以从字符串中构建，它其中一个构造函数接收一个 $const$ $char$ $\star$ 字符串，$push_-back$ 版本报错的原因是这个构造函数是一个显式构造函数，不接受从 $nullptr$ 的隐式转换。$emplace_-back$ 使用的是直接初始化，即括号初始化：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">regex</span> <span class="n">r1</span> <span class="o">=</span> <span class="k">nullptr</span><span class="p">;</span>  <span class="c1">// 错误
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">std</span><span class="o">::</span><span class="n">regex</span> <span class="n">r2</span><span class="p">(</span><span class="k">nullptr</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">regex</span> <span class="n">r2</span><span class="p">(</span><span class="k">nullptr</span><span class="p">);</span>
 </span></span></code></pre></div><p>        括号初始化是可以运行的，这也是为什么 $emplace_-back$ 版本可以运行。所以，在使用 $emplace$ 函数的时候，我们也要注意参数是否正确。</p>
 
 
@@ -290,7 +290,7 @@
         </div>
         
         
-        <p class="copyright meta">Copyright © 2020–2025, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+        <p class="copyright meta">Copyright © 2020–2026, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
                 href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
         
     </div>
@@ -332,8 +332,11 @@
             all[i].SourceElement().parentNode.className += ' has-jax';
         }
     });
-</script>
-</main>
+
+    MathJax.Hub.Register.StartupHook("End Jax", () => {
+        return MathJax.Hub.setRenderer("HTML-CSS");
+    });
+</script></main>
 </body>
 
 </html>

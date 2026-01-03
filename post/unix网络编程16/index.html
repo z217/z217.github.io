@@ -92,9 +92,9 @@
 
 <h2 id="1-管道">1. 管道</h2>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;unistd.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// 成功返回0，出错返回-1
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">pipe</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+</span></span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">pipe</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
 </span></span></code></pre></div><p>        该函数返回两个文件描述符 $fd[0]$ 和 $fd[1]$ ，前者用于读，后者用于写。宏 $S_-IFFIFO$ 可用于确定一个描述符是文件、管道还是<code>FIFO</code>，它的唯一参数是 $stat$ 结构的 $st_-mode$ 成员，计算结果或为真 ( 非零值 )，或为假 ( $0$ )。对于管道来说，这个 $stat$ 结构是由 $fstat$ 函数填写的；对于<code>FIFO</code>来说，这个结构是由 $fstat$ 、$lstat$ 或 $stat$ 函数填写的。<br>
         管道的典型用途是为两个不同的进程 ( 父进程和子进程 ) 提供进程间通信。首先，由一个进程 ( 父进程 ) 创建一个管道，然后调用 $fork$ 派生一个副本 ( 子进程 )。接着，父进程关闭这个管道的读端 ( $fd[0]$ )，子进程关闭管道的写端 ( $fd[1]$ )，这样就在父子进程间建立了一个单向数据流。我们在<code>Unix</code> <code>shell</code>中输入如下命令时：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">who <span class="p">|</span> sort
@@ -106,7 +106,7 @@
 <li>子进程关闭 $fd1[1]$ 和 $fd2[0]$ 。</li>
 </ol>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">client</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">),</span> <span class="nf">server</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
@@ -117,7 +117,7 @@
 </span></span><span class="line"><span class="cl">  <span class="nf">Pipe</span><span class="p">(</span><span class="n">pipe2</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">((</span><span class="n">childpid</span> <span class="o">=</span> <span class="nf">Fork</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// child
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nf">Close</span><span class="p">(</span><span class="n">pipe1</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+</span></span></span><span class="line"><span class="cl">    <span class="nf">Close</span><span class="p">(</span><span class="n">pipe1</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">Close</span><span class="p">(</span><span class="n">pipe2</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="nf">server</span><span class="p">(</span><span class="n">pipe1</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pipe2</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
@@ -125,12 +125,12 @@
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// parent
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="nf">Close</span><span class="p">(</span><span class="n">pipe1</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+</span></span></span><span class="line"><span class="cl">  <span class="nf">Close</span><span class="p">(</span><span class="n">pipe1</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
 </span></span><span class="line"><span class="cl">  <span class="nf">Close</span><span class="p">(</span><span class="n">pipe2</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="nf">clinet</span><span class="p">(</span><span class="n">pipe2</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pipe1</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
 </span></span><span class="line"><span class="cl">  <span class="nf">Waitpid</span><span class="p">(</span><span class="n">childpid</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>  <span class="c1">// wait for child to terminate
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="nf">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">  <span class="nf">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">client</span><span class="p">(</span><span class="kt">int</span> <span class="n">readfd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">writefd</span><span class="p">)</span> <span class="p">{</span>
@@ -139,16 +139,16 @@
 </span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="n">buff</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">];</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// read pathname
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="nf">Fgets</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">,</span> <span class="n">stdin</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">  <span class="nf">Fgets</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">,</span> <span class="n">stdin</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="n">len</span> <span class="o">=</span> <span class="nf">strlen</span><span class="p">(</span><span class="n">buff</span><span class="p">);</span>  <span class="c1">// fgets() guarantees null byte at end
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">if</span> <span class="p">(</span><span class="n">buff</span><span class="p">[</span><span class="n">len</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="sc">&#39;\n&#39;</span><span class="p">)</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">buff</span><span class="p">[</span><span class="n">len</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="sc">&#39;\n&#39;</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="n">len</span><span class="o">--</span><span class="p">;</span>  <span class="c1">// delete newline from fgets()
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// write pathname to IPC channel
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="nf">Write</span><span class="p">(</span><span class="n">writefd</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">len</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">  <span class="nf">Write</span><span class="p">(</span><span class="n">writefd</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">len</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// read from IPC, write to standard output
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">while</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="nf">Read</span><span class="p">(</span><span class="n">readfd</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">while</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="nf">Read</span><span class="p">(</span><span class="n">readfd</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">Write</span><span class="p">(</span><span class="n">STDOUT_FILENO</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">n</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span><span class="line"><span class="cl">
@@ -158,19 +158,19 @@
 </span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="n">buff</span><span class="p">[</span><span class="n">MAXLINE</span> <span class="o">+</span> <span class="mi">1</span><span class="p">];</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// read pathname from IPC channel
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">if</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="nf">Read</span><span class="p">(</span><span class="n">readfd</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="nf">Read</span><span class="p">(</span><span class="n">readfd</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">err_quit</span><span class="p">(</span><span class="s">&#34;end-of-file while reading pathname&#34;</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="n">buff</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="sc">&#39;\0&#39;</span><span class="p">;</span>  <span class="c1">// null terminate pathname
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">((</span><span class="n">fd</span> <span class="o">=</span> <span class="nf">open</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span> <span class="n">O_RDONLY</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="c1">// error: must tell client
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nf">snprintf</span><span class="p">(</span><span class="n">buff</span> <span class="o">+</span> <span class="n">n</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">buff</span><span class="p">)</span> <span class="o">-</span> <span class="n">n</span><span class="p">,</span> <span class="s">&#34;: can&#39;t open, %s</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span>
+</span></span></span><span class="line"><span class="cl">    <span class="nf">snprintf</span><span class="p">(</span><span class="n">buff</span> <span class="o">+</span> <span class="n">n</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">buff</span><span class="p">)</span> <span class="o">-</span> <span class="n">n</span><span class="p">,</span> <span class="s">&#34;: can&#39;t open, %s</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">      <span class="nf">strerror</span><span class="p">(</span><span class="n">errno</span><span class="p">));</span>
 </span></span><span class="line"><span class="cl">    <span class="n">n</span> <span class="o">=</span> <span class="nf">strlen</span><span class="p">(</span><span class="n">buff</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">Write</span><span class="p">(</span><span class="n">writefd</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">n</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="c1">// open succeeded: copy file to IPC channel
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">while</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="nf">Read</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+</span></span></span><span class="line"><span class="cl">    <span class="k">while</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="nf">Read</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">      <span class="nf">Write</span><span class="p">(</span><span class="n">writefd</span><span class="p">,</span> <span class="n">buff</span><span class="p">,</span> <span class="n">n</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">Close</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
@@ -178,31 +178,31 @@
 </span></span></code></pre></div><p>        子进程在往管道写入最终数据后调用 $exit$ 终止，随后变为<strong>僵尸进程</strong> ( $zombie$ )：自身终止但父进程仍在运行且未等待该子进程。子进程终止时，内核会给父进程发送一个 $SIGCHILD$ 信号，但是父进程忽略了这个信号。随后父进程调用 $waitpid$ 取得子进程的终止状态。如果父进程没有调用 $waitpid$ 就终止，那么子进程变为孤儿进程，其父进程将变为 $init$ 进程，由 $init$ 进程获取其终止状态。</p>
 <h2 id="2-popen和pclose函数">2. <code>popen</code>和<code>pclose</code>函数</h2>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// 成功为文件指针，出错为NULL
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">FILE</span> <span class="o">*</span><span class="nf">popen</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">command</span><span class="p">,</span> <span class="n">cosnt</span> <span class="kt">char</span> <span class="o">*</span><span class="n">type</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="n">FILE</span> <span class="o">*</span><span class="nf">popen</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">command</span><span class="p">,</span> <span class="n">cosnt</span> <span class="kt">char</span> <span class="o">*</span><span class="n">type</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// 成功为shell终止状态，出错为-1
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">pclose</span><span class="p">(</span><span class="n">FILE</span> <span class="o">*</span><span class="n">stream</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">pclose</span><span class="p">(</span><span class="n">FILE</span> <span class="o">*</span><span class="n">stream</span><span class="p">);</span>
 </span></span></code></pre></div><p>        $popen$ 函数创建一个管道并启动另外一个进程，该进程要么从该管道读出标准输入，要么往该管道写入标准输出。$command$ 是一个<code>shell</code>命令，$type$ 可以是 $r$ 或者 $w$ ，分别对应着读入 $command$ 的标准输出和写到 $command$ 的标准输入。$pclose$ 函数则负责关闭由 $popen$ 创建的标准<code>I/O</code>流 $stream$ ，等待命令终止并返回<code>shell</code>终止状态。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#inlcude &#34;unpipc.h&#34;
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">size_t</span> <span class="n">n</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="n">buff</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">],</span> <span class="n">command</span><span class="p">[</span><span class="n">MAXLINE</span><span class="p">];</span>
 </span></span><span class="line"><span class="cl">  <span class="n">FILE</span> <span class="o">*</span><span class="n">fp</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// read pathname
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="nf">Fgets</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">,</span> <span class="n">stdin</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">  <span class="nf">Fgets</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">,</span> <span class="n">stdin</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="n">n</span> <span class="o">=</span> <span class="nf">strlen</span><span class="p">(</span><span class="n">buff</span><span class="p">);</span>  <span class="c1">// fgets() guarantees null byte at end
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">if</span> <span class="p">(</span><span class="n">buff</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="sc">&#39;\n&#39;</span><span class="p">)</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">buff</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="sc">&#39;\n&#39;</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="n">n</span><span class="o">--</span><span class="p">;</span>  <span class="c1">// delete newline from fgets
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="nf">snprintf</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">command</span><span class="p">),</span> <span class="s">&#34;cat %s&#34;</span><span class="p">,</span> <span class="n">buff</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="n">fp</span> <span class="o">=</span> <span class="nf">Popen</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="s">&#34;r&#34;</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// copy from pipe to standard output
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">while</span> <span class="p">(</span><span class="nf">Fgets</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">,</span> <span class="n">fp</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">while</span> <span class="p">(</span><span class="nf">Fgets</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span> <span class="n">MAXLINE</span><span class="p">,</span> <span class="n">fp</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">Fputs</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span> <span class="n">stdout</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="nf">Pclose</span><span class="p">(</span><span class="n">fp</span><span class="p">);</span>
@@ -212,9 +212,9 @@
 <p>        <code>FIFO</code>指<strong>先进先出</strong> ( $first$ $in$ $first$ $out$ )，类似于管道，是一个单向的数据流。不同于管道的是，每个<code>FIFO</code>都有一个路径名与之关联，从而允许无亲缘关系的进程访问同一个<code>FIFO</code>，也被称为<strong>有名管道</strong> ( $named$ $pipe$ )。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/types.h&gt;</span><span class="cp">
 </span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/stat.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// 成功返回0，出错返回-1
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">mkfifo</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">pathname</span><span class="p">,</span> <span class="kt">mode_t</span> <span class="n">mode</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">mkfifo</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">pathname</span><span class="p">,</span> <span class="kt">mode_t</span> <span class="n">mode</span><span class="p">);</span>
 </span></span></code></pre></div><p>        $pathname$ 是一个普通的<code>Unix</code>路径名，是<code>FIFO</code>的名字。$mode$ 指定文件权限，类似于 $open$ 的第二个参数，定义在 &lt;$sys/stat.h$&gt; 头文件中。</p>
 <div class="div-table" data-fl-scrolls><table>
   <thead>
@@ -252,14 +252,14 @@
 </table></div>
 <p>        $mkfifo$ 隐式指定 $O_-CREAT$ | $O_-EXCL$ ，意味着要么创建一个新的<code>FIFO</code>，要么返回 $EEXIST$ 错误。如果不希望创建一个新的<code>FIFO</code>，那么应该调用 $open$ 或者 $fopen$ 。由于<code>FIFO</code>是半双工的，所以不能以读写方式打开，并且对其的 $lseek$ 调用也会报错，返回 $ESPIPE$ 错误。我们定义默认的<code>FIFO</code>权限如下：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cp">#define FILE_MODE (S_IRUSR |  S_IWUSR | S_IRGRP | S_IROTH)
 </span></span></span></code></pre></div><hr>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cp">#define FIFO1 &#34;/tmp/fifo.1&#34;
 </span></span></span><span class="line"><span class="cl"><span class="cp">#define FIFO2 &#34;/tmp/fifo.2&#34;
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">client</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">),</span> <span class="nf">server</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
@@ -267,14 +267,14 @@
 </span></span><span class="line"><span class="cl">  <span class="kt">pid_t</span> <span class="n">childpid</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// create two FIFOs; OK if they already exist
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">if</span> <span class="p">((</span><span class="nf">mkfifo</span><span class="p">(</span><span class="n">FIFO1</span><span class="p">,</span> <span class="n">FILE_MODE</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EEXIST</span><span class="p">))</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">((</span><span class="nf">mkfifo</span><span class="p">(</span><span class="n">FIFO1</span><span class="p">,</span> <span class="n">FILE_MODE</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EEXIST</span><span class="p">))</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">err_sys</span><span class="p">(</span><span class="s">&#34;can&#39;t create %s&#34;</span><span class="p">,</span> <span class="n">FIFO1</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">((</span><span class="nf">mkfifo</span><span class="p">(</span><span class="n">FIFO2</span><span class="p">,</span> <span class="n">FILE_MODE</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">EEXIST</span><span class="p">))</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">unlink</span><span class="p">(</span><span class="n">FIFO1</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">err_sys</span><span class="p">(</span><span class="s">&#34;can&#39;t create %s&#34;</span><span class="p">,</span> <span class="n">FIFO2</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">((</span><span class="n">childpid</span> <span class="o">=</span> <span class="nf">Fork</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// child
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">readfd</span> <span class="o">=</span> <span class="nf">Open</span><span class="p">(</span><span class="n">FIFO1</span><span class="p">,</span> <span class="n">O_RDONLY</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">    <span class="n">readfd</span> <span class="o">=</span> <span class="nf">Open</span><span class="p">(</span><span class="n">FIFO1</span><span class="p">,</span> <span class="n">O_RDONLY</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="n">writefd</span> <span class="o">=</span> <span class="nf">Open</span><span class="p">(</span><span class="n">FIFO2</span><span class="p">,</span> <span class="n">O_WRONLY</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="nf">server</span><span class="p">(</span><span class="n">readfd</span><span class="p">,</span> <span class="n">writefd</span><span class="p">);</span>
@@ -282,12 +282,12 @@
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// parent
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">writefd</span> <span class="o">=</span> <span class="nf">Open</span><span class="p">(</span><span class="n">FIFO1</span><span class="p">,</span> <span class="n">O_WRONLY</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">  <span class="n">writefd</span> <span class="o">=</span> <span class="nf">Open</span><span class="p">(</span><span class="n">FIFO1</span><span class="p">,</span> <span class="n">O_WRONLY</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="n">readfd</span> <span class="o">=</span> <span class="nf">Open</span><span class="p">(</span><span class="n">FIFO2</span><span class="p">,</span> <span class="n">O_RDONLY</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="nf">client</span><span class="p">(</span><span class="n">readfd</span><span class="p">,</span> <span class="n">writefd</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="nf">Waitpid</span><span class="p">(</span><span class="n">childpid</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>  <span class="c1">// wait for child to terminate
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="nf">Close</span><span class="p">(</span><span class="n">readfd</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="nf">Close</span><span class="p">(</span><span class="n">writefd</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
@@ -389,14 +389,14 @@
 </ol>
 <p>        我们也可以给消息增加一些结构。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cp">#define MAXMESGDATA (PIPE_BUF - 2 * sizeof(long))
 </span></span></span><span class="line"><span class="cl"><span class="cp">#define MESGHDRSIZE (sizeof(struct mymesg) - MAXMESGDATA)
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">mymesg</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">long</span> <span class="n">mesg_len</span><span class="p">;</span>  <span class="c1">// # bytes in mesg_data, can be 0
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">long</span> <span class="n">mesg_type</span><span class="p">;</span>  <span class="c1">// message type, must be &gt; 0
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">char</span> <span class="n">mesg_data</span><span class="p">[</span><span class="n">MAXMESGDATA</span><span class="p">];</span>
+</span></span></span><span class="line"><span class="cl">  <span class="kt">long</span> <span class="n">mesg_type</span><span class="p">;</span>  <span class="c1">// message type, must be &gt; 0
+</span></span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="n">mesg_data</span><span class="p">[</span><span class="n">MAXMESGDATA</span><span class="p">];</span>
 </span></span><span class="line"><span class="cl"><span class="p">};</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">ssize_t</span> <span class="nf">mesg_send</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="k">struct</span> <span class="n">mymesg</span> <span class="o">*</span><span class="p">);</span>
@@ -411,9 +411,9 @@
 </span></span><span class="line"><span class="cl">  <span class="kt">ssize_t</span> <span class="n">n</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// read message header first, to get len of data that follows
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">if</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="nf">Read</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">mptr</span><span class="p">,</span> <span class="n">MESGHDRSIZE</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">((</span><span class="n">n</span> <span class="o">=</span> <span class="nf">Read</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">mptr</span><span class="p">,</span> <span class="n">MESGHDRSIZE</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// end of file
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">n</span> <span class="o">!=</span> <span class="n">MESGHDRSIZE</span><span class="p">)</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">n</span> <span class="o">!=</span> <span class="n">MESGHDRSIZE</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">err_quit</span><span class="p">(</span><span class="s">&#34;message header: expected %d, got %d&#34;</span><span class="p">,</span> <span class="n">MESGHDRSIZE</span><span class="p">,</span> <span class="n">n</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">((</span><span class="n">len</span> <span class="o">=</span> <span class="n">mptr</span><span class="o">-&gt;</span><span class="n">mesg_len</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
@@ -429,7 +429,7 @@
 </ul>
 <p>        $OPEN_-MAX$ 的值可以通过 $sysconf$ 得到，$PIPE_-BUF$ 的值可以通过 $pathconf$ 或 $fpathconf$ 得到。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">err_quit</span><span class="p">(</span><span class="s">&#34;usage: pipeconf &lt;pathname&gt;&#34;</span><span class="p">);</span>
@@ -492,7 +492,7 @@
         </div>
         
         
-        <p class="copyright meta">Copyright © 2020–2025, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+        <p class="copyright meta">Copyright © 2020–2026, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
                 href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
         
     </div>
@@ -534,8 +534,11 @@
             all[i].SourceElement().parentNode.className += ' has-jax';
         }
     });
-</script>
-</main>
+
+    MathJax.Hub.Register.StartupHook("End Jax", () => {
+        return MathJax.Hub.setRenderer("HTML-CSS");
+    });
+</script></main>
 </body>
 
 </html>

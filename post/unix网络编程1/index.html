@@ -123,17 +123,17 @@
 <p>        <code>IPv4</code>套接字地址结构通常也称为“网际套接字地址结构”，命名为 $sockaddr_-in$ ，定义在 &lt;$netinet/in.h$&gt; 头文件中。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">in_addr</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">in_addr_t</span>  <span class="n">s_addr</span><span class="p">;</span>  <span class="c1">// 32位IPv4地址，以网络字节序存储
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></span><span class="line"><span class="cl"><span class="p">};</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">typedef</span> <span class="kt">unsigned</span> <span class="kt">short</span> <span class="kt">int</span> <span class="kt">sa_family_t</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">sockaddr_in</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">uint8_t</span>         <span class="n">sin_len</span><span class="p">;</span>  <span class="c1">// 结构体长度
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">sa_family_t</span>     <span class="n">sin_family</span><span class="p">;</span>  <span class="c1">// AF_INET
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">in_port_t</span>       <span class="n">sin_port</span><span class="p">;</span>  <span class="c1">// 16位端口号，网络字节序存储
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">struct</span> <span class="n">in_addr</span>  <span class="n">sin_addr</span><span class="p">;</span>  <span class="c1">// 32位IPv4地址
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">char</span>            <span class="n">sin_zero</span><span class="p">[</span><span class="mi">8</span><span class="p">];</span>  <span class="c1">// 未使用
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></span><span class="line"><span class="cl">  <span class="kt">sa_family_t</span>     <span class="n">sin_family</span><span class="p">;</span>  <span class="c1">// AF_INET
+</span></span></span><span class="line"><span class="cl">  <span class="kt">in_port_t</span>       <span class="n">sin_port</span><span class="p">;</span>  <span class="c1">// 16位端口号，网络字节序存储
+</span></span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">in_addr</span>  <span class="n">sin_addr</span><span class="p">;</span>  <span class="c1">// 32位IPv4地址
+</span></span></span><span class="line"><span class="cl">  <span class="kt">char</span>            <span class="n">sin_zero</span><span class="p">[</span><span class="mi">8</span><span class="p">];</span>  <span class="c1">// 未使用
+</span></span></span><span class="line"><span class="cl"><span class="p">};</span>
 </span></span></code></pre></div><ul>
 <li>长度 $sin_-len$ 是为增加对<code>OSI</code>协议的支持而添加的，不是所有厂家都支持，而且<code>POSIX</code>协议也并不要求；</li>
 <li>即使有长度字段，也无需设置和进行检查，除非涉及路由套接字；</li>
@@ -147,7 +147,7 @@
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">sockaddr</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">uint8_t</span>      <span class="n">sa_len</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">sa_family_t</span>  <span class="n">sa_family</span><span class="p">;</span>  <span class="c1">// 地址族：AF_xxx
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">char</span>         <span class="n">sa_data</span><span class="p">[</span><span class="mi">14</span><span class="p">];</span>  <span class="c1">// 协议地址
+</span></span></span><span class="line"><span class="cl">  <span class="kt">char</span>         <span class="n">sa_data</span><span class="p">[</span><span class="mi">14</span><span class="p">];</span>  <span class="c1">// 协议地址
 </span></span></span></code></pre></div><p>        于是套接字函数被定义为指向通用套接字地址结构的一个指针作为参数之一，比如：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">bind</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="p">,</span> <span class="kt">socklen_t</span><span class="p">);</span>
 </span></span></code></pre></div><p>        所以在对这些函数进行调用前需要进行类型转换，否则会产生警告信息。因此，从应用程序开发人员的角度来看，通用套接字地址结构的唯一用途就是用作强制类型转换。</p>
@@ -155,18 +155,18 @@
 <p>        <code>IPv6</code>套接字地址结构定义在 &lt;$netinet/in.h$&gt; 头文件中。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">in6_addr</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">uint8_t</span>  <span class="n">s6_addr</span><span class="p">[</span><span class="mi">16</span><span class="p">];</span>  <span class="c1">// 128位IPv6地址，以网络字节序存储
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></span><span class="line"><span class="cl"><span class="p">};</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cp">#define SIN6_LEN  </span><span class="c1">// 用于编译时测试
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">sockaddr_in6</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">uint8_t</span>          <span class="n">sin6_len</span><span class="p">;</span>  <span class="c1">// 结构体长度
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">sa_family_t</span>      <span class="n">sin6_family</span><span class="p">;</span>  <span class="c1">// AF_INET6
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">in_port_t</span>        <span class="n">sin6_port</span><span class="p">;</span>  <span class="c1">// 传输层端口，以网络字节序存储
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">uint32_t</span>         <span class="n">sin6_flowinfo</span><span class="p">;</span>  <span class="c1">// 流信息，未定义
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">struct</span> <span class="n">in6_addr</span>  <span class="n">sin6_addr</span><span class="p">;</span>  <span class="c1">// IPv6地址
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">uint32_t</span>         <span class="n">sin6_scope_id</span><span class="p">;</span>  <span class="c1">// 范围接口集
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></span><span class="line"><span class="cl">  <span class="kt">sa_family_t</span>      <span class="n">sin6_family</span><span class="p">;</span>  <span class="c1">// AF_INET6
+</span></span></span><span class="line"><span class="cl">  <span class="kt">in_port_t</span>        <span class="n">sin6_port</span><span class="p">;</span>  <span class="c1">// 传输层端口，以网络字节序存储
+</span></span></span><span class="line"><span class="cl">  <span class="kt">uint32_t</span>         <span class="n">sin6_flowinfo</span><span class="p">;</span>  <span class="c1">// 流信息，未定义
+</span></span></span><span class="line"><span class="cl">  <span class="k">struct</span> <span class="n">in6_addr</span>  <span class="n">sin6_addr</span><span class="p">;</span>  <span class="c1">// IPv6地址
+</span></span></span><span class="line"><span class="cl">  <span class="kt">uint32_t</span>         <span class="n">sin6_scope_id</span><span class="p">;</span>  <span class="c1">// 范围接口集
+</span></span></span><span class="line"><span class="cl"><span class="p">};</span>
 </span></span></code></pre></div><ul>
 <li>如果系统支持套接字地址结构中长度字段，那么 $SIN6_-LEN$ 常数必须定义；</li>
 <li>$sin6_-flowinfo$ 字段分成两个部分，低 $20$ 位作为<em><strong>流标识</strong></em> ( $flow$ $label$ )，高 $12$ 位保留；</li>
@@ -176,8 +176,8 @@
 <p>        作为<code>IPv6</code>套接字<code>API</code>的一部分而定义的新的通用套接字地址结构克服了现有结构的一些缺点，足以容纳系统所支持的任何套接字地址结构，定义在 &lt;$netinet/in.h$&gt; 头文件中。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">sockaddr_storage</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">uint8_t</span>      <span class="n">ss_len</span><span class="p">;</span>  <span class="c1">// 结构体长度
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">sa_family_t</span>  <span class="n">ss_family</span><span class="p">;</span> <span class="c1">// 地址族：AF_xxx
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></span><span class="line"><span class="cl">  <span class="kt">sa_family_t</span>  <span class="n">ss_family</span><span class="p">;</span> <span class="c1">// 地址族：AF_xxx
+</span></span></span><span class="line"><span class="cl"><span class="p">};</span>
 </span></span></code></pre></div><p>        $sockaddr_-storage$ 类型提供的通用套接字地址结构相比 $sockaddr$ 存在以下两点差别：</p>
 <ol>
 <li>如果系统支持的任何套接字地址结构有对齐需求，那么 $sockaddr_-storage$ 能够满足严苛的对齐需求；</li>
@@ -189,19 +189,19 @@
 <h3 id="23-字节排序函数">2.3 字节排序函数</h3>
 <p>        系统中存储数据的方式可以分为将字节低位存储在起始位置的<strong>小端</strong> ( $little-endian$ ) 序和将字节高位存储在起始地址的 <strong>大端</strong> ( $big-endian$ ) 序，这两种字节序之间没有标准可循，并且都有系统使用。我们把某个给定系统所用的字节序称为<strong>主机字节序</strong> ( $host$ $byte$ $order$ )。网络协议必须指定一个<strong>网络字节序</strong> ( $network$ $byte$ $order$ )，即大端序。从理论上来说，具体实现可以按照主机字节序存储套接字地址结构中的各个字段，等到需要再进行转换。然而，由于历史原因和<code>POSIX</code>协议规定，套接字地址结构中的某些字段必须按照网络字节序进行维护。用于主机字节序和网络字节序之间相互转换的函数主要有以下 $4$ 个：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;netinet/in.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// 返回网络字节序值
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">uint16_t</span> <span class="nf">htons</span><span class="p">(</span><span class="kt">uint16_t</span> <span class="n">host16bitvalue</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="kt">uint16_t</span> <span class="nf">htons</span><span class="p">(</span><span class="kt">uint16_t</span> <span class="n">host16bitvalue</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl"><span class="kt">uint32_t</span> <span class="nf">htonl</span><span class="p">(</span><span class="kt">uint32_t</span> <span class="n">host32bitvalue</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// 返回主机字节序值
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">uint16_t</span> <span class="nf">ntohs</span><span class="p">(</span><span class="kt">uint16_t</span> <span class="n">net16bitvalue</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="kt">uint16_t</span> <span class="nf">ntohs</span><span class="p">(</span><span class="kt">uint16_t</span> <span class="n">net16bitvalue</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl"><span class="kt">uint32_t</span> <span class="nf">ntohl</span><span class="p">(</span><span class="n">uint32_T</span> <span class="n">net32bitvalue</span><span class="p">);</span>
 </span></span></code></pre></div><h3 id="24-字节操纵函数">2.4 字节操纵函数</h3>
 <p>        操纵多字节字段的函数有两组。<br>
         第一组名字以 $b$ 开头，现今几乎所有支持套接字函数的系统都有提供。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;strings.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">bzero</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">dest</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">nbytes</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">bcopy</span><span class="p">(</span><span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">src</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">dest</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">nbytes</span><span class="p">);</span>
@@ -209,7 +209,7 @@
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">bcmp</span><span class="p">(</span><span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">ptr1</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">ptr2</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">nbytes</span><span class="p">);</span>
 </span></span></code></pre></div><p>        第二组名字以 $mem$ 开头，起源自<code>ANSI C</code>标准，支持<code>ANSI C</code>标准函数库的系统都有提供。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;string.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="o">*</span><span class="nf">memset</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">dest</span><span class="p">,</span> <span class="kt">int</span> <span class="n">c</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">len</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="o">*</span><span class="nf">memcpy</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">dest</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">src</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">nbytes</span><span class="p">);</span>
@@ -219,23 +219,23 @@
 <h3 id="25-地址转换函数">2.5 地址转换函数</h3>
 <p>        地址转换函数用于<code>ASCII</code>字符串与网络字节序二进制值之间转换网络地址。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;arpa/inet.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// 字符串有效返回1，否则返回0
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">inet_aton</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">strptr</span><span class="p">,</span> <span class="k">struct</span> <span class="n">in_addr</span> <span class="o">*</span><span class="n">addrptr</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">inet_aton</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">strptr</span><span class="p">,</span> <span class="k">struct</span> <span class="n">in_addr</span> <span class="o">*</span><span class="n">addrptr</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// 字符串有效则返回32位二进制网络字节序IPv4地址，否则为INADDR_NONE
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">in_addr_t</span> <span class="nf">inet_addr</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">strptr</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="kt">in_addr_t</span> <span class="nf">inet_addr</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">strptr</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// 返回一个指向点分十进制字符串的指针
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">char</span> <span class="o">*</span><span class="nf">inet_ntoa</span><span class="p">(</span><span class="k">struct</span> <span class="n">in_addr</span> <span class="n">inaddr</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="kt">char</span> <span class="o">*</span><span class="nf">inet_ntoa</span><span class="p">(</span><span class="k">struct</span> <span class="n">in_addr</span> <span class="n">inaddr</span><span class="p">);</span>
 </span></span></code></pre></div><p>        $inet_-aton$ 将 $strptr$ 转为 $32$ 位的网络字节序二进制值，存储在 $addrptr$ 中，成功返回 $1$ ，失败返回 $0$ 。$inet_-addr$ 进行相同转换，但是存在一个问题，当出错时，会返回 $INADDR_-NONE$ ，后者通常是 $32$ 位的以 $1$ 填充的值，这意味着有限广播地址 ( $255$.$255$.$255$.$255$ ) 不能由该函数处理，所以该函数如今已被废弃，应改用 $inet_-aton$ 。$inet_-ntoa$ 函数将一个 $32$ 位网络字节序二进制<code>IPv4</code>地址转换为相应的点分十进制字符串，该函数是不可重入的。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;arpa/inet.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// 字符串有效返回1，否则返回0
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">inet_pton</span><span class="p">(</span><span class="kt">int</span> <span class="n">family</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">strptr</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">addrptr</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">inet_pton</span><span class="p">(</span><span class="kt">int</span> <span class="n">family</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">strptr</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">addrptr</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// 返回一个指向结果的指针
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="nf">inet_ntop</span><span class="p">(</span><span class="kt">int</span> <span class="n">family</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">addrptr</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">strptr</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">len</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="nf">inet_ntop</span><span class="p">(</span><span class="kt">int</span> <span class="n">family</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">addrptr</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">strptr</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">len</span><span class="p">);</span>
 </span></span></code></pre></div><p>        这两个函数是随<code>IPv6</code>出现的，既适用于<code>IPv4</code>地址，也适用于<code>IPv6</code>地址。$family$ 参数可以是 $AF_-INET$ ，也可以是 $AF_-INET6$ ，如果是不支持的地址族，则会返回错误，并将 $errno$ 置为 $EAFNOSUPPORT$ 。$inet_-pton$ 会转换 $strptr$ 指针指向的字符串，存储在 $addrptr$ 中，成功返回 $1$ ，失败返回 $0$ 。$inet_-pton$ 则进行相反转换，从 $addptr$ 转换到 $strptr$ ，$len$ 标识目的存储单元大小。在 &lt;$netinet/in.h$&gt; 头文件中存在以下两个定义：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#define INET_ADDRSTRLEN   16
 </span></span></span><span class="line"><span class="cl"><span class="cp">#define INET6_ADDRSTRLEN  46
@@ -243,7 +243,7 @@
 <h3 id="26-io函数">2.6 <code>I/O</code>函数</h3>
 <p>        字节流套接字上的 $read$ 和 $write$ 函数所表现的行为不同于通常的文件<code>I/O</code>，其输入或输出的字节数可能比请求数量少，原因在于内核中用于套接字的缓冲区可能达到了极限，此时需要再次调用 $read$ 或 $write$ 函数，以输入或输出剩余字节。为了预防这种情况，我们需要改写下原来的<code>I/O</code>函数。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unp.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">ssize_t</span> <span class="nf">readn</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">vptr</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">n</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">size_t</span> <span class="n">nleft</span> <span class="o">=</span> <span class="n">n</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">ssize_t</span> <span class="n">nread</span><span class="p">;</span>
@@ -335,7 +335,7 @@
         </div>
         
         
-        <p class="copyright meta">Copyright © 2020–2025, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+        <p class="copyright meta">Copyright © 2020–2026, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
                 href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
         
     </div>
@@ -377,8 +377,11 @@
             all[i].SourceElement().parentNode.className += ' has-jax';
         }
     });
-</script>
-</main>
+
+    MathJax.Hub.Register.StartupHook("End Jax", () => {
+        return MathJax.Hub.setRenderer("HTML-CSS");
+    });
+</script></main>
 </body>
 
 </html>

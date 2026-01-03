@@ -93,9 +93,9 @@
 <p>        共享内存是可用<code>IPC</code>形式中最快的。因为将内存区映射到进程的地址空间之后，进程间的数据传递就不用通过内核。</p>
 <h2 id="1-共享内存操作">1. 共享内存操作</h2>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/mman.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// 成功返回映射内存区的地址，出错返回MAP_FAILED
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">void</span> <span class="o">*</span><span class="nf">mmap</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">len</span><span class="p">,</span> <span class="kt">int</span> <span class="n">prot</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">,</span> <span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">off_t</span> <span class="n">offset</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="kt">void</span> <span class="o">*</span><span class="nf">mmap</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">len</span><span class="p">,</span> <span class="kt">int</span> <span class="n">prot</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">,</span> <span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">off_t</span> <span class="n">offset</span><span class="p">);</span>
 </span></span></code></pre></div><p>        $mmap$ 函数把一个文件或一个<code>POSIX</code>共享内存区对象映射到调用进程的地址空间。使用该函数有三个目的：</p>
 <ul>
 <li>对普通文件使用内存映射<code>I/O</code>；</li>
@@ -154,12 +154,12 @@
 </table></div>
 <p>        其中 $MAP_-SHARED$ 和 $MAP_-PRIVATE$ 必须选择其中一个。如果选择 $MAP_-SHARED$ ，那么调用进程对映射区内所做的修改对其他进程可见，并且也会修改底层对象；如果选择 $MAP_-PRIVATE$ ，那么调用进程对映射区所做的修改只有当前进程可见，而且不会修改底层对象；从移植性上考虑，不应该指定 $MAP_-FIXED$ ，如果没有指定该标志并且 $addr$ 非空，则具体行为取决于实现。可移植的代码应该把 $addr$ 设置为 $NULL$ 并不指定 $MAP_-FIXED$ 。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/mman.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// 成功返回0，出错返回-1
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">munmap</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">len</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">munmap</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">len</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// 成功返回0，出错返回-1
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">msync</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">len</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">msync</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">addr</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">len</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">);</span>
 </span></span></code></pre></div><p>        $munmap$ 从进程空间中删除映射区，删除之后再次访问先前映射区地址会产生 $SIGSEGV$ 信号。$msync$ 算法用于主动将映射区中的数据同步到硬盘，可选的 $flags$ 参数有：</p>
 <div class="div-table" data-fl-scrolls><table>
   <thead>
@@ -185,11 +185,11 @@
 </table></div>
 <p>        其中 $MS_-ASYNC$ 和 $MS_-SYNC$ 必须指定其中一个。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">shared</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">sem_t</span> <span class="n">mutex</span><span class="p">;</span>  <span class="c1">// the mutex: a Posix memory-based semaphore
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">int</span> <span class="n">count</span><span class="p">;</span>  <span class="c1">// the counter
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span> <span class="n">shared</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">count</span><span class="p">;</span>  <span class="c1">// the counter
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="n">shared</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">nloop</span><span class="p">;</span>
@@ -200,18 +200,18 @@
 </span></span><span class="line"><span class="cl">  <span class="n">nloop</span> <span class="o">=</span> <span class="nf">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// open file, initalize to 0, map into memory
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">fd</span> <span class="o">=</span> <span class="nf">Open</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">O_RDWR</span> <span class="o">|</span> <span class="n">O_CREAT</span><span class="p">,</span> <span class="n">FILE_MODE</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">  <span class="n">fd</span> <span class="o">=</span> <span class="nf">Open</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">O_RDWR</span> <span class="o">|</span> <span class="n">O_CREAT</span><span class="p">,</span> <span class="n">FILE_MODE</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="nf">Write</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">shared</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">shared</span><span class="p">));</span>
 </span></span><span class="line"><span class="cl">  <span class="n">ptr</span> <span class="o">=</span> <span class="nf">Mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">shared</span><span class="p">),</span> <span class="n">PROT_READ</span> <span class="o">|</span> <span class="n">PROT_WRITE</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">             <span class="n">MAP_SHARED</span><span class="p">,</span> <span class="n">fd</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="nf">Close</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// initialize semaphore that is shared between processes
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="nf">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">  <span class="nf">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="nf">setbuf</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>  <span class="c1">// stdout is unbuffered
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">if</span> <span class="p">(</span><span class="nf">Fork</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// child
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nloop</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="nf">Fork</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// child
+</span></span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nloop</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">      <span class="nf">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">      <span class="nf">printf</span><span class="p">(</span><span class="s">&#34;child: %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">count</span><span class="o">++</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">      <span class="nf">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">);</span>
@@ -220,7 +220,7 @@
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// parent
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nloop</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">nloop</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">printf</span><span class="p">(</span><span class="s">&#34;parent: %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">count</span><span class="o">++</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">);</span>
@@ -239,10 +239,10 @@
 </span></span><span class="line"><span class="cl">  <span class="n">nloop</span> <span class="o">=</span> <span class="nf">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// map into memory
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">ptr</span> <span class="o">=</span> <span class="nf">Mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">),</span> <span class="n">PROT_READ</span> <span class="o">|</span> <span class="n">PROT_WRITE</span><span class="p">,</span>
+</span></span></span><span class="line"><span class="cl">  <span class="n">ptr</span> <span class="o">=</span> <span class="nf">Mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">),</span> <span class="n">PROT_READ</span> <span class="o">|</span> <span class="n">PROT_WRITE</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">             <span class="n">MAP_SHARED</span> <span class="o">|</span> <span class="n">MAP_ANONYMOUS</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// 后略...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        $/dev/zero$ 设备文件会不断产生空字符，也可以用于实现匿名内存映射。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">nloop</span><span class="p">;</span>
@@ -254,12 +254,12 @@
 </span></span><span class="line"><span class="cl">  <span class="n">nloop</span> <span class="o">=</span> <span class="nf">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// open /dev/zerp, map into memory
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">fd</span> <span class="o">=</span> <span class="nf">Open</span><span class="p">(</span><span class="s">&#34;/dev/zero&#34;</span><span class="p">,</span> <span class="n">O_RDWR</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">  <span class="n">fd</span> <span class="o">=</span> <span class="nf">Open</span><span class="p">(</span><span class="s">&#34;/dev/zero&#34;</span><span class="p">,</span> <span class="n">O_RDWR</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="n">ptr</span> <span class="o">=</span> <span class="nf">Mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">),</span> <span class="n">PROT_READ</span> <span class="o">|</span> <span class="n">PROT_WRITE</span><span class="p">,</span> <span class="n">MAP_SHARED</span><span class="p">,</span> <span class="n">fd</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="nf">Close</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// 后略...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><h2 id="3-安全访问共享内存映射区">3. 安全访问共享内存映射区</h2>
 <p>        访问共享内存映射区时可能会产生两种错误：</p>
 <ol>
@@ -267,16 +267,16 @@
 <li>当访问的区域位于映射区以内但是超出文件大小时，返回 $SIGBUS$ 错误。</li>
 </ol>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cp">#define FILE &#34;test.data&#34;
 </span></span></span><span class="line"><span class="cl"><span class="cp">#define SIZE 32768
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">i</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// open: create or truncate; then mmap file
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">fd</span> <span class="o">=</span> <span class="nf">Open</span><span class="p">(</span><span class="n">FILE</span><span class="p">,</span> <span class="n">O_RDWR</span> <span class="o">|</span> <span class="n">O_CREAT</span> <span class="o">|</span> <span class="n">O_TRUNC</span><span class="p">,</span> <span class="n">FILE_MODE</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">  <span class="n">fd</span> <span class="o">=</span> <span class="nf">Open</span><span class="p">(</span><span class="n">FILE</span><span class="p">,</span> <span class="n">O_RDWR</span> <span class="o">|</span> <span class="n">O_CREAT</span> <span class="o">|</span> <span class="n">O_TRUNC</span><span class="p">,</span> <span class="n">FILE_MODE</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="n">ptr</span> <span class="o">=</span> <span class="nf">Mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">SIZE</span><span class="p">,</span> <span class="n">PROT_READ</span> <span class="o">|</span> <span class="n">PROT_WRITE</span><span class="p">,</span> <span class="n">MAP_SHARED</span><span class="p">,</span> <span class="n">fd</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">4096</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">SIZE</span><span class="p">;</span> <span class="n">i</span> <span class="o">+=</span> <span class="mi">4096</span><span class="p">)</span> <span class="p">{</span>
@@ -289,7 +289,7 @@
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        上述程序使用了让文件持续增长的技巧。它指定了一个大于文件大小的内存映射区，同时不断跟踪文件大小，并让文件大小随着写入增长。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;unistd.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">ftruncate</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">off_t</span> <span class="n">len</span><span class="p">);</span>
 </span></span></code></pre></div><p>        处理 $mmap$ 的时候，普通文件或共享内存区的大小都可以通过 $ftruncate$ 修改。但是对于普通文件和共享内存区对象文件，<code>POSIX</code>对它们的处理逻辑不同：</p>
 <ul>
@@ -299,26 +299,26 @@
 <p>        普通文件指通过 $open$ 打开的文件，共享内存区对象文件则指通过 $shm_-open$ 打开的文件，稍后我们会看到 $shm_-open$ 的调用。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/types.h&gt;</span><span class="cp">
 </span></span></span><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/stat.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// 成功返回0，出错返回-1
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">fstat</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="k">struct</span> <span class="n">stat</span> <span class="o">*</span><span class="n">buf</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">fstat</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="k">struct</span> <span class="n">stat</span> <span class="o">*</span><span class="n">buf</span><span class="p">);</span>
 </span></span></code></pre></div><p>        当打开一个已存在的共享内存区对象文件时，我们可以通过 $fstat$ 获取该文件信息。$stat$ 结构有 $12$ 或以上的成员，然而当 $fd$ 指代一个共享内存区对象时，只有四个成员有效：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">stat</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">mode_t</span> <span class="n">st_mode</span><span class="p">;</span>  <span class="c1">// mode: S_I{RW}{USR,GRP,OTH}
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">uid_t</span> <span class="n">st_uid</span><span class="p">;</span>  <span class="c1">// user ID of owner
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">gid_t</span> <span class="n">st_gid</span><span class="p">;</span>  <span class="c1">// group ID of owner
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">off_t</span> <span class="n">st_size</span><span class="p">;</span>  <span class="c1">// size in bytes
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></span><span class="line"><span class="cl">  <span class="kt">mode_t</span> <span class="n">st_mode</span><span class="p">;</span>  <span class="c1">// mode: S_I{RW}{USR,GRP,OTH}
+</span></span></span><span class="line"><span class="cl">  <span class="kt">uid_t</span> <span class="n">st_uid</span><span class="p">;</span>  <span class="c1">// user ID of owner
+</span></span></span><span class="line"><span class="cl">  <span class="kt">gid_t</span> <span class="n">st_gid</span><span class="p">;</span>  <span class="c1">// group ID of owner
+</span></span></span><span class="line"><span class="cl">  <span class="kt">off_t</span> <span class="n">st_size</span><span class="p">;</span>  <span class="c1">// size in bytes
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="p">};</span>
 </span></span></code></pre></div><h2 id="4-posix共享内存区操作">4. <code>POSIX</code>共享内存区操作</h2>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/mman.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// 成功返回非负描述符，出错返回-1
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">shm_open</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">,</span> <span class="kt">int</span> <span class="n">oflag</span><span class="p">,</span> <span class="kt">mode_t</span> <span class="n">mode</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">shm_open</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">,</span> <span class="kt">int</span> <span class="n">oflag</span><span class="p">,</span> <span class="kt">mode_t</span> <span class="n">mode</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// 成功返回0，出错返回-1
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">shm_unlink</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">shm_unlink</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">name</span><span class="p">);</span>
 </span></span></code></pre></div><p>        <code>POSIX</code>共享内存区涉及以下两个步骤要求：</p>
 <ol>
 <li>调用 $shm_-open$ 并指定文件名，创建或打开一个共享内存区对象文件；</li>
@@ -326,7 +326,7 @@
 </ol>
 <p>        $oflag$ 参数必须含有 $ORDONLY$ 和 $O_-RDWR$ 的其中一个，还可以指定 $O_-CREAT$ 、$O_-EXCL$ 和 $O_-TRUNC$ 。$mode$ 指定权限位，在指定了 $O_-CREAT$ 的前提下使用，如果没有指定 $O_-CREAT$ ，可以设置为 $0$ 。$shm_-unlink$ 则负责删除一个共享内存区对象文件，跟其他 $unlink$ 一样，已打开的文件不会影响删除。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">fd1</span><span class="p">,</span> <span class="n">fd2</span><span class="p">,</span> <span class="o">*</span><span class="n">ptr1</span><span class="p">,</span> <span class="o">*</span><span class="n">ptr2</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">pid_t</span> <span class="n">childpid</span><span class="p">;</span>
@@ -342,7 +342,7 @@
 </span></span><span class="line"><span class="cl">  <span class="nf">Fstat</span><span class="p">(</span><span class="n">fd2</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">stat</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">((</span><span class="n">childpid</span> <span class="o">=</span> <span class="nf">Fork</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>  <span class="c1">// child
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">ptr2</span> <span class="o">=</span> <span class="nf">Mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">stat</span><span class="p">.</span><span class="n">st_size</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="p">,</span> <span class="n">MAP_SHARED</span><span class="p">,</span> <span class="n">fd2</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">    <span class="n">ptr2</span> <span class="o">=</span> <span class="nf">Mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">stat</span><span class="p">.</span><span class="n">st_size</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="p">,</span> <span class="n">MAP_SHARED</span><span class="p">,</span> <span class="n">fd2</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="n">ptr1</span> <span class="o">=</span> <span class="nf">Mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">),</span> <span class="n">PROT_READ</span> <span class="o">|</span> <span class="n">PROT_WRITE</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">                <span class="n">MAP_SHARED</span><span class="p">,</span> <span class="n">fd1</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">printf</span><span class="p">(</span><span class="s">&#34;child: shm ptr = %p, hostname ptr = %p</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="o">*</span><span class="n">ptr1</span><span class="p">);</span>
@@ -353,7 +353,7 @@
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// parent: mmap in reverse order from child
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">ptr1</span> <span class="o">=</span> <span class="nf">Mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">),</span> <span class="n">PROT_READ</span> <span class="o">|</span> <span class="n">PROT_WRITE</span><span class="p">,</span> <span class="n">MAP_SHARED</span><span class="p">,</span> <span class="n">fd1</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">  <span class="n">ptr1</span> <span class="o">=</span> <span class="nf">Mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">),</span> <span class="n">PROT_READ</span> <span class="o">|</span> <span class="n">PROT_WRITE</span><span class="p">,</span> <span class="n">MAP_SHARED</span><span class="p">,</span> <span class="n">fd1</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="n">ptr2</span> <span class="o">=</span> <span class="nf">Mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="n">stat</span><span class="p">.</span><span class="n">st_size</span><span class="p">,</span> <span class="n">PROT_READ</span><span class="p">,</span> <span class="n">MAP_SHARED</span><span class="p">,</span> <span class="n">fd2</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="nf">printf</span><span class="p">(</span><span class="s">&#34;parent: shm ptr = %p, hostname ptr = %p</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">ptr1</span><span class="p">,</span> <span class="n">ptr2</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="o">*</span><span class="n">ptr1</span> <span class="o">=</span> <span class="mi">777</span><span class="p">;</span>
@@ -365,23 +365,23 @@
 <h2 id="5-生产者-消费者模型">5. 生产者-消费者模型</h2>
 <p>        我们可以通过共享内存技术实现生产者-消费者模型，通过共享内存区来容纳消息。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;unpipc.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="cp">#define MESGSIZE 256  </span><span class="c1">// max #bytes per message, incl. null at end
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="cp">#define NMESG 16  </span><span class="c1">// max #messages
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span></span><span class="line"><span class="cl"><span class="cp">#define NMESG 16  </span><span class="c1">// max #messages
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">shmstruct</span> <span class="p">{</span>  <span class="c1">// struct stored in shared memory
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">sem_t</span> <span class="n">mutex</span><span class="p">;</span>  <span class="c1">// three POSIX memory-based semaphores
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">sem_t</span> <span class="n">nempty</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="kt">sem_t</span> <span class="n">mutex</span><span class="p">;</span>  <span class="c1">// three POSIX memory-based semaphores
+</span></span></span><span class="line"><span class="cl">  <span class="kt">sem_t</span> <span class="n">nempty</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">sem_t</span> <span class="n">nstored</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">nput</span><span class="p">;</span>  <span class="c1">// index into msgoff[] for next put
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">long</span> <span class="n">noverflow</span><span class="p">;</span>  <span class="c1">// #overflows by senders
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">sem_t</span> <span class="n">noverflowmutex</span><span class="p">;</span>  <span class="c1">// mutex for noverflow counter
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">long</span> <span class="n">msgoff</span><span class="p">[</span><span class="n">NMESG</span><span class="p">];</span>  <span class="c1">// offset in shared memory of each message
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">char</span> <span class="n">msgdata</span><span class="p">[</span><span class="n">NMESG</span> <span class="o">*</span> <span class="n">MESGSIZE</span><span class="p">];</span>  <span class="c1">// the actual messages
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></span><span class="line"><span class="cl">  <span class="kt">long</span> <span class="n">noverflow</span><span class="p">;</span>  <span class="c1">// #overflows by senders
+</span></span></span><span class="line"><span class="cl">  <span class="kt">sem_t</span> <span class="n">noverflowmutex</span><span class="p">;</span>  <span class="c1">// mutex for noverflow counter
+</span></span></span><span class="line"><span class="cl">  <span class="kt">long</span> <span class="n">msgoff</span><span class="p">[</span><span class="n">NMESG</span><span class="p">];</span>  <span class="c1">// offset in shared memory of each message
+</span></span></span><span class="line"><span class="cl">  <span class="kt">char</span> <span class="n">msgdata</span><span class="p">[</span><span class="n">NMESG</span> <span class="o">*</span> <span class="n">MESGSIZE</span><span class="p">];</span>  <span class="c1">// the actual messages
+</span></span></span><span class="line"><span class="cl"><span class="p">};</span>
 </span></span></code></pre></div><p>        当生产者想发送消息但是没有空间时，我们不会阻塞生产者，而是递增 $noverflow$ 计数。$msgoff$ 指出每个消息的偏移，其中 $msgoff[0] = 0$ 。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;cliserv2.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">lastnoverflow</span><span class="p">,</span> <span class="n">temp</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">long</span> <span class="n">offset</span><span class="p">;</span>
@@ -391,25 +391,25 @@
 </span></span><span class="line"><span class="cl">    <span class="nf">err_quit</span><span class="p">(</span><span class="s">&#34;usage: server2 &lt;name&gt;&#34;</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// create shm, set its size, map it, close descriptor
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="nf">shm_unlink</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>  <span class="c1">// OK if this fails
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">fd</span> <span class="o">=</span> <span class="nf">Shm_open</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">O_RDWR</span> <span class="o">|</span> <span class="n">O_CREAT</span> <span class="o">|</span> <span class="n">O_EXCL</span><span class="p">,</span> <span class="n">FILE_MODE</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">  <span class="nf">shm_unlink</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>  <span class="c1">// OK if this fails
+</span></span></span><span class="line"><span class="cl">  <span class="n">fd</span> <span class="o">=</span> <span class="nf">Shm_open</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">O_RDWR</span> <span class="o">|</span> <span class="n">O_CREAT</span> <span class="o">|</span> <span class="n">O_EXCL</span><span class="p">,</span> <span class="n">FILE_MODE</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="n">ptr</span> <span class="o">=</span> <span class="nf">Mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">shmstruct</span><span class="p">),</span> <span class="n">PROT_READ</span> <span class="o">|</span> <span class="n">PROT_WRITE</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">             <span class="n">MAP_SHARED</span><span class="p">,</span> <span class="n">fd</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="nf">Ftruncate</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">shmstruct</span><span class="p">));</span>
 </span></span><span class="line"><span class="cl">  <span class="nf">Close</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// initialize the array of offsetss
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="n">index</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="n">NMESG</span><span class="p">;</span> <span class="n">index</span><span class="o">++</span><span class="p">)</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="n">index</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="n">NMESG</span><span class="p">;</span> <span class="n">index</span><span class="o">++</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">msgoff</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">index</span> <span class="o">*</span> <span class="n">MESGSIZE</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// initialize the semaphores in shared memory
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="nf">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">  <span class="nf">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="nf">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">nempty</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">NMESG</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="nf">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">nstored</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="nf">Sem_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">noverflowmutex</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// this program is the consumer
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">index</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="n">index</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="n">lastnoverflow</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">nstored</span><span class="p">);</span>
@@ -418,12 +418,12 @@
 </span></span><span class="line"><span class="cl">    <span class="nf">printf</span><span class="p">(</span><span class="s">&#34;index = %d: %s</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">msgdata</span><span class="p">[</span><span class="n">offset</span><span class="p">]);</span>
 </span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="o">++</span><span class="n">index</span> <span class="o">&gt;=</span> <span class="n">NMESG</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">      <span class="n">index</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// circular buffer
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nf">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">    <span class="nf">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">nempty</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="nf">Sem_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">noverflowmutex</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="n">temp</span> <span class="o">=</span> <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">noverflow</span><span class="p">;</span>  <span class="c1">// don&#39;t printf while mutex held
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nf">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">noverflowmutex</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">    <span class="nf">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">noverflowmutex</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">temp</span> <span class="o">!=</span> <span class="n">lastnoverflow</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">      <span class="nf">printf</span><span class="p">(</span><span class="s">&#34;noverflow = %d</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">,</span> <span class="n">temp</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">      <span class="n">lastnoverflow</span> <span class="o">=</span> <span class="n">temp</span><span class="p">;</span>
@@ -434,7 +434,7 @@
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        消费者程序会先删除可能存在的共享内存区对象文件，然后重新创建。接着会初始化每个消息的偏移。最后，在每次循环的末尾都会检查 $noverflow$ ，如果改变了，就输出它的最新值。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&#34;cliserv2.h&#34;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">nloop</span><span class="p">,</span> <span class="n">nusec</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">pid_t</span> <span class="n">pid</span><span class="p">;</span>
@@ -448,7 +448,7 @@
 </span></span><span class="line"><span class="cl">  <span class="n">nusec</span> <span class="o">=</span> <span class="nf">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">3</span><span class="p">]);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// open and map shared memory that server must create
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">fd</span> <span class="o">=</span> <span class="nf">Shm_open</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">O_RDWR</span><span class="p">,</span> <span class="n">FILE_MODE</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">  <span class="n">fd</span> <span class="o">=</span> <span class="nf">Shm_open</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">O_RDWR</span><span class="p">,</span> <span class="n">FILE_MODE</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="n">ptr</span> <span class="o">=</span> <span class="nf">Mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">shmstruct</span><span class="p">),</span> <span class="n">PROT_READ</span> <span class="o">|</span> <span class="n">PROT_WRITE</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">             <span class="n">MAP_SHARED</span><span class="p">,</span> <span class="n">fd</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="nf">Close</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
@@ -471,7 +471,7 @@
 </span></span><span class="line"><span class="cl">    <span class="n">offset</span> <span class="o">=</span> <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">msgoff</span><span class="p">[</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">nput</span><span class="p">];</span>
 </span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="o">++</span><span class="p">(</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">nput</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">NMESG</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">      <span class="n">ptr</span><span class="o">-&gt;</span><span class="n">nput</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="c1">// circular buffer
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nf">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">    <span class="nf">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">mutex</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">strncpy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">msgdata</span><span class="p">[</span><span class="n">offset</span><span class="p">],</span> <span class="n">mesg</span><span class="p">,</span> <span class="n">MESGSIZE</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="nf">Sem_post</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">nstored</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
@@ -532,7 +532,7 @@
         </div>
         
         
-        <p class="copyright meta">Copyright © 2020–2025, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+        <p class="copyright meta">Copyright © 2020–2026, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
                 href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
         
     </div>
@@ -574,8 +574,11 @@
             all[i].SourceElement().parentNode.className += ' has-jax';
         }
     });
-</script>
-</main>
+
+    MathJax.Hub.Register.StartupHook("End Jax", () => {
+        return MathJax.Hub.setRenderer("HTML-CSS");
+    });
+</script></main>
 </body>
 
 </html>

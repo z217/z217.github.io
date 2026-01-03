@@ -130,15 +130,15 @@
 </span></span><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">fut</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">async</span><span class="p">(</span><span class="n">f</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl"><span class="k">while</span><span class="p">(</span><span class="n">fut</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">)</span> <span class="o">!=</span> <span class="n">std</span><span class="o">::</span><span class="n">future_status</span><span class="o">::</span><span class="n">ready</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        如果 $f$ 异步执行，那么这个循环没有问题；但如果 $f$ 同步执行，$wait_-for$ 将总是返回 $std::futre_-status::deferred$ ，导致循环永远不会停止。解决办法也很简单，只要检查 $f$ 是否延迟执行即可。很不幸的是，我们并没有直接办法得知 $f$ 是否延迟执行，只能通过超时函数获取：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">auto</span> <span class="n">fut</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">async</span><span class="p">(</span><span class="n">f</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="p">(</span><span class="n">fut</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="mi">0</span><span class="n">s</span><span class="p">)</span> <span class="o">==</span> <span class="n">std</span><span class="o">::</span><span class="n">future_status</span><span class="o">::</span><span class="n">deferred</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="k">while</span> <span class="p">(</span><span class="n">fut</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">)</span> <span class="o">!=</span> <span class="n">std</span><span class="o">::</span><span class="n">future_status</span><span class="o">::</span><span class="n">ready</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="p">}</span>
+</span></span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        总结起来，只有在以下条件满足时，我们才会使用默认策略：</p>
 <ul>
@@ -185,8 +185,8 @@
 </span></span><span class="line"><span class="cl">      <span class="k">if</span> <span class="p">(</span><span class="n">filter</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="n">goodVals</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="p">});</span>
 </span></span><span class="line"><span class="cl">  <span class="k">auto</span> <span class="n">nh</span> <span class="o">=</span> <span class="n">t</span><span class="p">.</span><span class="n">native_handle</span><span class="p">();</span>  <span class="c1">// set thread&#39;s priority
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">if</span> <span class="p">(</span><span class="n">conditionsAreStatisfied</span><span class="p">())</span> <span class="p">{</span>
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">conditionsAreStatisfied</span><span class="p">())</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="n">t</span><span class="p">.</span><span class="n">join</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">    <span class="n">performComputation</span><span class="p">(</span><span class="n">goodVals</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
@@ -237,7 +237,7 @@
 </span></span><span class="line"><span class="cl">  <span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="k">auto</span> <span class="n">nh</span> <span class="o">=</span> <span class="n">t</span><span class="p">.</span><span class="n">get</span><span class="p">().</span><span class="n">native_handle</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">if</span> <span class="p">(</span><span class="n">conditionAreStatisfied</span><span class="p">())</span> <span class="p">{</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">conditionAreStatisfied</span><span class="p">())</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="n">t</span><span class="p">.</span><span class="n">get</span><span class="p">().</span><span class="n">join</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">    <span class="n">performComputation</span><span class="p">(</span><span class="n">goodVals</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
@@ -287,17 +287,17 @@
 </span></span></code></pre></div><p>        另一个解决方案是通过原子类：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span> <span class="n">flag</span><span class="p">(</span><span class="nb">false</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl"><span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">flag</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl"><span class="n">flag</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
 </span></span></code></pre></div><p>        反应线程轮询该标志：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="k">while</span> <span class="p">(</span><span class="o">!</span><span class="n">flag</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        这种方案的缺点是存在轮询的无意义开销，在轮询的时候线程无法做其他事，只能一次次地检测条件变量。所以，相比之下还是更建议使用条件变量。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span> <span class="n">cv</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">mutex</span> <span class="n">m</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="kt">bool</span> <span class="nf">flag</span><span class="p">(</span><span class="nb">false</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl"><span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">{</span>
+</span></span></span><span class="line"><span class="cl"><span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span> <span class="n">g</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="n">flag</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
@@ -311,7 +311,7 @@
 </span></span></span></code></pre></div><p>        这个代码解决了我们之前的问题，但还是有点古怪，因为反应线程和检测线程通过同一个变量通信。一个可选的替代方案是通过 $future::wait$ 来避免使用条件变量。检测任务使用 $std::promise$ ，反应任务则使用 $std::future$ 或者 $std::shared_-future$ 。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">promise</span><span class="o">&lt;</span><span class="kt">void</span><span class="o">&gt;</span> <span class="n">p</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">p</span><span class="p">.</span><span class="n">set_value</span><span class="p">();</span>
+</span></span></span><span class="line"><span class="cl"><span class="n">p</span><span class="p">.</span><span class="n">set_value</span><span class="p">();</span>
 </span></span></code></pre></div><hr>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">p</span><span class="p">.</span><span class="n">get_future</span><span class="p">().</span><span class="n">wait</span><span class="p">();</span>
 </span></span></code></pre></div><p>        这种方式不需要条件变量和互斥锁，而且反应任务也会被阻塞。看上去很完美，但是又有新问题。因为共享状态一般是在堆上存储的，这会涉及动态内存的分配和释放；而且，$std::promise$ 只能设置一次，不能重复使用。<br>
@@ -326,9 +326,9 @@
 </span></span><span class="line"><span class="cl">    <span class="n">react</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">  <span class="p">});</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">p</span><span class="p">.</span><span class="n">set_value</span><span class="p">();</span>
+</span></span></span><span class="line"><span class="cl">  <span class="n">p</span><span class="p">.</span><span class="n">set_value</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">t</span><span class="p">.</span><span class="n">join</span><span class="p">();</span>
+</span></span></span><span class="line"><span class="cl">  <span class="n">t</span><span class="p">.</span><span class="n">join</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        这里我们只创建了一个 $thread$ ，如果需要多个 $thread$ ，可以使用 $shared_-future$ 。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">promise</span><span class="o">&lt;</span><span class="kt">void</span><span class="o">&gt;</span> <span class="n">p</span><span class="p">;</span>
@@ -345,9 +345,9 @@
 </span></span><span class="line"><span class="cl">    <span class="p">});</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">p</span><span class="p">.</span><span class="n">set_value</span><span class="p">();</span>
+</span></span></span><span class="line"><span class="cl">  <span class="n">p</span><span class="p">.</span><span class="n">set_value</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// ...
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">for</span> <span class="p">(</span><span class="k">auto</span> <span class="o">&amp;</span><span class="nl">t</span> <span class="p">:</span> <span class="n">vt</span><span class="p">)</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">for</span> <span class="p">(</span><span class="k">auto</span> <span class="o">&amp;</span><span class="nl">t</span> <span class="p">:</span> <span class="n">vt</span><span class="p">)</span>
 </span></span><span class="line"><span class="cl">    <span class="n">t</span><span class="p">.</span><span class="n">join</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><h2 id="6-stdatomic和volatile">6. <code>std::atomic</code>和<code>volatile</code></h2>
@@ -450,7 +450,7 @@
         </div>
         
         
-        <p class="copyright meta">Copyright © 2020–2025, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+        <p class="copyright meta">Copyright © 2020–2026, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
                 href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
         
     </div>
@@ -492,8 +492,11 @@
             all[i].SourceElement().parentNode.className += ' has-jax';
         }
     });
-</script>
-</main>
+
+    MathJax.Hub.Register.StartupHook("End Jax", () => {
+        return MathJax.Hub.setRenderer("HTML-CSS");
+    });
+</script></main>
 </body>
 
 </html>

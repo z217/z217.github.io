@@ -289,7 +289,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">Function</span><span class="o">&lt;</span><span class="n">A</span><span class="p">,</span><span class="w"> </span><span class="n">R</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">finisher</span><span class="p">();</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">BinaryOperator</span><span class="o">&lt;</span><span class="n">A</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">combiner</span><span class="p">();</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">Set</span><span class="o">&lt;</span><span class="n">Characteristics</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">characteristics</span><span class="p">();</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><p>        其中 $T$ 是流要收集的项目的泛型，$A$ 是累加器的类型，$R$ 是收集操作得到的对象的类型。$supplier$ 方法返回一个结果为空的 $Supplier$ ，创建一个空的累加器实例；$accumulator$ 方法返回执行归约操作的函数；$finisher$ 方法返回在累积过程的最后调用的函数，以便将累加器对象转换为整个集合操作的最终结果；$combiner$ 方法返回一个供归约操作使用的函数，定义了对流的各个子部分进行并行处理时如何合并累加器结果；$characteristics$ 方法会返回一个不可变的 $Characteristics$ 集合，定义了收集器的行为，是一个包含了三个项目的枚举：$UNORDERED$ ( 结果不受流中项目的遍历和累计顺序的影响 )、$CONCURRENT$ ( $accumulator$ 可以多线程调用 )、$IDENTITY_-FINISH$ ( $finisher$ 返回恒等函数，可以跳过 )。以下为 $ToListCollector$ 类型实例，它将流转换为 $List$ ：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">ToListCollector</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="kd">implements</span><span class="w"> </span><span class="n">Collector</span><span class="o">&lt;</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nd">@Override</span><span class="w">
@@ -320,7 +320,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">Collections</span><span class="p">.</span><span class="na">unmodifiableSet</span><span class="p">(</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">EnumSet</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">Characteristics</span><span class="p">.</span><span class="na">IDENTITY_FINISH</span><span class="p">,</span><span class="w"> </span><span class="n">Characteristics</span><span class="p">.</span><span class="na">CONCURRENT</span><span class="p">));</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><p>        除了实现 $Collector$ 之外，自定义收集操作也可以通过调用一个重载版本的 $collect$ 方法完成。该方法接收 $supplier$ 、$accumulator$ 和 $combiner$ 三个函数，并且永远都是一个 $IDENTITY_-FINISH$ 和 $CONCURRENT$ 但非 $UNORDERED$ 的收集器。</p>
 <h2 id="4-并行流">4. 并行流</h2>
 <p>        <code>并行流</code>就是一个把内容分成多个数据块，并用不同的线程分别处理每个数据块的流。通过对收集源调用 $parallelStream$ 方法，可以把集合转换为并行流。也可以通过在顺序流上调用 $parallel$ 方法来转换为并行流，调用该方法后流本身并不会有任何实际的变化，在内部实际上只设置了一个 $boolean$ 标志位。类似的，也可以在并行流上调用 $sequential$ 方法来将它转换为顺序流。<br/>
@@ -343,7 +343,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">Spliterator</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">trySplit</span><span class="p">();</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kt">long</span><span class="w"> </span><span class="nf">estimateSize</span><span class="p">();</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="nf">characteristics</span><span class="p">();</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><p>        $tryAdvance$ 的行为类似于普通的 $Iterator$ ，它会按顺序依次遍历使用 $Spliterator$ 的元素，并且如果还有其他元素需要遍历则返回 $true$ 。$trySplit$ 可以将一些元素划分给另一个 $Spliterator$ ，让它们两并行处理，将 $Stream$ 拆分为多个部分的算法是一个递归过程，即不断地调用 $trySplit$ 方法直到不可划分。$estimateSize$ 方法用于估计剩余的需要遍历的元素个数，对于已知大小的源，这个数字是准确的。<br/></p>
 
 
@@ -399,7 +399,7 @@
         </div>
         
         
-        <p class="copyright meta">Copyright © 2020–2025, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+        <p class="copyright meta">Copyright © 2020–2026, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
                 href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
         
     </div>
@@ -441,8 +441,11 @@
             all[i].SourceElement().parentNode.className += ' has-jax';
         }
     });
-</script>
-</main>
+
+    MathJax.Hub.Register.StartupHook("End Jax", () => {
+        return MathJax.Hub.setRenderer("HTML-CSS");
+    });
+</script></main>
 </body>
 
 </html>

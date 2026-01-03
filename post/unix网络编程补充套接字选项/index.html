@@ -92,12 +92,12 @@
 
 <h2 id="1-getsockopt和setsockop函数">1. <code>getsockopt</code>和<code>setsockop</code>函数</h2>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// 成功返回0，出错返回-1
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">getsockopt</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">level</span><span class="p">,</span> <span class="kt">int</span> <span class="n">optname</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">optval</span><span class="p">,</span> <span class="kt">socklen_t</span> <span class="o">*</span><span class="n">optlen</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">getsockopt</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">level</span><span class="p">,</span> <span class="kt">int</span> <span class="n">optname</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">optval</span><span class="p">,</span> <span class="kt">socklen_t</span> <span class="o">*</span><span class="n">optlen</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// 成功返回0，出错返回-1
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">setsockopt</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">level</span><span class="p">,</span> <span class="kt">int</span> <span class="n">optname</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">optval</span><span class="p">,</span> <span class="kt">socklen_t</span> <span class="n">optlen</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">setsockopt</span><span class="p">(</span><span class="kt">int</span> <span class="n">sockfd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">level</span><span class="p">,</span> <span class="kt">int</span> <span class="n">optname</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">optval</span><span class="p">,</span> <span class="kt">socklen_t</span> <span class="n">optlen</span><span class="p">);</span>
 </span></span></code></pre></div><p>        这两个函数仅适用于套接字。$sockfd$ 指向一个打开的套接字描述符，$level$ 指定系统中解释选项的代码或为通用套接字代码，或为某个特定于协议的代码。$optval$ 是一个指向某个变量的指针，$setsockopt$ 从 $optval$ 中获取设置，$getoptval$ 向 $optval$ 中写入设置。$optval$ 的大小由 $optlen$ 指定。套接字选项粗分为两大基本类型：一是启用或禁用某个特性的二元选项 ( 标志选项 )，二是取得并返回我们可以设置或检查的特定值的选项 ( 值选项 )。对于标志选项，$optval$ 是一个整数，$1$ 标识启用，$0$ 表示禁用。</p>
 <div class="div-table" data-fl-scrolls><table>
   <thead>
@@ -638,11 +638,11 @@
 <h3 id="25-so_linger">2.5 <code>SO_LINGER</code></h3>
 <p>        本选项指定 $close$ 函数如何处理面向连接的协议 ( <code>TCP</code>和<code>SCTP</code>等 )。默认操作是 $close$ 立即返回，如果有数据残留，会尝试将这些数据发送给对端。</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;sys/socket.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">struct</span> <span class="n">linger</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">l_onoff</span><span class="p">;</span>  <span class="c1">// 0=off, nonzero=on
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">int</span> <span class="n">l_linger</span><span class="p">;</span>  <span class="c1">// linger time, POSIX specifies units as seconds
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">};</span>
+</span></span></span><span class="line"><span class="cl">  <span class="kt">int</span> <span class="n">l_linger</span><span class="p">;</span>  <span class="c1">// linger time, POSIX specifies units as seconds
+</span></span></span><span class="line"><span class="cl"><span class="p">};</span>
 </span></span></code></pre></div><ul>
 <li>如果 $l_-onoff$ 为 $0$ ，$l_-linger$ 的值将被忽略，默认配置将生效；</li>
 <li>如果 $l_-onoff$ 非 $0$ 且 $l_-linger$ 为 $0$ ，那么 $close$ 某个连接时<code>TCP</code>将终止连接，丢弃所有留存在发送缓冲区中的数据，并给对端发送<code>RST</code>。这样一来就避免了 $TIME_-WAIT$ 阶段，但是如果在 $2MSL$ 时间内创建了该连接的分身，会导致来自刚被终止的连接上的旧的重复分节被不正确地传递到新的分身上；</li>
@@ -687,9 +687,9 @@
 <p>        设置为 $1$ 会关闭路径 $MTU$ 发现功能，使用<code>IPv6</code>的最小 $MTU$ 发送；设置为 $0$ 会对所有目的地执行路径 $MTU$ 发现；设置为 $-1$ 则路径 $MTU$ 发现仅对单播目的地执行，多播目的地使用最小 $MTU$ 。本选项默认值为 $-1$ 。</p>
 <h2 id="5-fcntl函数">5. <code>fcntl</code>函数</h2>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c" data-lang="c"><span class="line"><span class="cl"><span class="cp">#include</span> <span class="cpf">&lt;fcntl.h&gt;</span><span class="cp">
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1">// 成功则返回cmd命令的结果，出错返回-1
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kt">int</span> <span class="nf">fcntl</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">cmd</span><span class="p">,</span> <span class="p">...</span> <span class="cm">/* int arg */</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="nf">fcntl</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">int</span> <span class="n">cmd</span><span class="p">,</span> <span class="p">...</span> <span class="cm">/* int arg */</span><span class="p">);</span>
 </span></span></code></pre></div><p>        $fcntl$ 函数可以执行各种描述符控制操作。如下表所示：</p>
 <div class="div-table" data-fl-scrolls><table>
   <thead>
@@ -829,7 +829,7 @@
         </div>
         
         
-        <p class="copyright meta">Copyright © 2020–2025, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+        <p class="copyright meta">Copyright © 2020–2026, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
                 href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
         
     </div>
@@ -871,8 +871,11 @@
             all[i].SourceElement().parentNode.className += ' has-jax';
         }
     });
-</script>
-</main>
+
+    MathJax.Hub.Register.StartupHook("End Jax", () => {
+        return MathJax.Hub.setRenderer("HTML-CSS");
+    });
+</script></main>
 </body>
 
 </html>

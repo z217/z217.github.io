@@ -197,8 +197,8 @@
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">await_suspend</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">coroutin_handle</span><span class="o">&lt;</span><span class="n">promise_type</span><span class="o">&gt;</span> <span class="n">h</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="c1">// The coroutine is now suspended at the final-suspend point.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// Lookup its continuation in the promise and resume it.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">h</span><span class="p">.</span><span class="n">promise</span><span class="p">().</span><span class="n">continuation</span><span class="p">.</span><span class="n">resume</span><span class="p">();</span>
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// Lookup its continuation in the promise and resume it.
+</span></span></span><span class="line"><span class="cl">    <span class="n">h</span><span class="p">.</span><span class="n">promise</span><span class="p">().</span><span class="n">continuation</span><span class="p">.</span><span class="n">resume</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">await_resume</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{}</span>
@@ -223,12 +223,12 @@
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">await_suspend</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">continuation</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="c1">// Store the continuation in the task&#39;promise so that the final_suspend()
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// knows to resume this corotuine when the task completes.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">coro_</span><span class="p">.</span><span class="n">promise</span><span class="p">().</span><span class="n">continuation</span> <span class="o">=</span> <span class="n">continuation</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// knows to resume this corotuine when the task completes.
+</span></span></span><span class="line"><span class="cl">    <span class="n">coro_</span><span class="p">.</span><span class="n">promise</span><span class="p">().</span><span class="n">continuation</span> <span class="o">=</span> <span class="n">continuation</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="c1">// Then we resume the task&#39;s coroutine, which is currently suspended
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// at the initial-suspend-point (ie. at the open curly brace).
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">coro_</span><span class="p">.</span><span class="n">resume</span><span class="p">();</span>
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// at the initial-suspend-point (ie. at the open curly brace).
+</span></span></span><span class="line"><span class="cl">    <span class="n">coro_</span><span class="p">.</span><span class="n">resume</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="kt">void</span> <span class="nf">await_resume</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{}</span>
@@ -283,10 +283,12 @@
 <ol>
 <li>“启动函数” ( $ramp$ $function$ )，处理协程帧构造、参数拷贝，$promise$ 构造和生成返回值，以及</li>
 <li>“协程体” ( $coroutine$ $body$ )，包含用户编写的逻辑。</li>
-</ol></blockquote>
+</ol>
+</blockquote>
 <blockquote>
 <p>我使用 $\$resume$ 后缀表示协程的“协程体”部分。<br>
-后面的文章会详细介绍这种分割方式。</p></blockquote>
+后面的文章会详细介绍这种分割方式。</p>
+</blockquote>
 <p>        当 $loop_-synchronously\left(\right)$ $co_-await$ $completes_-synchronously\left(\right)$ 返回的 $task$ 时，当前协程会被挂起，调用 $task$::$awaiter$::$await_-suspend\left(\right)$。$await_-suspend\left(\right)$ 方法再调用 $completes_-synchronously\left(\right)$ 协程句柄的 $.resume\left(\right)$ 方法。<br>
         这会恢复 $completes_-synchronously\left(\right)$ 协程，后者会同步执行直到结束，并在最终挂起点处挂起，然后调用 $task$::$promise$::$final_-awaiter$::$await_-suspend\left(\right)$ 方法，后者会调用 $loop_-synchronously\left(\right)$ 协程句柄的 $.resume\left(\right)$ 方法。<br>
         接着当 $loop_-synchronously\left(\right)$ 协程恢复之后、$completes_-synchronously\left(\right)$ 返回的临时变量 $task$ 在分号处销毁时，我们再看看当前程序状态，栈 / 堆看起来就像这样：</p>
@@ -352,7 +354,7 @@
 </span></span><span class="line"><span class="cl">  <span class="n">promise_type</span><span class="o">&amp;</span> <span class="n">promise</span> <span class="o">=</span> <span class="n">h</span><span class="p">.</span><span class="n">promise</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">promise</span><span class="p">.</span><span class="n">ready</span><span class="p">.</span><span class="n">exchange</span><span class="p">(</span><span class="nb">true</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">memory_order_acq_rel</span><span class="p">))</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="c1">// The coroutine did not complete synchronously, resume it here.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">promise</span><span class="p">.</span><span class="n">continuation</span><span class="p">.</span><span class="n">resume</span><span class="p">();</span>
+</span></span></span><span class="line"><span class="cl">    <span class="n">promise</span><span class="p">.</span><span class="n">continuation</span><span class="p">.</span><span class="n">resume</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        可以在 $Compiler$ $Explorer$ 上查看修改后的例子：<a href="https://godbolt.org/z/7fm8Za">https://godbolt.org/z/7fm8Za</a>。注意这时当 $count$ $==$ $1'000'000$ 时，程序不再崩溃了。<br>
@@ -371,7 +373,7 @@
 </span></span><span class="line"><span class="cl"><span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;foo1 &#34;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">get_id</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// Suspend coroutine and reschedule onto thread-poll thread.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">co_await</span> <span class="n">tp</span><span class="p">.</span><span class="n">schedule</span><span class="p">();</span>
+</span></span></span><span class="line"><span class="cl">  <span class="k">co_await</span> <span class="n">tp</span><span class="p">.</span><span class="n">schedule</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;foo2 &#34;</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">get_id</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">&#34;</span><span class="se">\n</span><span class="s">&#34;</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span><span class="line"><span class="cl">
@@ -437,13 +439,13 @@
 </span></span><span class="line"><span class="cl">    <span class="k">using</span> <span class="n">handle_t</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;</span><span class="n">P</span><span class="o">&gt;</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="c1">// &lt;suspend-coroutine&gt;
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="k">auto</span> <span class="n">h</span> <span class="o">=</span> <span class="n">awaiter</span><span class="p">.</span><span class="n">await_suspend</span><span class="p">(</span><span class="n">handle_t</span><span class="o">::</span><span class="n">from_promise</span><span class="p">(</span><span class="n">p</span><span class="p">));</span>
 </span></span><span class="line"><span class="cl">    <span class="n">h</span><span class="p">.</span><span class="n">resume</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">    <span class="c1">// &lt;return-to-caller-or-resumer&gt;
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="c1">// &lt;resume-point&gt;
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="p">}</span>
+</span></span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">awaiter</span><span class="p">.</span><span class="n">await_resume</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
@@ -492,7 +494,8 @@
         然而，实现上会把 $.resume\left(\right)$ 执行放到<code>try/catch</code>块的外部。<br>
         我希望在另一篇文章讲协程怎么变成状态机的文章中讲解更多这方面的细节 ( 这篇文章已经够长了 )。</p>
 <blockquote>
-<p>注意，然而，当前<code>C++</code>规范对实现这个操作需求的描述不够清晰，并且只是一个非规范注释，暗示这可能是必须的。希望我们将来能够修复这个规范。</p></blockquote>
+<p>注意，然而，当前<code>C++</code>规范对实现这个操作需求的描述不够清晰，并且只是一个非规范注释，暗示这可能是必须的。希望我们将来能够修复这个规范。</p>
+</blockquote>
 <p>        那么我们知道了执行对称转移的协程已经满足了所有尾调用的需求。编译器会确保它永远是尾调用，无论是否开启了优化。<br>
         这意味着通过使用 $await_-suspend\left(\right)$ 返回 $std$::$coroutine_-handle$ 的风格，我们可以挂起当前协程，并在不消耗额外栈空间的前提下，把控制权转移给另一个协程。<br>
         这让我们可以编写任意深度的相互递归调用代码，不需要担心栈溢出。<br>
@@ -508,39 +511,39 @@
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">task</span><span class="o">::</span><span class="n">awaiter</span><span class="o">::</span><span class="n">await_suspend</span><span class="p">(</span>
 </span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">continuation</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// Store the continuation in the task&#39;s promise so that the final_suspend()
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// knows to resume this coroutine when the task completes.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">coro_</span><span class="p">.</span><span class="n">promise</span><span class="p">().</span><span class="n">continuation</span> <span class="o">=</span> <span class="n">continuation</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// knows to resume this coroutine when the task completes.
+</span></span></span><span class="line"><span class="cl">  <span class="n">coro_</span><span class="p">.</span><span class="n">promise</span><span class="p">().</span><span class="n">continuation</span> <span class="o">=</span> <span class="n">continuation</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// Then we resume the task&#39;s coroutine, which is currently suspended
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// at the initial-suspend-point (ie. at the open curly brace).
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">coro_</span><span class="p">.</span><span class="n">resume</span><span class="p">();</span>
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// at the initial-suspend-point (ie. at the open curly brace).
+</span></span></span><span class="line"><span class="cl">  <span class="n">coro_</span><span class="p">.</span><span class="n">resume</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        改成：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">task</span><span class="o">::</span><span class="n">awaiter</span><span class="o">::</span><span class="n">await_suspend</span><span class="p">(</span>
 </span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">continuation</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// Store the continuation in the task&#39;s promise so that the final_suspend()
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// knows to resume this coroutine when the task completes.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">coro_</span><span class="p">.</span><span class="n">promise</span><span class="p">().</span><span class="n">continuation</span> <span class="o">=</span> <span class="n">continuation</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// knows to resume this coroutine when the task completes.
+</span></span></span><span class="line"><span class="cl">  <span class="n">coro_</span><span class="p">.</span><span class="n">promise</span><span class="p">().</span><span class="n">continuation</span> <span class="o">=</span> <span class="n">continuation</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// Then we tail-resume the task&#39;s coroutine, which is currently suspended
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// at the initial-suspend-point (ie. at the open curly brace), by returning
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// its handle from await_suspend().
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">return</span> <span class="n">coro_</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// at the initial-suspend-point (ie. at the open curly brace), by returning
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// its handle from await_suspend().
+</span></span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">coro_</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        同时为了指明返回路径，我们需要把 $task$::$promise_-type$::$final_-awaiter$ 方法从：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="kt">void</span> <span class="n">task</span><span class="o">::</span><span class="n">promise_type</span><span class="o">::</span><span class="n">final_awaiter</span><span class="o">::</span><span class="n">await_suspend</span><span class="p">(</span>
 </span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;</span><span class="n">promise_type</span><span class="o">&gt;</span> <span class="n">h</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// The coroutine is now suspended at the final-suspend point.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// Lookup its continuation in the promise and resume it.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">h</span><span class="p">.</span><span class="n">promise</span><span class="p">().</span><span class="n">continuation</span><span class="p">.</span><span class="n">resume</span><span class="p">();</span>
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// Lookup its continuation in the promise and resume it.
+</span></span></span><span class="line"><span class="cl">  <span class="n">h</span><span class="p">.</span><span class="n">promise</span><span class="p">().</span><span class="n">continuation</span><span class="p">.</span><span class="n">resume</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        改成：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">task</span><span class="o">::</span><span class="n">promise_type</span><span class="o">::</span><span class="n">final_awaiter</span><span class="o">::</span><span class="n">await_suspend</span><span class="p">(</span>
 </span></span><span class="line"><span class="cl">    <span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;</span><span class="n">promise_type</span><span class="o">&gt;</span> <span class="n">h</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// The coroutine is now suspended at the final-suspend point.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// Lookup its continuation in the promise and resume it symmetrically.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">return</span> <span class="n">h</span><span class="p">.</span><span class="n">promise</span><span class="p">().</span><span class="n">continuation</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// Lookup its continuation in the promise and resume it symmetrically.
+</span></span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">h</span><span class="p">.</span><span class="n">promise</span><span class="p">().</span><span class="n">continuation</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        这样我们就有了一个不需要担心栈溢出问题的 $task$ 实现，并且 $await_-suspend$ 是<code>void</code>返回的，没有<code>bool</code>返回带来的不确定恢复上下文问题。</p>
 <h3 id="观察栈">观察栈</h3>
@@ -681,29 +684,29 @@
 </span></span><span class="line"><span class="cl">  <span class="k">this</span><span class="o">-&gt;</span><span class="n">coro</span> <span class="o">=</span> <span class="n">h</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">try_start</span><span class="p">(</span><span class="k">this</span><span class="p">))</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="c1">// Operation will complete asynchronously.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// Return true to transfer execution to caller of
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// coroutine_handle::resume().
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// Return true to transfer execution to caller of
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// coroutine_handle::resume().
+</span></span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// Operation completed asynchronously.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// Return false to immediately resume the current coroutine.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// Return false to immediately resume the current coroutine.
+</span></span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        可以改成对称转移格式的：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c++" data-lang="c++"><span class="line"><span class="cl"><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">my_awaiter</span><span class="o">::</span><span class="n">await_suspend</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">h</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="k">this</span><span class="o">-&gt;</span><span class="n">coro</span> <span class="o">=</span> <span class="n">h</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="n">try_start</span><span class="p">(</span><span class="k">this</span><span class="p">))</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="c1">// Operation will complete asynchronously.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// Return std::noop_coroutine() to transfer execution to caller of
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// coroutine_handle::resume().
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">noop_coroutine</span><span class="p">();</span>
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// Return std::noop_coroutine() to transfer execution to caller of
+</span></span></span><span class="line"><span class="cl">    <span class="c1">// coroutine_handle::resume().
+</span></span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">noop_coroutine</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// Operation completed asynchronously.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// Return current coroutine&#39;s handle to immediately resume
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// the current coroutine.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="k">return</span> <span class="n">h</span><span class="p">;</span>
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// Return current coroutine&#39;s handle to immediately resume
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// the current coroutine.
+</span></span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="n">h</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><h3 id="为什么有三种风格">为什么有三种风格？</h3>
 <p>        那么为什么在有对称转移风格的前提下，我们还继续使用<code>void</code>和<code>bool</code>返回风格的 $await_-suspend\left(\right)$ 呢？<br>
@@ -720,8 +723,8 @@
 </span></span><span class="line"><span class="cl">  <span class="kt">bool</span> <span class="nf">await_ready</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">  <span class="c1">// Compiler should in-theory be able to optimise this to the same
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="c1">// as the bool-returning version, but currently don&#39;t do this optimisation.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">await_suspend</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">h</span><span class="p">)</span> <span class="p">{</span>
+</span></span></span><span class="line"><span class="cl">  <span class="c1">// as the bool-returning version, but currently don&#39;t do this optimisation.
+</span></span></span><span class="line"><span class="cl">  <span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">await_suspend</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">h</span><span class="p">)</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">try_start</span><span class="p">(</span><span class="n">h</span><span class="p">))</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">      <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">noop_coroutine</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl">    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
@@ -733,7 +736,7 @@
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">private</span><span class="o">:</span>
 </span></span><span class="line"><span class="cl">  <span class="c1">// This method is defined out-of-line in a seperate translation unit.
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  <span class="kt">bool</span> <span class="n">try_start</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">h</span><span class="p">);</span>
+</span></span></span><span class="line"><span class="cl">  <span class="kt">bool</span> <span class="n">try_start</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">coroutine_handle</span><span class="o">&lt;&gt;</span> <span class="n">h</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><p>        然而，现在的编译器 ( 比如<code>Clang 10</code> ) 还不能把这种情况优化成和<code>bool</code>返回版本一样高效的代码。话虽如此，除非你编写了一个非常紧凑的循环，否则可能不会注意到它们的差异。<br>
         到目前为止，通用的规则是：</p>
@@ -802,7 +805,7 @@
         </div>
         
         
-        <p class="copyright meta">Copyright © 2020–2025, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
+        <p class="copyright meta">Copyright © 2020–2026, z217 and the hugo authors, all rights reserved. Theme: <a target="_blank"
                 href="https://github.com/ahmedsaadxyzz/npq-hugo">npq-hugo</a></p>
         
     </div>
@@ -844,8 +847,11 @@
             all[i].SourceElement().parentNode.className += ' has-jax';
         }
     });
-</script>
-</main>
+
+    MathJax.Hub.Register.StartupHook("End Jax", () => {
+        return MathJax.Hub.setRenderer("HTML-CSS");
+    });
+</script></main>
 </body>
 
 </html>
